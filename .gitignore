@@ -1,0 +1,25 @@
+[Bb]uild/
+cmake-build-*
+
+# Jetbrains
+.idea
+
+# VSCode
+compile_commands.json
+.cache
+.vscode
+
+# CMake
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+install_manifest.txt
+
+# other
+imgui.ini
+
+# runtime files
+Runtime/*
