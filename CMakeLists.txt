@@ -3,7 +3,7 @@ project(TurboVulcan VERSION 0.0.1)
 
 message("Build type: ${CMAKE_BUILD_TYPE}")
 
-# Include CMake as module
+# Include CMake directory as module
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
 # Include Global settings
@@ -17,3 +17,6 @@ add_subdirectory(Engine)
 
 # Game Project
 add_subdirectory(Project)
+
+# Shaders
+add_subdirectory(Shaders)

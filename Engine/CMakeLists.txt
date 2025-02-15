@@ -15,10 +15,22 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC pch.h)
 
 target_include_directories(${PROJECT_NAME} PUBLIC Public)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
+target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
 
-# Might be problem when building on Windows
-target_link_libraries(${PROJECT_NAME} PUBLIC stdc++)
+find_package(spdlog REQUIRED)
+target_link_libraries(${PROJECT_NAME} INTERFACE spdlog::spdlog spdlog::spdlog_header_only)
+
+find_package(SDL3 REQUIRED)
+target_link_libraries(${PROJECT_NAME} INTERFACE SDL3)
+
+find_package(glm REQUIRED)
+target_link_libraries(${PROJECT_NAME} INTERFACE glm::glm)
+
+find_package(Vulkan REQUIRED)
+target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES})
+
+add_dependencies(${PROJECT_NAME} TurboVulcan_Shaders)
 
 
 

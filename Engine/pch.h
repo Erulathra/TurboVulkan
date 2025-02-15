@@ -9,6 +9,3 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
-
-// TV common includes
-#include "LoggingMacros.h"

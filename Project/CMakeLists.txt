@@ -30,3 +30,10 @@ add_custom_command(
         ${CMAKE_SOURCE_DIR}/Runtime
         ${CMAKE_CURRENT_BINARY_DIR}/Runtime
 )
+
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_BINARY_DIR}/Shaders/Shaders
+        ${CMAKE_CURRENT_BINARY_DIR}/Shaders
+)
