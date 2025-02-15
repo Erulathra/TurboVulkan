@@ -17,14 +17,16 @@
 #define LOG_CRITICAL 4
 
 // Log Categories, you should specify verbosity as value
-#define LOG_TEMP 1
+#define LOG_ENGINE 0
+#define LOG_WINDOW 0
+#define LOG_TEMP 0
 
-#define TV_MIN(a,b) (((a)<(b))?(a):(b))
-#define TV_MAX(a,b) (((a)>(b))?(a):(b))
+#define TURBO_MIN(a,b) (((a)<(b))?(a):(b))
+#define TURBO_MAX(a,b) (((a)>(b))?(a):(b))
 
-#define TV_LOG(CATEGORY, VERBOSITY, ...)                                                        \
+#define TURBO_LOG(CATEGORY, VERBOSITY, ...)                                                        \
 {                                                                                               \
-        constexpr unsigned int FinalVerbosity = TV_MAX(CATEGORY, VERBOSITY);                    \
+        constexpr unsigned int FinalVerbosity = TURBO_MAX(CATEGORY, VERBOSITY);                    \
         if constexpr (FinalVerbosity >= LOG_VERBOSITY)                                          \
         {                                                                                       \
             if constexpr (FinalVerbosity == LOG_DISPLAY) SPDLOG_DEBUG(__VA_ARGS__);             \

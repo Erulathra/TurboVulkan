@@ -5,6 +5,7 @@ There will be a Game engine written in C++ using Vulcan.
 ## Dependencies (Fedora)
 
 ### Libraries
+
 * `spdlog-devel`
 * `sdl3-devel`
 * `glm-devel`
@@ -13,6 +14,7 @@ There will be a Game engine written in C++ using Vulcan.
 * `vulkan-loader-devel`
 
 ### Tools
+
 * `glslc`
 
 

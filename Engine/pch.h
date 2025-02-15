@@ -9,3 +9,6 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+
+// Internal headers
+#include "LoggingMacros.h"
