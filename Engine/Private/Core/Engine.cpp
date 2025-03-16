@@ -1,5 +1,6 @@
 #include "Core/Engine.h"
 
+#include "Core/VulkanRHI.h"
 #include "Core/Window.h"
 
 namespace Turbo {
@@ -34,8 +35,21 @@ namespace Turbo {
 
 	int32_t Engine::Start(int argc, char* argv[])
 	{
-		Window::CreateMainWindow();
-		auto WindowHandle = Window::GetMain()->OnWindowEvent.append([this](EWindowEvent WindowEvent){HandleMainWindowEvents(WindowEvent);});
+		Window::InitLibrary();
+		Window::InitForVulkan();
+
+		if (!Window::CreateMainWindow())
+		{
+			return static_cast<int32_t>(EExitCode::WindowCreationError);
+		}
+
+		Window::GetMain()->OnWindowEvent.append(
+		[this](EWindowEvent WindowEvent)
+		{
+			HandleMainWindowEvents(WindowEvent);
+		});
+
+		VulkanRHI::Init();
 
 		GameThreadLoop();
 
@@ -68,8 +82,9 @@ namespace Turbo {
 
 	void Engine::End()
 	{
-		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Exiting");
+		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Begin exit sequence");
 
+		VulkanRHI::Destroy();
 		Window::DestroyMainWindow();
 	}
 

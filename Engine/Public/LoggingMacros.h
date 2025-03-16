@@ -19,6 +19,7 @@
 // Log Categories, you should specify verbosity as value
 #define LOG_ENGINE 0
 #define LOG_WINDOW 0
+#define LOG_RHI 0
 #define LOG_TEMP 0
 
 #define TURBO_MIN(a,b) (((a)<(b))?(a):(b))

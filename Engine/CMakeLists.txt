@@ -1,4 +1,4 @@
-project(TurboVulcan_Engine VERSION 0.0.1)
+project(TurboVulcan_Engine VERSION 0.1.0)
 
 # Add private files
 file(GLOB_RECURSE PRIVATE_FILES Private/*.cpp)
@@ -32,8 +32,11 @@ find_package(Vulkan REQUIRED)
 target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES})
 
-
 add_dependencies(${PROJECT_NAME} TurboVulcan_Shaders)
+
+add_compile_definitions(TURBO_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
+add_compile_definitions(TURBO_VERSION_MINOR=${PROJECT_VERSION_MINOR})
+add_compile_definitions(TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 
 
 

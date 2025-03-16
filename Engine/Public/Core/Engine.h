@@ -8,6 +8,7 @@ namespace Turbo
 	enum class EExitCode : int32_t
 	{
 		Success = 0,
+		WindowCreationError,
 	};
 
 	class Engine
