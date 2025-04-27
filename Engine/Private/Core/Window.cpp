@@ -2,10 +2,6 @@
 
 #include "SDL3/SDL_vulkan.h"
 
-#define DEFAULT_WINDOW_SIZE_X 640
-#define DEFAULT_WINDOW_SIZE_Y 480
-#define DEFAULT_WINDOW_NAME "Turbo Vulkan 🗻"
-
 namespace Turbo {
 	std::unique_ptr<Window> Window::MainWindow = nullptr;
 
@@ -19,13 +15,16 @@ namespace Turbo {
 
 		SDL_DestroyWindow(SDLContext.Window);
 
-		LogErrors();
+		LogError();
 	}
 
-	void Window::InitLibrary()
+	void Window::InitBackend()
 	{
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing SDL");
-		SDL_Init(SDL_INIT_VIDEO);
+		if (!SDL_Init(SDL_INIT_VIDEO))
+		{
+			LogError();
+		}
 	}
 
 	bool Window::CreateMainWindow()
@@ -45,11 +44,11 @@ namespace Turbo {
 	bool Window::InitWindow()
 	{
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing Window");
-		SDLContext.Window = SDL_CreateWindow(DEFAULT_WINDOW_NAME, DEFAULT_WINDOW_SIZE_X, DEFAULT_WINDOW_SIZE_Y, SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+		SDLContext.Window = SDL_CreateWindow(WindowDefaultValues::Name.c_str(), WindowDefaultValues::SizeX, WindowDefaultValues::SizeY, SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY);
 		if (!SDLContext.Window)
 		{
 			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "SDL window creation error. See bellow logs for details");
-			LogErrors();
+			LogError();
 
 			return false;
 		}
@@ -57,14 +56,9 @@ namespace Turbo {
 		return true;
 	}
 
-	void Window::LogErrors()
+	void Window::LogError()
 	{
-		const char* Error = SDL_GetError();
-		while (strlen(Error) > 0)
-		{
-			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "SDL_ERROR: {}", Error);
-			Error = SDL_GetError();
-		}
+		TURBO_LOG(LOG_WINDOW, LOG_ERROR, "SDL_ERROR: {}", SDL_GetError());
 	}
 
 	void Window::PollWindowEventsAndErrors()
@@ -85,7 +79,7 @@ namespace Turbo {
 	{
 		if (!SDL_Vulkan_LoadLibrary(nullptr))
 		{
-			LogErrors();
+			LogError();
 		}
 	}
 
@@ -98,11 +92,11 @@ namespace Turbo {
 	{
 		std::vector<const char*> Result;
 
-		uint32_t ExtensionsCount;
+		uint32 ExtensionsCount;
 		char const* const* ExtensionNames = SDL_Vulkan_GetInstanceExtensions(&ExtensionsCount);
 		if (ExtensionNames == nullptr)
 		{
-			LogErrors();
+			LogError();
 			return Result;
 		}
 
@@ -119,7 +113,7 @@ namespace Turbo {
 		if (!SDL_Vulkan_CreateSurface(SDLContext.Window, VulkanInstance, nullptr, &OutVulkanSurface))
 		{
 			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "Window Vulkan surface creation error. Check bellow logs:");
-			LogErrors();
+			LogError();
 
 			return false;
 		}

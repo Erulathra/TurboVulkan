@@ -51,9 +51,18 @@ namespace Turbo {
 		const VkResult CreationResult = vkCreateInstance(&CreateInfo, nullptr, &VulkanContext.Instance);
 		if (CreationResult != VK_SUCCESS)
 		{
-			TURBO_LOG(LOG_RHI, LOG_ERROR, "VKInstance creation failed. (Error: {})", static_cast<int32_t>(CreationResult));
+			TURBO_LOG(LOG_RHI, LOG_ERROR, "VKInstance creation failed. (Error: {})", static_cast<int32>(CreationResult));
 			return;
 		}
+
+		EnumerateVulkanExtensions();
+
+		std::stringstream ExtensionsStream;
+		for (VkExtensionProperties Extension : VulkanContext.ExtensionProperties)
+		{
+			ExtensionsStream << "\t" << Extension.extensionName << "\n";
+		}
+		TURBO_LOG(LOG_RHI, LOG_INFO, "Supported Extensions: \n {}", ExtensionsStream.str());
 	}
 
 	void VulkanRHI::DestroyVulkanInstance()
@@ -61,7 +70,21 @@ namespace Turbo {
 		if (VulkanContext.Instance)
 		{
 			TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VKInstance...")
-            vkDestroyInstance(VulkanContext.Instance, nullptr);
+			vkDestroyInstance(VulkanContext.Instance, nullptr);
+		}
+	}
+
+	void VulkanRHI::EnumerateVulkanExtensions()
+	{
+		TURBO_CHECK(VulkanContext.Instance);
+
+		uint32 ExtensionsNum;
+		vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, nullptr);
+		VulkanContext.ExtensionProperties.resize(ExtensionsNum);
+		uint32 Result = vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, VulkanContext.ExtensionProperties.data());
+		if (Result != VK_SUCCESS)
+		{
+			TURBO_LOG(LOG_RHI, LOG_ERROR, "Vulkan extensions enumeration error: {0:X}", Result)
 		}
 	}
 } // Turbo

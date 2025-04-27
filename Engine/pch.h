@@ -13,3 +13,4 @@
 // Internal headers
 #include "CommonMacros.h"
 #include "LoggingMacros.h"
+#include "CommonTypeDefs.h"

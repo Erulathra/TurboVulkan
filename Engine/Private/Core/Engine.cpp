@@ -33,9 +33,12 @@ namespace Turbo {
 		return Instance.get();
 	}
 
-	int32_t Engine::Start(int argc, char* argv[])
+	int32_t Engine::Start(int32 argc, char* argv[])
 	{
-		Window::InitLibrary();
+		// TODO: Move me elsewhere
+		spdlog::set_level(spdlog::level::debug);
+
+		Window::InitBackend();
 		Window::InitForVulkan();
 
 		if (!Window::CreateMainWindow())

@@ -1,11 +1,12 @@
 #pragma once
 
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 #include "spdlog/spdlog.h"
 
 // Log verbosity
 
 #if DEBUG
-#define LOG_VERBOSITY 0
+#define LOG_VERBOSITY 1
 #else
 #define LOG_VERBOSITY 3
 #endif
@@ -24,6 +25,7 @@
 
 #define TURBO_MIN(a,b) (((a)<(b))?(a):(b))
 #define TURBO_MAX(a,b) (((a)>(b))?(a):(b))
+
 
 #define TURBO_LOG(CATEGORY, VERBOSITY, ...)                                                        \
 {                                                                                               \

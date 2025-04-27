@@ -13,10 +13,23 @@ namespace Turbo
 		FocusGained,
 	};
 
+	// TODO: Replace that with config
+	namespace WindowDefaultValues
+	{
+		static constexpr int32 SizeX = 640;
+		static constexpr int32 SizeY = 480;
+		static constexpr std::string Name = "Turbo Vulkan";
+	}
+
 	using WindowEventDelegate = eventpp::CallbackList<void(EWindowEvent)>;
 
 	class Window
 	{
+		/** Constexpr */
+	public:
+
+		/** Statics */
+
 		/** Constructors */
 	private:
 		explicit Window();
@@ -28,7 +41,7 @@ namespace Turbo
 	public:
 		inline static Window* GetMain() { return MainWindow.get(); }
 
-		static void InitLibrary();
+		static void InitBackend();
 
 		static bool CreateMainWindow();
 		static void DestroyMainWindow();
@@ -56,7 +69,7 @@ namespace Turbo
 	private:
 		bool InitWindow();
 
-		static void LogErrors();
+		static void LogError();
 
 		/** Static properties */
 	private:

@@ -21,12 +21,17 @@ namespace Turbo
 		void DestroyVulkanInstance();
 
 	private:
+		void EnumerateVulkanExtensions();
+
+	private:
 		static std::unique_ptr<VulkanRHI> Instance;
 
 	private:
 		struct
 		{
 			VkInstance Instance = VK_NULL_HANDLE;
+
+			std::vector<VkExtensionProperties> ExtensionProperties;
 		} VulkanContext;
 	};
 
