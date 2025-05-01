@@ -18,10 +18,10 @@
 #define LOG_CRITICAL 4
 
 // Log Categories, you should specify verbosity as value
-#define LOG_ENGINE 1
-#define LOG_WINDOW 0
-#define LOG_RHI 1
-#define LOG_TEMP 0
+#define LOG_ENGINE	LOG_INFO
+#define LOG_WINDOW	LOG_DISPLAY
+#define LOG_RHI		LOG_INFO
+#define LOG_TEMP	LOG_DISPLAY
 
 #define TURBO_MIN(a,b) (((a)<(b))?(a):(b))
 #define TURBO_MAX(a,b) (((a)>(b))?(a):(b))
