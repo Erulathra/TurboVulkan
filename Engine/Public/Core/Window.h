@@ -27,7 +27,6 @@ namespace Turbo
 	{
 		/** Constexpr */
 	public:
-
 		/** Statics */
 
 		/** Constructors */
@@ -81,6 +80,5 @@ namespace Turbo
 		{
 			SDL_Window* Window = nullptr;
 		} SDLContext;
-
 	};
 } // Turbo

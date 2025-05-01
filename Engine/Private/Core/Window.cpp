@@ -2,7 +2,8 @@
 
 #include "SDL3/SDL_vulkan.h"
 
-namespace Turbo {
+namespace Turbo
+{
 	std::unique_ptr<Window> Window::MainWindow = nullptr;
 
 	Window::Window()
@@ -14,8 +15,6 @@ namespace Turbo {
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Destroying window");
 
 		SDL_DestroyWindow(SDLContext.Window);
-
-		LogError();
 	}
 
 	void Window::InitBackend()
@@ -44,7 +43,8 @@ namespace Turbo {
 	bool Window::InitWindow()
 	{
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing Window");
-		SDLContext.Window = SDL_CreateWindow(WindowDefaultValues::Name.c_str(), WindowDefaultValues::SizeX, WindowDefaultValues::SizeY, SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+		SDLContext.Window = SDL_CreateWindow(WindowDefaultValues::Name.c_str(), WindowDefaultValues::SizeX, WindowDefaultValues::SizeY,
+		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY);
 		if (!SDLContext.Window)
 		{
 			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "SDL window creation error. See bellow logs for details");
@@ -120,5 +120,4 @@ namespace Turbo {
 
 		return true;
 	}
-
 } // Turbo

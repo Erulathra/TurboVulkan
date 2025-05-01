@@ -3,7 +3,8 @@
 #include "Core/VulkanRHI.h"
 #include "Core/Window.h"
 
-namespace Turbo {
+namespace Turbo
+{
 	std::unique_ptr<Engine> Engine::Instance = nullptr;
 
 	Engine::Engine()
@@ -47,10 +48,10 @@ namespace Turbo {
 		}
 
 		Window::GetMain()->OnWindowEvent.append(
-		[this](EWindowEvent WindowEvent)
-		{
-			HandleMainWindowEvents(WindowEvent);
-		});
+			[this](EWindowEvent WindowEvent)
+			{
+				HandleMainWindowEvents(WindowEvent);
+			});
 
 		VulkanRHI::Init();
 
