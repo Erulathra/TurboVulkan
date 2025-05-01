@@ -86,7 +86,7 @@ namespace Turbo
         {
             ExtensionsStream << "\t" << Extension.extensionName << "\n";
         }
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Supported Extensions: \n {}", ExtensionsStream.str());
+        TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Supported Extensions: \n {}", ExtensionsStream.str());
     }
 
     void VulkanRHI::DestroyVulkanInstance()

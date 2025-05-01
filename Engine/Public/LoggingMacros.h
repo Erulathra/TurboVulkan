@@ -6,7 +6,7 @@
 // Log verbosity
 
 #if DEBUG
-#define LOG_VERBOSITY 1
+#define LOG_VERBOSITY 0
 #else
 #define LOG_VERBOSITY 3
 #endif
@@ -18,25 +18,23 @@
 #define LOG_CRITICAL 4
 
 // Log Categories, you should specify verbosity as value
-#define LOG_ENGINE 0
+#define LOG_ENGINE 1
 #define LOG_WINDOW 0
-#define LOG_RHI 0
+#define LOG_RHI 1
 #define LOG_TEMP 0
 
 #define TURBO_MIN(a,b) (((a)<(b))?(a):(b))
 #define TURBO_MAX(a,b) (((a)>(b))?(a):(b))
 
-
-#define TURBO_LOG(CATEGORY, VERBOSITY, ...)                                                        \
+#define TURBO_LOG(CATEGORY, VERBOSITY, ...)                                                     \
 {                                                                                               \
-        constexpr unsigned int FinalVerbosity = TURBO_MAX(CATEGORY, VERBOSITY);                    \
-        if constexpr (FinalVerbosity >= LOG_VERBOSITY)                                          \
+        if constexpr (VERBOSITY >= LOG_VERBOSITY && VERBOSITY >= CATEGORY)                      \
         {                                                                                       \
-            if constexpr (FinalVerbosity == LOG_DISPLAY) SPDLOG_DEBUG(__VA_ARGS__);             \
-            else if constexpr (FinalVerbosity == LOG_INFO) SPDLOG_INFO(__VA_ARGS__);            \
-            else if constexpr (FinalVerbosity == LOG_WARN) SPDLOG_WARN(__VA_ARGS__);            \
-            else if constexpr (FinalVerbosity == LOG_ERROR) SPDLOG_ERROR(__VA_ARGS__);          \
-            else if constexpr (FinalVerbosity == LOG_CRITICAL) SPDLOG_CRITICAL(__VA_ARGS__);    \
+            if constexpr (VERBOSITY == LOG_DISPLAY) SPDLOG_DEBUG(__VA_ARGS__);             \
+            else if constexpr (VERBOSITY == LOG_INFO) SPDLOG_INFO(__VA_ARGS__);            \
+            else if constexpr (VERBOSITY == LOG_WARN) SPDLOG_WARN(__VA_ARGS__);            \
+            else if constexpr (VERBOSITY == LOG_ERROR) SPDLOG_ERROR(__VA_ARGS__);          \
+            else if constexpr (VERBOSITY == LOG_CRITICAL) SPDLOG_CRITICAL(__VA_ARGS__);    \
         }                                                                                       \
 }
 
