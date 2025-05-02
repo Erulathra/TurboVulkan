@@ -68,7 +68,7 @@ namespace Turbo
         CreateInfo.ppEnabledExtensionNames = ExtensionNames.data();
 
         TURBO_LOG(LOG_RHI, LOG_INFO, "Creating VKInstance.")
-        const VkResult CreationResult = vkCreateInstance(&CreateInfo, nullptr, &VulkanContext.Instance);
+        const VkResult CreationResult = vkCreateInstance(&CreateInfo, nullptr, &VulkanInstance);
         if (CreationResult != VK_SUCCESS)
         {
             TURBO_LOG(LOG_RHI, LOG_ERROR, "VKInstance creation failed. (Error: {})", static_cast<int32>(CreationResult));
@@ -82,7 +82,7 @@ namespace Turbo
         EnumerateVulkanExtensions();
 
         std::stringstream ExtensionsStream;
-        for (const VkExtensionProperties& Extension : VulkanContext.ExtensionProperties)
+        for (const VkExtensionProperties& Extension : ExtensionProperties)
         {
             ExtensionsStream << "\t" << Extension.extensionName << "\n";
         }
@@ -91,25 +91,25 @@ namespace Turbo
 
     void VulkanRHI::DestroyVulkanInstance()
     {
-        if (VulkanContext.Instance)
+        if (VulkanInstance)
         {
 #if WITH_VALIDATION_LAYERS
             DestroyValidationLayersCallbacks();
 #endif // WITH_VALIDATION_LAYERS
 
             TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VKInstance...")
-            vkDestroyInstance(VulkanContext.Instance, nullptr);
+            vkDestroyInstance(VulkanInstance, nullptr);
         }
     }
 
     void VulkanRHI::EnumerateVulkanExtensions()
     {
-        TURBO_CHECK(VulkanContext.Instance);
+        TURBO_CHECK(VulkanInstance);
 
         uint32 ExtensionsNum;
         vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, nullptr);
-        VulkanContext.ExtensionProperties.resize(ExtensionsNum);
-        uint32 Result = vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, VulkanContext.ExtensionProperties.data());
+        ExtensionProperties.resize(ExtensionsNum);
+        uint32 Result = vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, ExtensionProperties.data());
         if (Result != VK_SUCCESS)
         {
             TURBO_LOG(LOG_RHI, LOG_ERROR, "Vulkan extensions enumeration error: {0:X}", Result);
@@ -170,10 +170,10 @@ namespace Turbo
         CreateInfo.pUserData = nullptr;
 
         auto vkCreateDebugUtilsMessengerEXT_FuncPtr =
-            reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr( VulkanContext.Instance, vkCreateDebugUtilsMessengerEXT_FuncName));
+            reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr( VulkanInstance, vkCreateDebugUtilsMessengerEXT_FuncName));
         if (vkCreateDebugUtilsMessengerEXT_FuncPtr)
         {
-            vkCreateDebugUtilsMessengerEXT_FuncPtr(VulkanContext.Instance, &CreateInfo, nullptr, &VulkanContext.DebugMessengerHandle);
+            vkCreateDebugUtilsMessengerEXT_FuncPtr(VulkanInstance, &CreateInfo, nullptr, &DebugMessengerHandle);
         }
         else
         {
@@ -183,17 +183,17 @@ namespace Turbo
 
     void VulkanRHI::DestroyValidationLayersCallbacks()
     {
-        if (VulkanContext.DebugMessengerHandle)
+        if (DebugMessengerHandle)
         {
             TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying validation layers callback.");
 
             auto vkDestroyDebugUtilsMessengerEXT_FuncPtr =
-                reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(VulkanContext.Instance, vkDestroyDebugUtilsMessengerEXT_FuncName));
+                reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(VulkanInstance, vkDestroyDebugUtilsMessengerEXT_FuncName));
 
             if (vkDestroyDebugUtilsMessengerEXT_FuncPtr)
             {
-                vkDestroyDebugUtilsMessengerEXT_FuncPtr(VulkanContext.Instance, VulkanContext.DebugMessengerHandle, nullptr);
-                VulkanContext.DebugMessengerHandle = nullptr;
+                vkDestroyDebugUtilsMessengerEXT_FuncPtr(VulkanInstance, DebugMessengerHandle, nullptr);
+                DebugMessengerHandle = nullptr;
             }
             else
             {
