@@ -204,30 +204,30 @@ namespace Turbo
 
 
     VkBool32 VulkanRHI::HandleValidationLayerCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData)
+        VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT MessageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
+        void* UserData)
     {
         auto LogVerbosity = LOG_ERROR;
-        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+        if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
         {
             LogVerbosity = LOG_DISPLAY;
         }
-        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+        else if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
         {
             LogVerbosity = LOG_INFO;
         }
-        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        else if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
             LogVerbosity = LOG_WARN;
         }
-        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+        else if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
             LogVerbosity = LOG_ERROR;
         }
 
-        TURBO_LOG(LOG_RHI, LOG_ERROR, "Vulkan Error: {}", pCallbackData->pMessage)
+        TURBO_LOG(LOG_RHI, LOG_ERROR, "Vulkan Error: {}", CallbackData->pMessage)
 
         return VK_FALSE;
     }

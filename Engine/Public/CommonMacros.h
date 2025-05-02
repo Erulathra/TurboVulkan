@@ -2,6 +2,11 @@
 
 #include "DebugTrap.h"
 
+// Code assumes 64bit platform
+#if !WITH_TURBO_64
+#error C++ compiler required.
+#endif // !WITH_TURBO_64
+
 // Version macros
 #define MAKE_VERSION(Major, Minor, Patch) \
     ((((uint32_t)(Major)) << 22U) | (((uint32_t)(Minor)) << 12U) | ((uint32_t)(Patch)))
@@ -41,4 +46,3 @@ namespace Turbo
 // MATH
 #define TURBO_SMALL_NUMBER 1e-5f;
 #define TURBO_VERY_SMALL_NUMBER 1e-8f;
-

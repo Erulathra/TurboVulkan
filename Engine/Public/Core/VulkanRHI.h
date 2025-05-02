@@ -41,19 +41,20 @@ namespace Turbo
 		void DestroyValidationLayersCallbacks();
 
 		static VKAPI_ATTR VkBool32 VKAPI_CALL HandleValidationLayerCallback(
-			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-			VkDebugUtilsMessageTypeFlagsEXT messageType,
-			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-			void* pUserData);
+			VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
+			VkDebugUtilsMessageTypeFlagsEXT MessageType,
+			const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
+			void* UserData);
 #endif // WITH_VALIDATION_LAYERS
 
 	private:
 		static std::unique_ptr<VulkanRHI> Instance;
 
 	private:
-		VkInstance VulkanInstance = VK_NULL_HANDLE;
-
+		VkInstance VulkanInstance = nullptr;
 		std::vector<VkExtensionProperties> ExtensionProperties;
+
+		VkPhysicalDevice PhysicalDevice = nullptr;
 
 #if WITH_VALIDATION_LAYERS
 		bool bValidationLayersEnabled = false;
