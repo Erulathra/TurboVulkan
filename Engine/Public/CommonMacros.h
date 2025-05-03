@@ -3,7 +3,7 @@
 #include "DebugTrap.h"
 
 // Code assumes 64bit platform
-#if !WITH_TURBO_64
+#if !defined(WITH_TURBO_64) || !WITH_TURBO_64
 #error C++ compiler required.
 #endif // !WITH_TURBO_64
 

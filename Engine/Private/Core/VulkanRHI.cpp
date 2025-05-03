@@ -1,5 +1,6 @@
 #include "Core/VulkanRHI.h"
 
+#include "Core/Engine.h"
 #include "Core/Window.h"
 
 namespace Turbo
@@ -20,6 +21,7 @@ namespace Turbo
         Instance = std::unique_ptr<VulkanRHI>(new VulkanRHI());
 
         Instance->CreateVulkanInstance();
+        Instance->AcquirePhysicalDevice();
     }
 
     void VulkanRHI::Destroy()
@@ -72,6 +74,7 @@ namespace Turbo
         if (CreationResult != VK_SUCCESS)
         {
             TURBO_LOG(LOG_RHI, LOG_ERROR, "VKInstance creation failed. (Error: {})", static_cast<int32>(CreationResult));
+            Engine::Get()->RequestExit(EExitCode::RHICriticalError);
             return;
         }
 
@@ -143,7 +146,7 @@ namespace Turbo
 
         if (bSuccess)
         {
-            TURBO_LOG(LOG_RHI, LOG_INFO, "All requested validation layer supported.");
+            TURBO_LOG(LOG_RHI, LOG_INFO, "All requested validation layers are supported.");
         }
 
         return bSuccess;
@@ -209,28 +212,91 @@ namespace Turbo
         const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
         void* UserData)
     {
-        auto LogVerbosity = LOG_ERROR;
         if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
         {
-            LogVerbosity = LOG_DISPLAY;
+            TURBO_LOG(LOG_RHI, LOG_DISPLAY, "{}", CallbackData->pMessage)
         }
         else if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
         {
-            LogVerbosity = LOG_INFO;
+            // Messages with info severity are very verbose, so I reduced its verbosity to display.
+            TURBO_LOG(LOG_RHI, LOG_DISPLAY, "{}", CallbackData->pMessage)
         }
         else if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
-            LogVerbosity = LOG_WARN;
+            TURBO_LOG(LOG_RHI, LOG_WARN, "{}", CallbackData->pMessage)
         }
         else if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
-            LogVerbosity = LOG_ERROR;
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "{}", CallbackData->pMessage)
         }
-
-        TURBO_LOG(LOG_RHI, LOG_ERROR, "Vulkan Error: {}", CallbackData->pMessage)
 
         return VK_FALSE;
     }
 
 #endif // WITH_VALIDATION_LAYERS
+
+    void VulkanRHI::AcquirePhysicalDevice()
+    {
+        if (!VulkanInstance)
+        {
+            return;
+        }
+
+        uint32 PhysicalDeviceNum;
+        vkEnumeratePhysicalDevices(VulkanInstance, &PhysicalDeviceNum, nullptr);
+
+        if (PhysicalDeviceNum != 0)
+        {
+             std::vector<VkPhysicalDevice> FoundDevices(PhysicalDeviceNum);
+            vkEnumeratePhysicalDevices(VulkanInstance, &PhysicalDeviceNum, FoundDevices.data());
+
+            auto FilteredDevicesView = FoundDevices | std::views::filter([this](VkPhysicalDevice Device){ return IsDeviceCapable(Device); });
+            std::vector FilteredFoundDevices(FilteredDevicesView.begin(), FilteredDevicesView.end());
+
+            std::ranges::sort(
+                FilteredFoundDevices, std::ranges::greater{},
+                [this](VkPhysicalDevice Device)
+                {
+                    return CalculateDeviceScore(Device);
+                });
+
+            PhysicalDevice = !FilteredFoundDevices.empty() ? FilteredFoundDevices[0] : nullptr;
+        }
+
+        if (!PhysicalDevice)
+        {
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "There is no suitable GPU device.");
+            Engine::Get()->RequestExit(EExitCode::DeviceNotSupported);
+            return;
+        }
+
+        VkPhysicalDeviceProperties DeviceProperties;
+        vkGetPhysicalDeviceProperties(PhysicalDevice, &DeviceProperties);
+
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device.", DeviceProperties.deviceName);
+    }
+
+    int32 VulkanRHI::CalculateDeviceScore(VkPhysicalDevice Device)
+    {
+        VkPhysicalDeviceProperties DeviceProperties;
+        VkPhysicalDeviceFeatures DeviceFeatures;
+        VkPhysicalDeviceMemoryProperties MemoryProperties;
+
+        vkGetPhysicalDeviceProperties(Device, &DeviceProperties);
+        vkGetPhysicalDeviceFeatures(Device, &DeviceFeatures);
+        vkGetPhysicalDeviceMemoryProperties(Device, &MemoryProperties);
+
+        int32 DeviceScore = 0;
+        DeviceScore += -1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU);
+        DeviceScore += -1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU);
+        DeviceScore += 1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+
+        return DeviceScore;
+    }
+
+    bool VulkanRHI::IsDeviceCapable(VkPhysicalDevice Device)
+    {
+        // TODO:
+        return true;
+    }
 } // Turbo

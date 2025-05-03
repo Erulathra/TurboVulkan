@@ -32,6 +32,7 @@ namespace Turbo
 	private:
 		void EnumerateVulkanExtensions();
 
+#pragma region Validation Layers
 #if WITH_VALIDATION_LAYERS
 
 	private:
@@ -46,6 +47,15 @@ namespace Turbo
 			const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
 			void* UserData);
 #endif // WITH_VALIDATION_LAYERS
+#pragma endregion
+
+#pragma region Physical Device Aquirement
+	private:
+		void AcquirePhysicalDevice();
+
+		int32 CalculateDeviceScore(VkPhysicalDevice Device);
+		bool IsDeviceCapable(VkPhysicalDevice Device);
+#pragma endregion
 
 	private:
 		static std::unique_ptr<VulkanRHI> Instance;

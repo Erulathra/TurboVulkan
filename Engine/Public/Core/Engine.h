@@ -3,12 +3,19 @@
 
 namespace Turbo
 {
+	class CommandLineArgsParser;
+}
+
+namespace Turbo
+{
 	enum class EWindowEvent : uint32_t;
 
 	enum class EExitCode : int32_t
 	{
 		Success = 0,
 		WindowCreationError,
+		RHICriticalError,
+		DeviceNotSupported
 	};
 
 	class Engine
@@ -23,7 +30,7 @@ namespace Turbo
 		static void Init();
 		static Engine* Get();
 
-		int32_t Start(int argc, char* argv[]);
+		int32_t Start(int32 argc, char* argv[]);
 		void End();
 
 		void RequestExit(EExitCode InExitCode = EExitCode::Success);
