@@ -22,10 +22,12 @@ namespace Turbo
 
         Instance->CreateVulkanInstance();
         Instance->AcquirePhysicalDevice();
+        Instance->CreateLogicalDevice();
     }
 
     void VulkanRHI::Destroy()
     {
+        Instance->DestroyLogicalDevice();
         Instance->DestroyVulkanInstance();
         Instance.reset();
     }
@@ -102,6 +104,8 @@ namespace Turbo
 
             TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VKInstance...")
             vkDestroyInstance(VulkanInstance, nullptr);
+            VulkanInstance = nullptr;
+            PhysicalDevice = nullptr;
         }
     }
 
@@ -296,7 +300,120 @@ namespace Turbo
 
     bool VulkanRHI::IsDeviceCapable(VkPhysicalDevice Device)
     {
-        // TODO:
-        return true;
+        bool bResult = true;
+        bResult &= FindQueueFamilies(Device).IsValid();
+
+        return bResult;
+    }
+
+    bool VulkanRHI::QueueFamilyIndices::IsValid() const
+    {
+        return GraphicsFamily.has_value();
+    }
+
+    VulkanRHI::QueueFamilyIndices VulkanRHI::FindQueueFamilies(VkPhysicalDevice Device)
+    {
+        QueueFamilyIndices Result;
+
+        if (TURBO_ENSURE(Device))
+        {
+            uint32 QueueFamilyNum;
+            vkGetPhysicalDeviceQueueFamilyProperties(Device, &QueueFamilyNum, nullptr);
+
+            std::vector<VkQueueFamilyProperties> QueueFamilyProperties(QueueFamilyNum);
+            vkGetPhysicalDeviceQueueFamilyProperties(Device, &QueueFamilyNum, QueueFamilyProperties.data());
+
+            for (int QueueId = 0; QueueId < QueueFamilyNum; ++QueueId)
+            {
+                const VkQueueFamilyProperties& FamilyProperties = QueueFamilyProperties[QueueId];
+                if (FamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                {
+                    Result.GraphicsFamily = QueueId;
+                }
+            }
+        }
+
+        return Result;
+    }
+
+    void VulkanRHI::CreateLogicalDevice()
+    {
+        if (!VulkanInstance || !PhysicalDevice)
+        {
+            return;
+        }
+
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Creating logical device.")
+
+        QueueFamilyIndices QueueIndices = FindQueueFamilies(PhysicalDevice);
+        if (!QueueIndices.IsValid())
+        {
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "Cannot obtain queue family indices.")
+            return;
+        }
+
+        VkDeviceQueueCreateInfo QueueCreateInfo{};
+        QueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        QueueCreateInfo.queueFamilyIndex = *QueueIndices.GraphicsFamily;
+        QueueCreateInfo.queueCount = 1;
+
+        constexpr float QueuePriority = 1.f;
+        QueueCreateInfo.pQueuePriorities = &QueuePriority;
+
+        VkDeviceCreateInfo DeviceCreateInfo{};
+        DeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        DeviceCreateInfo.pQueueCreateInfos = &QueueCreateInfo;
+        DeviceCreateInfo.queueCreateInfoCount = 1;
+
+        VkPhysicalDeviceFeatures DeviceFeatures = GetRequiredDeviceFeatures();
+        DeviceCreateInfo.pEnabledFeatures = &DeviceFeatures;
+
+        const VkResult DeviceCreationResult = vkCreateDevice(PhysicalDevice, &DeviceCreateInfo, nullptr, &Device);
+        if (DeviceCreationResult != VK_SUCCESS)
+        {
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "Error: {} during creating logical device.", static_cast<int32>(DeviceCreationResult));
+            Engine::Get()->RequestExit(EExitCode::RHICriticalError);
+            return;
+        }
+    }
+
+    void VulkanRHI::DestroyLogicalDevice()
+    {
+        vkDestroyDevice(Device, nullptr);
+        Device = nullptr;
+    }
+
+    VkPhysicalDeviceFeatures VulkanRHI::GetRequiredDeviceFeatures()
+    {
+        VkPhysicalDeviceFeatures Result{};
+        Result.textureCompressionBC = true;
+
+        return Result;
+    }
+
+    bool VulkanRHI::AcquiredQueues::IsValid() const
+    {
+        return GraphicsQueue;
+    }
+
+    void VulkanRHI::SetupQueues()
+    {
+        if (!PhysicalDevice || !Device)
+        {
+            return;
+        }
+
+        QueueFamilyIndices QueueIndices = FindQueueFamilies(PhysicalDevice);
+        if (QueueIndices.IsValid())
+        {
+            vkGetDeviceQueue(Device, *QueueIndices.GraphicsFamily, 0, &Queues.GraphicsQueue);
+        }
+
+        if (!Queues.IsValid())
+        {
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "Required queues not found.")
+            Engine::Get()->RequestExit(EExitCode::RHICriticalError);
+            return;
+        }
     }
 } // Turbo
