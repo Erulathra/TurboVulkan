@@ -6,9 +6,6 @@
 namespace Turbo
 {
 
-
-
-
 #if WITH_VALIDATION_LAYERS
 	// TODO: Move to config
 	const static std::vector<const char*> VulkanValidationLayers =
@@ -22,9 +19,11 @@ namespace Turbo
 	public:
 		struct QueueFamilyIndices
 		{
-			std::optional<int32> GraphicsFamily;
+			int32 GraphicsFamily = INDEX_NONE;
+			int32 PresentFamily = INDEX_NONE;
 
 			[[nodiscard]] bool IsValid() const;
+			[[nodiscard]] std::set<uint32> GetUniqueQueueIndices() const;
 		};
 
 
@@ -45,7 +44,7 @@ namespace Turbo
 	private:
 		void EnumerateVulkanExtensions();
 
-#pragma region Validation Layers
+/** Validation Layers */
 #if WITH_VALIDATION_LAYERS
 
 	private:
@@ -60,30 +59,38 @@ namespace Turbo
 			const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
 			void* UserData);
 #endif // WITH_VALIDATION_LAYERS
-#pragma endregion
+/** Validation Layers End */
 
-#pragma region Physical Device
+/** Surface */
+	private:
+		void CreateSurface();
+		void DestroySurface();
+
+/** Surface end */
+
+/** Physical Device */
 	private:
 		void AcquirePhysicalDevice();
 
 		int32 CalculateDeviceScore(VkPhysicalDevice Device);
 		bool IsDeviceCapable(VkPhysicalDevice Device);
-		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice Device);
+		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice Device) const;
 
-#pragma endregion
+/** Physical Device end */
 
-#pragma region Logical Device
+/** Logical Device */
 	private:
 		void CreateLogicalDevice();
 		void DestroyLogicalDevice();
 		VkPhysicalDeviceFeatures GetRequiredDeviceFeatures();
 
-#pragma endregion
+/** Logical Device End */
 
 	private:
 		struct AcquiredQueues
 		{
 			VkQueue GraphicsQueue;
+			VkQueue PresentQueue;
 
 			[[nodiscard]] bool IsValid() const;
 		} Queues;
@@ -99,6 +106,8 @@ namespace Turbo
 
 		VkPhysicalDevice PhysicalDevice = nullptr;
 		VkDevice Device = nullptr;
+
+		VkSurfaceKHR Surface = nullptr;
 
 #if WITH_VALIDATION_LAYERS
 		bool bValidationLayersEnabled = false;

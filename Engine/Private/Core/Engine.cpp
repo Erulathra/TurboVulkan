@@ -22,7 +22,7 @@ namespace Turbo
 
 	void Engine::Init()
 	{
-		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Creating engine instance");
+		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Creating engine instance.");
 		Instance = std::unique_ptr<Engine>(new Engine());
 
 		// TODO: Move thread configuration to separate class
@@ -55,6 +55,8 @@ namespace Turbo
 
 		VulkanRHI::Init();
 
+		Window::GetMain()->ShowWindow(true);
+
 		GameThreadLoop();
 
 		return static_cast<int32_t>(ExitCode);
@@ -86,7 +88,7 @@ namespace Turbo
 
 	void Engine::End()
 	{
-		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Begin exit sequence");
+		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Begin exit sequence.");
 
 		VulkanRHI::Destroy();
 		Window::DestroyMainWindow();

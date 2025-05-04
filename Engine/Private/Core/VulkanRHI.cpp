@@ -21,6 +21,7 @@ namespace Turbo
         Instance = std::unique_ptr<VulkanRHI>(new VulkanRHI());
 
         Instance->CreateVulkanInstance();
+        Instance->CreateSurface();
         Instance->AcquirePhysicalDevice();
         Instance->CreateLogicalDevice();
     }
@@ -28,6 +29,7 @@ namespace Turbo
     void VulkanRHI::Destroy()
     {
         Instance->DestroyLogicalDevice();
+        Instance->DestroySurface();
         Instance->DestroyVulkanInstance();
         Instance.reset();
     }
@@ -102,7 +104,7 @@ namespace Turbo
             DestroyValidationLayersCallbacks();
 #endif // WITH_VALIDATION_LAYERS
 
-            TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VKInstance...")
+            TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VKInstance.")
             vkDestroyInstance(VulkanInstance, nullptr);
             VulkanInstance = nullptr;
             PhysicalDevice = nullptr;
@@ -239,6 +241,34 @@ namespace Turbo
 
 #endif // WITH_VALIDATION_LAYERS
 
+    void VulkanRHI::CreateSurface()
+    {
+        if (!VulkanInstance)
+        {
+            return;
+        }
+
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Creating surface.");
+
+        if (!Window::GetMain()->CreateVulkanSurface(VulkanInstance, Surface))
+        {
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "Cannot acquire window surface.");
+            Engine::Get()->RequestExit(EExitCode::RHICriticalError);
+            return;
+        }
+    }
+
+    void VulkanRHI::DestroySurface()
+    {
+        if (Surface && VulkanInstance)
+        {
+            TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying surface.");
+
+            Window::GetMain()->DestroyVulkanSurface(VulkanInstance, Surface);
+            Surface = nullptr;
+        }
+    }
+
     void VulkanRHI::AcquirePhysicalDevice()
     {
         if (!VulkanInstance)
@@ -277,7 +307,7 @@ namespace Turbo
         VkPhysicalDeviceProperties DeviceProperties;
         vkGetPhysicalDeviceProperties(PhysicalDevice, &DeviceProperties);
 
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device.", DeviceProperties.deviceName);
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device. (Score: {})", DeviceProperties.deviceName, CalculateDeviceScore(PhysicalDevice));
     }
 
     int32 VulkanRHI::CalculateDeviceScore(VkPhysicalDevice Device)
@@ -290,10 +320,14 @@ namespace Turbo
         vkGetPhysicalDeviceFeatures(Device, &DeviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(Device, &MemoryProperties);
 
+
         int32 DeviceScore = 0;
         DeviceScore += -1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU);
         DeviceScore += -1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU);
         DeviceScore += 1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+
+        QueueFamilyIndices QueueIndices = FindQueueFamilies(Device);
+        DeviceScore += 128 * (QueueIndices.PresentFamily == QueueIndices.GraphicsFamily);
 
         return DeviceScore;
     }
@@ -308,28 +342,38 @@ namespace Turbo
 
     bool VulkanRHI::QueueFamilyIndices::IsValid() const
     {
-        return GraphicsFamily.has_value();
+        return GraphicsFamily != INDEX_NONE
+            && PresentFamily != INDEX_NONE;
     }
 
-    VulkanRHI::QueueFamilyIndices VulkanRHI::FindQueueFamilies(VkPhysicalDevice Device)
+    VulkanRHI::QueueFamilyIndices VulkanRHI::FindQueueFamilies(VkPhysicalDevice Device) const
     {
-        QueueFamilyIndices Result;
+        QueueFamilyIndices Result{};
 
-        if (TURBO_ENSURE(Device))
+        if (!Device || !Surface)
         {
-            uint32 QueueFamilyNum;
-            vkGetPhysicalDeviceQueueFamilyProperties(Device, &QueueFamilyNum, nullptr);
+            return Result;
+        }
 
-            std::vector<VkQueueFamilyProperties> QueueFamilyProperties(QueueFamilyNum);
-            vkGetPhysicalDeviceQueueFamilyProperties(Device, &QueueFamilyNum, QueueFamilyProperties.data());
+        uint32 QueueFamilyNum;
+        vkGetPhysicalDeviceQueueFamilyProperties(Device, &QueueFamilyNum, nullptr);
 
-            for (int QueueId = 0; QueueId < QueueFamilyNum; ++QueueId)
+        std::vector<VkQueueFamilyProperties> QueueFamilyProperties(QueueFamilyNum);
+        vkGetPhysicalDeviceQueueFamilyProperties(Device, &QueueFamilyNum, QueueFamilyProperties.data());
+
+        for (int32 QueueId = 0; QueueId < QueueFamilyNum; ++QueueId)
+        {
+            const VkQueueFamilyProperties& FamilyProperties = QueueFamilyProperties[QueueId];
+            if (FamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT)
             {
-                const VkQueueFamilyProperties& FamilyProperties = QueueFamilyProperties[QueueId];
-                if (FamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-                {
-                    Result.GraphicsFamily = QueueId;
-                }
+                Result.GraphicsFamily = QueueId;
+            }
+
+            VkBool32 bPresentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(Device, QueueId, Surface, &bPresentSupport);
+            if (bPresentSupport == true)
+            {
+                Result.PresentFamily = QueueId;
             }
         }
 
@@ -352,18 +396,27 @@ namespace Turbo
             return;
         }
 
-        VkDeviceQueueCreateInfo QueueCreateInfo{};
-        QueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        QueueCreateInfo.queueFamilyIndex = *QueueIndices.GraphicsFamily;
-        QueueCreateInfo.queueCount = 1;
+        const std::set<uint32> UniqueQueues = QueueIndices.GetUniqueQueueIndices();
+        std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
+        QueueCreateInfos.reserve(UniqueQueues.size());
 
         constexpr float QueuePriority = 1.f;
-        QueueCreateInfo.pQueuePriorities = &QueuePriority;
+
+        for (uint32 QueueFamily : UniqueQueues)
+        {
+            VkDeviceQueueCreateInfo QueueCreateInfo{};
+            QueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            QueueCreateInfo.queueFamilyIndex = QueueFamily;
+            QueueCreateInfo.queueCount = 1;
+            QueueCreateInfo.pQueuePriorities = &QueuePriority;
+
+            QueueCreateInfos.push_back(QueueCreateInfo);
+        }
 
         VkDeviceCreateInfo DeviceCreateInfo{};
         DeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        DeviceCreateInfo.pQueueCreateInfos = &QueueCreateInfo;
-        DeviceCreateInfo.queueCreateInfoCount = 1;
+        DeviceCreateInfo.queueCreateInfoCount = QueueCreateInfos.size();
+        DeviceCreateInfo.pQueueCreateInfos = QueueCreateInfos.data();;
 
         VkPhysicalDeviceFeatures DeviceFeatures = GetRequiredDeviceFeatures();
         DeviceCreateInfo.pEnabledFeatures = &DeviceFeatures;
@@ -379,6 +432,8 @@ namespace Turbo
 
     void VulkanRHI::DestroyLogicalDevice()
     {
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying logical device.");
+
         vkDestroyDevice(Device, nullptr);
         Device = nullptr;
     }
@@ -393,7 +448,24 @@ namespace Turbo
 
     bool VulkanRHI::AcquiredQueues::IsValid() const
     {
-        return GraphicsQueue;
+        return GraphicsQueue
+            && PresentQueue;
+    }
+
+    std::set<uint32> VulkanRHI::QueueFamilyIndices::GetUniqueQueueIndices() const
+    {
+        // Return value optimization
+        std::set<uint32> Result;
+
+        if (IsValid())
+        {
+            Result = {
+                static_cast<uint32>(GraphicsFamily),
+                static_cast<uint32>(PresentFamily)
+            };
+        }
+
+        return Result;
     }
 
     void VulkanRHI::SetupQueues()
@@ -406,7 +478,8 @@ namespace Turbo
         QueueFamilyIndices QueueIndices = FindQueueFamilies(PhysicalDevice);
         if (QueueIndices.IsValid())
         {
-            vkGetDeviceQueue(Device, *QueueIndices.GraphicsFamily, 0, &Queues.GraphicsQueue);
+            vkGetDeviceQueue(Device, QueueIndices.GraphicsFamily, 0, &Queues.GraphicsQueue);
+            vkGetDeviceQueue(Device, QueueIndices.PresentFamily, 0, &Queues.PresentQueue);
         }
 
         if (!Queues.IsValid())

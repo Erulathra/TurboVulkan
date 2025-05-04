@@ -20,7 +20,6 @@
 // Debug break
 #define TURBO_DEBUG_BREAK() psnip_trap()
 
-
 // Assertions
 #define TURBO_CHECK(CONDITION) assert(CONDITION)
 
@@ -44,5 +43,9 @@ namespace Turbo
 #endif // DEBUG
 
 // MATH
-#define TURBO_SMALL_NUMBER 1e-5f;
-#define TURBO_VERY_SMALL_NUMBER 1e-8f;
+#define TURBO_SMALL_NUMBER 1e-5f
+#define TURBO_VERY_SMALL_NUMBER 1e-8f
+
+// Other
+
+#define INDEX_NONE 1

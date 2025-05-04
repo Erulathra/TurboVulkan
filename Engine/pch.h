@@ -10,6 +10,12 @@
 #include <cstdint>
 #include <functional>
 
+// stl collections
+#include <set>
+#include <vector>
+#include <map>
+#include <unordered_map>
+
 // Internal headers
 #include "CommonMacros.h"
 #include "LoggingMacros.h"

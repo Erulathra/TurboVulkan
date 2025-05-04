@@ -54,6 +54,8 @@ namespace Turbo
 	public:
 		void PollWindowEventsAndErrors();
 
+		void ShowWindow(bool bVisible);
+
 		/** Vulkan Interface */
 	public:
 		static void InitForVulkan();
@@ -62,7 +64,7 @@ namespace Turbo
 		std::vector<const char*> GetVulkanExtensions();
 
 		bool CreateVulkanSurface(VkInstance VulkanInstance, VkSurfaceKHR& OutVulkanSurface) const;
-		bool DestroyVulkanSurface(VkInstance* VulkanInstance, VkSurfaceKHR& OutVulkanSurface);
+		bool DestroyVulkanSurface(VkInstance VulkanInstance, VkSurfaceKHR Surface);
 
 		/** Internal methods */
 	private:

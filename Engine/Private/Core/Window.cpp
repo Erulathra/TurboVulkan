@@ -1,5 +1,6 @@
 #include "Core/Window.h"
 
+#include "Core/Engine.h"
 #include "SDL3/SDL_vulkan.h"
 
 namespace Turbo
@@ -12,14 +13,14 @@ namespace Turbo
 
 	Window::~Window()
 	{
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Destroying window");
+		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Destroying window.");
 
 		SDL_DestroyWindow(SDLContext.Window);
 	}
 
 	void Window::InitBackend()
 	{
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing SDL");
+		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing SDL.");
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
 			LogError();
@@ -36,15 +37,15 @@ namespace Turbo
 	{
 		MainWindow.reset();
 
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Stopping SDL");
+		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Stopping SDL.");
 		SDL_Quit();
 	}
 
 	bool Window::InitWindow()
 	{
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing Window");
+		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing Window.");
 		SDLContext.Window = SDL_CreateWindow(WindowDefaultValues::Name.c_str(), WindowDefaultValues::SizeX, WindowDefaultValues::SizeY,
-		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN);
 		if (!SDLContext.Window)
 		{
 			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "SDL window creation error. See bellow logs for details");
@@ -63,15 +64,29 @@ namespace Turbo
 
 	void Window::PollWindowEventsAndErrors()
 	{
-		SDL_Event windowEvent;
-		while (SDL_PollEvent(&windowEvent))
+		SDL_Event WindowEvent;
+		while (SDL_PollEvent(&WindowEvent))
 		{
-			if (windowEvent.type == SDL_EVENT_QUIT)
+			if (WindowEvent.type == SDL_EVENT_QUIT || WindowEvent.type == SDL_EVENT_TERMINATING)
 				OnWindowEvent(EWindowEvent::WindowCloseRequest);
-			else if (windowEvent.type == SDL_EVENT_WINDOW_FOCUS_LOST)
+			else if (WindowEvent.type == SDL_EVENT_WINDOW_FOCUS_LOST)
 				OnWindowEvent(EWindowEvent::FocusLost);
-			else if (windowEvent.type == SDL_EVENT_WINDOW_FOCUS_GAINED)
+			else if (WindowEvent.type == SDL_EVENT_WINDOW_FOCUS_GAINED)
 				OnWindowEvent(EWindowEvent::FocusGained);
+		}
+	}
+
+	void Window::ShowWindow(bool bVisible)
+	{
+		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Setting window visibility to {}", bVisible);
+
+		if (bVisible)
+		{
+			SDL_ShowWindow(SDLContext.Window);
+		}
+		else
+		{
+			SDL_HideWindow(SDLContext.Window);
 		}
 	}
 
@@ -119,5 +134,16 @@ namespace Turbo
 		}
 
 		return true;
+	}
+
+	bool Window::DestroyVulkanSurface(VkInstance VulkanInstance, VkSurfaceKHR Surface)
+	{
+		if (VulkanInstance)
+		{
+			SDL_Vulkan_DestroySurface(VulkanInstance, Surface, nullptr);
+			return true;
+		}
+
+		return false;
 	}
 } // Turbo
