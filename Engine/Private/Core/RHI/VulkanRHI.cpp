@@ -1,4 +1,4 @@
-#include "Core/VulkanRHI.h"
+#include "Core/RHI/VulkanRHI.h"
 
 #include "Core/Engine.h"
 #include "Core/Window.h"
@@ -24,10 +24,13 @@ namespace Turbo
         Instance->CreateSurface();
         Instance->AcquirePhysicalDevice();
         Instance->CreateLogicalDevice();
+        Instance->SetupQueues();
+        Instance->CreateSwapChain();
     }
 
     void VulkanRHI::Destroy()
     {
+        Instance->DestroySwapChain();
         Instance->DestroyLogicalDevice();
         Instance->DestroySurface();
         Instance->DestroyVulkanInstance();
@@ -336,17 +339,36 @@ namespace Turbo
     {
         bool bResult = true;
         bResult &= FindQueueFamilies(Device).IsValid();
+        bResult &= AreExtensionsSupportedByDevice(Device, RequiredDeviceExtensions);
+
+        if (bResult)
+        {
+            const SwapChainSupportDetails SwapChainSupportDetails = QuerySwapChainSupport(Device);
+            bResult &= !SwapChainSupportDetails.Formats.empty();
+            bResult &= !SwapChainSupportDetails.PresentModes.empty();
+        }
 
         return bResult;
     }
 
-    bool VulkanRHI::QueueFamilyIndices::IsValid() const
+    bool VulkanRHI::AreExtensionsSupportedByDevice(VkPhysicalDevice Device, const std::vector<const char*>& RequiredExtensions)
     {
-        return GraphicsFamily != INDEX_NONE
-            && PresentFamily != INDEX_NONE;
+        uint32 DeviceExtensionNum;
+        vkEnumerateDeviceExtensionProperties(Device, nullptr, &DeviceExtensionNum, nullptr);
+
+        std::vector<VkExtensionProperties> DeviceExtensionProperties(DeviceExtensionNum);
+        vkEnumerateDeviceExtensionProperties(Device, nullptr, &DeviceExtensionNum, DeviceExtensionProperties.data());
+
+        std::set<std::string> RequiredExtensionsSet(RequiredExtensions.begin(), RequiredExtensions.end());
+        for (auto Extension : DeviceExtensionProperties)
+        {
+            RequiredExtensionsSet.erase(std::string(Extension.extensionName));
+        }
+
+        return RequiredExtensionsSet.empty();
     }
 
-    VulkanRHI::QueueFamilyIndices VulkanRHI::FindQueueFamilies(VkPhysicalDevice Device) const
+    QueueFamilyIndices VulkanRHI::FindQueueFamilies(VkPhysicalDevice Device) const
     {
         QueueFamilyIndices Result{};
 
@@ -417,6 +439,8 @@ namespace Turbo
         DeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         DeviceCreateInfo.queueCreateInfoCount = QueueCreateInfos.size();
         DeviceCreateInfo.pQueueCreateInfos = QueueCreateInfos.data();;
+        DeviceCreateInfo.enabledExtensionCount = RequiredDeviceExtensions.size();
+        DeviceCreateInfo.ppEnabledExtensionNames = RequiredDeviceExtensions.data();
 
         VkPhysicalDeviceFeatures DeviceFeatures = GetRequiredDeviceFeatures();
         DeviceCreateInfo.pEnabledFeatures = &DeviceFeatures;
@@ -446,26 +470,145 @@ namespace Turbo
         return Result;
     }
 
+    void VulkanRHI::CreateSwapChain()
+    {
+        TURBO_CHECK(Surface);
+
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Creating Swap chain");
+
+        const SwapChainSupportDetails Details = QuerySwapChainSupport(PhysicalDevice);
+
+        uint32 ImageCount = Details.Capabilities.minImageCount + 1;
+        if (Details.Capabilities.maxImageCount > 0)
+        {
+            ImageCount = glm::min(ImageCount, Details.Capabilities.maxImageCount);
+        }
+
+        VkSwapchainCreateInfoKHR CreateInfo{};
+        CreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        CreateInfo.surface = Surface;
+
+        CreateInfo.minImageCount = ImageCount;
+        VkSurfaceFormatKHR PixelFormat = SelectBestSurfacePixelFormat(Details.Formats);
+        CreateInfo.imageFormat = PixelFormat.format;
+        CreateInfo.imageColorSpace = PixelFormat.colorSpace;
+        CreateInfo.imageExtent = CalculateSwapChainExtent(Details.Capabilities);
+        CreateInfo.imageArrayLayers = 1;
+        CreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+        const std::set<uint32> UniqueQueueIndices = QueueIndices.GetUniqueQueueIndices();
+        const std::vector<uint32> QueueIndicesVector(UniqueQueueIndices.begin(), UniqueQueueIndices.end());
+        if (QueueIndices.GraphicsFamily == QueueIndices.PresentFamily)
+        {
+            CreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        }
+        else
+        {
+            CreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            CreateInfo.queueFamilyIndexCount = QueueIndices.Num();
+            CreateInfo.pQueueFamilyIndices = QueueIndicesVector.data();
+        }
+
+        CreateInfo.preTransform = Details.Capabilities.currentTransform;
+        CreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+        CreateInfo.presentMode = SelectBestPresentMode(Details.PresentModes);
+        CreateInfo.clipped = VK_TRUE;
+
+        CreateInfo.oldSwapchain = nullptr;
+
+        const VkResult SwapChaindCreationResult = vkCreateSwapchainKHR(Device, &CreateInfo, nullptr, &SwapChain);
+        if (SwapChaindCreationResult != VK_SUCCESS)
+        {
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "Error: {} during creating swap chain.", static_cast<int32>(SwapChaindCreationResult));
+            Engine::Get()->RequestExit(EExitCode::RHICriticalError);
+            return;
+        }
+
+        SwapChainProperties.ImageFormat = CreateInfo.imageFormat;
+        SwapChainProperties.ImageSize = CreateInfo.imageExtent;
+
+        uint32 SwapChainImagesNum;
+        vkGetSwapchainImagesKHR(Device, SwapChain, &SwapChainImagesNum, nullptr);
+        SwapChainProperties.Images.resize(SwapChainImagesNum);
+        vkGetSwapchainImagesKHR(Device, SwapChain, &ImageCount, SwapChainProperties.Images.data());
+    }
+
+    void VulkanRHI::DestroySwapChain()
+    {
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Destroing Swap chain");
+        vkDestroySwapchainKHR(Device, SwapChain, nullptr);
+    }
+
+    VulkanRHI::SwapChainSupportDetails VulkanRHI::QuerySwapChainSupport(VkPhysicalDevice Device)
+    {
+        TURBO_CHECK(Surface && Device);
+
+        SwapChainSupportDetails Result;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Device, Surface, &Result.Capabilities);
+
+        uint32 SurfaceFormatNum;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(Device, Surface, &SurfaceFormatNum, nullptr);
+
+        if (SurfaceFormatNum > 0)
+        {
+            Result.Formats.resize(SurfaceFormatNum);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(Device, Surface, &SurfaceFormatNum, Result.Formats.data());
+        }
+
+        uint32 PresentModesNum;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(Device, Surface, &PresentModesNum, nullptr);
+
+        if (PresentModesNum > 0)
+        {
+            Result.PresentModes.resize(PresentModesNum);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(Device, Surface, &PresentModesNum, Result.PresentModes.data());
+        }
+
+        return Result;
+    }
+
+    VkSurfaceFormatKHR VulkanRHI::SelectBestSurfacePixelFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats)
+    {
+        TURBO_CHECK(!AvailableFormats.empty());
+
+        for (const VkSurfaceFormatKHR& Format : AvailableFormats)
+        {
+            if (Format.format == VK_FORMAT_B8G8R8A8_SRGB
+                && Format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            {
+                return Format;
+            }
+        }
+
+        return AvailableFormats.front();
+    }
+
+    VkPresentModeKHR VulkanRHI::SelectBestPresentMode(const std::vector<VkPresentModeKHR>& AvailableModes)
+    {
+        TURBO_CHECK(!AvailableModes.empty());
+
+        if (std::ranges::contains(AvailableModes, VK_PRESENT_MODE_IMMEDIATE_KHR))
+        {
+            return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
+
+        return VK_PRESENT_MODE_FIFO_KHR;
+    }
+
+    VkExtent2D VulkanRHI::CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities)
+    {
+        glm::uvec2 FramebufferSize = Window::GetMain()->GetFrameBufferSize();
+        FramebufferSize.x = glm::clamp(FramebufferSize.x, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
+        FramebufferSize.y = glm::clamp(FramebufferSize.y, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
+
+        return  {FramebufferSize.x, FramebufferSize.y};
+    }
+
     bool VulkanRHI::AcquiredQueues::IsValid() const
     {
         return GraphicsQueue
             && PresentQueue;
-    }
-
-    std::set<uint32> VulkanRHI::QueueFamilyIndices::GetUniqueQueueIndices() const
-    {
-        // Return value optimization
-        std::set<uint32> Result;
-
-        if (IsValid())
-        {
-            Result = {
-                static_cast<uint32>(GraphicsFamily),
-                static_cast<uint32>(PresentFamily)
-            };
-        }
-
-        return Result;
     }
 
     void VulkanRHI::SetupQueues()
@@ -475,7 +618,7 @@ namespace Turbo
             return;
         }
 
-        QueueFamilyIndices QueueIndices = FindQueueFamilies(PhysicalDevice);
+        QueueIndices = FindQueueFamilies(PhysicalDevice);
         if (QueueIndices.IsValid())
         {
             vkGetDeviceQueue(Device, QueueIndices.GraphicsFamily, 0, &Queues.GraphicsQueue);

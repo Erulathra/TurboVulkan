@@ -90,6 +90,18 @@ namespace Turbo
 		}
 	}
 
+	glm::uvec2 Window::GetFrameBufferSize() const
+	{
+		glm::ivec2 Result;
+		if (!SDL_GetWindowSizeInPixels(SDLContext.Window, &Result.x, &Result.y))
+		{
+			LogError();
+			Result = glm::ivec2{WindowDefaultValues::SizeX, WindowDefaultValues::SizeY};
+		}
+
+		return Result;
+	}
+
 	void Window::InitForVulkan()
 	{
 		if (!SDL_Vulkan_LoadLibrary(nullptr))

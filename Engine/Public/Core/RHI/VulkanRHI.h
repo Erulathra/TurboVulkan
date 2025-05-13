@@ -1,6 +1,8 @@
 #pragma once
 #include <vulkan/vulkan_core.h>
 
+#include "QueueFamilyIndices.h"
+
 #define WITH_VALIDATION_LAYERS DEBUG
 
 namespace Turbo
@@ -14,16 +16,19 @@ namespace Turbo
 	};
 #endif // WITH_VALIDATION_LAYERS
 
+	const static std::vector<const char*> RequiredDeviceExtensions =
+	{
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
+
 	class VulkanRHI
 	{
 	public:
-		struct QueueFamilyIndices
+		struct SwapChainSupportDetails
 		{
-			int32 GraphicsFamily = INDEX_NONE;
-			int32 PresentFamily = INDEX_NONE;
-
-			[[nodiscard]] bool IsValid() const;
-			[[nodiscard]] std::set<uint32> GetUniqueQueueIndices() const;
+			VkSurfaceCapabilitiesKHR Capabilities;
+			std::vector<VkSurfaceFormatKHR> Formats;
+			std::vector<VkPresentModeKHR> PresentModes;
 		};
 
 
@@ -74,6 +79,7 @@ namespace Turbo
 
 		int32 CalculateDeviceScore(VkPhysicalDevice Device);
 		bool IsDeviceCapable(VkPhysicalDevice Device);
+		bool AreExtensionsSupportedByDevice(VkPhysicalDevice Device, const std::vector<const char*>& RequiredExtensions );
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice Device) const;
 
 /** Physical Device end */
@@ -86,7 +92,21 @@ namespace Turbo
 
 /** Logical Device End */
 
+/** Swap chain */
 	private:
+		void CreateSwapChain()	;
+		void DestroySwapChain()	;
+
+		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice Device);
+		VkSurfaceFormatKHR SelectBestSurfacePixelFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats);
+		VkPresentModeKHR SelectBestPresentMode(const std::vector<VkPresentModeKHR>& AvailableModes);
+		VkExtent2D CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities);
+
+/** Swap chain end */
+
+	private:
+		QueueFamilyIndices QueueIndices;
+
 		struct AcquiredQueues
 		{
 			VkQueue GraphicsQueue;
@@ -108,6 +128,13 @@ namespace Turbo
 		VkDevice Device = nullptr;
 
 		VkSurfaceKHR Surface = nullptr;
+		VkSwapchainKHR SwapChain = nullptr;
+		struct
+		{
+			std::vector<VkImage> Images;
+			VkFormat ImageFormat;
+			VkExtent2D ImageSize;
+		} SwapChainProperties;
 
 #if WITH_VALIDATION_LAYERS
 		bool bValidationLayersEnabled = false;

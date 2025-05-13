@@ -20,3 +20,9 @@
 #include "CommonMacros.h"
 #include "LoggingMacros.h"
 #include "CommonTypeDefs.h"
+
+// Math
+#include <glm/glm.hpp>
+
+// Vulkan
+#include <vulkan/vulkan_core.h>
