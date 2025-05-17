@@ -2,11 +2,14 @@
 #include <vulkan/vulkan_core.h>
 
 #include "QueueFamilyIndices.h"
+#include "RHITypeDefs.h"
 
 #define WITH_VALIDATION_LAYERS DEBUG
 
 namespace Turbo
 {
+	class LogicalDevice;
+	class HardwareDevice;
 
 #if WITH_VALIDATION_LAYERS
 	// TODO: Move to config
@@ -24,12 +27,6 @@ namespace Turbo
 	class VulkanRHI
 	{
 	public:
-		struct SwapChainSupportDetails
-		{
-			VkSurfaceCapabilitiesKHR Capabilities;
-			std::vector<VkSurfaceFormatKHR> Formats;
-			std::vector<VkPresentModeKHR> PresentModes;
-		};
 
 
 	private:
@@ -41,6 +38,13 @@ namespace Turbo
 	public:
 		static void Init();
 		static void Destroy();
+
+	private:
+		void Init_Internal();
+		void Destroy_Internal();
+
+	public:
+		static VulkanRHI* Get();
 
 	private:
 		void CreateVulkanInstance();
@@ -66,56 +70,11 @@ namespace Turbo
 #endif // WITH_VALIDATION_LAYERS
 /** Validation Layers End */
 
-/** Surface */
-	private:
-		void CreateSurface();
-		void DestroySurface();
+	public:
+		[[nodiscard]] VkInstance GetVulkanInstance() const { return VulkanInstance; }
 
-/** Surface end */
-
-/** Physical Device */
 	private:
 		void AcquirePhysicalDevice();
-
-		int32 CalculateDeviceScore(VkPhysicalDevice Device);
-		bool IsDeviceCapable(VkPhysicalDevice Device);
-		bool AreExtensionsSupportedByDevice(VkPhysicalDevice Device, const std::vector<const char*>& RequiredExtensions );
-		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice Device) const;
-
-/** Physical Device end */
-
-/** Logical Device */
-	private:
-		void CreateLogicalDevice();
-		void DestroyLogicalDevice();
-		VkPhysicalDeviceFeatures GetRequiredDeviceFeatures();
-
-/** Logical Device End */
-
-/** Swap chain */
-	private:
-		void CreateSwapChain()	;
-		void DestroySwapChain()	;
-
-		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice Device);
-		VkSurfaceFormatKHR SelectBestSurfacePixelFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats);
-		VkPresentModeKHR SelectBestPresentMode(const std::vector<VkPresentModeKHR>& AvailableModes);
-		VkExtent2D CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities);
-
-/** Swap chain end */
-
-	private:
-		QueueFamilyIndices QueueIndices;
-
-		struct AcquiredQueues
-		{
-			VkQueue GraphicsQueue;
-			VkQueue PresentQueue;
-
-			[[nodiscard]] bool IsValid() const;
-		} Queues;
-
-		void SetupQueues();
 
 	private:
 		static std::unique_ptr<VulkanRHI> Instance;
@@ -124,21 +83,14 @@ namespace Turbo
 		VkInstance VulkanInstance = nullptr;
 		std::vector<VkExtensionProperties> ExtensionProperties;
 
-		VkPhysicalDevice PhysicalDevice = nullptr;
-		VkDevice Device = nullptr;
-
-		VkSurfaceKHR Surface = nullptr;
-		VkSwapchainKHR SwapChain = nullptr;
-		struct
-		{
-			std::vector<VkImage> Images;
-			VkFormat ImageFormat;
-			VkExtent2D ImageSize;
-		} SwapChainProperties;
-
 #if WITH_VALIDATION_LAYERS
 		bool bValidationLayersEnabled = false;
 		VkDebugUtilsMessengerEXT DebugMessengerHandle;
 #endif // WITH_VALIDATION_LAYERS
+
+	private:
+		HardwareDevicePtr MainHWDevice;
+		LogicalDevicePtr MainDevice;
+		SwapChainPtr MainSwapChain;
 	};
 } // namespace Turbo

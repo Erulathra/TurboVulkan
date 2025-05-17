@@ -28,10 +28,10 @@ namespace Turbo
 {
 	inline bool Ensure_Impl(bool Condition)
 	{
-        if (!Condition)
-        {
-	        TURBO_DEBUG_BREAK();
-        }
+		if (!Condition)
+		{
+			TURBO_DEBUG_BREAK();
+		}
 
 		return Condition;
 	}
@@ -49,3 +49,31 @@ namespace Turbo
 // Other
 
 #define INDEX_NONE 1
+
+namespace Turbo
+{
+	template <typename T>
+	bool IsValid(const T* Object)
+	{
+		return Object && Object->IsValid();
+	}
+
+	template <typename T>
+	bool IsValid(const std::shared_ptr<T>& Object)
+	{
+		return Object && Object->IsValid();
+	}
+
+	template <typename T>
+	bool IsValidAndUnique(const std::shared_ptr<T>& Object)
+	{
+		return Object && Object->IsValid() && Object.unique();
+	}
+
+	template <typename T>
+	bool IsValid(const std::weak_ptr<T>& Object)
+	{
+		const std::shared_ptr<const T> LockedObject = Object.lock();
+		return LockedObject && LockedObject->IsValid();
+	}
+}

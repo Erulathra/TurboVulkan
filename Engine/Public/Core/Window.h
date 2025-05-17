@@ -62,10 +62,11 @@ namespace Turbo
 		static void InitForVulkan();
 
 		void DeInitForVulkan();
-		std::vector<const char*> GetVulkanExtensions();
+		std::vector<const char*> GetVulkanRequiredExtensions();
 
-		bool CreateVulkanSurface(VkInstance VulkanInstance, VkSurfaceKHR& OutVulkanSurface) const;
-		bool DestroyVulkanSurface(VkInstance VulkanInstance, VkSurfaceKHR Surface);
+		bool CreateVulkanSurface(VkInstance VulkanInstance);
+		VkSurfaceKHR GetVulkanSurface();
+		bool DestroyVulkanSurface(VkInstance VulkanInstance);
 
 		/** Internal methods */
 	private:
@@ -79,9 +80,7 @@ namespace Turbo
 
 		/** properties */
 	private:
-		struct
-		{
-			SDL_Window* Window = nullptr;
-		} SDLContext;
+		SDL_Window* SDLWindow = nullptr;
+		VkSurfaceKHR VulkanSurface = nullptr;
 	};
 } // Turbo

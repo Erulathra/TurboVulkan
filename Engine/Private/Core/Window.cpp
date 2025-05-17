@@ -15,7 +15,7 @@ namespace Turbo
 	{
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Destroying window.");
 
-		SDL_DestroyWindow(SDLContext.Window);
+		SDL_DestroyWindow(SDLWindow);
 	}
 
 	void Window::InitBackend()
@@ -44,9 +44,9 @@ namespace Turbo
 	bool Window::InitWindow()
 	{
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing Window.");
-		SDLContext.Window = SDL_CreateWindow(WindowDefaultValues::Name.c_str(), WindowDefaultValues::SizeX, WindowDefaultValues::SizeY,
+		SDLWindow = SDL_CreateWindow(WindowDefaultValues::Name.c_str(), WindowDefaultValues::SizeX, WindowDefaultValues::SizeY,
 		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN);
-		if (!SDLContext.Window)
+		if (!SDLWindow)
 		{
 			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "SDL window creation error. See bellow logs for details");
 			LogError();
@@ -82,18 +82,18 @@ namespace Turbo
 
 		if (bVisible)
 		{
-			SDL_ShowWindow(SDLContext.Window);
+			SDL_ShowWindow(SDLWindow);
 		}
 		else
 		{
-			SDL_HideWindow(SDLContext.Window);
+			SDL_HideWindow(SDLWindow);
 		}
 	}
 
 	glm::uvec2 Window::GetFrameBufferSize() const
 	{
 		glm::ivec2 Result;
-		if (!SDL_GetWindowSizeInPixels(SDLContext.Window, &Result.x, &Result.y))
+		if (!SDL_GetWindowSizeInPixels(SDLWindow, &Result.x, &Result.y))
 		{
 			LogError();
 			Result = glm::ivec2{WindowDefaultValues::SizeX, WindowDefaultValues::SizeY};
@@ -115,7 +115,7 @@ namespace Turbo
 		SDL_Vulkan_UnloadLibrary();
 	}
 
-	std::vector<const char*> Window::GetVulkanExtensions()
+	std::vector<const char*> Window::GetVulkanRequiredExtensions()
 	{
 		std::vector<const char*> Result;
 
@@ -135,9 +135,14 @@ namespace Turbo
 		return Result;
 	}
 
-	bool Window::CreateVulkanSurface(VkInstance VulkanInstance, VkSurfaceKHR& OutVulkanSurface) const
+	bool Window::CreateVulkanSurface(VkInstance VulkanInstance)
 	{
-		if (!SDL_Vulkan_CreateSurface(SDLContext.Window, VulkanInstance, nullptr, &OutVulkanSurface))
+		if (VulkanSurface)
+		{
+			return true;
+		}
+
+		if (!SDL_Vulkan_CreateSurface(SDLWindow, VulkanInstance, nullptr, &VulkanSurface))
 		{
 			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "Window Vulkan surface creation error. Check bellow logs:");
 			LogError();
@@ -148,11 +153,20 @@ namespace Turbo
 		return true;
 	}
 
-	bool Window::DestroyVulkanSurface(VkInstance VulkanInstance, VkSurfaceKHR Surface)
+	VkSurfaceKHR Window::GetVulkanSurface()
+	{
+		TURBO_CHECK(VulkanSurface);
+
+		return VulkanSurface;
+	}
+
+	bool Window::DestroyVulkanSurface(VkInstance VulkanInstance)
 	{
 		if (VulkanInstance)
 		{
-			SDL_Vulkan_DestroySurface(VulkanInstance, Surface, nullptr);
+			SDL_Vulkan_DestroySurface(VulkanInstance, VulkanSurface, nullptr);
+			VulkanSurface = nullptr;
+
 			return true;
 		}
 
