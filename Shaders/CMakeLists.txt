@@ -1,3 +1,4 @@
+
 file(GLOB_RECURSE SHADER_SOURCE_FILES
         *.vert
         *.frag)
@@ -19,6 +20,6 @@ if(FILE_COUNT GREATER 0)
     # Create shader target
     add_spirv_modules(TurboVulcan_Shaders
             SOURCE_DIR ${PROJECT_SOURCE_DIR}
-            BINARY_DIR
+            BINARY_DIR  ""
             SOURCES    ${SHADER_FILES})
 endif()

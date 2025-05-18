@@ -1,7 +1,8 @@
 #pragma once
 
+#include "RHICore.h"
+
 #include "QueueFamilyIndices.h"
-#include "RHITypeDefs.h"
 
 namespace Turbo
 {

@@ -28,15 +28,18 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SDL3)
 find_package(glm REQUIRED)
 target_link_libraries(${PROJECT_NAME} INTERFACE glm::glm)
 
-find_package(Vulkan REQUIRED)
-target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE volk)
+add_compile_definitions(VK_NO_PROTOTYPES)
+
+find_package(VulkanMemoryAllocator REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
 
 add_dependencies(${PROJECT_NAME} TurboVulcan_Shaders)
 
 add_compile_definitions(TURBO_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
 add_compile_definitions(TURBO_VERSION_MINOR=${PROJECT_VERSION_MINOR})
 add_compile_definitions(TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
+
 
 
 

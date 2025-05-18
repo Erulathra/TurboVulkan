@@ -23,7 +23,6 @@ namespace Turbo
     {
         Instance = std::unique_ptr<VulkanRHI>(new VulkanRHI());
         Instance->Init_Internal();
-
     }
 
     void VulkanRHI::Init_Internal()
@@ -81,6 +80,14 @@ namespace Turbo
 
     void VulkanRHI::CreateVulkanInstance()
     {
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Initialize VOLK");
+        if (VkResult VolkInitializeResult = volkInitialize(); VolkInitializeResult != VK_SUCCESS)
+        {
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "VOLK initialization error. (Error: {})", static_cast<int32>(VolkInitializeResult));
+            Engine::Get()->RequestExit(EExitCode::RHICriticalError);
+            return;
+        }
+
         VkApplicationInfo AppInfo{};
         AppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         AppInfo.pApplicationName = "Turbo Vulkan";
@@ -126,6 +133,8 @@ namespace Turbo
             Engine::Get()->RequestExit(EExitCode::RHICriticalError);
             return;
         }
+
+        volkLoadInstanceOnly(VulkanInstance);
 
 #if WITH_VALIDATION_LAYERS
         SetupValidationLayersCallbacks();
@@ -222,16 +231,18 @@ namespace Turbo
         CreateInfo.pfnUserCallback = HandleValidationLayerCallback;
         CreateInfo.pUserData = nullptr;
 
-        auto vkCreateDebugUtilsMessengerEXT_FuncPtr =
-            reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr( VulkanInstance, vkCreateDebugUtilsMessengerEXT_FuncName));
-        if (vkCreateDebugUtilsMessengerEXT_FuncPtr)
-        {
-            vkCreateDebugUtilsMessengerEXT_FuncPtr(VulkanInstance, &CreateInfo, nullptr, &DebugMessengerHandle);
-        }
-        else
-        {
-            TURBO_LOG(LOG_RHI, LOG_ERROR, "Cannot load {} function.", vkCreateDebugUtilsMessengerEXT_FuncName);
-        }
+        vkCreateDebugUtilsMessengerEXT(VulkanInstance, &CreateInfo, nullptr, &DebugMessengerHandle);
+
+        // auto vkCreateDebugUtilsMessengerEXT_FuncPtr =
+        //     reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr( VulkanInstance, vkCreateDebugUtilsMessengerEXT_FuncName));
+        // if (vkCreateDebugUtilsMessengerEXT_FuncPtr)
+        // {
+        //     vkCreateDebugUtilsMessengerEXT_FuncPtr(VulkanInstance, &CreateInfo, nullptr, &DebugMessengerHandle);
+        // }
+        // else
+        // {
+        //     TURBO_LOG(LOG_RHI, LOG_ERROR, "Cannot load {} function.", vkCreateDebugUtilsMessengerEXT_FuncName);
+        // }
     }
 
     void VulkanRHI::DestroyValidationLayersCallbacks()

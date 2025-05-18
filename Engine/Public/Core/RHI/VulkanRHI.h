@@ -1,8 +1,6 @@
 #pragma once
-#include <vulkan/vulkan_core.h>
 
-#include "QueueFamilyIndices.h"
-#include "RHITypeDefs.h"
+#include "RHICore.h"
 
 #define WITH_VALIDATION_LAYERS DEBUG
 

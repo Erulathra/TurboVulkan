@@ -1,8 +1,5 @@
 #include "Core/Window.h"
 
-#include "Core/Engine.h"
-#include "SDL3/SDL_vulkan.h"
-
 namespace Turbo
 {
 	std::unique_ptr<Window> Window::MainWindow = nullptr;

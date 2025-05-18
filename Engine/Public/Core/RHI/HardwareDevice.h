@@ -1,4 +1,7 @@
 #pragma once
+
+#include "RHICore.h"
+
 #include "QueueFamilyIndices.h"
 #include "Core/Window.h"
 

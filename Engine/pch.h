@@ -23,6 +23,3 @@
 
 // Math
 #include <glm/glm.hpp>
-
-// Vulkan
-#include <vulkan/vulkan_core.h>

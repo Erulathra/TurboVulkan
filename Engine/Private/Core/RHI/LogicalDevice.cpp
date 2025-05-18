@@ -19,6 +19,7 @@ void LogicalDevice::Init(const HardwareDevicePtr& InHWDevice)
 
     HWDevice = InHWDevice;
 
+
     TURBO_LOG(LOG_RHI, LOG_INFO, "Creating logical device.")
 
     QueueIndices = InHWDevice->FindQueueFamilies();
@@ -62,6 +63,9 @@ void LogicalDevice::Init(const HardwareDevicePtr& InHWDevice)
         Engine::Get()->RequestExit(EExitCode::RHICriticalError);
         return;
     }
+
+    // TODO: For now We assume that we would have only one device.
+    volkLoadDevice(VulkanDevice);
 
     SetupQueues();
 }

@@ -13,6 +13,7 @@ There will be a Game engine written in C++ using Vulcan.
 * `vulkan-tools`
 * `vulkan-loader-devel`
 * `vulkan-validation-layers`
+* `VulkanMemoryAllocator-devel`
 
 ### Tools
 

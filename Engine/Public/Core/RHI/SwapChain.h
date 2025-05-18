@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RHITypeDefs.h"
+#include "RHICore.h"
 
 namespace Turbo
 {
