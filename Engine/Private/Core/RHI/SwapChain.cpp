@@ -4,6 +4,7 @@
 #include "Core/Window.h"
 #include "Core/RHI/HardwareDevice.h"
 #include "Core/RHI/LogicalDevice.h"
+#include "Core/RHI/VulkanRHI.h"
 
 using namespace Turbo;
 
@@ -59,12 +60,7 @@ void SwapChain::Init(const LogicalDevicePtr& InDevice)
 	CreateInfo.oldSwapchain = nullptr;
 
 	const VkResult SwapChaindCreationResult = vkCreateSwapchainKHR(InDevice->GetVulkanDevice(), &CreateInfo, nullptr, &VulkanSwapChain);
-	if (SwapChaindCreationResult != VK_SUCCESS)
-	{
-		TURBO_LOG(LOG_RHI, LOG_ERROR, "Error: {} during creating swap chain.", static_cast<int32>(SwapChaindCreationResult));
-		Engine::Get()->RequestExit(EExitCode::RHICriticalError);
-		return;
-	}
+	CHECK_VULKAN_RESULT(SwapChaindCreationResult, "Error: {} during creating swap chain.");
 
 	ImageFormat = CreateInfo.imageFormat;
 	ImageSize = CreateInfo.imageExtent;
@@ -73,6 +69,8 @@ void SwapChain::Init(const LogicalDevicePtr& InDevice)
 	vkGetSwapchainImagesKHR(InDevice->GetVulkanDevice(), VulkanSwapChain, &SwapChainImagesNum, nullptr);
 	Images.resize(SwapChainImagesNum);
 	vkGetSwapchainImagesKHR(InDevice->GetVulkanDevice(), VulkanSwapChain, &ImageCount, Images.data());
+
+	InitializeImageViews(InDevice.get());
 }
 
 
@@ -82,7 +80,14 @@ void SwapChain::Destroy()
 
 	const LogicalDevicePtr LockedDevice = Device.lock();
 	TURBO_CHECK(LockedDevice);
-	vkDestroySwapchainKHR(LockedDevice->GetVulkanDevice(), VulkanSwapChain, nullptr);
+	VkDevice VulkanDevice = LockedDevice->GetVulkanDevice();
+	vkDestroySwapchainKHR(VulkanDevice, VulkanSwapChain, nullptr);
+
+	for (VkImageView& ImageView : ImageViews)
+	{
+		vkDestroyImageView(VulkanDevice, ImageView, nullptr);
+	}
+	ImageViews.clear();
 }
 
 VkSurfaceFormatKHR SwapChain::SelectBestSurfacePixelFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats) const
@@ -120,4 +125,34 @@ VkExtent2D SwapChain::CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& C
 	FramebufferSize.y = glm::clamp(FramebufferSize.y, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
 
 	return  {FramebufferSize.x, FramebufferSize.y};
+}
+
+void SwapChain::InitializeImageViews(LogicalDevice* Device)
+{
+	TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Creating swap chain's image views")
+
+	ImageViews.resize(Images.size());
+
+	for (uint32 ImageId = 0; ImageId < ImageViews.size(); ++ImageId)
+	{
+		VkImageViewCreateInfo CreateInfo;
+		CreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		CreateInfo.image = Images[ImageId];
+		CreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		CreateInfo.format = ImageFormat;
+
+		CreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		CreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		CreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		CreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+		CreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		CreateInfo.subresourceRange.baseMipLevel = 0;
+		CreateInfo.subresourceRange.levelCount = 1;
+		CreateInfo.subresourceRange.baseArrayLayer = 0;
+		CreateInfo.subresourceRange.layerCount = 1;
+
+		const VkResult CreateImageViewResult = vkCreateImageView(Device->GetVulkanDevice(), &CreateInfo, nullptr, &ImageViews[ImageId]);
+		CHECK_VULKAN_RESULT(CreateImageViewResult, "Error: {} during creation swap chain's image view");
+	}
 }

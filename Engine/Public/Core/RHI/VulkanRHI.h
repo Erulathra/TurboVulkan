@@ -4,6 +4,14 @@
 
 #define WITH_VALIDATION_LAYERS DEBUG
 
+#define CHECK_VULKAN_RESULT(RESULT, MESSAGE)									\
+if (RESULT != VK_SUCCESS)														\
+{																				\
+	TURBO_LOG(LOG_RHI, LOG_ERROR, MESSAGE, static_cast<int32>(RESULT));			\
+	Engine::Get()->RequestExit(EExitCode::RHICriticalError);					\
+	return;																		\
+}
+
 namespace Turbo
 {
 	class LogicalDevice;
