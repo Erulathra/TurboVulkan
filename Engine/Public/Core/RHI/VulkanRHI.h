@@ -17,11 +17,6 @@ namespace Turbo
 	};
 #endif // WITH_VALIDATION_LAYERS
 
-	const static std::vector<const char*> RequiredDeviceExtensions =
-	{
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-	};
-
 	class VulkanRHI
 	{
 	public:

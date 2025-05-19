@@ -18,6 +18,7 @@ There will be a Game engine written in C++ using Vulcan.
 ### Tools
 
 * `glslc`
+* `slang` (https://github.com/shader-slang/slang)
 
 
 

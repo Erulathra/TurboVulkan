@@ -14,9 +14,13 @@ namespace Turbo
 		std::vector<VkPresentModeKHR> PresentModes;
 	};
 
+	const static std::vector<const char*> RequiredDeviceExtensions =
+	{
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
+
 	class HardwareDevice
 	{
-
 	public:
 		HardwareDevice() = delete;
 		explicit HardwareDevice(VkPhysicalDevice PhysicalDevice)

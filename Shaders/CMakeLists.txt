@@ -1,7 +1,6 @@
 
 file(GLOB_RECURSE SHADER_SOURCE_FILES
-        *.vert
-        *.frag)
+        *.slang)
 
 list(LENGTH SHADER_SOURCE_FILES FILE_COUNT)
 
