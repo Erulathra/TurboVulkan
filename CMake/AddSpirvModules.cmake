@@ -29,8 +29,10 @@ function(add_spirv_modules TARGET_NAME)
 
     # Define custom compilation commands
     foreach(FILE IN LISTS ARG_SOURCES)
+        string(REPLACE ".slang" ".spv" BINARY_FILE_NAME ${FILE})
+
         set(SOURCE_FILE ${ARG_SOURCE_DIR}/${FILE})
-        set(BINARY_FILE ${ARG_BINARY_DIR}/${FILE}.spv)
+        set(BINARY_FILE ${ARG_BINARY_DIR}/${BINARY_FILE_NAME})
         file(RELATIVE_PATH BIN_FILE_REL_PATH ${CMAKE_BINARY_DIR} ${BINARY_FILE})
 
         add_custom_command(

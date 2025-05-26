@@ -2,18 +2,8 @@
 
 namespace Turbo
 {
-	std::unique_ptr<Window> Window::MainWindow = nullptr;
-
-	Window::Window()
-	{
-	}
-
-	Window::~Window()
-	{
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Destroying window.");
-
-		SDL_DestroyWindow(SDLWindow);
-	}
+	Window::Window() = default;
+	Window::~Window() = default;
 
 	void Window::InitBackend()
 	{
@@ -24,21 +14,19 @@ namespace Turbo
 		}
 	}
 
-	bool Window::CreateMainWindow()
+	void Window::StopBackend()
 	{
-		MainWindow = std::unique_ptr<Window>(new Window());
-		return MainWindow->InitWindow();
-	}
-
-	void Window::DestroyMainWindow()
-	{
-		MainWindow.reset();
-
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Stopping SDL.");
 		SDL_Quit();
 	}
 
-	bool Window::InitWindow()
+	void Window::Destroy()
+	{
+		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Destroying window.");
+		SDL_DestroyWindow(SDLWindow);
+	}
+
+	bool Window::Init()
 	{
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing Window.");
 		SDLWindow = SDL_CreateWindow(WindowDefaultValues::Name.c_str(), WindowDefaultValues::SizeX, WindowDefaultValues::SizeY,

@@ -1,5 +1,6 @@
 #include "Core/RHI/HardwareDevice.h"
 
+#include "Core/Engine.h"
 #include "Core/Window.h"
 #include "Core/RHI/VulkanRHI.h"
 
@@ -65,8 +66,8 @@ QueueFamilyIndices HardwareDevice::FindQueueFamilies() const
 {
 	QueueFamilyIndices Result{};
 
-	Window* MainWindow = Window::GetMain();
-	TURBO_CHECK(MainWindow);
+	Window* Window = gEngine->GetWindow();
+	TURBO_CHECK(Window);
 
 	uint32 QueueFamilyNum;
 	vkGetPhysicalDeviceQueueFamilyProperties(VulkanPhysicalDevice, &QueueFamilyNum, nullptr);
@@ -83,7 +84,7 @@ QueueFamilyIndices HardwareDevice::FindQueueFamilies() const
 		}
 
 		VkBool32 bPresentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(VulkanPhysicalDevice, QueueId, MainWindow->GetVulkanSurface(), &bPresentSupport);
+		vkGetPhysicalDeviceSurfaceSupportKHR(VulkanPhysicalDevice, QueueId, Window->GetVulkanSurface(), &bPresentSupport);
 		if (bPresentSupport == true)
 		{
 			Result.PresentFamily = QueueId;
@@ -95,7 +96,7 @@ QueueFamilyIndices HardwareDevice::FindQueueFamilies() const
 
 SwapChainDeviceSupportDetails HardwareDevice::QuerySwapChainSupport() const
 {
-	VkSurfaceKHR Surface = Window::GetMain()->GetVulkanSurface();
+	const VkSurfaceKHR Surface = gEngine->GetWindow()->GetVulkanSurface();
 	TURBO_CHECK(Surface);
 
 	SwapChainDeviceSupportDetails Result;

@@ -27,7 +27,7 @@ void SwapChain::Init(const LogicalDevicePtr& InDevice)
 
 	VkSwapchainCreateInfoKHR CreateInfo{};
 	CreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	CreateInfo.surface = Window::GetMain()->GetVulkanSurface();
+	CreateInfo.surface = gEngine->GetWindow()->GetVulkanSurface();
 
 	CreateInfo.minImageCount = ImageCount;
 	VkSurfaceFormatKHR PixelFormat = SelectBestSurfacePixelFormat(SupportDetails.Formats);
@@ -120,7 +120,7 @@ VkPresentModeKHR SwapChain::SelectBestPresentMode(const std::vector<VkPresentMod
 
 VkExtent2D SwapChain::CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities) const
 {
-	glm::uvec2 FramebufferSize = Window::GetMain()->GetFrameBufferSize();
+	glm::uvec2 FramebufferSize = gEngine->GetWindow()->GetFrameBufferSize();
 	FramebufferSize.x = glm::clamp(FramebufferSize.x, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
 	FramebufferSize.y = glm::clamp(FramebufferSize.y, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
 

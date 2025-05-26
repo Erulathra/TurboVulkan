@@ -1,34 +1,28 @@
 #include "Core/RHI/VulkanRHI.h"
 
+#include <fmt/format.h>
+
 #include "Core/Engine.h"
 #include "Core/Window.h"
 #include "Core/RHI/HardwareDevice.h"
 #include "Core/RHI/LogicalDevice.h"
 #include "Core/RHI/SwapChain.h"
 
+auto fmt::formatter<VkResult, char, void>::format(VkResult Result, format_context& CTX) const
+    -> format_context::iterator
+{
+    return formatter<int32>::format(Result, CTX);
+}
+
 namespace Turbo
 {
-    constexpr const char* vkCreateDebugUtilsMessengerEXT_FuncName = "vkCreateDebugUtilsMessengerEXT";
-    constexpr const char* vkDestroyDebugUtilsMessengerEXT_FuncName = "vkDestroyDebugUtilsMessengerEXT";
-
-    std::unique_ptr<VulkanRHI> VulkanRHI::Instance;
-
     VulkanRHI::VulkanRHI() = default;
-
-    VulkanRHI::~VulkanRHI()
-    {
-    }
+    VulkanRHI::~VulkanRHI() = default;
 
     void VulkanRHI::Init()
     {
-        Instance = std::unique_ptr<VulkanRHI>(new VulkanRHI());
-        Instance->Init_Internal();
-    }
-
-    void VulkanRHI::Init_Internal()
-    {
         CreateVulkanInstance();
-        Window::GetMain()->CreateVulkanSurface(VulkanInstance);
+        gEngine->GetWindow()->CreateVulkanSurface(VulkanInstance);
         AcquirePhysicalDevice();
 
         if (IsValid(MainHWDevice))
@@ -44,13 +38,12 @@ namespace Turbo
         }
     }
 
-    void VulkanRHI::Destroy()
+    void VulkanRHI::InitWindow(Window* Window)
     {
-        Instance->Destroy_Internal();
-        Instance.reset();
+        Window->InitForVulkan();
     }
 
-    void VulkanRHI::Destroy_Internal()
+    void VulkanRHI::Destroy()
     {
         if (MainSwapChain)
         {
@@ -69,13 +62,8 @@ namespace Turbo
         TURBO_CHECK(MainHWDevice.unique());
         MainHWDevice.reset();
 
-        Window::GetMain()->DestroyVulkanSurface(Instance->VulkanInstance);
-        Instance->DestroyVulkanInstance();
-    }
-
-    VulkanRHI* VulkanRHI::Get()
-    {
-        return Instance.get();
+        gEngine->GetWindow()->DestroyVulkanSurface(VulkanInstance);
+        DestroyVulkanInstance();
     }
 
     void VulkanRHI::CreateVulkanInstance()
@@ -83,8 +71,8 @@ namespace Turbo
         TURBO_LOG(LOG_RHI, LOG_INFO, "Initialize VOLK");
         if (VkResult VolkInitializeResult = volkInitialize(); VolkInitializeResult != VK_SUCCESS)
         {
-            TURBO_LOG(LOG_RHI, LOG_ERROR, "VOLK initialization error. (Error: {})", static_cast<int32>(VolkInitializeResult));
-            Engine::Get()->RequestExit(EExitCode::RHICriticalError);
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "VOLK initialization error. (Error: {})", VolkInitializeResult);
+            gEngine->RequestExit(EExitCode::RHICriticalError);
             return;
         }
 
@@ -101,7 +89,7 @@ namespace Turbo
         CreateInfo.pApplicationInfo = &AppInfo;
         CreateInfo.pNext = nullptr;
 
-        std::vector<const char*> ExtensionNames = Window::GetMain()->GetVulkanRequiredExtensions();
+        std::vector<const char*> ExtensionNames = gEngine->GetWindow()->GetVulkanRequiredExtensions();
 
 #if WITH_VALIDATION_LAYERS
         if (CheckValidationLayersSupport())
@@ -129,8 +117,8 @@ namespace Turbo
         const VkResult CreationResult = vkCreateInstance(&CreateInfo, nullptr, &VulkanInstance);
         if (CreationResult != VK_SUCCESS)
         {
-            TURBO_LOG(LOG_RHI, LOG_ERROR, "VKInstance creation failed. (Error: {})", static_cast<int32>(CreationResult));
-            Engine::Get()->RequestExit(EExitCode::RHICriticalError);
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "VKInstance creation failed. (Error: {})", CreationResult);
+            gEngine->RequestExit(EExitCode::RHICriticalError);
             return;
         }
 
@@ -232,17 +220,6 @@ namespace Turbo
         CreateInfo.pUserData = nullptr;
 
         vkCreateDebugUtilsMessengerEXT(VulkanInstance, &CreateInfo, nullptr, &DebugMessengerHandle);
-
-        // auto vkCreateDebugUtilsMessengerEXT_FuncPtr =
-        //     reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr( VulkanInstance, vkCreateDebugUtilsMessengerEXT_FuncName));
-        // if (vkCreateDebugUtilsMessengerEXT_FuncPtr)
-        // {
-        //     vkCreateDebugUtilsMessengerEXT_FuncPtr(VulkanInstance, &CreateInfo, nullptr, &DebugMessengerHandle);
-        // }
-        // else
-        // {
-        //     TURBO_LOG(LOG_RHI, LOG_ERROR, "Cannot load {} function.", vkCreateDebugUtilsMessengerEXT_FuncName);
-        // }
     }
 
     void VulkanRHI::DestroyValidationLayersCallbacks()
@@ -250,19 +227,7 @@ namespace Turbo
         if (DebugMessengerHandle)
         {
             TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying validation layers callback.");
-
-            auto vkDestroyDebugUtilsMessengerEXT_FuncPtr =
-                reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(VulkanInstance, vkDestroyDebugUtilsMessengerEXT_FuncName));
-
-            if (vkDestroyDebugUtilsMessengerEXT_FuncPtr)
-            {
-                vkDestroyDebugUtilsMessengerEXT_FuncPtr(VulkanInstance, DebugMessengerHandle, nullptr);
-                DebugMessengerHandle = nullptr;
-            }
-            else
-            {
-                TURBO_LOG(LOG_RHI, LOG_ERROR, "Cannot load {} function.", vkCreateDebugUtilsMessengerEXT_FuncName);
-            }
+            vkDestroyDebugUtilsMessengerEXT(VulkanInstance, DebugMessengerHandle, nullptr);
         }
     }
 
@@ -328,7 +293,7 @@ namespace Turbo
         if (!IsValid(MainHWDevice))
         {
             TURBO_LOG(LOG_RHI, LOG_ERROR, "There is no suitable GPU device.");
-            Engine::Get()->RequestExit(EExitCode::DeviceNotSupported);
+            gEngine->RequestExit(EExitCode::DeviceNotSupported);
             return;
         }
 

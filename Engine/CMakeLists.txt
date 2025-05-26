@@ -19,6 +19,9 @@ target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC eventpp::eventpp)
 
+find_package(fmt REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
+
 find_package(spdlog REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 

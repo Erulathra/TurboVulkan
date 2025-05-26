@@ -3,6 +3,7 @@
 
 namespace Turbo
 {
+	class VulkanRHI;
 	class CommandLineArgsParser;
 }
 
@@ -23,12 +24,23 @@ namespace Turbo
 	private:
 		explicit Engine();
 
+		/** Services */
+	public:
+		[[nodiscard]] VulkanRHI* GetRHI() const { return RHIInstance.get(); };
+		[[nodiscard]] Window* GetWindow() const { return MainWindowInstance.get(); };
+
+	private:
+		// Replace me with GenericRHI
+		std::unique_ptr<VulkanRHI> RHIInstance;
+		std::unique_ptr<Window> MainWindowInstance;
+
+		/** Services end */
+
 	public:
 		~Engine();
 
 	public:
 		static void Init();
-		static Engine* Get();
 
 		int32_t Start(int32 argc, char* argv[]);
 		void End();
@@ -42,12 +54,11 @@ namespace Turbo
 		void HandleMainWindowEvents(EWindowEvent Event);
 
 	private:
-		static std::unique_ptr<Engine> Instance;
-
-	private:
 		WindowEventDelegate::Handle HandleMainWindowEventsHandle;
 
 		bool bExitRequested = false;
 		EExitCode ExitCode = EExitCode::Success;
 	};
+
+	inline std::unique_ptr<Engine> gEngine(nullptr);
 } // Turbo

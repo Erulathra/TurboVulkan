@@ -3,5 +3,5 @@
 int32_t main(int argc, char* argv[])
 {
     Turbo::Engine::Init();
-    return Turbo::Engine::Get()->Start(argc, argv);
+    return Turbo::gEngine->Start(argc, argv);
 }

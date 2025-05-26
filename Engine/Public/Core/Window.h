@@ -38,13 +38,11 @@ namespace Turbo
 
 		/** Static Interface */
 	public:
-		inline static Window* GetMain() { return MainWindow.get(); }
+		void InitBackend();
+		void StopBackend();
 
-		static void InitBackend();
-
-		static bool CreateMainWindow();
-		static void DestroyMainWindow();
-
+		bool Init();
+		void Destroy();
 
 		/** Events */
 	public:
@@ -59,7 +57,7 @@ namespace Turbo
 
 		/** Vulkan Interface */
 	public:
-		static void InitForVulkan();
+		void InitForVulkan();
 
 		void DeInitForVulkan();
 		std::vector<const char*> GetVulkanRequiredExtensions();
@@ -70,17 +68,15 @@ namespace Turbo
 
 		/** Internal methods */
 	private:
-		bool InitWindow();
 
 		static void LogError();
-
-		/** Static properties */
-	private:
-		static std::unique_ptr<Window> MainWindow;
 
 		/** properties */
 	private:
 		SDL_Window* SDLWindow = nullptr;
 		VkSurfaceKHR VulkanSurface = nullptr;
+
+	public:
+		friend class Engine;
 	};
 } // Turbo

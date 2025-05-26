@@ -14,7 +14,7 @@ bool LogicalDevice::AcquiredQueues::IsValid() const
 
 void LogicalDevice::Init(const HardwareDevicePtr& InHWDevice)
 {
-    VkInstance VulkanInstance = VulkanRHI::Get()->GetVulkanInstance();
+    VkInstance VulkanInstance = gEngine->GetRHI()->GetVulkanInstance();
     TURBO_CHECK(InHWDevice && VulkanInstance);
 
     HWDevice = InHWDevice;
@@ -60,7 +60,7 @@ void LogicalDevice::Init(const HardwareDevicePtr& InHWDevice)
     if (DeviceCreationResult != VK_SUCCESS)
     {
         TURBO_LOG(LOG_RHI, LOG_ERROR, "Error: {} during creating logical device.", static_cast<int32>(DeviceCreationResult));
-        Engine::Get()->RequestExit(EExitCode::RHICriticalError);
+        gEngine->RequestExit(EExitCode::RHICriticalError);
         return;
     }
 
@@ -83,7 +83,7 @@ void LogicalDevice::SetupQueues()
     if (!Queues.IsValid())
     {
         TURBO_LOG(LOG_RHI, LOG_ERROR, "Required queues not found.")
-        Engine::Get()->RequestExit(EExitCode::RHICriticalError);
+        gEngine->RequestExit(EExitCode::RHICriticalError);
         return;
     }
 }

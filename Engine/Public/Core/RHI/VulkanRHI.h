@@ -7,13 +7,19 @@
 #define CHECK_VULKAN_RESULT(RESULT, MESSAGE)									\
 if (RESULT != VK_SUCCESS)														\
 {																				\
-	TURBO_LOG(LOG_RHI, LOG_ERROR, MESSAGE, static_cast<int32>(RESULT));			\
-	Engine::Get()->RequestExit(EExitCode::RHICriticalError);					\
+	TURBO_LOG(LOG_RHI, LOG_ERROR, MESSAGE, RESULT);								\
+	gEngine->RequestExit(EExitCode::RHICriticalError);							\
 	return;																		\
 }
 
+template <> struct fmt::formatter<VkResult>: formatter<int32> {
+	auto format(VkResult Result, format_context& CTX) const
+	  -> format_context::iterator;
+};
+
 namespace Turbo
 {
+	class Window;
 	class LogicalDevice;
 	class HardwareDevice;
 
@@ -27,9 +33,6 @@ namespace Turbo
 
 	class VulkanRHI
 	{
-	public:
-
-
 	private:
 		explicit VulkanRHI();
 
@@ -37,15 +40,9 @@ namespace Turbo
 		~VulkanRHI();
 
 	public:
-		static void Init();
-		static void Destroy();
-
-	private:
-		void Init_Internal();
-		void Destroy_Internal();
-
-	public:
-		static VulkanRHI* Get();
+		void Init();
+		void InitWindow(Window* Window);
+		void Destroy();
 
 	private:
 		void CreateVulkanInstance();
@@ -78,9 +75,6 @@ namespace Turbo
 		void AcquirePhysicalDevice();
 
 	private:
-		static std::unique_ptr<VulkanRHI> Instance;
-
-	private:
 		VkInstance VulkanInstance = nullptr;
 		std::vector<VkExtensionProperties> ExtensionProperties;
 
@@ -93,5 +87,8 @@ namespace Turbo
 		HardwareDevicePtr MainHWDevice;
 		LogicalDevicePtr MainDevice;
 		SwapChainPtr MainSwapChain;
+
+	public:
+		friend class Engine;
 	};
 } // namespace Turbo

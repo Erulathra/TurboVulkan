@@ -5,33 +5,20 @@
 
 namespace Turbo
 {
-	std::unique_ptr<Engine> Engine::Instance = nullptr;
-
 	Engine::Engine()
 		: bExitRequested(false)
 	{
 	}
 
-	Engine::~Engine()
-	{
-		if (Window* MainWindow = Window::GetMain())
-		{
-			MainWindow->OnWindowEvent.remove(HandleMainWindowEventsHandle);
-		}
-	}
+	Engine::~Engine() = default;
 
 	void Engine::Init()
 	{
 		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Creating engine instance.");
-		Instance = std::unique_ptr<Engine>(new Engine());
+		gEngine = std::unique_ptr<Engine>(new Engine());
 
 		// TODO: Move thread configuration to separate class
 		pthread_setname_np(pthread_self(), "GameThread");
-	}
-
-	Engine* Engine::Get()
-	{
-		return Instance.get();
 	}
 
 	int32_t Engine::Start(int32 argc, char* argv[])
@@ -39,23 +26,25 @@ namespace Turbo
 		// TODO: Move me elsewhere
 		spdlog::set_level(spdlog::level::debug);
 
-		Window::InitBackend();
-		Window::InitForVulkan();
+		RHIInstance = std::unique_ptr<VulkanRHI>(new VulkanRHI());
+		MainWindowInstance = std::unique_ptr<Window>(new Window());
 
-		if (!Window::CreateMainWindow())
+		MainWindowInstance->InitBackend();
+		RHIInstance->InitWindow(MainWindowInstance.get());
+
+		if (!MainWindowInstance->Init())
 		{
 			return static_cast<int32_t>(EExitCode::WindowCreationError);
 		}
 
-		Window::GetMain()->OnWindowEvent.append(
+		MainWindowInstance->OnWindowEvent.append(
 			[this](EWindowEvent WindowEvent)
 			{
 				HandleMainWindowEvents(WindowEvent);
 			});
 
-		VulkanRHI::Init();
-
-		Window::GetMain()->ShowWindow(true);
+		RHIInstance->Init();
+		MainWindowInstance->ShowWindow(true);
 
 		GameThreadLoop();
 
@@ -67,7 +56,7 @@ namespace Turbo
 		while (!bExitRequested)
 		{
 			GameThreadTick();
-			Window::GetMain()->PollWindowEventsAndErrors();
+			MainWindowInstance->PollWindowEventsAndErrors();
 		}
 
 		End();
@@ -90,8 +79,12 @@ namespace Turbo
 	{
 		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Begin exit sequence.");
 
-		VulkanRHI::Destroy();
-		Window::DestroyMainWindow();
+		RHIInstance->Destroy();
+		MainWindowInstance->Destroy();
+		MainWindowInstance->StopBackend();
+
+		RHIInstance.release();
+		MainWindowInstance.release();
 	}
 
 	void Engine::RequestExit(EExitCode InExitCode)
