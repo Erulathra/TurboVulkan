@@ -1,4 +1,4 @@
-#include "Core/RHI/LogicalDevice.h"
+#include "Core/RHI/Device.h"
 
 #include "Core/Engine.h"
 #include "Core/RHI/HardwareDevice.h"
@@ -6,19 +6,16 @@
 
 using namespace Turbo;
 
-bool LogicalDevice::AcquiredQueues::IsValid() const
+bool Device::AcquiredQueues::IsValid() const
 {
     return GraphicsQueue
         && PresentQueue;
 }
 
-void LogicalDevice::Init(const HardwareDevicePtr& InHWDevice)
+void Device::Init(const HardwareDevice* InHWDevice)
 {
     VkInstance VulkanInstance = gEngine->GetRHI()->GetVulkanInstance();
     TURBO_CHECK(InHWDevice && VulkanInstance);
-
-    HWDevice = InHWDevice;
-
 
     TURBO_LOG(LOG_RHI, LOG_INFO, "Creating logical device.")
 
@@ -70,7 +67,7 @@ void LogicalDevice::Init(const HardwareDevicePtr& InHWDevice)
     SetupQueues();
 }
 
-void LogicalDevice::SetupQueues()
+void Device::SetupQueues()
 {
     TURBO_CHECK(IsValid());
 
@@ -88,21 +85,20 @@ void LogicalDevice::SetupQueues()
     }
 }
 
-void LogicalDevice::Destroy()
+void Device::Destroy()
 {
     TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying logical device.");
     vkDestroyDevice(VulkanDevice, nullptr);
     VulkanDevice = nullptr;
 }
 
-bool LogicalDevice::IsValid() const
+bool Device::IsValid() const
 {
     return VulkanDevice != nullptr
-        && IsValid<HardwareDevice>(HWDevice)
         && QueueIndices.IsValid();
 }
 
-VkPhysicalDeviceFeatures LogicalDevice::GetRequiredDeviceFeatures()
+VkPhysicalDeviceFeatures Device::GetRequiredDeviceFeatures()
 {
     VkPhysicalDeviceFeatures Result{};
     Result.textureCompressionBC = true;

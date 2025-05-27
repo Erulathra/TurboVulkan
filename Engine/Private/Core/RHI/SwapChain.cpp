@@ -3,17 +3,16 @@
 #include "Core/Engine.h"
 #include "Core/Window.h"
 #include "Core/RHI/HardwareDevice.h"
-#include "Core/RHI/LogicalDevice.h"
+#include "Core/RHI/Device.h"
 #include "Core/RHI/VulkanRHI.h"
 
 using namespace Turbo;
 
-void SwapChain::Init(const LogicalDevicePtr& InDevice)
+void SwapChain::Init(const Device* InDevice)
 {
 	TURBO_CHECK(IsValid(InDevice));
 
-	Device = InDevice;
-	const HardwareDevice* HWDevice = InDevice->GetHardwareDevice();
+	const HardwareDevice* HWDevice = gEngine->GetRHI()->GetHardwareDevice();
 
 	TURBO_LOG(LOG_RHI, LOG_INFO, "Creating Swap chain");
 
@@ -70,7 +69,7 @@ void SwapChain::Init(const LogicalDevicePtr& InDevice)
 	Images.resize(SwapChainImagesNum);
 	vkGetSwapchainImagesKHR(InDevice->GetVulkanDevice(), VulkanSwapChain, &ImageCount, Images.data());
 
-	InitializeImageViews(InDevice.get());
+	InitializeImageViews(InDevice);
 }
 
 
@@ -78,9 +77,10 @@ void SwapChain::Destroy()
 {
 	TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying Swap chain");
 
-	const LogicalDevicePtr LockedDevice = Device.lock();
-	TURBO_CHECK(LockedDevice);
-	VkDevice VulkanDevice = LockedDevice->GetVulkanDevice();
+	const Device* Device = gEngine->GetRHI()->GetDevice();
+	TURBO_CHECK(Device);
+
+	VkDevice VulkanDevice = Device->GetVulkanDevice();
 	vkDestroySwapchainKHR(VulkanDevice, VulkanSwapChain, nullptr);
 
 	for (VkImageView& ImageView : ImageViews)
@@ -127,7 +127,7 @@ VkExtent2D SwapChain::CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& C
 	return  {FramebufferSize.x, FramebufferSize.y};
 }
 
-void SwapChain::InitializeImageViews(LogicalDevice* Device)
+void SwapChain::InitializeImageViews(const Device* Device)
 {
 	TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Creating swap chain's image views")
 

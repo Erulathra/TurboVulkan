@@ -4,14 +4,14 @@
 
 namespace Turbo
 {
-	class HardwareDevice;
+	class Device;
 
 	class SwapChain
 	{
 	public:
 
 	public:
-		void Init(const LogicalDevicePtr& InDevice);
+		void Init(const Device* InDevice);
 		void Destroy();
 
 	private:
@@ -20,11 +20,9 @@ namespace Turbo
 		VkExtent2D CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities) const;
 
 	private:
-		void InitializeImageViews(LogicalDevice* Device);
+		void InitializeImageViews(const Device* Device);
 
 	private:
-		LogicalDeviceWeakPtr Device;
-
 		VkSwapchainKHR VulkanSwapChain = nullptr;
 
 		VkFormat ImageFormat = VK_FORMAT_UNDEFINED;

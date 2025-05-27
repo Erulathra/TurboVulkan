@@ -65,6 +65,12 @@ namespace Turbo
 	}
 
 	template <typename T>
+	bool IsValid(const std::unique_ptr<T>& Object)
+	{
+		return Object && Object->IsValid();
+	}
+
+	template <typename T>
 	bool IsValidAndUnique(const std::shared_ptr<T>& Object)
 	{
 		return Object && Object->IsValid() && Object.unique();

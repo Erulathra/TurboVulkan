@@ -5,7 +5,7 @@
 #include "Core/Engine.h"
 #include "Core/Window.h"
 #include "Core/RHI/HardwareDevice.h"
-#include "Core/RHI/LogicalDevice.h"
+#include "Core/RHI/Device.h"
 #include "Core/RHI/SwapChain.h"
 
 auto fmt::formatter<VkResult, char, void>::format(VkResult Result, format_context& CTX) const
@@ -25,16 +25,16 @@ namespace Turbo
         gEngine->GetWindow()->CreateVulkanSurface(VulkanInstance);
         AcquirePhysicalDevice();
 
-        if (IsValid(MainHWDevice))
+        if (IsValid(HardwareDeviceInstance))
         {
-            MainDevice = std::make_shared<LogicalDevice>();
-            MainDevice->Init(MainHWDevice);
+            DeviceInstance = std::make_unique<Device>();
+            DeviceInstance->Init(HardwareDeviceInstance.get());
         }
 
-        if (IsValid(MainDevice))
+        if (IsValid(DeviceInstance))
         {
-            MainSwapChain = std::make_shared<SwapChain>();
-            MainSwapChain->Init(MainDevice);
+            SwapChainInstance = std::make_unique<SwapChain>();
+            SwapChainInstance->Init(DeviceInstance.get());
         }
     }
 
@@ -45,22 +45,19 @@ namespace Turbo
 
     void VulkanRHI::Destroy()
     {
-        if (MainSwapChain)
+        if (SwapChainInstance)
         {
-            TURBO_CHECK(MainSwapChain.unique());
-            MainSwapChain->Destroy();
-            MainSwapChain.reset();
+            SwapChainInstance->Destroy();
+            SwapChainInstance.reset();
         }
 
-        if (MainDevice)
+        if (DeviceInstance)
         {
-            TURBO_CHECK(MainDevice.unique());
-            MainDevice->Destroy();
-            MainDevice.reset();
+            DeviceInstance->Destroy();
+            DeviceInstance.reset();
         }
 
-        TURBO_CHECK(MainHWDevice.unique());
-        MainHWDevice.reset();
+        HardwareDeviceInstance.reset();
 
         gEngine->GetWindow()->DestroyVulkanSurface(VulkanInstance);
         DestroyVulkanInstance();
@@ -270,10 +267,10 @@ namespace Turbo
             std::vector<VkPhysicalDevice> FoundVulkanDevices(PhysicalDeviceNum);
             vkEnumeratePhysicalDevices(VulkanInstance, &PhysicalDeviceNum, FoundVulkanDevices.data());
 
-            std::vector<HardwareDevicePtr> HardwareDevices;
+            std::vector<HardwareDevice*> HardwareDevices;
             for (VkPhysicalDevice VulkanDevice : FoundVulkanDevices)
             {
-                HardwareDevicePtr HWDevice = std::make_shared<HardwareDevice>(VulkanDevice);
+                HardwareDevice* HWDevice = new HardwareDevice(VulkanDevice);
                 if (HWDevice->IsValid())
                 {
                     HardwareDevices.push_back(HWDevice);
@@ -282,15 +279,21 @@ namespace Turbo
 
             std::ranges::sort(
                 HardwareDevices, std::ranges::greater{},
-                [this](const HardwareDevicePtr& Device)
+                [this](const HardwareDevice* Device)
                 {
                     return Device->CalculateDeviceScore();
                 });
 
-            MainHWDevice = !HardwareDevices.empty() ? HardwareDevices[0] : nullptr;
+            HardwareDeviceInstance = !HardwareDevices.empty() ? std::unique_ptr<HardwareDevice>(HardwareDevices[0]) : nullptr;
+
+            for (int DeviceId = 1; DeviceId < HardwareDevices.size(); ++DeviceId)
+            {
+                delete HardwareDevices[DeviceId];
+                HardwareDevices[DeviceId] = nullptr;
+            }
         }
 
-        if (!IsValid(MainHWDevice))
+        if (!IsValid(HardwareDeviceInstance))
         {
             TURBO_LOG(LOG_RHI, LOG_ERROR, "There is no suitable GPU device.");
             gEngine->RequestExit(EExitCode::DeviceNotSupported);
@@ -298,8 +301,8 @@ namespace Turbo
         }
 
         VkPhysicalDeviceProperties DeviceProperties;
-        vkGetPhysicalDeviceProperties(MainHWDevice->GetVulkanPhysicalDevice(), &DeviceProperties);
+        vkGetPhysicalDeviceProperties(HardwareDeviceInstance->GetVulkanPhysicalDevice(), &DeviceProperties);
 
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device. (Score: {})", DeviceProperties.deviceName, MainHWDevice->CalculateDeviceScore());
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device. (Score: {})", DeviceProperties.deviceName, HardwareDeviceInstance->CalculateDeviceScore());
     }
 } // Turbo
