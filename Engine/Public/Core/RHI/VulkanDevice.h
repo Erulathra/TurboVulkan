@@ -6,10 +6,10 @@
 
 namespace Turbo
 {
-	class HardwareDevice;
-	struct QueueFamilyIndices;
+	class FVulkanHardwareDevice;
+	struct FQueueFamilyIndices;
 
-	class Device
+	class FVulkanDevice
 	{
 	public:
 		struct AcquiredQueues
@@ -21,14 +21,14 @@ namespace Turbo
 		};
 
 	public:
-		void Init(const HardwareDevice* InHWDevice);
+		void Init(const FVulkanHardwareDevice* InHWDevice);
 		void Destroy();
 
 		[[nodiscard]] bool IsValid() const;
 
 	public:
 		[[nodiscard]] VkDevice GetVulkanDevice() const { return VulkanDevice; }
-		[[nodiscard]] const QueueFamilyIndices& GetQueueIndices() const {return QueueIndices; }
+		[[nodiscard]] const FQueueFamilyIndices& GetQueueIndices() const {return QueueIndices; }
 
 	private:
 		void SetupQueues();
@@ -37,7 +37,7 @@ namespace Turbo
 	private:
 		VkDevice VulkanDevice = nullptr;
 
-		QueueFamilyIndices QueueIndices;
+		FQueueFamilyIndices QueueIndices;
 		AcquiredQueues Queues;
 	};
 }

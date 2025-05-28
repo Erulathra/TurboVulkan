@@ -5,29 +5,29 @@
 
 namespace Turbo
 {
-	Engine::Engine()
+	FEngine::FEngine()
 		: bExitRequested(false)
 	{
 	}
 
-	Engine::~Engine() = default;
+	FEngine::~FEngine() = default;
 
-	void Engine::Init()
+	void FEngine::Init()
 	{
 		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Creating engine instance.");
-		gEngine = std::unique_ptr<Engine>(new Engine());
+		gEngine = std::unique_ptr<FEngine>(new FEngine());
 
 		// TODO: Move thread configuration to separate class
 		pthread_setname_np(pthread_self(), "GameThread");
 	}
 
-	int32_t Engine::Start(int32 argc, char* argv[])
+	int32_t FEngine::Start(int32 argc, char* argv[])
 	{
 		// TODO: Move me elsewhere
 		spdlog::set_level(spdlog::level::debug);
 
-		RHIInstance = std::unique_ptr<VulkanRHI>(new VulkanRHI());
-		MainWindowInstance = std::unique_ptr<Window>(new Window());
+		RHIInstance = std::unique_ptr<FVulkanRHI>(new FVulkanRHI());
+		MainWindowInstance = std::unique_ptr<FSDLWindow>(new FSDLWindow());
 
 		MainWindowInstance->InitBackend();
 		RHIInstance->InitWindow(MainWindowInstance.get());
@@ -51,7 +51,7 @@ namespace Turbo
 		return static_cast<int32_t>(ExitCode);
 	}
 
-	void Engine::GameThreadLoop()
+	void FEngine::GameThreadLoop()
 	{
 		while (!bExitRequested)
 		{
@@ -62,12 +62,12 @@ namespace Turbo
 		End();
 	}
 
-	void Engine::GameThreadTick()
+	void FEngine::GameThreadTick()
 	{
 		TURBO_LOG(LOG_ENGINE, LOG_DISPLAY, "Engine Tick");
 	}
 
-	void Engine::HandleMainWindowEvents(EWindowEvent Event)
+	void FEngine::HandleMainWindowEvents(EWindowEvent Event)
 	{
 		if (Event == EWindowEvent::WindowCloseRequest)
 		{
@@ -75,7 +75,7 @@ namespace Turbo
 		}
 	}
 
-	void Engine::End()
+	void FEngine::End()
 	{
 		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Begin exit sequence.");
 
@@ -87,7 +87,7 @@ namespace Turbo
 		MainWindowInstance.release();
 	}
 
-	void Engine::RequestExit(EExitCode InExitCode)
+	void FEngine::RequestExit(EExitCode InExitCode)
 	{
 		bExitRequested = true;
 		ExitCode = InExitCode;

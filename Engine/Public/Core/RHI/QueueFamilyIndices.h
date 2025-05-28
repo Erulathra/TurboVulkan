@@ -1,7 +1,7 @@
 #pragma once
 
 namespace Turbo {
-	struct QueueFamilyIndices
+	struct FQueueFamilyIndices
 	{
 		int32 GraphicsFamily = INDEX_NONE;
 		int32 PresentFamily = INDEX_NONE;

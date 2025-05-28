@@ -19,10 +19,10 @@ template <> struct fmt::formatter<VkResult>: formatter<int32> {
 
 namespace Turbo
 {
-	class SwapChain;
-	class Window;
-	class Device;
-	class HardwareDevice;
+	class FSwapChain;
+	class FSDLWindow;
+	class FVulkanDevice;
+	class FVulkanHardwareDevice;
 
 #if WITH_VALIDATION_LAYERS
 	// TODO: Move to config
@@ -32,17 +32,17 @@ namespace Turbo
 	};
 #endif // WITH_VALIDATION_LAYERS
 
-	class VulkanRHI
+	class FVulkanRHI
 	{
 	private:
-		explicit VulkanRHI();
+		explicit FVulkanRHI();
 
 	public:
-		~VulkanRHI();
+		~FVulkanRHI();
 
 	public:
 		void Init();
-		void InitWindow(Window* Window);
+		void InitWindow(FSDLWindow* Window);
 		void Destroy();
 
 	private:
@@ -85,16 +85,16 @@ namespace Turbo
 #endif // WITH_VALIDATION_LAYERS
 
 	private:
-		std::unique_ptr<HardwareDevice> HardwareDeviceInstance;
-		std::unique_ptr<Device> DeviceInstance;
-		std::unique_ptr<SwapChain> SwapChainInstance;
+		std::unique_ptr<FVulkanHardwareDevice> HardwareDeviceInstance;
+		std::unique_ptr<FVulkanDevice> DeviceInstance;
+		std::unique_ptr<FSwapChain> SwapChainInstance;
 
 	public:
-		[[nodiscard]] HardwareDevice* GetHardwareDevice() const { return HardwareDeviceInstance.get(); }
-		[[nodiscard]] Device* GetDevice() const { return DeviceInstance.get(); }
-		[[nodiscard]] SwapChain* GetSwapChainInstance() const { return SwapChainInstance.get(); }
+		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return HardwareDeviceInstance.get(); }
+		[[nodiscard]] FVulkanDevice* GetDevice() const { return DeviceInstance.get(); }
+		[[nodiscard]] FSwapChain* GetSwapChainInstance() const { return SwapChainInstance.get(); }
 
 	public:
-		friend class Engine;
+		friend class FEngine;
 	};
 } // namespace Turbo

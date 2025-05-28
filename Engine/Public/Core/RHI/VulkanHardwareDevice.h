@@ -19,11 +19,11 @@ namespace Turbo
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
-	class HardwareDevice
+	class FVulkanHardwareDevice
 	{
 	public:
-		HardwareDevice() = delete;
-		explicit HardwareDevice(VkPhysicalDevice PhysicalDevice)
+		FVulkanHardwareDevice() = delete;
+		explicit FVulkanHardwareDevice(VkPhysicalDevice PhysicalDevice)
 			: VulkanPhysicalDevice(PhysicalDevice)
 		{
 			TURBO_CHECK(PhysicalDevice);
@@ -34,7 +34,7 @@ namespace Turbo
 	public:
 		[[nodiscard]] int32 CalculateDeviceScore() const;
 		[[nodiscard]] bool AreExtensionsSupportedByDevice(const std::vector<const char*>& RequiredExtensions) const;
-		[[nodiscard]] QueueFamilyIndices FindQueueFamilies() const;
+		[[nodiscard]] FQueueFamilyIndices FindQueueFamilies() const;
 		[[nodiscard]] bool IsDeviceCapable() const;
 		[[nodiscard]] SwapChainDeviceSupportDetails QuerySwapChainSupport() const;
 

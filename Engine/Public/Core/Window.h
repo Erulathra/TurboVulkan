@@ -23,7 +23,7 @@ namespace Turbo
 
 	using WindowEventDelegate = eventpp::CallbackList<void(EWindowEvent)>;
 
-	class Window
+	class FSDLWindow
 	{
 		/** Constexpr */
 	public:
@@ -31,10 +31,10 @@ namespace Turbo
 
 		/** Constructors */
 	private:
-		explicit Window();
+		explicit FSDLWindow();
 
 	public:
-		~Window();
+		~FSDLWindow();
 
 		/** Static Interface */
 	public:
@@ -77,6 +77,6 @@ namespace Turbo
 		VkSurfaceKHR VulkanSurface = nullptr;
 
 	public:
-		friend class Engine;
+		friend class FEngine;
 	};
 } // Turbo

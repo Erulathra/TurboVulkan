@@ -1,7 +1,7 @@
 #include "Core/RHI/QueueFamilyIndices.h"
 
 namespace Turbo {
-	std::set<uint32> QueueFamilyIndices::GetUniqueQueueIndices() const
+	std::set<uint32> FQueueFamilyIndices::GetUniqueQueueIndices() const
 	{
 		// Return value optimization
 		std::set<uint32> Result;
@@ -17,7 +17,7 @@ namespace Turbo {
 		return Result;
 	}
 
-	bool QueueFamilyIndices::IsValid() const
+	bool FQueueFamilyIndices::IsValid() const
 	{
 		return GraphicsFamily != INDEX_NONE
 			&& PresentFamily != INDEX_NONE;

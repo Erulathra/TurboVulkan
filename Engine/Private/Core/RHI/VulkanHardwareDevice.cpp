@@ -1,4 +1,4 @@
-#include "Core/RHI/HardwareDevice.h"
+#include "Core/RHI/VulkanHardwareDevice.h"
 
 #include "Core/Engine.h"
 #include "Core/Window.h"
@@ -7,7 +7,7 @@
 using namespace Turbo;
 
 
-int32 HardwareDevice::CalculateDeviceScore() const
+int32 FVulkanHardwareDevice::CalculateDeviceScore() const
 {
 	VkPhysicalDeviceProperties DeviceProperties;
 	VkPhysicalDeviceFeatures DeviceFeatures;
@@ -23,13 +23,13 @@ int32 HardwareDevice::CalculateDeviceScore() const
 	DeviceScore += -1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU);
 	DeviceScore += 1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 
-	QueueFamilyIndices QueueIndices = FindQueueFamilies();
+	FQueueFamilyIndices QueueIndices = FindQueueFamilies();
 	DeviceScore += 128 * (QueueIndices.PresentFamily == QueueIndices.GraphicsFamily);
 
 	return DeviceScore;
 }
 
-bool HardwareDevice::IsDeviceCapable() const
+bool FVulkanHardwareDevice::IsDeviceCapable() const
 {
 	bool bResult = true;
 	bResult &= FindQueueFamilies().IsValid();
@@ -45,7 +45,7 @@ bool HardwareDevice::IsDeviceCapable() const
 	return bResult;
 }
 
-bool HardwareDevice::AreExtensionsSupportedByDevice(const std::vector<const char*>& RequiredExtensions) const
+bool FVulkanHardwareDevice::AreExtensionsSupportedByDevice(const std::vector<const char*>& RequiredExtensions) const
 {
 	uint32 DeviceExtensionNum;
 	vkEnumerateDeviceExtensionProperties(VulkanPhysicalDevice, nullptr, &DeviceExtensionNum, nullptr);
@@ -62,11 +62,11 @@ bool HardwareDevice::AreExtensionsSupportedByDevice(const std::vector<const char
 	return RequiredExtensionsSet.empty();
 }
 
-QueueFamilyIndices HardwareDevice::FindQueueFamilies() const
+FQueueFamilyIndices FVulkanHardwareDevice::FindQueueFamilies() const
 {
-	QueueFamilyIndices Result{};
+	FQueueFamilyIndices Result{};
 
-	Window* Window = gEngine->GetWindow();
+	FSDLWindow* Window = gEngine->GetWindow();
 	TURBO_CHECK(Window);
 
 	uint32 QueueFamilyNum;
@@ -94,7 +94,7 @@ QueueFamilyIndices HardwareDevice::FindQueueFamilies() const
 	return Result;
 }
 
-SwapChainDeviceSupportDetails HardwareDevice::QuerySwapChainSupport() const
+SwapChainDeviceSupportDetails FVulkanHardwareDevice::QuerySwapChainSupport() const
 {
 	const VkSurfaceKHR Surface = gEngine->GetWindow()->GetVulkanSurface();
 	TURBO_CHECK(Surface);

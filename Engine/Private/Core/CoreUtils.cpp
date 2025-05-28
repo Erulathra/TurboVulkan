@@ -3,7 +3,7 @@
 #include <fstream>
 
 namespace Turbo {
-	std::vector<byte> CoreUtils::ReadWholeFile(const std::string_view FilePath)
+	std::vector<byte> FCoreUtils::ReadWholeFile(const std::string_view FilePath)
 	{
 		std::ifstream File(FilePath.data(), std::ios::ate | std::ios::binary);
 		TURBO_CHECK(File.is_open());

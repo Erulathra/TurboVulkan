@@ -1,19 +1,19 @@
 #include "Core/RHI/ShaderProgram.h"
 
 #include "Core/Engine.h"
-#include "Core/RHI/Device.h"
+#include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/VulkanRHI.h"
 
 namespace Turbo {
-	ShaderProgram::~ShaderProgram()
+	FShaderProgram::~FShaderProgram()
 	{
-		if (Device* DevicePtr = gEngine->GetRHI()->GetDevice())
+		if (FVulkanDevice* DevicePtr = gEngine->GetRHI()->GetDevice())
 		{
 			vkDestroyShaderModule(DevicePtr->GetVulkanDevice(), ShaderModule, nullptr);
 		}
 	}
 
-	void ShaderProgram::Init(const std::vector<uint8>& ShaderCode, const Device* InDevice)
+	void FShaderProgram::Init(const std::vector<uint8>& ShaderCode, const FVulkanDevice* InDevice)
 	{
 		VkShaderModuleCreateInfo CreateInfo;
 		CreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

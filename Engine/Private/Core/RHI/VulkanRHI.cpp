@@ -4,8 +4,8 @@
 
 #include "Core/Engine.h"
 #include "Core/Window.h"
-#include "Core/RHI/HardwareDevice.h"
-#include "Core/RHI/Device.h"
+#include "Core/RHI/VulkanHardwareDevice.h"
+#include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/SwapChain.h"
 
 auto fmt::formatter<VkResult, char, void>::format(VkResult Result, format_context& CTX) const
@@ -16,10 +16,10 @@ auto fmt::formatter<VkResult, char, void>::format(VkResult Result, format_contex
 
 namespace Turbo
 {
-    VulkanRHI::VulkanRHI() = default;
-    VulkanRHI::~VulkanRHI() = default;
+    FVulkanRHI::FVulkanRHI() = default;
+    FVulkanRHI::~FVulkanRHI() = default;
 
-    void VulkanRHI::Init()
+    void FVulkanRHI::Init()
     {
         CreateVulkanInstance();
         gEngine->GetWindow()->CreateVulkanSurface(VulkanInstance);
@@ -27,23 +27,23 @@ namespace Turbo
 
         if (IsValid(HardwareDeviceInstance))
         {
-            DeviceInstance = std::make_unique<Device>();
+            DeviceInstance = std::make_unique<FVulkanDevice>();
             DeviceInstance->Init(HardwareDeviceInstance.get());
         }
 
         if (IsValid(DeviceInstance))
         {
-            SwapChainInstance = std::make_unique<SwapChain>();
+            SwapChainInstance = std::make_unique<FSwapChain>();
             SwapChainInstance->Init(DeviceInstance.get());
         }
     }
 
-    void VulkanRHI::InitWindow(Window* Window)
+    void FVulkanRHI::InitWindow(FSDLWindow* Window)
     {
         Window->InitForVulkan();
     }
 
-    void VulkanRHI::Destroy()
+    void FVulkanRHI::Destroy()
     {
         if (SwapChainInstance)
         {
@@ -63,7 +63,7 @@ namespace Turbo
         DestroyVulkanInstance();
     }
 
-    void VulkanRHI::CreateVulkanInstance()
+    void FVulkanRHI::CreateVulkanInstance()
     {
         TURBO_LOG(LOG_RHI, LOG_INFO, "Initialize VOLK");
         if (VkResult VolkInitializeResult = volkInitialize(); VolkInitializeResult != VK_SUCCESS)
@@ -135,7 +135,7 @@ namespace Turbo
         TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Supported Extensions: \n {}", ExtensionsStream.str());
     }
 
-    void VulkanRHI::DestroyVulkanInstance()
+    void FVulkanRHI::DestroyVulkanInstance()
     {
         if (VulkanInstance)
         {
@@ -149,7 +149,7 @@ namespace Turbo
         }
     }
 
-    void VulkanRHI::EnumerateVulkanExtensions()
+    void FVulkanRHI::EnumerateVulkanExtensions()
     {
         TURBO_CHECK(VulkanInstance);
 
@@ -165,7 +165,7 @@ namespace Turbo
 
 #if WITH_VALIDATION_LAYERS
 
-    bool VulkanRHI::CheckValidationLayersSupport()
+    bool FVulkanRHI::CheckValidationLayersSupport()
     {
         uint32 LayerPropertiesNum;
         vkEnumerateInstanceLayerProperties(&LayerPropertiesNum, nullptr);
@@ -196,7 +196,7 @@ namespace Turbo
         return bSuccess;
     }
 
-    void VulkanRHI::SetupValidationLayersCallbacks()
+    void FVulkanRHI::SetupValidationLayersCallbacks()
     {
         TURBO_LOG(LOG_RHI, LOG_INFO, "Assigning validation layers callback.");
 
@@ -219,7 +219,7 @@ namespace Turbo
         vkCreateDebugUtilsMessengerEXT(VulkanInstance, &CreateInfo, nullptr, &DebugMessengerHandle);
     }
 
-    void VulkanRHI::DestroyValidationLayersCallbacks()
+    void FVulkanRHI::DestroyValidationLayersCallbacks()
     {
         if (DebugMessengerHandle)
         {
@@ -228,7 +228,7 @@ namespace Turbo
         }
     }
 
-    VkBool32 VulkanRHI::HandleValidationLayerCallback(
+    VkBool32 FVulkanRHI::HandleValidationLayerCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT MessageType,
         const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
@@ -257,7 +257,7 @@ namespace Turbo
 
 #endif // WITH_VALIDATION_LAYERS
 
-    void VulkanRHI::AcquirePhysicalDevice()
+    void FVulkanRHI::AcquirePhysicalDevice()
     {
         uint32 PhysicalDeviceNum;
         vkEnumeratePhysicalDevices(VulkanInstance, &PhysicalDeviceNum, nullptr);
@@ -267,10 +267,10 @@ namespace Turbo
             std::vector<VkPhysicalDevice> FoundVulkanDevices(PhysicalDeviceNum);
             vkEnumeratePhysicalDevices(VulkanInstance, &PhysicalDeviceNum, FoundVulkanDevices.data());
 
-            std::vector<HardwareDevice*> HardwareDevices;
+            std::vector<FVulkanHardwareDevice*> HardwareDevices;
             for (VkPhysicalDevice VulkanDevice : FoundVulkanDevices)
             {
-                HardwareDevice* HWDevice = new HardwareDevice(VulkanDevice);
+                FVulkanHardwareDevice* HWDevice = new FVulkanHardwareDevice(VulkanDevice);
                 if (HWDevice->IsValid())
                 {
                     HardwareDevices.push_back(HWDevice);
@@ -279,12 +279,12 @@ namespace Turbo
 
             std::ranges::sort(
                 HardwareDevices, std::ranges::greater{},
-                [this](const HardwareDevice* Device)
+                [this](const FVulkanHardwareDevice* Device)
                 {
                     return Device->CalculateDeviceScore();
                 });
 
-            HardwareDeviceInstance = !HardwareDevices.empty() ? std::unique_ptr<HardwareDevice>(HardwareDevices[0]) : nullptr;
+            HardwareDeviceInstance = !HardwareDevices.empty() ? std::unique_ptr<FVulkanHardwareDevice>(HardwareDevices[0]) : nullptr;
 
             for (int DeviceId = 1; DeviceId < HardwareDevices.size(); ++DeviceId)
             {

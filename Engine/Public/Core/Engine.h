@@ -3,7 +3,7 @@
 
 namespace Turbo
 {
-	class VulkanRHI;
+	class FVulkanRHI;
 	class CommandLineArgsParser;
 }
 
@@ -19,25 +19,25 @@ namespace Turbo
 		DeviceNotSupported
 	};
 
-	class Engine
+	class FEngine
 	{
 	private:
-		explicit Engine();
+		explicit FEngine();
 
 		/** Services */
 	public:
-		[[nodiscard]] VulkanRHI* GetRHI() const { return RHIInstance.get(); };
-		[[nodiscard]] Window* GetWindow() const { return MainWindowInstance.get(); };
+		[[nodiscard]] FVulkanRHI* GetRHI() const { return RHIInstance.get(); };
+		[[nodiscard]] FSDLWindow* GetWindow() const { return MainWindowInstance.get(); };
 
 	private:
 		// Replace me with GenericRHI
-		std::unique_ptr<VulkanRHI> RHIInstance;
-		std::unique_ptr<Window> MainWindowInstance;
+		std::unique_ptr<FVulkanRHI> RHIInstance;
+		std::unique_ptr<FSDLWindow> MainWindowInstance;
 
 		/** Services end */
 
 	public:
-		~Engine();
+		~FEngine();
 
 	public:
 		static void Init();
@@ -60,5 +60,5 @@ namespace Turbo
 		EExitCode ExitCode = EExitCode::Success;
 	};
 
-	inline std::unique_ptr<Engine> gEngine(nullptr);
+	inline std::unique_ptr<FEngine> gEngine(nullptr);
 } // Turbo

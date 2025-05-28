@@ -2,17 +2,17 @@
 
 #include "Core/Engine.h"
 #include "Core/Window.h"
-#include "Core/RHI/HardwareDevice.h"
-#include "Core/RHI/Device.h"
+#include "Core/RHI/VulkanHardwareDevice.h"
+#include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/VulkanRHI.h"
 
 using namespace Turbo;
 
-void SwapChain::Init(const Device* InDevice)
+void FSwapChain::Init(const FVulkanDevice* InDevice)
 {
 	TURBO_CHECK(IsValid(InDevice));
 
-	const HardwareDevice* HWDevice = gEngine->GetRHI()->GetHardwareDevice();
+	const FVulkanHardwareDevice* HWDevice = gEngine->GetRHI()->GetHardwareDevice();
 
 	TURBO_LOG(LOG_RHI, LOG_INFO, "Creating Swap chain");
 
@@ -36,7 +36,7 @@ void SwapChain::Init(const Device* InDevice)
 	CreateInfo.imageArrayLayers = 1;
 	CreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	const QueueFamilyIndices& QueueIndices = InDevice->GetQueueIndices();
+	const FQueueFamilyIndices& QueueIndices = InDevice->GetQueueIndices();
 	const std::set<uint32> UniqueQueueIndices = QueueIndices.GetUniqueQueueIndices();
 	const std::vector<uint32> QueueIndicesVector(UniqueQueueIndices.begin(), UniqueQueueIndices.end());
 	if (QueueIndices.GraphicsFamily == QueueIndices.PresentFamily)
@@ -73,11 +73,11 @@ void SwapChain::Init(const Device* InDevice)
 }
 
 
-void SwapChain::Destroy()
+void FSwapChain::Destroy()
 {
 	TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying Swap chain");
 
-	const Device* Device = gEngine->GetRHI()->GetDevice();
+	const FVulkanDevice* Device = gEngine->GetRHI()->GetDevice();
 	TURBO_CHECK(Device);
 
 	VkDevice VulkanDevice = Device->GetVulkanDevice();
@@ -90,7 +90,7 @@ void SwapChain::Destroy()
 	ImageViews.clear();
 }
 
-VkSurfaceFormatKHR SwapChain::SelectBestSurfacePixelFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats) const
+VkSurfaceFormatKHR FSwapChain::SelectBestSurfacePixelFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats) const
 {
 	TURBO_CHECK(!AvailableFormats.empty());
 
@@ -106,7 +106,7 @@ VkSurfaceFormatKHR SwapChain::SelectBestSurfacePixelFormat(const std::vector<VkS
 	return AvailableFormats.front();
 }
 
-VkPresentModeKHR SwapChain::SelectBestPresentMode(const std::vector<VkPresentModeKHR>& AvailableModes) const
+VkPresentModeKHR FSwapChain::SelectBestPresentMode(const std::vector<VkPresentModeKHR>& AvailableModes) const
 {
 	TURBO_CHECK(!AvailableModes.empty());
 
@@ -118,7 +118,7 @@ VkPresentModeKHR SwapChain::SelectBestPresentMode(const std::vector<VkPresentMod
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D SwapChain::CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities) const
+VkExtent2D FSwapChain::CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities) const
 {
 	glm::uvec2 FramebufferSize = gEngine->GetWindow()->GetFrameBufferSize();
 	FramebufferSize.x = glm::clamp(FramebufferSize.x, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
@@ -127,7 +127,7 @@ VkExtent2D SwapChain::CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& C
 	return  {FramebufferSize.x, FramebufferSize.y};
 }
 
-void SwapChain::InitializeImageViews(const Device* Device)
+void FSwapChain::InitializeImageViews(const FVulkanDevice* Device)
 {
 	TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Creating swap chain's image views")
 
