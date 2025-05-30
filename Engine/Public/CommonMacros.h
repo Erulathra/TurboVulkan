@@ -42,13 +42,11 @@ namespace Turbo
 #define TURBO_ENSURE(CONDITION) CONDITION
 #endif // DEBUG
 
-// MATH
-#define TURBO_SMALL_NUMBER 1e-5f
-#define TURBO_VERY_SMALL_NUMBER 1e-8f
-
 // Other
 
-#define INDEX_NONE 1
+#define INDEX_NONE (-1)
+
+#define TEST_FLAG(VALUE, FLAG) static_cast<uint32>(VALUE & FLAG) != 0
 
 namespace Turbo
 {

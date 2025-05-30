@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <type_traits>
 
 // stl collections
 #include <set>
@@ -21,5 +22,11 @@
 #include "LoggingMacros.h"
 #include "CommonTypeDefs.h"
 
-// Math
-#include <glm/glm.hpp>
+// Internal Math
+#include "Core/Math/Math.h"
+#include "Core/Math/Vector2D.h"
+
+// Magic enum
+#include <magic_enum/magic_enum_all.hpp>
+using namespace magic_enum::bitwise_operators;
+

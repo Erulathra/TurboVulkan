@@ -18,6 +18,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC Public)
 target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC eventpp::eventpp)
+target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 
 find_package(fmt REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
@@ -29,7 +30,7 @@ find_package(SDL3 REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3)
 
 find_package(glm REQUIRED)
-target_link_libraries(${PROJECT_NAME} INTERFACE glm::glm)
+target_link_libraries(${PROJECT_NAME} PUBLIC glm)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE volk)
 add_compile_definitions(VK_NO_PROTOTYPES)

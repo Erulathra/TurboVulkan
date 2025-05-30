@@ -16,3 +16,5 @@ endif()
 if (EXISTS "/usr/bin/mold" AND UNIX)
     add_link_options("-fuse-ld=mold")
 endif()
+
+set(CMAKE_COMPILE_WARNING_AS_ERROR ON)

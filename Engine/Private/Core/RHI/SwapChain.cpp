@@ -2,6 +2,8 @@
 
 #include "Core/Engine.h"
 #include "Core/Window.h"
+#include "Core/Math/Math.h"
+#include "Core/Math/Vector2D.h"
 #include "Core/RHI/VulkanHardwareDevice.h"
 #include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/VulkanRHI.h"
@@ -21,7 +23,7 @@ void FSwapChain::Init(const FVulkanDevice* InDevice)
 	uint32 ImageCount = SupportDetails.Capabilities.minImageCount + 1;
 	if (SupportDetails.Capabilities.maxImageCount > 0)
 	{
-		ImageCount = glm::min(ImageCount, SupportDetails.Capabilities.maxImageCount);
+		ImageCount = FMath::Min(ImageCount, SupportDetails.Capabilities.maxImageCount);
 	}
 
 	VkSwapchainCreateInfoKHR CreateInfo{};
@@ -120,9 +122,9 @@ VkPresentModeKHR FSwapChain::SelectBestPresentMode(const std::vector<VkPresentMo
 
 VkExtent2D FSwapChain::CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities) const
 {
-	glm::uvec2 FramebufferSize = gEngine->GetWindow()->GetFrameBufferSize();
-	FramebufferSize.x = glm::clamp(FramebufferSize.x, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
-	FramebufferSize.y = glm::clamp(FramebufferSize.y, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
+	FUIntVector2 FramebufferSize = gEngine->GetWindow()->GetFrameBufferSize();
+	FramebufferSize.x = FMath::Clamp(FramebufferSize.x, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
+	FramebufferSize.y = FMath::Clamp(FramebufferSize.y, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
 
 	return  {FramebufferSize.x, FramebufferSize.y};
 }
