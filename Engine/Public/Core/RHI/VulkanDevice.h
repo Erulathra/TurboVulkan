@@ -27,17 +27,17 @@ namespace Turbo
 		[[nodiscard]] bool IsValid() const;
 
 	public:
-		[[nodiscard]] VkDevice GetVulkanDevice() const { return VulkanDevice; }
-		[[nodiscard]] const FQueueFamilyIndices& GetQueueIndices() const {return QueueIndices; }
+		[[nodiscard]] VkDevice GetVulkanDevice() const { return mVulkanDevice; }
+		[[nodiscard]] const FQueueFamilyIndices& GetQueueIndices() const {return mQueueIndices; }
 
 	private:
 		void SetupQueues();
 		static VkPhysicalDeviceFeatures GetRequiredDeviceFeatures();
 
 	private:
-		VkDevice VulkanDevice = nullptr;
+		VkDevice mVulkanDevice = nullptr;
 
-		FQueueFamilyIndices QueueIndices;
-		AcquiredQueues Queues;
+		FQueueFamilyIndices mQueueIndices;
+		AcquiredQueues mQueues;
 	};
 }

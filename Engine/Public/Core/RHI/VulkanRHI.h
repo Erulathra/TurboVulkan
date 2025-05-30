@@ -70,29 +70,29 @@ namespace Turbo
 /** Validation Layers End */
 
 	public:
-		[[nodiscard]] VkInstance GetVulkanInstance() const { return VulkanInstance; }
+		[[nodiscard]] VkInstance GetVulkanInstance() const { return mVulkanInstance; }
 
 	private:
 		void AcquirePhysicalDevice();
 
 	private:
-		VkInstance VulkanInstance = nullptr;
-		std::vector<VkExtensionProperties> ExtensionProperties;
+		VkInstance mVulkanInstance = nullptr;
+		std::vector<VkExtensionProperties> mExtensionProperties;
 
 #if WITH_VALIDATION_LAYERS
-		bool bValidationLayersEnabled = false;
-		VkDebugUtilsMessengerEXT DebugMessengerHandle;
+		bool mbValidationLayersEnabled = false;
+		VkDebugUtilsMessengerEXT mDebugMessengerHandle;
 #endif // WITH_VALIDATION_LAYERS
 
 	private:
-		std::unique_ptr<FVulkanHardwareDevice> HardwareDeviceInstance;
-		std::unique_ptr<FVulkanDevice> DeviceInstance;
-		std::unique_ptr<FSwapChain> SwapChainInstance;
+		std::unique_ptr<FVulkanHardwareDevice> mHardwareDevice;
+		std::unique_ptr<FVulkanDevice> mDevice;
+		std::unique_ptr<FSwapChain> mSwapChain;
 
 	public:
-		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return HardwareDeviceInstance.get(); }
-		[[nodiscard]] FVulkanDevice* GetDevice() const { return DeviceInstance.get(); }
-		[[nodiscard]] FSwapChain* GetSwapChainInstance() const { return SwapChainInstance.get(); }
+		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return mHardwareDevice.get(); }
+		[[nodiscard]] FVulkanDevice* GetDevice() const { return mDevice.get(); }
+		[[nodiscard]] FSwapChain* GetSwapChainInstance() const { return mSwapChain.get(); }
 
 	public:
 		friend class FEngine;

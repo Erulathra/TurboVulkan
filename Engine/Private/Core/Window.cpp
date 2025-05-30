@@ -25,15 +25,15 @@ namespace Turbo
 	void FSDLWindow::Destroy()
 	{
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Destroying window.");
-		SDL_DestroyWindow(SDLWindow);
+		SDL_DestroyWindow(mSDLWindow);
 	}
 
 	bool FSDLWindow::Init()
 	{
 		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing Window.");
-		SDLWindow = SDL_CreateWindow(WindowDefaultValues::Name.c_str(), WindowDefaultValues::SizeX, WindowDefaultValues::SizeY,
+		mSDLWindow = SDL_CreateWindow(WindowDefaultValues::kName.c_str(), WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY,
 		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN);
-		if (!SDLWindow)
+		if (!mSDLWindow)
 		{
 			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "SDL window creation error. See bellow logs for details");
 			LogError();
@@ -69,21 +69,21 @@ namespace Turbo
 
 		if (bVisible)
 		{
-			SDL_ShowWindow(SDLWindow);
+			SDL_ShowWindow(mSDLWindow);
 		}
 		else
 		{
-			SDL_HideWindow(SDLWindow);
+			SDL_HideWindow(mSDLWindow);
 		}
 	}
 
 	FUIntVector2 FSDLWindow::GetFrameBufferSize() const
 	{
 		FIntVector2 Result;
-		if (!SDL_GetWindowSizeInPixels(SDLWindow, &Result.x, &Result.y))
+		if (!SDL_GetWindowSizeInPixels(mSDLWindow, &Result.x, &Result.y))
 		{
 			LogError();
-			Result = FIntVector2(WindowDefaultValues::SizeX, WindowDefaultValues::SizeY);
+			Result = FIntVector2(WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY);
 		}
 
 		return FUIntVector2(Result);
@@ -122,14 +122,14 @@ namespace Turbo
 		return Result;
 	}
 
-	bool FSDLWindow::CreateVulkanSurface(VkInstance VulkanInstance)
+	bool FSDLWindow::CreateVulkanSurface(VkInstance vulkanInstance)
 	{
-		if (VulkanSurface)
+		if (mVulkanSurface)
 		{
 			return true;
 		}
 
-		if (!SDL_Vulkan_CreateSurface(SDLWindow, VulkanInstance, nullptr, &VulkanSurface))
+		if (!SDL_Vulkan_CreateSurface(mSDLWindow, vulkanInstance, nullptr, &mVulkanSurface))
 		{
 			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "Window Vulkan surface creation error. Check bellow logs:");
 			LogError();
@@ -142,17 +142,17 @@ namespace Turbo
 
 	VkSurfaceKHR FSDLWindow::GetVulkanSurface()
 	{
-		TURBO_CHECK(VulkanSurface);
+		TURBO_CHECK(mVulkanSurface);
 
-		return VulkanSurface;
+		return mVulkanSurface;
 	}
 
-	bool FSDLWindow::DestroyVulkanSurface(VkInstance VulkanInstance)
+	bool FSDLWindow::DestroyVulkanSurface(VkInstance vulkanInstance)
 	{
-		if (VulkanInstance)
+		if (vulkanInstance)
 		{
-			SDL_Vulkan_DestroySurface(VulkanInstance, VulkanSurface, nullptr);
-			VulkanSurface = nullptr;
+			SDL_Vulkan_DestroySurface(vulkanInstance, mVulkanSurface, nullptr);
+			mVulkanSurface = nullptr;
 
 			return true;
 		}

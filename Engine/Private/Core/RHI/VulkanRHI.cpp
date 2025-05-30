@@ -22,19 +22,19 @@ namespace Turbo
     void FVulkanRHI::Init()
     {
         CreateVulkanInstance();
-        gEngine->GetWindow()->CreateVulkanSurface(VulkanInstance);
+        gEngine->GetWindow()->CreateVulkanSurface(mVulkanInstance);
         AcquirePhysicalDevice();
 
-        if (IsValid(HardwareDeviceInstance))
+        if (IsValid(mHardwareDevice))
         {
-            DeviceInstance = std::make_unique<FVulkanDevice>();
-            DeviceInstance->Init(HardwareDeviceInstance.get());
+            mDevice = std::make_unique<FVulkanDevice>();
+            mDevice->Init(mHardwareDevice.get());
         }
 
-        if (IsValid(DeviceInstance))
+        if (IsValid(mDevice))
         {
-            SwapChainInstance = std::make_unique<FSwapChain>();
-            SwapChainInstance->Init(DeviceInstance.get());
+            mSwapChain = std::make_unique<FSwapChain>();
+            mSwapChain->Init(mDevice.get());
         }
     }
 
@@ -45,21 +45,21 @@ namespace Turbo
 
     void FVulkanRHI::Destroy()
     {
-        if (SwapChainInstance)
+        if (mSwapChain)
         {
-            SwapChainInstance->Destroy();
-            SwapChainInstance.reset();
+            mSwapChain->Destroy();
+            mSwapChain.reset();
         }
 
-        if (DeviceInstance)
+        if (mDevice)
         {
-            DeviceInstance->Destroy();
-            DeviceInstance.reset();
+            mDevice->Destroy();
+            mDevice.reset();
         }
 
-        HardwareDeviceInstance.reset();
+        mHardwareDevice.reset();
 
-        gEngine->GetWindow()->DestroyVulkanSurface(VulkanInstance);
+        gEngine->GetWindow()->DestroyVulkanSurface(mVulkanInstance);
         DestroyVulkanInstance();
     }
 
@@ -111,7 +111,7 @@ namespace Turbo
         CreateInfo.ppEnabledExtensionNames = ExtensionNames.data();
 
         TURBO_LOG(LOG_RHI, LOG_INFO, "Creating VKInstance.")
-        const VkResult CreationResult = vkCreateInstance(&CreateInfo, nullptr, &VulkanInstance);
+        const VkResult CreationResult = vkCreateInstance(&CreateInfo, nullptr, &mVulkanInstance);
         if (CreationResult != VK_SUCCESS)
         {
             TURBO_LOG(LOG_RHI, LOG_ERROR, "VKInstance creation failed. (Error: {})", CreationResult);
@@ -119,7 +119,7 @@ namespace Turbo
             return;
         }
 
-        volkLoadInstanceOnly(VulkanInstance);
+        volkLoadInstanceOnly(mVulkanInstance);
 
 #if WITH_VALIDATION_LAYERS
         SetupValidationLayersCallbacks();
@@ -128,7 +128,7 @@ namespace Turbo
         EnumerateVulkanExtensions();
 
         std::stringstream ExtensionsStream;
-        for (const VkExtensionProperties& Extension : ExtensionProperties)
+        for (const VkExtensionProperties& Extension : mExtensionProperties)
         {
             ExtensionsStream << "\t" << Extension.extensionName << "\n";
         }
@@ -137,26 +137,26 @@ namespace Turbo
 
     void FVulkanRHI::DestroyVulkanInstance()
     {
-        if (VulkanInstance)
+        if (mVulkanInstance)
         {
 #if WITH_VALIDATION_LAYERS
             DestroyValidationLayersCallbacks();
 #endif // WITH_VALIDATION_LAYERS
 
             TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VKInstance.")
-            vkDestroyInstance(VulkanInstance, nullptr);
-            VulkanInstance = nullptr;
+            vkDestroyInstance(mVulkanInstance, nullptr);
+            mVulkanInstance = nullptr;
         }
     }
 
     void FVulkanRHI::EnumerateVulkanExtensions()
     {
-        TURBO_CHECK(VulkanInstance);
+        TURBO_CHECK(mVulkanInstance);
 
         uint32 ExtensionsNum;
         vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, nullptr);
-        ExtensionProperties.resize(ExtensionsNum);
-        uint32 Result = vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, ExtensionProperties.data());
+        mExtensionProperties.resize(ExtensionsNum);
+        uint32 Result = vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, mExtensionProperties.data());
         if (Result != VK_SUCCESS)
         {
             TURBO_LOG(LOG_RHI, LOG_ERROR, "Vulkan extensions enumeration error: {0:X}", Result);
@@ -216,15 +216,15 @@ namespace Turbo
         CreateInfo.pfnUserCallback = HandleValidationLayerCallback;
         CreateInfo.pUserData = nullptr;
 
-        vkCreateDebugUtilsMessengerEXT(VulkanInstance, &CreateInfo, nullptr, &DebugMessengerHandle);
+        vkCreateDebugUtilsMessengerEXT(mVulkanInstance, &CreateInfo, nullptr, &mDebugMessengerHandle);
     }
 
     void FVulkanRHI::DestroyValidationLayersCallbacks()
     {
-        if (DebugMessengerHandle)
+        if (mDebugMessengerHandle)
         {
             TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying validation layers callback.");
-            vkDestroyDebugUtilsMessengerEXT(VulkanInstance, DebugMessengerHandle, nullptr);
+            vkDestroyDebugUtilsMessengerEXT(mVulkanInstance, mDebugMessengerHandle, nullptr);
         }
     }
 
@@ -260,12 +260,12 @@ namespace Turbo
     void FVulkanRHI::AcquirePhysicalDevice()
     {
         uint32 PhysicalDeviceNum;
-        vkEnumeratePhysicalDevices(VulkanInstance, &PhysicalDeviceNum, nullptr);
+        vkEnumeratePhysicalDevices(mVulkanInstance, &PhysicalDeviceNum, nullptr);
 
         if (PhysicalDeviceNum != 0)
         {
             std::vector<VkPhysicalDevice> FoundVulkanDevices(PhysicalDeviceNum);
-            vkEnumeratePhysicalDevices(VulkanInstance, &PhysicalDeviceNum, FoundVulkanDevices.data());
+            vkEnumeratePhysicalDevices(mVulkanInstance, &PhysicalDeviceNum, FoundVulkanDevices.data());
 
             std::vector<FVulkanHardwareDevice*> HardwareDevices;
             for (VkPhysicalDevice VulkanDevice : FoundVulkanDevices)
@@ -284,7 +284,7 @@ namespace Turbo
                     return Device->CalculateDeviceScore();
                 });
 
-            HardwareDeviceInstance = !HardwareDevices.empty() ? std::unique_ptr<FVulkanHardwareDevice>(HardwareDevices[0]) : nullptr;
+            mHardwareDevice = !HardwareDevices.empty() ? std::unique_ptr<FVulkanHardwareDevice>(HardwareDevices[0]) : nullptr;
 
             for (int DeviceId = 1; DeviceId < HardwareDevices.size(); ++DeviceId)
             {
@@ -293,7 +293,7 @@ namespace Turbo
             }
         }
 
-        if (!IsValid(HardwareDeviceInstance))
+        if (!IsValid(mHardwareDevice))
         {
             TURBO_LOG(LOG_RHI, LOG_ERROR, "There is no suitable GPU device.");
             gEngine->RequestExit(EExitCode::DeviceNotSupported);
@@ -301,8 +301,8 @@ namespace Turbo
         }
 
         VkPhysicalDeviceProperties DeviceProperties;
-        vkGetPhysicalDeviceProperties(HardwareDeviceInstance->GetVulkanPhysicalDevice(), &DeviceProperties);
+        vkGetPhysicalDeviceProperties(mHardwareDevice->GetVulkanPhysicalDevice(), &DeviceProperties);
 
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device. (Score: {})", DeviceProperties.deviceName, HardwareDeviceInstance->CalculateDeviceScore());
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device. (Score: {})", DeviceProperties.deviceName, mHardwareDevice->CalculateDeviceScore());
     }
 } // Turbo

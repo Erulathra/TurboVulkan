@@ -12,39 +12,39 @@ namespace Turbo {
 class FMath {
 public:
 	template <typename T> requires (std::is_arithmetic_v<T>)
-	static T Min(const T& A, const T& B)
+	static T Min(const T& a, const T& b)
 	{
-		return glm::min(A, B);
+		return glm::min(a, b);
 	}
 
 	template <typename T> requires (std::is_arithmetic_v<T>)
-	static T Max(const T& A, const T& B)
+	static T Max(const T& a, const T& b)
 	{
-		return glm::max(A, B);
+		return glm::max(a, b);
 	}
 
 	template <typename T> requires (std::is_arithmetic_v<T>)
-	static T Clamp(const T& X, const T& Min, const T& Max)
+	static T Clamp(const T& x, const T& min, const T& max)
 	{
-		return glm::clamp(X, Min, Max);
+		return glm::clamp(x, min, max);
 	}
 
 	template <typename T> requires (std::is_arithmetic_v<T>)
-	static T Abs(const T& A, const T& B)
+	static T Abs(const T& a, const T& b)
 	{
-		return glm::abs(A, B);
+		return glm::abs(a, b);
 	}
 
 	template <typename T> requires (std::is_floating_point_v<T>)
-	static bool NearlyEqual(const T& A, const T& B, const T& Epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
+	static bool NearlyEqual(const T& a, const T& b, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
 	{
-		return glm::epsilonEqual(A, B, Epsilon);
+		return glm::epsilonEqual(a, b, epsilon);
 	}
 
 	template <typename T> requires (std::is_floating_point_v<T>)
-	static bool NearlyZero(const T& A, const T& Epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
+	static bool NearlyZero(const T& a, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
 	{
-		return glm::epsilonEqual(A, static_cast<T>(0), Epsilon);
+		return glm::epsilonEqual(a, static_cast<T>(0), epsilon);
 	}
 };
 

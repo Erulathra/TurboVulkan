@@ -23,12 +23,12 @@ namespace Turbo
 		void InitializeImageViews(const FVulkanDevice* Device);
 
 	private:
-		VkSwapchainKHR VulkanSwapChain = nullptr;
+		VkSwapchainKHR mVulkanSwapChain = nullptr;
 
-		VkFormat ImageFormat = VK_FORMAT_UNDEFINED;
-		VkExtent2D ImageSize{};
+		VkFormat mImageFormat = VK_FORMAT_UNDEFINED;
+		VkExtent2D mImageSize{};
 
-		std::vector<VkImage> Images;
-		std::vector<VkImageView> ImageViews;
+		std::vector<VkImage> mImages;
+		std::vector<VkImageView> mImageViews;
 	};
 }

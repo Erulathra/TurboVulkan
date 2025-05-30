@@ -26,14 +26,14 @@
 #if DEBUG
 namespace Turbo
 {
-	inline bool Ensure_Impl(bool Condition)
+	inline bool Ensure_Impl(bool bCondition)
 	{
-		if (!Condition)
+		if (!bCondition)
 		{
 			TURBO_DEBUG_BREAK();
 		}
 
-		return Condition;
+		return bCondition;
 	}
 }
 
@@ -51,33 +51,33 @@ namespace Turbo
 namespace Turbo
 {
 	template <typename T>
-	bool IsValid(const T* Object)
+	bool IsValid(const T* object)
 	{
-		return Object && Object->IsValid();
+		return object && object->IsValid();
 	}
 
 	template <typename T>
-	bool IsValid(const std::shared_ptr<T>& Object)
+	bool IsValid(const std::shared_ptr<T>& object)
 	{
-		return Object && Object->IsValid();
+		return object && object->IsValid();
 	}
 
 	template <typename T>
-	bool IsValid(const std::unique_ptr<T>& Object)
+	bool IsValid(const std::unique_ptr<T>& object)
 	{
-		return Object && Object->IsValid();
+		return object && object->IsValid();
 	}
 
 	template <typename T>
-	bool IsValidAndUnique(const std::shared_ptr<T>& Object)
+	bool IsValidAndUnique(const std::shared_ptr<T>& object)
 	{
-		return Object && Object->IsValid() && Object.unique();
+		return object && object->IsValid() && object.unique();
 	}
 
 	template <typename T>
-	bool IsValid(const std::weak_ptr<T>& Object)
+	bool IsValid(const std::weak_ptr<T>& object)
 	{
-		const std::shared_ptr<const T> LockedObject = Object.lock();
+		const std::shared_ptr<const T> LockedObject = object.lock();
 		return LockedObject && LockedObject->IsValid();
 	}
 }

@@ -6,7 +6,7 @@
 namespace Turbo
 {
 	FEngine::FEngine()
-		: bExitRequested(false)
+		: mbExitRequested(false)
 	{
 	}
 
@@ -26,37 +26,37 @@ namespace Turbo
 		// TODO: Move me elsewhere
 		spdlog::set_level(spdlog::level::debug);
 
-		RHIInstance = std::unique_ptr<FVulkanRHI>(new FVulkanRHI());
-		MainWindowInstance = std::unique_ptr<FSDLWindow>(new FSDLWindow());
+		mRHIInstance = std::unique_ptr<FVulkanRHI>(new FVulkanRHI());
+		mMainWindowInstance = std::unique_ptr<FSDLWindow>(new FSDLWindow());
 
-		MainWindowInstance->InitBackend();
-		RHIInstance->InitWindow(MainWindowInstance.get());
+		mMainWindowInstance->InitBackend();
+		mRHIInstance->InitWindow(mMainWindowInstance.get());
 
-		if (!MainWindowInstance->Init())
+		if (!mMainWindowInstance->Init())
 		{
 			return static_cast<int32_t>(EExitCode::WindowCreationError);
 		}
 
-		MainWindowInstance->OnWindowEvent.append(
+		mMainWindowInstance->OnWindowEvent.append(
 			[this](EWindowEvent WindowEvent)
 			{
 				HandleMainWindowEvents(WindowEvent);
 			});
 
-		RHIInstance->Init();
-		MainWindowInstance->ShowWindow(true);
+		mRHIInstance->Init();
+		mMainWindowInstance->ShowWindow(true);
 
 		GameThreadLoop();
 
-		return static_cast<int32_t>(ExitCode);
+		return static_cast<int32_t>(mExitCode);
 	}
 
 	void FEngine::GameThreadLoop()
 	{
-		while (!bExitRequested)
+		while (!mbExitRequested)
 		{
 			GameThreadTick();
-			MainWindowInstance->PollWindowEventsAndErrors();
+			mMainWindowInstance->PollWindowEventsAndErrors();
 		}
 
 		End();
@@ -67,9 +67,9 @@ namespace Turbo
 		TURBO_LOG(LOG_ENGINE, LOG_DISPLAY, "Engine Tick");
 	}
 
-	void FEngine::HandleMainWindowEvents(EWindowEvent Event)
+	void FEngine::HandleMainWindowEvents(EWindowEvent event)
 	{
-		if (Event == EWindowEvent::WindowCloseRequest)
+		if (event == EWindowEvent::WindowCloseRequest)
 		{
 			RequestExit(EExitCode::Success);
 		}
@@ -79,17 +79,17 @@ namespace Turbo
 	{
 		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Begin exit sequence.");
 
-		RHIInstance->Destroy();
-		MainWindowInstance->Destroy();
-		MainWindowInstance->StopBackend();
+		mRHIInstance->Destroy();
+		mMainWindowInstance->Destroy();
+		mMainWindowInstance->StopBackend();
 
-		RHIInstance.release();
-		MainWindowInstance.release();
+		mRHIInstance.release();
+		mMainWindowInstance.release();
 	}
 
 	void FEngine::RequestExit(EExitCode InExitCode)
 	{
-		bExitRequested = true;
-		ExitCode = InExitCode;
+		mbExitRequested = true;
+		mExitCode = InExitCode;
 	}
 } // Turbo

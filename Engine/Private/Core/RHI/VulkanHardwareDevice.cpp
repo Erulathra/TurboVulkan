@@ -13,9 +13,9 @@ int32 FVulkanHardwareDevice::CalculateDeviceScore() const
 	VkPhysicalDeviceFeatures DeviceFeatures;
 	VkPhysicalDeviceMemoryProperties MemoryProperties;
 
-	vkGetPhysicalDeviceProperties(VulkanPhysicalDevice, &DeviceProperties);
-	vkGetPhysicalDeviceFeatures(VulkanPhysicalDevice, &DeviceFeatures);
-	vkGetPhysicalDeviceMemoryProperties(VulkanPhysicalDevice, &MemoryProperties);
+	vkGetPhysicalDeviceProperties(mVulkanPhysicalDevice, &DeviceProperties);
+	vkGetPhysicalDeviceFeatures(mVulkanPhysicalDevice, &DeviceFeatures);
+	vkGetPhysicalDeviceMemoryProperties(mVulkanPhysicalDevice, &MemoryProperties);
 
 
 	int32 DeviceScore = 0;
@@ -48,10 +48,10 @@ bool FVulkanHardwareDevice::IsDeviceCapable() const
 bool FVulkanHardwareDevice::AreExtensionsSupportedByDevice(const std::vector<const char*>& RequiredExtensions) const
 {
 	uint32 DeviceExtensionNum;
-	vkEnumerateDeviceExtensionProperties(VulkanPhysicalDevice, nullptr, &DeviceExtensionNum, nullptr);
+	vkEnumerateDeviceExtensionProperties(mVulkanPhysicalDevice, nullptr, &DeviceExtensionNum, nullptr);
 
 	std::vector<VkExtensionProperties> DeviceExtensionProperties(DeviceExtensionNum);
-	vkEnumerateDeviceExtensionProperties(VulkanPhysicalDevice, nullptr, &DeviceExtensionNum, DeviceExtensionProperties.data());
+	vkEnumerateDeviceExtensionProperties(mVulkanPhysicalDevice, nullptr, &DeviceExtensionNum, DeviceExtensionProperties.data());
 
 	std::set<std::string> RequiredExtensionsSet(RequiredExtensions.begin(), RequiredExtensions.end());
 	for (auto Extension : DeviceExtensionProperties)
@@ -70,10 +70,10 @@ FQueueFamilyIndices FVulkanHardwareDevice::FindQueueFamilies() const
 	TURBO_CHECK(Window);
 
 	uint32 QueueFamilyNum;
-	vkGetPhysicalDeviceQueueFamilyProperties(VulkanPhysicalDevice, &QueueFamilyNum, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(mVulkanPhysicalDevice, &QueueFamilyNum, nullptr);
 
 	std::vector<VkQueueFamilyProperties> QueueFamilyProperties(QueueFamilyNum);
-	vkGetPhysicalDeviceQueueFamilyProperties(VulkanPhysicalDevice, &QueueFamilyNum, QueueFamilyProperties.data());
+	vkGetPhysicalDeviceQueueFamilyProperties(mVulkanPhysicalDevice, &QueueFamilyNum, QueueFamilyProperties.data());
 
 	for (int32 QueueId = 0; QueueId < QueueFamilyNum; ++QueueId)
 	{
@@ -84,7 +84,7 @@ FQueueFamilyIndices FVulkanHardwareDevice::FindQueueFamilies() const
 		}
 
 		VkBool32 bPresentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(VulkanPhysicalDevice, QueueId, Window->GetVulkanSurface(), &bPresentSupport);
+		vkGetPhysicalDeviceSurfaceSupportKHR(mVulkanPhysicalDevice, QueueId, Window->GetVulkanSurface(), &bPresentSupport);
 		if (bPresentSupport == true)
 		{
 			Result.PresentFamily = QueueId;
@@ -100,24 +100,24 @@ SwapChainDeviceSupportDetails FVulkanHardwareDevice::QuerySwapChainSupport() con
 	TURBO_CHECK(Surface);
 
 	SwapChainDeviceSupportDetails Result;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(VulkanPhysicalDevice, Surface, &Result.Capabilities);
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mVulkanPhysicalDevice, Surface, &Result.Capabilities);
 
 	uint32 SurfaceFormatNum;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(VulkanPhysicalDevice, Surface, &SurfaceFormatNum, nullptr);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(mVulkanPhysicalDevice, Surface, &SurfaceFormatNum, nullptr);
 
 	if (SurfaceFormatNum > 0)
 	{
 		Result.Formats.resize(SurfaceFormatNum);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(VulkanPhysicalDevice, Surface, &SurfaceFormatNum, Result.Formats.data());
+		vkGetPhysicalDeviceSurfaceFormatsKHR(mVulkanPhysicalDevice, Surface, &SurfaceFormatNum, Result.Formats.data());
 	}
 
 	uint32 PresentModesNum;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(VulkanPhysicalDevice, Surface, &PresentModesNum, nullptr);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(mVulkanPhysicalDevice, Surface, &PresentModesNum, nullptr);
 
 	if (PresentModesNum > 0)
 	{
 		Result.PresentModes.resize(PresentModesNum);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(VulkanPhysicalDevice, Surface, &PresentModesNum, Result.PresentModes.data());
+		vkGetPhysicalDeviceSurfacePresentModesKHR(mVulkanPhysicalDevice, Surface, &PresentModesNum, Result.PresentModes.data());
 	}
 
 	return Result;

@@ -24,12 +24,12 @@ namespace Turbo
 	public:
 		FVulkanHardwareDevice() = delete;
 		explicit FVulkanHardwareDevice(VkPhysicalDevice PhysicalDevice)
-			: VulkanPhysicalDevice(PhysicalDevice)
+			: mVulkanPhysicalDevice(PhysicalDevice)
 		{
 			TURBO_CHECK(PhysicalDevice);
 		}
 
-		[[nodiscard]] bool IsValid() const { return VulkanPhysicalDevice; }
+		[[nodiscard]] bool IsValid() const { return mVulkanPhysicalDevice; }
 
 	public:
 		[[nodiscard]] int32 CalculateDeviceScore() const;
@@ -39,9 +39,9 @@ namespace Turbo
 		[[nodiscard]] SwapChainDeviceSupportDetails QuerySwapChainSupport() const;
 
 	public:
-		[[nodiscard]] VkPhysicalDevice GetVulkanPhysicalDevice() const { return VulkanPhysicalDevice; }
+		[[nodiscard]] VkPhysicalDevice GetVulkanPhysicalDevice() const { return mVulkanPhysicalDevice; }
 
 	private:
-		VkPhysicalDevice VulkanPhysicalDevice = nullptr;
+		VkPhysicalDevice mVulkanPhysicalDevice = nullptr;
 	};
 }

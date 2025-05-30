@@ -16,9 +16,9 @@ namespace Turbo
 	// TODO: Replace that with config
 	namespace WindowDefaultValues
 	{
-		static constexpr int32 SizeX = 640;
-		static constexpr int32 SizeY = 480;
-		static constexpr std::string Name = "Turbo Vulkan";
+		static constexpr int32 kSizeX = 640;
+		static constexpr int32 kSizeY = 480;
+		static constexpr std::string kName = "Turbo Vulkan";
 	}
 
 	using WindowEventDelegate = eventpp::CallbackList<void(EWindowEvent)>;
@@ -62,9 +62,9 @@ namespace Turbo
 		void DeInitForVulkan();
 		std::vector<const char*> GetVulkanRequiredExtensions();
 
-		bool CreateVulkanSurface(VkInstance VulkanInstance);
+		bool CreateVulkanSurface(VkInstance vulkanInstance);
 		VkSurfaceKHR GetVulkanSurface();
-		bool DestroyVulkanSurface(VkInstance VulkanInstance);
+		bool DestroyVulkanSurface(VkInstance vulkanInstance);
 
 		/** Internal methods */
 	private:
@@ -73,8 +73,8 @@ namespace Turbo
 
 		/** properties */
 	private:
-		SDL_Window* SDLWindow = nullptr;
-		VkSurfaceKHR VulkanSurface = nullptr;
+		SDL_Window* mSDLWindow = nullptr;
+		VkSurfaceKHR mVulkanSurface = nullptr;
 
 	public:
 		friend class FEngine;

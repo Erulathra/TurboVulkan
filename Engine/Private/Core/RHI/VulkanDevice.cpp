@@ -19,14 +19,14 @@ void FVulkanDevice::Init(const FVulkanHardwareDevice* InHWDevice)
 
     TURBO_LOG(LOG_RHI, LOG_INFO, "Creating logical device.")
 
-    QueueIndices = InHWDevice->FindQueueFamilies();
-    if (!QueueIndices.IsValid())
+    mQueueIndices = InHWDevice->FindQueueFamilies();
+    if (!mQueueIndices.IsValid())
     {
         TURBO_LOG(LOG_RHI, LOG_ERROR, "Cannot obtain queue family indices.")
         return;
     }
 
-    const std::set<uint32> UniqueQueues = QueueIndices.GetUniqueQueueIndices();
+    const std::set<uint32> UniqueQueues = mQueueIndices.GetUniqueQueueIndices();
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
     QueueCreateInfos.reserve(UniqueQueues.size());
 
@@ -53,7 +53,7 @@ void FVulkanDevice::Init(const FVulkanHardwareDevice* InHWDevice)
     VkPhysicalDeviceFeatures DeviceFeatures = GetRequiredDeviceFeatures();
     DeviceCreateInfo.pEnabledFeatures = &DeviceFeatures;
 
-    const VkResult DeviceCreationResult = vkCreateDevice(InHWDevice->GetVulkanPhysicalDevice(), &DeviceCreateInfo, nullptr, &VulkanDevice);
+    const VkResult DeviceCreationResult = vkCreateDevice(InHWDevice->GetVulkanPhysicalDevice(), &DeviceCreateInfo, nullptr, &mVulkanDevice);
     if (DeviceCreationResult != VK_SUCCESS)
     {
         TURBO_LOG(LOG_RHI, LOG_ERROR, "Error: {} during creating logical device.", static_cast<int32>(DeviceCreationResult));
@@ -62,7 +62,7 @@ void FVulkanDevice::Init(const FVulkanHardwareDevice* InHWDevice)
     }
 
     // TODO: For now We assume that we would have only one device.
-    volkLoadDevice(VulkanDevice);
+    volkLoadDevice(mVulkanDevice);
 
     SetupQueues();
 }
@@ -71,13 +71,13 @@ void FVulkanDevice::SetupQueues()
 {
     TURBO_CHECK(IsValid());
 
-    if (QueueIndices.IsValid())
+    if (mQueueIndices.IsValid())
     {
-        vkGetDeviceQueue(VulkanDevice, QueueIndices.GraphicsFamily, 0, &Queues.GraphicsQueue);
-        vkGetDeviceQueue(VulkanDevice, QueueIndices.PresentFamily, 0, &Queues.PresentQueue);
+        vkGetDeviceQueue(mVulkanDevice, mQueueIndices.GraphicsFamily, 0, &mQueues.GraphicsQueue);
+        vkGetDeviceQueue(mVulkanDevice, mQueueIndices.PresentFamily, 0, &mQueues.PresentQueue);
     }
 
-    if (!Queues.IsValid())
+    if (!mQueues.IsValid())
     {
         TURBO_LOG(LOG_RHI, LOG_ERROR, "Required queues not found.")
         gEngine->RequestExit(EExitCode::RHICriticalError);
@@ -88,14 +88,14 @@ void FVulkanDevice::SetupQueues()
 void FVulkanDevice::Destroy()
 {
     TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying logical device.");
-    vkDestroyDevice(VulkanDevice, nullptr);
-    VulkanDevice = nullptr;
+    vkDestroyDevice(mVulkanDevice, nullptr);
+    mVulkanDevice = nullptr;
 }
 
 bool FVulkanDevice::IsValid() const
 {
-    return VulkanDevice != nullptr
-        && QueueIndices.IsValid();
+    return mVulkanDevice != nullptr
+        && mQueueIndices.IsValid();
 }
 
 VkPhysicalDeviceFeatures FVulkanDevice::GetRequiredDeviceFeatures()

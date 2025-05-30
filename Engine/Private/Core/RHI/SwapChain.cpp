@@ -60,16 +60,16 @@ void FSwapChain::Init(const FVulkanDevice* InDevice)
 
 	CreateInfo.oldSwapchain = nullptr;
 
-	const VkResult SwapChaindCreationResult = vkCreateSwapchainKHR(InDevice->GetVulkanDevice(), &CreateInfo, nullptr, &VulkanSwapChain);
+	const VkResult SwapChaindCreationResult = vkCreateSwapchainKHR(InDevice->GetVulkanDevice(), &CreateInfo, nullptr, &mVulkanSwapChain);
 	CHECK_VULKAN_RESULT(SwapChaindCreationResult, "Error: {} during creating swap chain.");
 
-	ImageFormat = CreateInfo.imageFormat;
-	ImageSize = CreateInfo.imageExtent;
+	mImageFormat = CreateInfo.imageFormat;
+	mImageSize = CreateInfo.imageExtent;
 
 	uint32 SwapChainImagesNum;
-	vkGetSwapchainImagesKHR(InDevice->GetVulkanDevice(), VulkanSwapChain, &SwapChainImagesNum, nullptr);
-	Images.resize(SwapChainImagesNum);
-	vkGetSwapchainImagesKHR(InDevice->GetVulkanDevice(), VulkanSwapChain, &ImageCount, Images.data());
+	vkGetSwapchainImagesKHR(InDevice->GetVulkanDevice(), mVulkanSwapChain, &SwapChainImagesNum, nullptr);
+	mImages.resize(SwapChainImagesNum);
+	vkGetSwapchainImagesKHR(InDevice->GetVulkanDevice(), mVulkanSwapChain, &ImageCount, mImages.data());
 
 	InitializeImageViews(InDevice);
 }
@@ -83,13 +83,13 @@ void FSwapChain::Destroy()
 	TURBO_CHECK(Device);
 
 	VkDevice VulkanDevice = Device->GetVulkanDevice();
-	vkDestroySwapchainKHR(VulkanDevice, VulkanSwapChain, nullptr);
+	vkDestroySwapchainKHR(VulkanDevice, mVulkanSwapChain, nullptr);
 
-	for (VkImageView& ImageView : ImageViews)
+	for (VkImageView& ImageView : mImageViews)
 	{
 		vkDestroyImageView(VulkanDevice, ImageView, nullptr);
 	}
-	ImageViews.clear();
+	mImageViews.clear();
 }
 
 VkSurfaceFormatKHR FSwapChain::SelectBestSurfacePixelFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats) const
@@ -133,15 +133,15 @@ void FSwapChain::InitializeImageViews(const FVulkanDevice* Device)
 {
 	TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Creating swap chain's image views")
 
-	ImageViews.resize(Images.size());
+	mImageViews.resize(mImages.size());
 
-	for (uint32 ImageId = 0; ImageId < ImageViews.size(); ++ImageId)
+	for (uint32 ImageId = 0; ImageId < mImageViews.size(); ++ImageId)
 	{
 		VkImageViewCreateInfo CreateInfo;
 		CreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		CreateInfo.image = Images[ImageId];
+		CreateInfo.image = mImages[ImageId];
 		CreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		CreateInfo.format = ImageFormat;
+		CreateInfo.format = mImageFormat;
 
 		CreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		CreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -154,7 +154,7 @@ void FSwapChain::InitializeImageViews(const FVulkanDevice* Device)
 		CreateInfo.subresourceRange.baseArrayLayer = 0;
 		CreateInfo.subresourceRange.layerCount = 1;
 
-		const VkResult CreateImageViewResult = vkCreateImageView(Device->GetVulkanDevice(), &CreateInfo, nullptr, &ImageViews[ImageId]);
+		const VkResult CreateImageViewResult = vkCreateImageView(Device->GetVulkanDevice(), &CreateInfo, nullptr, &mImageViews[ImageId]);
 		CHECK_VULKAN_RESULT(CreateImageViewResult, "Error: {} during creation swap chain's image view");
 	}
 }
