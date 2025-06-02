@@ -4,6 +4,7 @@
 
 namespace Turbo
 {
+	class FVulkanHardwareDevice;
 	class FVulkanDevice;
 
 	class FSwapChain
@@ -11,24 +12,29 @@ namespace Turbo
 	public:
 
 	public:
-		void Init(const FVulkanDevice* InDevice);
+		FSwapChain() = delete;
+		explicit FSwapChain(FVulkanDevice& device);
+
+		void Init();
 		void Destroy();
 
 	private:
-		VkSurfaceFormatKHR SelectBestSurfacePixelFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats) const;
-		VkPresentModeKHR SelectBestPresentMode(const std::vector<VkPresentModeKHR>& AvailableModes) const;
-		VkExtent2D CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities) const;
+		[[nodiscard]] vk::SurfaceFormatKHR SelectBestSurfacePixelFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) const;
+		[[nodiscard]] vk::PresentModeKHR SelectBestPresentMode(const std::vector<vk::PresentModeKHR>& availableModes) const;
+		[[nodiscard]] vk::Extent2D CalculateSwapChainExtent(const vk::SurfaceCapabilitiesKHR& capabilities) const;
 
 	private:
-		void InitializeImageViews(const FVulkanDevice* Device);
+		void InitializeImageViews();
 
 	private:
-		VkSwapchainKHR mVulkanSwapChain = nullptr;
+		FVulkanDevice* mDevice = nullptr;
 
-		VkFormat mImageFormat = VK_FORMAT_UNDEFINED;
-		VkExtent2D mImageSize{};
+		vk::SwapchainKHR mVulkanSwapChain = nullptr;
 
-		std::vector<VkImage> mImages;
-		std::vector<VkImageView> mImageViews;
+		vk::Format mImageFormat = vk::Format::eUndefined;
+		vk::Extent2D mImageSize{};
+
+		std::vector<vk::Image> mImages;
+		std::vector<vk::ImageView> mImageViews;
 	};
 }

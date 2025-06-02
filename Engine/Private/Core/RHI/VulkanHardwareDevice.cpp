@@ -7,32 +7,32 @@
 using namespace Turbo;
 
 
+FVulkanHardwareDevice::FVulkanHardwareDevice(const vk::PhysicalDevice& physicalDevice): mVulkanPhysicalDevice(physicalDevice)
+{
+	mQueueFamilyIndices = FindQueueFamilies();
+	mSupportedFeatures = physicalDevice.getFeatures();
+	mProperties = physicalDevice.getProperties();
+}
+
 int32 FVulkanHardwareDevice::CalculateDeviceScore() const
 {
-	VkPhysicalDeviceProperties DeviceProperties;
-	VkPhysicalDeviceFeatures DeviceFeatures;
-	VkPhysicalDeviceMemoryProperties MemoryProperties;
+	int32 deviceScore = 0;
+	deviceScore += -1024 * (mProperties.deviceType == vk::PhysicalDeviceType::eVirtualGpu);
+	deviceScore += -1024 * (mProperties.deviceType == vk::PhysicalDeviceType::eCpu);
+	deviceScore += 1024 * (mProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu);
 
-	vkGetPhysicalDeviceProperties(mVulkanPhysicalDevice, &DeviceProperties);
-	vkGetPhysicalDeviceFeatures(mVulkanPhysicalDevice, &DeviceFeatures);
-	vkGetPhysicalDeviceMemoryProperties(mVulkanPhysicalDevice, &MemoryProperties);
+	deviceScore += 128 * (mQueueFamilyIndices.PresentFamily == mQueueFamilyIndices.GraphicsFamily);
+	deviceScore += 128 * (mQueueFamilyIndices.GraphicsFamily == mQueueFamilyIndices.TransferFamily);
 
-
-	int32 DeviceScore = 0;
-	DeviceScore += -1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU);
-	DeviceScore += -1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU);
-	DeviceScore += 1024 * (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
-
-	FQueueFamilyIndices QueueIndices = FindQueueFamilies();
-	DeviceScore += 128 * (QueueIndices.PresentFamily == QueueIndices.GraphicsFamily);
-
-	return DeviceScore;
+	return deviceScore;
 }
 
 bool FVulkanHardwareDevice::IsDeviceCapable() const
 {
 	bool bResult = true;
-	bResult &= FindQueueFamilies().IsValid();
+
+	bResult &= mProperties.apiVersion >= VK_API_VERSION_1_3;
+	bResult &= mQueueFamilyIndices.IsValid();
 	bResult &= AreExtensionsSupportedByDevice(RequiredDeviceExtensions);
 
 	if (bResult)
@@ -45,80 +45,71 @@ bool FVulkanHardwareDevice::IsDeviceCapable() const
 	return bResult;
 }
 
-bool FVulkanHardwareDevice::AreExtensionsSupportedByDevice(const std::vector<const char*>& RequiredExtensions) const
+bool FVulkanHardwareDevice::AreExtensionsSupportedByDevice(const std::vector<const char*>& requiredExtensions) const
 {
-	uint32 DeviceExtensionNum;
-	vkEnumerateDeviceExtensionProperties(mVulkanPhysicalDevice, nullptr, &DeviceExtensionNum, nullptr);
+	vk::Result vkResult;
+	std::vector<vk::ExtensionProperties> extensionProperties;
+	std::tie(vkResult, extensionProperties) = mVulkanPhysicalDevice.enumerateDeviceExtensionProperties();
 
-	std::vector<VkExtensionProperties> DeviceExtensionProperties(DeviceExtensionNum);
-	vkEnumerateDeviceExtensionProperties(mVulkanPhysicalDevice, nullptr, &DeviceExtensionNum, DeviceExtensionProperties.data());
-
-	std::set<std::string> RequiredExtensionsSet(RequiredExtensions.begin(), RequiredExtensions.end());
-	for (auto Extension : DeviceExtensionProperties)
+	if (vkResult == vk::Result::eSuccess)
 	{
-		RequiredExtensionsSet.erase(std::string(Extension.extensionName));
+		std::set<std::string> requiredExtensionsSet(requiredExtensions.begin(), requiredExtensions.end());
+		for (const vk::ExtensionProperties& extension : extensionProperties)
+		{
+			requiredExtensionsSet.erase(std::string(extension.extensionName));
+		}
+
+		return requiredExtensionsSet.empty();
 	}
 
-	return RequiredExtensionsSet.empty();
+	return false;
 }
 
 FQueueFamilyIndices FVulkanHardwareDevice::FindQueueFamilies() const
 {
-	FQueueFamilyIndices Result{};
+	FQueueFamilyIndices result{};
 
-	FSDLWindow* Window = gEngine->GetWindow();
-	TURBO_CHECK(Window);
+	FSDLWindow* window = gEngine->GetWindow();
+	TURBO_CHECK(window);
 
-	uint32 QueueFamilyNum;
-	vkGetPhysicalDeviceQueueFamilyProperties(mVulkanPhysicalDevice, &QueueFamilyNum, nullptr);
-
-	std::vector<VkQueueFamilyProperties> QueueFamilyProperties(QueueFamilyNum);
-	vkGetPhysicalDeviceQueueFamilyProperties(mVulkanPhysicalDevice, &QueueFamilyNum, QueueFamilyProperties.data());
-
-	for (int32 QueueId = 0; QueueId < QueueFamilyNum; ++QueueId)
+	const std::vector<vk::QueueFamilyProperties> queueFamilyProperties = mVulkanPhysicalDevice.getQueueFamilyProperties();
+	for (int32 queueId = 0; queueId < queueFamilyProperties.size(); ++queueId)
 	{
-		const VkQueueFamilyProperties& FamilyProperties = QueueFamilyProperties[QueueId];
-		if (FamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		const vk::QueueFamilyProperties& familyProperties = queueFamilyProperties[queueId];
+		if (familyProperties.queueFlags & vk::QueueFlagBits::eGraphics)
 		{
-			Result.GraphicsFamily = QueueId;
+			result.GraphicsFamily = queueId;
 		}
 
-		VkBool32 bPresentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(mVulkanPhysicalDevice, QueueId, Window->GetVulkanSurface(), &bPresentSupport);
+		if (familyProperties.queueFlags & vk::QueueFlagBits::eTransfer)
+		{
+			result.TransferFamily = queueId;
+		}
+
+		vk::Result vkResult;
+		vk::Bool32 bPresentSupport = false;
+		std::tie(vkResult, bPresentSupport) = mVulkanPhysicalDevice.getSurfaceSupportKHR(queueId, window->GetVulkanSurface());
+		CHECK_VULKAN_HPP(vkResult);
+
 		if (bPresentSupport == true)
 		{
-			Result.PresentFamily = QueueId;
+			result.PresentFamily = queueId;
 		}
 	}
 
-	return Result;
+	return result;
 }
 
 SwapChainDeviceSupportDetails FVulkanHardwareDevice::QuerySwapChainSupport() const
 {
-	const VkSurfaceKHR Surface = gEngine->GetWindow()->GetVulkanSurface();
-	TURBO_CHECK(Surface);
+	const vk::SurfaceKHR surface = gEngine->GetWindow()->GetVulkanSurface();
+	TURBO_CHECK(surface);
 
-	SwapChainDeviceSupportDetails Result;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mVulkanPhysicalDevice, Surface, &Result.Capabilities);
+	vk::Result vkResult;
+	SwapChainDeviceSupportDetails result;
+	std::tie(vkResult, result.Capabilities) = mVulkanPhysicalDevice.getSurfaceCapabilitiesKHR(surface);
+	std::tie(vkResult, result.Formats) = mVulkanPhysicalDevice.getSurfaceFormatsKHR(surface);
+	std::tie(vkResult, result.PresentModes) = mVulkanPhysicalDevice.getSurfacePresentModesKHR(surface);
 
-	uint32 SurfaceFormatNum;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(mVulkanPhysicalDevice, Surface, &SurfaceFormatNum, nullptr);
-
-	if (SurfaceFormatNum > 0)
-	{
-		Result.Formats.resize(SurfaceFormatNum);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(mVulkanPhysicalDevice, Surface, &SurfaceFormatNum, Result.Formats.data());
-	}
-
-	uint32 PresentModesNum;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(mVulkanPhysicalDevice, Surface, &PresentModesNum, nullptr);
-
-	if (PresentModesNum > 0)
-	{
-		Result.PresentModes.resize(PresentModesNum);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(mVulkanPhysicalDevice, Surface, &PresentModesNum, Result.PresentModes.data());
-	}
-
-	return Result;
+	return result;
 }

@@ -9,60 +9,63 @@ using namespace Turbo;
 bool FVulkanDevice::AcquiredQueues::IsValid() const
 {
     return GraphicsQueue
-        && PresentQueue;
+        && PresentQueue
+        && TransferQueue;
 }
 
-void FVulkanDevice::Init(const FVulkanHardwareDevice* InHWDevice)
+FVulkanDevice::FVulkanDevice(FVulkanHardwareDevice& hardwareDevice)
+    : mHardwareDevice(&hardwareDevice)
 {
-    VkInstance VulkanInstance = gEngine->GetRHI()->GetVulkanInstance();
-    TURBO_CHECK(InHWDevice && VulkanInstance);
+}
+
+void FVulkanDevice::Init()
+{
+    TURBO_CHECK(mHardwareDevice->IsValid());
+
+    vk::Instance vkInstance = gEngine->GetRHI()->GetVulkanInstance();
+    TURBO_CHECK(vkInstance);
 
     TURBO_LOG(LOG_RHI, LOG_INFO, "Creating logical device.")
 
-    mQueueIndices = InHWDevice->FindQueueFamilies();
+    mQueueIndices = mHardwareDevice->GetQueueFamilyIndices();
     if (!mQueueIndices.IsValid())
     {
         TURBO_LOG(LOG_RHI, LOG_ERROR, "Cannot obtain queue family indices.")
         return;
     }
 
-    const std::set<uint32> UniqueQueues = mQueueIndices.GetUniqueQueueIndices();
-    std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
-    QueueCreateInfos.reserve(UniqueQueues.size());
+    const std::set<uint32> uniqueQueues = mQueueIndices.GetUniqueQueueIndices();
+    std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+    queueCreateInfos.reserve(uniqueQueues.size());
 
-    constexpr float QueuePriority = 1.f;
-
-    for (uint32 QueueFamily : UniqueQueues)
+    for (uint32 queueFamilyIndex : uniqueQueues)
     {
-        VkDeviceQueueCreateInfo QueueCreateInfo{};
-        QueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        QueueCreateInfo.queueFamilyIndex = QueueFamily;
-        QueueCreateInfo.queueCount = 1;
-        QueueCreateInfo.pQueuePriorities = &QueuePriority;
+        constexpr std::array queuePriorities = {1.f};
 
-        QueueCreateInfos.push_back(QueueCreateInfo);
+        vk::DeviceQueueCreateInfo QueueCreateInfo{};
+        QueueCreateInfo.setQueuePriorities(queuePriorities);
+        QueueCreateInfo.setQueueFamilyIndex(queueFamilyIndex);
+
+        queueCreateInfos.push_back(QueueCreateInfo);
     }
 
-    VkDeviceCreateInfo DeviceCreateInfo{};
-    DeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    DeviceCreateInfo.queueCreateInfoCount = QueueCreateInfos.size();
-    DeviceCreateInfo.pQueueCreateInfos = QueueCreateInfos.data();;
-    DeviceCreateInfo.enabledExtensionCount = RequiredDeviceExtensions.size();
-    DeviceCreateInfo.ppEnabledExtensionNames = RequiredDeviceExtensions.data();
+    vk::DeviceCreateInfo deviceCreateInfo{};
+    deviceCreateInfo.setQueueCreateInfos(queueCreateInfos);
+    deviceCreateInfo.setPEnabledExtensionNames(RequiredDeviceExtensions);
 
-    VkPhysicalDeviceFeatures DeviceFeatures = GetRequiredDeviceFeatures();
-    DeviceCreateInfo.pEnabledFeatures = &DeviceFeatures;
+    vk::PhysicalDeviceFeatures deviceFeatures = GetRequiredDeviceFeatures();
+    deviceCreateInfo.setPEnabledFeatures(&deviceFeatures);
 
-    const VkResult DeviceCreationResult = vkCreateDevice(InHWDevice->GetVulkanPhysicalDevice(), &DeviceCreateInfo, nullptr, &mVulkanDevice);
-    if (DeviceCreationResult != VK_SUCCESS)
-    {
-        TURBO_LOG(LOG_RHI, LOG_ERROR, "Error: {} during creating logical device.", static_cast<int32>(DeviceCreationResult));
-        gEngine->RequestExit(EExitCode::RHICriticalError);
-        return;
-    }
+    vk::PhysicalDeviceSynchronization2Features synchronizationFeatures{vk::True};
+    vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{vk::True};
+    synchronizationFeatures.setPNext(dynamicRenderingFeatures);
+    deviceCreateInfo.setPNext(synchronizationFeatures);
 
-    // TODO: For now We assume that we would have only one device.
-    volkLoadDevice(mVulkanDevice);
+    vk::Result vkResult;
+    std::tie(vkResult, mVulkanDevice) = mHardwareDevice->GetVulkanPhysicalDevice().createDevice(deviceCreateInfo);
+    CHECK_VULKAN_HPP_MSG(vkResult, "Cannot create logical device");
+
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(mVulkanDevice);
 
     SetupQueues();
 }
@@ -73,22 +76,19 @@ void FVulkanDevice::SetupQueues()
 
     if (mQueueIndices.IsValid())
     {
-        vkGetDeviceQueue(mVulkanDevice, mQueueIndices.GraphicsFamily, 0, &mQueues.GraphicsQueue);
-        vkGetDeviceQueue(mVulkanDevice, mQueueIndices.PresentFamily, 0, &mQueues.PresentQueue);
+        mQueues.GraphicsQueue = mVulkanDevice.getQueue(mQueueIndices.GraphicsFamily, 0);
+        mQueues.PresentQueue = mVulkanDevice.getQueue(mQueueIndices.PresentFamily, 0);
+        mQueues.TransferQueue = mVulkanDevice.getQueue(mQueueIndices.TransferFamily, 0);
     }
 
-    if (!mQueues.IsValid())
-    {
-        TURBO_LOG(LOG_RHI, LOG_ERROR, "Required queues not found.")
-        gEngine->RequestExit(EExitCode::RHICriticalError);
-        return;
-    }
+    TURBO_CHECK_MSG(mQueues.IsValid(), "Cannot obtain required device queues.")
 }
 
 void FVulkanDevice::Destroy()
 {
     TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying logical device.");
-    vkDestroyDevice(mVulkanDevice, nullptr);
+
+    mVulkanDevice.destroy();
     mVulkanDevice = nullptr;
 }
 
@@ -98,11 +98,17 @@ bool FVulkanDevice::IsValid() const
         && mQueueIndices.IsValid();
 }
 
-VkPhysicalDeviceFeatures FVulkanDevice::GetRequiredDeviceFeatures()
+vk::PhysicalDeviceFeatures FVulkanDevice::GetRequiredDeviceFeatures()
 {
-    VkPhysicalDeviceFeatures Result{};
-    Result.textureCompressionBC = true;
+    vk::PhysicalDeviceFeatures supportedFeatures = mHardwareDevice->GetSupportedFeatures();
 
-    return Result;
+    vk::PhysicalDeviceFeatures features{};
+    features.textureCompressionBC = true;
+    features.fillModeNonSolid = supportedFeatures.fillModeNonSolid;
+    features.wideLines = supportedFeatures.wideLines;
+    features.samplerAnisotropy = supportedFeatures.samplerAnisotropy;
+    features.sampleRateShading = supportedFeatures.sampleRateShading;
+
+    return features;
 }
 

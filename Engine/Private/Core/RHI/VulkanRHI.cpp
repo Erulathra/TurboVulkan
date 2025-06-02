@@ -1,18 +1,12 @@
 #include "Core/RHI/VulkanRHI.h"
 
-#include <fmt/format.h>
-
 #include "Core/Engine.h"
 #include "Core/Window.h"
-#include "Core/RHI/VulkanHardwareDevice.h"
-#include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/SwapChain.h"
+#include "Core/RHI/VulkanDevice.h"
+#include "Core/RHI/VulkanHardwareDevice.h"
 
-auto fmt::formatter<VkResult, char, void>::format(VkResult Result, format_context& CTX) const
-    -> format_context::iterator
-{
-    return formatter<int32>::format(Result, CTX);
-}
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 namespace Turbo
 {
@@ -27,24 +21,29 @@ namespace Turbo
 
         if (IsValid(mHardwareDevice))
         {
-            mDevice = std::make_unique<FVulkanDevice>();
-            mDevice->Init(mHardwareDevice.get());
+            mDevice = std::make_unique<FVulkanDevice>(*mHardwareDevice);
+            mDevice->Init();
         }
 
         if (IsValid(mDevice))
         {
-            mSwapChain = std::make_unique<FSwapChain>();
-            mSwapChain->Init(mDevice.get());
+            mSwapChain = std::make_unique<FSwapChain>(*mDevice);
+            mSwapChain->Init();
         }
     }
 
-    void FVulkanRHI::InitWindow(FSDLWindow* Window)
+    void FVulkanRHI::InitWindow(FSDLWindow* window)
     {
-        Window->InitForVulkan();
+        window->InitForVulkan();
     }
 
     void FVulkanRHI::Destroy()
     {
+        if (mDevice)
+        {
+            vk::Result result = mDevice->GetVulkanDevice().waitIdle();
+        }
+
         if (mSwapChain)
         {
             mSwapChain->Destroy();
@@ -66,73 +65,65 @@ namespace Turbo
     void FVulkanRHI::CreateVulkanInstance()
     {
         TURBO_LOG(LOG_RHI, LOG_INFO, "Initialize VOLK");
-        if (VkResult VolkInitializeResult = volkInitialize(); VolkInitializeResult != VK_SUCCESS)
-        {
-            TURBO_LOG(LOG_RHI, LOG_ERROR, "VOLK initialization error. (Error: {})", VolkInitializeResult);
-            gEngine->RequestExit(EExitCode::RHICriticalError);
-            return;
-        }
 
-        VkApplicationInfo AppInfo{};
-        AppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        AppInfo.pApplicationName = "Turbo Vulkan";
-        AppInfo.applicationVersion = TURBO_VERSION();
-        AppInfo.pEngineName = "Turbo Vulkan";
-        AppInfo.engineVersion = TURBO_VERSION();
-        AppInfo.apiVersion = VK_API_VERSION_1_3;
+        VULKAN_HPP_DEFAULT_DISPATCHER.init();
 
-        VkInstanceCreateInfo CreateInfo{};
-        CreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        CreateInfo.pApplicationInfo = &AppInfo;
-        CreateInfo.pNext = nullptr;
+        vk::Result vulkanResult;
+        uint32 instanceVersion;
+        std::tie(vulkanResult, instanceVersion)  = vk::enumerateInstanceVersion();
+        TURBO_CHECK_MSG(vulkanResult == vk::Result::eSuccess && instanceVersion >= VK_API_VERSION_1_3, "Your device doesn't support Vulkan 1.3");
 
-        std::vector<const char*> ExtensionNames = gEngine->GetWindow()->GetVulkanRequiredExtensions();
+        vk::ApplicationInfo appInfo{};
+        appInfo.pApplicationName = "Turbo Vulkan";
+        appInfo.applicationVersion = TURBO_VERSION();
+        appInfo.pEngineName = "Turbo Vulkan";
+        appInfo.engineVersion = TURBO_VERSION();
+        appInfo.apiVersion = VK_API_VERSION_1_3;
+
+        vk::InstanceCreateInfo createInfo{};
+        createInfo.pApplicationInfo = &appInfo;
+
+        std::vector<const char*> extensionNames = gEngine->GetWindow()->GetVulkanRequiredExtensions();
 
 #if WITH_VALIDATION_LAYERS
         if (CheckValidationLayersSupport())
         {
             TURBO_LOG(LOG_RHI, LOG_INFO, "Validation layers supported.")
 
-            CreateInfo.enabledLayerCount = VulkanValidationLayers.size();
-            CreateInfo.ppEnabledLayerNames = VulkanValidationLayers.data();
+            createInfo.enabledLayerCount = kVulkanValidationLayers.size();
+            createInfo.ppEnabledLayerNames = kVulkanValidationLayers.data();
 
-            ExtensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
         else
 #endif // else !WITH_VALIDATION_LAYERS
         {
             TURBO_LOG(LOG_RHI, LOG_INFO, "Validation layers are unsupported or disabled.")
 
-            CreateInfo.enabledLayerCount = 0;
-            CreateInfo.ppEnabledLayerNames = nullptr;
+            createInfo.enabledLayerCount = 0;
+            createInfo.ppEnabledLayerNames = nullptr;
         }
 
-        CreateInfo.enabledExtensionCount = ExtensionNames.size();
-        CreateInfo.ppEnabledExtensionNames = ExtensionNames.data();
+        createInfo.enabledExtensionCount = extensionNames.size();
+        createInfo.ppEnabledExtensionNames = extensionNames.data();
 
         TURBO_LOG(LOG_RHI, LOG_INFO, "Creating VKInstance.")
-        const VkResult CreationResult = vkCreateInstance(&CreateInfo, nullptr, &mVulkanInstance);
-        if (CreationResult != VK_SUCCESS)
-        {
-            TURBO_LOG(LOG_RHI, LOG_ERROR, "VKInstance creation failed. (Error: {})", CreationResult);
-            gEngine->RequestExit(EExitCode::RHICriticalError);
-            return;
-        }
-
-        volkLoadInstanceOnly(mVulkanInstance);
+        CHECK_VULKAN_HPP(vk::createInstance(&createInfo, nullptr, &mVulkanInstance));
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(mVulkanInstance);
 
 #if WITH_VALIDATION_LAYERS
         SetupValidationLayersCallbacks();
 #endif // WITH_VALIDATION_LAYERS
 
-        EnumerateVulkanExtensions();
+        std::tie(vulkanResult, mExtensionProperties) = vk::enumerateInstanceExtensionProperties();
+        CHECK_VULKAN_HPP(vulkanResult);
 
-        std::stringstream ExtensionsStream;
-        for (const VkExtensionProperties& Extension : mExtensionProperties)
+        std::stringstream extensionsStream;
+        for (const vk::ExtensionProperties& extension : mExtensionProperties)
         {
-            ExtensionsStream << "\t" << Extension.extensionName << "\n";
+            extensionsStream << "\t" << extension.extensionName << "\n";
         }
-        TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Supported Extensions: \n {}", ExtensionsStream.str());
+        TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Supported Extensions: \n {}", extensionsStream.str());
     }
 
     void FVulkanRHI::DestroyVulkanInstance()
@@ -144,22 +135,8 @@ namespace Turbo
 #endif // WITH_VALIDATION_LAYERS
 
             TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VKInstance.")
-            vkDestroyInstance(mVulkanInstance, nullptr);
+            mVulkanInstance.destroy();
             mVulkanInstance = nullptr;
-        }
-    }
-
-    void FVulkanRHI::EnumerateVulkanExtensions()
-    {
-        TURBO_CHECK(mVulkanInstance);
-
-        uint32 ExtensionsNum;
-        vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, nullptr);
-        mExtensionProperties.resize(ExtensionsNum);
-        uint32 Result = vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionsNum, mExtensionProperties.data());
-        if (Result != VK_SUCCESS)
-        {
-            TURBO_LOG(LOG_RHI, LOG_ERROR, "Vulkan extensions enumeration error: {0:X}", Result);
         }
     }
 
@@ -167,24 +144,27 @@ namespace Turbo
 
     bool FVulkanRHI::CheckValidationLayersSupport()
     {
-        uint32 LayerPropertiesNum;
-        vkEnumerateInstanceLayerProperties(&LayerPropertiesNum, nullptr);
-
-        std::vector<VkLayerProperties> LayerProperties;
-        LayerProperties.reserve(LayerPropertiesNum);
-        vkEnumerateInstanceLayerProperties(&LayerPropertiesNum, LayerProperties.data());
-
         bool bSuccess = true;
 
-        for (const char* RequestedValidationLayer : VulkanValidationLayers)
+        vk::ResultValue<std::vector<vk::LayerProperties>> layerProperties = vk::enumerateInstanceLayerProperties();
+        CHECK_VULKAN_HPP(layerProperties.result);
+
+        for (const char* requestedValidationLayer : kVulkanValidationLayers)
         {
-            for (VkLayerProperties LayerProperty : LayerProperties)
+            bool bLayerFound = false;
+            for (const vk::LayerProperties& layerProperty : layerProperties.value)
             {
-                if (std::strcmp(LayerProperty.layerName, RequestedValidationLayer) != 0)
+                if (std::strcmp(layerProperty.layerName.data(), requestedValidationLayer) == 0)
                 {
-                    TURBO_LOG(LOG_RHI, LOG_CRITICAL, "Missing Validation Layer: {}", RequestedValidationLayer);
-                    bSuccess = false;
+                    bLayerFound = true;
+                    break;
                 }
+            }
+
+            if (!bLayerFound)
+            {
+                TURBO_LOG(LOG_RHI, LOG_CRITICAL, "Missing Validation Layer: {}", requestedValidationLayer);
+                bSuccess = false;
             }
         }
 
@@ -200,23 +180,18 @@ namespace Turbo
     {
         TURBO_LOG(LOG_RHI, LOG_INFO, "Assigning validation layers callback.");
 
-        VkDebugUtilsMessengerCreateInfoEXT CreateInfo{};
-        CreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        CreateInfo.messageSeverity =
-              VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-            | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
-            | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-            | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
-        CreateInfo.messageType =
-              VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
-            | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-            | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        vk::DebugUtilsMessengerCreateInfoEXT createInfo{};
 
-        CreateInfo.pfnUserCallback = HandleValidationLayerCallback;
-        CreateInfo.pUserData = nullptr;
+        using msgSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT;
+        using msgType = vk::DebugUtilsMessageTypeFlagBitsEXT;
 
-        vkCreateDebugUtilsMessengerEXT(mVulkanInstance, &CreateInfo, nullptr, &mDebugMessengerHandle);
+        createInfo.messageSeverity = msgSeverity::eVerbose | msgSeverity::eInfo | msgSeverity::eWarning | msgSeverity::eError;
+        createInfo.messageType = msgType::eGeneral | msgType::eValidation | msgType::ePerformance;
+        createInfo.setPfnUserCallback(&FVulkanRHI::HandleValidationLayerCallback);
+        createInfo.pUserData = nullptr;
+
+        CHECK_VULKAN_HPP(mVulkanInstance.createDebugUtilsMessengerEXT(&createInfo, nullptr, &mDebugMessengerHandle));
     }
 
     void FVulkanRHI::DestroyValidationLayersCallbacks()
@@ -224,32 +199,34 @@ namespace Turbo
         if (mDebugMessengerHandle)
         {
             TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying validation layers callback.");
-            vkDestroyDebugUtilsMessengerEXT(mVulkanInstance, mDebugMessengerHandle, nullptr);
+            mVulkanInstance.destroyDebugUtilsMessengerEXT(mDebugMessengerHandle);
         }
     }
 
-    VkBool32 FVulkanRHI::HandleValidationLayerCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT MessageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
-        void* UserData)
+    vk::Bool32 FVulkanRHI::HandleValidationLayerCallback(
+        vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        vk::DebugUtilsMessageTypeFlagsEXT messageType,
+        const vk::DebugUtilsMessengerCallbackDataEXT* callbackData,
+        void* userData)
     {
-        if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+        using msgSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT;
+        if (messageSeverity & msgSeverity::eVerbose)
         {
-            TURBO_LOG(LOG_RHI, LOG_DISPLAY, "{}", CallbackData->pMessage)
+            TURBO_LOG(LOG_RHI, LOG_DISPLAY, "{}", callbackData->pMessage)
         }
-        else if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+        else if (messageSeverity & msgSeverity::eInfo)
         {
             // Messages with info severity are very verbose, so I reduced its verbosity to display.
-            TURBO_LOG(LOG_RHI, LOG_DISPLAY, "{}", CallbackData->pMessage)
+            TURBO_LOG(LOG_RHI, LOG_DISPLAY, "{}", callbackData->pMessage)
         }
-        else if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        else if (messageSeverity & msgSeverity::eWarning)
         {
-            TURBO_LOG(LOG_RHI, LOG_WARN, "{}", CallbackData->pMessage)
+            TURBO_LOG(LOG_RHI, LOG_WARN, "{}", callbackData->pMessage)
         }
-        else if (MessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+        else if (messageSeverity & msgSeverity::eError)
         {
-            TURBO_LOG(LOG_RHI, LOG_ERROR, "{}", CallbackData->pMessage)
+            TURBO_LOG(LOG_RHI, LOG_ERROR, "{}", callbackData->pMessage)
+            TURBO_DEBUG_BREAK();
         }
 
         return VK_FALSE;
@@ -259,50 +236,42 @@ namespace Turbo
 
     void FVulkanRHI::AcquirePhysicalDevice()
     {
-        uint32 PhysicalDeviceNum;
-        vkEnumeratePhysicalDevices(mVulkanInstance, &PhysicalDeviceNum, nullptr);
+        vk::Result vulkanResult;
+        std::vector<vk::PhysicalDevice> physicalDevices;
+        std::tie(vulkanResult, physicalDevices) = mVulkanInstance.enumeratePhysicalDevices();
 
-        if (PhysicalDeviceNum != 0)
+        if (!physicalDevices.empty())
         {
-            std::vector<VkPhysicalDevice> FoundVulkanDevices(PhysicalDeviceNum);
-            vkEnumeratePhysicalDevices(mVulkanInstance, &PhysicalDeviceNum, FoundVulkanDevices.data());
-
-            std::vector<FVulkanHardwareDevice*> HardwareDevices;
-            for (VkPhysicalDevice VulkanDevice : FoundVulkanDevices)
+            std::vector<FVulkanHardwareDevice*> hardwareDevices;
+            for (VkPhysicalDevice physicalDevice : physicalDevices)
             {
-                FVulkanHardwareDevice* HWDevice = new FVulkanHardwareDevice(VulkanDevice);
-                if (HWDevice->IsValid())
+                FVulkanHardwareDevice* hardwareDevice = new FVulkanHardwareDevice(physicalDevice);
+                if (hardwareDevice->IsValid() && hardwareDevice->IsDeviceCapable())
                 {
-                    HardwareDevices.push_back(HWDevice);
+                    hardwareDevices.push_back(hardwareDevice);
                 }
             }
 
             std::ranges::sort(
-                HardwareDevices, std::ranges::greater{},
-                [this](const FVulkanHardwareDevice* Device)
+                hardwareDevices, std::ranges::greater{},
+                [this](const FVulkanHardwareDevice* device)
                 {
-                    return Device->CalculateDeviceScore();
+                    return device->CalculateDeviceScore();
                 });
 
-            mHardwareDevice = !HardwareDevices.empty() ? std::unique_ptr<FVulkanHardwareDevice>(HardwareDevices[0]) : nullptr;
+            mHardwareDevice = !hardwareDevices.empty() ? std::unique_ptr<FVulkanHardwareDevice>(hardwareDevices[0]) : nullptr;
 
-            for (int DeviceId = 1; DeviceId < HardwareDevices.size(); ++DeviceId)
+            for (int DeviceId = 1; DeviceId < hardwareDevices.size(); ++DeviceId)
             {
-                delete HardwareDevices[DeviceId];
-                HardwareDevices[DeviceId] = nullptr;
+                delete hardwareDevices[DeviceId];
+                hardwareDevices[DeviceId] = nullptr;
             }
         }
 
-        if (!IsValid(mHardwareDevice))
-        {
-            TURBO_LOG(LOG_RHI, LOG_ERROR, "There is no suitable GPU device.");
-            gEngine->RequestExit(EExitCode::DeviceNotSupported);
-            return;
-        }
+        TURBO_CHECK_MSG(IsValid(mHardwareDevice), "There is no suitable GPU device.");
 
-        VkPhysicalDeviceProperties DeviceProperties;
-        vkGetPhysicalDeviceProperties(mHardwareDevice->GetVulkanPhysicalDevice(), &DeviceProperties);
-
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device. (Score: {})", DeviceProperties.deviceName, mHardwareDevice->CalculateDeviceScore());
+        vk::PhysicalDeviceProperties deviceProperties = mHardwareDevice->GetVulkanPhysicalDevice().getProperties();
+        std::string_view deviceName{deviceProperties.deviceName};
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device. (Score: {})", deviceName, mHardwareDevice->CalculateDeviceScore());
     }
 } // Turbo

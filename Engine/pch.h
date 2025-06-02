@@ -26,7 +26,4 @@
 #include "Core/Math/Math.h"
 #include "Core/Math/Vector2D.h"
 
-// Magic enum
-#include <magic_enum/magic_enum_all.hpp>
-using namespace magic_enum::bitwise_operators;
-
+#include "magic_enum/magic_enum.hpp"

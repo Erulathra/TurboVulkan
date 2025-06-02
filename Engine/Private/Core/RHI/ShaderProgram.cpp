@@ -2,28 +2,50 @@
 
 #include "Core/Engine.h"
 #include "Core/RHI/VulkanDevice.h"
-#include "Core/RHI/VulkanRHI.h"
 
 namespace Turbo {
 	FShaderProgram::~FShaderProgram()
 	{
-		if (FVulkanDevice* DevicePtr = gEngine->GetRHI()->GetDevice())
-		{
-			vkDestroyShaderModule(DevicePtr->GetVulkanDevice(), ShaderModule, nullptr);
-		}
+		mDevice->GetVulkanDevice().destroyShaderModule(mVulkanShaderModule);
 	}
 
 	void FShaderProgram::Init(const std::vector<uint8>& ShaderCode, const FVulkanDevice* InDevice)
 	{
-		VkShaderModuleCreateInfo CreateInfo;
-		CreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		CreateInfo.codeSize = ShaderCode.size();
-		CreateInfo.pCode = reinterpret_cast<const uint32*>(ShaderCode.data());
+		vk::ShaderModuleCreateInfo createInfo;
+		createInfo.codeSize = shaderCode.size();
+		createInfo.pCode = reinterpret_cast<const uint32*>(shaderCode.data());
 
-		const VkResult ModuleCreationResult = vkCreateShaderModule(InDevice->GetVulkanDevice(), &CreateInfo, nullptr, &ShaderModule);
-		if (ModuleCreationResult != VK_SUCCESS)
+		vk::Result vulkanResult;
+		std::tie(vulkanResult, mVulkanShaderModule) = mDevice->GetVulkanDevice().createShaderModule(createInfo);
+		CHECK_VULKAN_HPP(vulkanResult);
+
+		mShaderType = newShaderType;
+		TURBO_CHECK(mShaderType != EShaderType::None);
+	}
+
+	std::vector<vk::PipelineShaderStageCreateInfo> FShaderModule::GetShaderStageCreateInfo() const
+	{
+		std::vector<vk::PipelineShaderStageCreateInfo> result;
+
+		vk::PipelineShaderStageCreateInfo stageCreateInfo{};
+		stageCreateInfo.setModule(mVulkanShaderModule);
+
+		if (TEST_FLAG(mShaderType, EShaderType::Vertex))
 		{
-			TURBO_LOG(LOG_RHI, LOG_ERROR, "Shader Module Creation Error: {}", (int32)ModuleCreationResult);
+			stageCreateInfo.setStage(vk::ShaderStageFlagBits::eVertex);
+			stageCreateInfo.setPName("vsMain");
+
+			result.push_back(stageCreateInfo);
 		}
+
+		if (TEST_FLAG(mShaderType, EShaderType::Vertex))
+		{
+			stageCreateInfo.setStage(vk::ShaderStageFlagBits::eFragment);
+			stageCreateInfo.setPName("psMain");
+
+			result.push_back(stageCreateInfo);
+		}
+
+		return result;
 	}
 } // Turbo

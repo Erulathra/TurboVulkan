@@ -10,151 +10,147 @@
 
 using namespace Turbo;
 
-void FSwapChain::Init(const FVulkanDevice* InDevice)
+FSwapChain::FSwapChain(FVulkanDevice& device)
+	: mDevice(&device)
 {
-	TURBO_CHECK(IsValid(InDevice));
 
-	const FVulkanHardwareDevice* HWDevice = gEngine->GetRHI()->GetHardwareDevice();
+}
+
+void FSwapChain::Init()
+{
+	TURBO_CHECK(mDevice->IsValid());
+
+	const FVulkanHardwareDevice* hardwareDevice = mDevice->GetHardwareDevice();
 
 	TURBO_LOG(LOG_RHI, LOG_INFO, "Creating Swap chain");
 
-	const SwapChainDeviceSupportDetails SupportDetails = HWDevice->QuerySwapChainSupport();
+	const SwapChainDeviceSupportDetails supportDetails = hardwareDevice->QuerySwapChainSupport();
 
-	uint32 ImageCount = SupportDetails.Capabilities.minImageCount + 1;
-	if (SupportDetails.Capabilities.maxImageCount > 0)
+	vk::SwapchainCreateInfoKHR createInfo{};
+	createInfo.setSurface(gEngine->GetWindow()->GetVulkanSurface());
+	vk::SurfaceFormatKHR pixelFormat = SelectBestSurfacePixelFormat(supportDetails.Formats);
+	createInfo.setImageFormat(pixelFormat.format);
+	createInfo.setImageColorSpace(pixelFormat.colorSpace);
+	createInfo.setImageArrayLayers(1);
+	createInfo.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment);
+	createInfo.setPresentMode(SelectBestPresentMode(supportDetails.PresentModes));
+
+	uint32 imageCount = supportDetails.Capabilities.minImageCount + 1;
+	if (supportDetails.Capabilities.maxImageCount > 0)
 	{
-		ImageCount = FMath::Min(ImageCount, SupportDetails.Capabilities.maxImageCount);
+		imageCount = FMath::Min(imageCount, supportDetails.Capabilities.maxImageCount);
 	}
+	createInfo.minImageCount = imageCount;
+	createInfo.imageExtent = CalculateSwapChainExtent(supportDetails.Capabilities);
 
-	VkSwapchainCreateInfoKHR CreateInfo{};
-	CreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	CreateInfo.surface = gEngine->GetWindow()->GetVulkanSurface();
-
-	CreateInfo.minImageCount = ImageCount;
-	VkSurfaceFormatKHR PixelFormat = SelectBestSurfacePixelFormat(SupportDetails.Formats);
-	CreateInfo.imageFormat = PixelFormat.format;
-	CreateInfo.imageColorSpace = PixelFormat.colorSpace;
-	CreateInfo.imageExtent = CalculateSwapChainExtent(SupportDetails.Capabilities);
-	CreateInfo.imageArrayLayers = 1;
-	CreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-	const FQueueFamilyIndices& QueueIndices = InDevice->GetQueueIndices();
-	const std::set<uint32> UniqueQueueIndices = QueueIndices.GetUniqueQueueIndices();
-	const std::vector<uint32> QueueIndicesVector(UniqueQueueIndices.begin(), UniqueQueueIndices.end());
-	if (QueueIndices.GraphicsFamily == QueueIndices.PresentFamily)
+	const FQueueFamilyIndices& queueIndices = mDevice->GetQueueIndices();
+	const std::set<uint32> uniqueQueueIndices = queueIndices.GetUniqueQueueIndices();
+	if (queueIndices.GraphicsFamily == queueIndices.PresentFamily)
 	{
-		CreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.imageSharingMode = vk::SharingMode::eExclusive;
 	}
 	else
 	{
-		CreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		CreateInfo.queueFamilyIndexCount = QueueIndices.Num();
-		CreateInfo.pQueueFamilyIndices = QueueIndicesVector.data();
+		createInfo.imageSharingMode = vk::SharingMode::eConcurrent;
+		createInfo.queueFamilyIndexCount = queueIndices.Num();
+
+		const std::vector queueIndicesVector(uniqueQueueIndices.begin(), uniqueQueueIndices.end());
+		createInfo.setQueueFamilyIndices(queueIndicesVector);
 	}
 
-	CreateInfo.preTransform = SupportDetails.Capabilities.currentTransform;
-	CreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.preTransform = supportDetails.Capabilities.currentTransform;
+	createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
 
-	CreateInfo.presentMode = SelectBestPresentMode(SupportDetails.PresentModes);
-	CreateInfo.clipped = VK_TRUE;
+	createInfo.presentMode = SelectBestPresentMode(supportDetails.PresentModes);
+	createInfo.clipped = VK_TRUE;
 
-	CreateInfo.oldSwapchain = nullptr;
+	createInfo.oldSwapchain = nullptr;
 
-	const VkResult SwapChaindCreationResult = vkCreateSwapchainKHR(InDevice->GetVulkanDevice(), &CreateInfo, nullptr, &mVulkanSwapChain);
-	CHECK_VULKAN_RESULT(SwapChaindCreationResult, "Error: {} during creating swap chain.");
+	vk::Result vulkanResult;
+	std::tie(vulkanResult, mVulkanSwapChain) = mDevice->GetVulkanDevice().createSwapchainKHR(createInfo);
+	CHECK_VULKAN_HPP_MSG(vulkanResult, "Cannot create swapchain");
 
-	mImageFormat = CreateInfo.imageFormat;
-	mImageSize = CreateInfo.imageExtent;
+	mImageFormat = createInfo.imageFormat;
+	mImageSize = createInfo.imageExtent;
 
-	uint32 SwapChainImagesNum;
-	vkGetSwapchainImagesKHR(InDevice->GetVulkanDevice(), mVulkanSwapChain, &SwapChainImagesNum, nullptr);
-	mImages.resize(SwapChainImagesNum);
-	vkGetSwapchainImagesKHR(InDevice->GetVulkanDevice(), mVulkanSwapChain, &ImageCount, mImages.data());
-
-	InitializeImageViews(InDevice);
+	std::tie(vulkanResult, mImages) = mDevice->GetVulkanDevice().getSwapchainImagesKHR(mVulkanSwapChain);
+	InitializeImageViews();
 }
 
 
 void FSwapChain::Destroy()
 {
 	TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying Swap chain");
+	TURBO_CHECK(mDevice->IsValid());
 
-	const FVulkanDevice* Device = gEngine->GetRHI()->GetDevice();
-	TURBO_CHECK(Device);
-
-	VkDevice VulkanDevice = Device->GetVulkanDevice();
-	vkDestroySwapchainKHR(VulkanDevice, mVulkanSwapChain, nullptr);
-
-	for (VkImageView& ImageView : mImageViews)
+	for (vk::ImageView& view : mImageViews)
 	{
-		vkDestroyImageView(VulkanDevice, ImageView, nullptr);
+		mDevice->GetVulkanDevice().destroyImageView(view);
 	}
 	mImageViews.clear();
+
+	mDevice->GetVulkanDevice().destroySwapchainKHR((mVulkanSwapChain));
 }
 
-VkSurfaceFormatKHR FSwapChain::SelectBestSurfacePixelFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats) const
+vk::SurfaceFormatKHR FSwapChain::SelectBestSurfacePixelFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) const
 {
-	TURBO_CHECK(!AvailableFormats.empty());
+	TURBO_CHECK(!availableFormats.empty());
 
-	for (const VkSurfaceFormatKHR& Format : AvailableFormats)
+	for (const vk::SurfaceFormatKHR& format : availableFormats)
 	{
-		if (Format.format == VK_FORMAT_B8G8R8A8_SRGB
-			&& Format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+		if (format.format == vk::Format::eB8G8R8A8Srgb
+			&& format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
 		{
-			return Format;
+			return format;
 		}
 	}
 
-	return AvailableFormats.front();
+	return availableFormats.front();
 }
 
-VkPresentModeKHR FSwapChain::SelectBestPresentMode(const std::vector<VkPresentModeKHR>& AvailableModes) const
+vk::PresentModeKHR FSwapChain::SelectBestPresentMode(const std::vector<vk::PresentModeKHR>& availableModes) const
 {
-	TURBO_CHECK(!AvailableModes.empty());
+	TURBO_CHECK(!availableModes.empty());
 
-	if (std::ranges::contains(AvailableModes, VK_PRESENT_MODE_IMMEDIATE_KHR))
+	if (std::ranges::contains(availableModes, vk::PresentModeKHR::eImmediate))
 	{
-		return VK_PRESENT_MODE_IMMEDIATE_KHR;
+		return vk::PresentModeKHR::eImmediate;
 	}
 
-	return VK_PRESENT_MODE_FIFO_KHR;
+	return vk::PresentModeKHR::eFifo;
 }
 
-VkExtent2D FSwapChain::CalculateSwapChainExtent(const VkSurfaceCapabilitiesKHR& Capabilities) const
+vk::Extent2D FSwapChain::CalculateSwapChainExtent(const vk::SurfaceCapabilitiesKHR& capabilities) const
 {
 	FUIntVector2 FramebufferSize = gEngine->GetWindow()->GetFrameBufferSize();
-	FramebufferSize.x = FMath::Clamp(FramebufferSize.x, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
-	FramebufferSize.y = FMath::Clamp(FramebufferSize.y, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
+	FramebufferSize.x = FMath::Clamp(FramebufferSize.x, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+	FramebufferSize.y = FMath::Clamp(FramebufferSize.y, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
 	return  {FramebufferSize.x, FramebufferSize.y};
 }
 
-void FSwapChain::InitializeImageViews(const FVulkanDevice* Device)
+void FSwapChain::InitializeImageViews()
 {
 	TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Creating swap chain's image views")
 
 	mImageViews.resize(mImages.size());
 
-	for (uint32 ImageId = 0; ImageId < mImageViews.size(); ++ImageId)
+	vk::ImageSubresourceRange subresourceRange{};
+	subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
+	subresourceRange.setLayerCount(1);
+	subresourceRange.setLevelCount(1);
+
+	vk::ImageViewCreateInfo createInfo{};
+	createInfo.setViewType(vk::ImageViewType::e2D);
+	createInfo.setFormat(mImageFormat);
+	createInfo.setSubresourceRange(subresourceRange);
+
+	for (uint32 imageId = 0; imageId < mImageViews.size(); ++imageId)
 	{
-		VkImageViewCreateInfo CreateInfo;
-		CreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		CreateInfo.image = mImages[ImageId];
-		CreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		CreateInfo.format = mImageFormat;
+		createInfo.setImage(mImages[imageId]);
 
-		CreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		CreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		CreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		CreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-		CreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		CreateInfo.subresourceRange.baseMipLevel = 0;
-		CreateInfo.subresourceRange.levelCount = 1;
-		CreateInfo.subresourceRange.baseArrayLayer = 0;
-		CreateInfo.subresourceRange.layerCount = 1;
-
-		const VkResult CreateImageViewResult = vkCreateImageView(Device->GetVulkanDevice(), &CreateInfo, nullptr, &mImageViews[ImageId]);
-		CHECK_VULKAN_RESULT(CreateImageViewResult, "Error: {} during creation swap chain's image view");
+		vk::Result result;
+		std::tie(result, mImageViews[imageId]) = mDevice->GetVulkanDevice().createImageView(createInfo);
+		CHECK_VULKAN_HPP_MSG(result, "Cannot create swapchain image view");
 	}
 }

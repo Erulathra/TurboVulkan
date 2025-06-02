@@ -1,7 +1,5 @@
 #pragma once
 
-#include "DebugTrap.h"
-
 // Code assumes 64bit platform
 #if !defined(WITH_TURBO_64) || !WITH_TURBO_64
 #error C++ compiler required.
@@ -18,10 +16,29 @@
 #define TURBO_VERSION() MAKE_VERSION(TURBO_VERSION_MAJOR, TURBO_VERSION_MINOR, TURBO_VERSION_PATCH)
 
 // Debug break
-#define TURBO_DEBUG_BREAK() psnip_trap()
+#if WITH_MSVC
+#include <intrin.h>
+#define TURBO_DEBUG_BREAK() __debugbreak()
+#else
+#define TURBO_DEBUG_BREAK() __builtin_trap()
+#endif
 
 // Assertions
-#define TURBO_CHECK(CONDITION) assert(CONDITION)
+#define TURBO_CHECK(CONDITION)																	\
+	if (!(CONDITION))																			\
+	{																							\
+		SPDLOG_ERROR("Assertion `" #CONDITION "` failed.");										\
+		TURBO_DEBUG_BREAK();																	\
+		std::terminate();																		\
+	}
+
+#define TURBO_CHECK_MSG(CONDITION, MESSAGE, ...)																			\
+	if (!(CONDITION))																										\
+	{																														\
+		SPDLOG_ERROR("Assertion `" #CONDITION "` failed. Message: `" MESSAGE "`" __VA_OPT__(,) __VA_ARGS__);				\
+		TURBO_DEBUG_BREAK();																								\
+		std::terminate();																									\
+	}
 
 #if DEBUG
 namespace Turbo
@@ -81,3 +98,12 @@ namespace Turbo
 		return LockedObject && LockedObject->IsValid();
 	}
 }
+
+#define DEFINE_ENUM_OPERATORS(ENUM_TYPE)																														\
+constexpr ENUM_TYPE operator~(ENUM_TYPE rhs) noexcept {	return static_cast<ENUM_TYPE>(~static_cast<uint32>(rhs)); }												\
+constexpr ENUM_TYPE operator|(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<uint32>(lhs) | static_cast<uint32>(rhs)); }	\
+constexpr ENUM_TYPE operator&(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<uint32>(lhs) & static_cast<uint32>(rhs)); }	\
+constexpr ENUM_TYPE operator^(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<uint32>(lhs) ^ static_cast<uint32>(rhs)); }	\
+constexpr ENUM_TYPE& operator|=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs | rhs); }															\
+constexpr ENUM_TYPE& operator&=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs & rhs); }															\
+constexpr ENUM_TYPE& operator^=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs ^ rhs); }

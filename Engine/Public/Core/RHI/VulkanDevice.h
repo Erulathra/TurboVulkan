@@ -14,28 +14,35 @@ namespace Turbo
 	public:
 		struct AcquiredQueues
 		{
-			VkQueue GraphicsQueue = nullptr;
-			VkQueue PresentQueue = nullptr;
+			vk::Queue GraphicsQueue = nullptr;
+			vk::Queue PresentQueue = nullptr;
+			vk::Queue TransferQueue = nullptr;
 
 			[[nodiscard]] bool IsValid() const;
 		};
 
 	public:
-		void Init(const FVulkanHardwareDevice* InHWDevice);
+		FVulkanDevice() = delete;
+		explicit FVulkanDevice(FVulkanHardwareDevice& hardwareDevice);
+
+		void Init();
 		void Destroy();
 
 		[[nodiscard]] bool IsValid() const;
 
 	public:
-		[[nodiscard]] VkDevice GetVulkanDevice() const { return mVulkanDevice; }
+		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return mHardwareDevice; }
+		[[nodiscard]] vk::Device& GetVulkanDevice() { return mVulkanDevice; }
 		[[nodiscard]] const FQueueFamilyIndices& GetQueueIndices() const {return mQueueIndices; }
 
 	private:
 		void SetupQueues();
-		static VkPhysicalDeviceFeatures GetRequiredDeviceFeatures();
+		vk::PhysicalDeviceFeatures GetRequiredDeviceFeatures();
 
 	private:
-		VkDevice mVulkanDevice = nullptr;
+		FVulkanHardwareDevice* mHardwareDevice = nullptr;
+
+		vk::Device mVulkanDevice = nullptr;
 
 		FQueueFamilyIndices mQueueIndices;
 		AcquiredQueues mQueues;
