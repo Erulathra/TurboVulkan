@@ -19,7 +19,7 @@ struct VSOut
 
 
 [shader("vertex")]
-VSOut VertexMain(uint VertexId : SV_VertexID)
+VSOut vsMain(uint VertexId : SV_VertexID)
 {
     VSOut Result;
     Result.Position = float4(Positions[VertexId % 3], 1.f);
@@ -29,7 +29,7 @@ VSOut VertexMain(uint VertexId : SV_VertexID)
 }
 
 [shader("fragment")]
-float4 PixelMain(VSOut VSin) : SV_Target0
+float4 psMain(VSOut VSin) : SV_Target0
 {
     return VSin.Color;
 }

@@ -3,12 +3,10 @@
 
 namespace Turbo
 {
+	class FCoreTimer;
 	class FVulkanRHI;
 	class CommandLineArgsParser;
-}
 
-namespace Turbo
-{
 	enum class EWindowEvent : uint32_t;
 
 	enum class EExitCode : int32_t
@@ -29,10 +27,14 @@ namespace Turbo
 		[[nodiscard]] FVulkanRHI* GetRHI() const { return mRHIInstance.get(); };
 		[[nodiscard]] FSDLWindow* GetWindow() const { return mMainWindowInstance.get(); };
 
+		[[nodiscard]] FCoreTimer* GetTimer() const { return mCoreTimer.get(); }
+
 	private:
-		// Replace me with GenericRHI
+		// Replace us with GenericRHI
 		std::unique_ptr<FVulkanRHI> mRHIInstance;
 		std::unique_ptr<FSDLWindow> mMainWindowInstance;
+
+		std::unique_ptr<FCoreTimer> mCoreTimer;
 
 		/** Services end */
 

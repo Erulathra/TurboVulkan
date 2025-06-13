@@ -6,9 +6,9 @@
 #include "Core/Math/Vector2D.h"
 #include "Core/RHI/VulkanHardwareDevice.h"
 #include "Core/RHI/VulkanDevice.h"
-#include "Core/RHI/VulkanRHI.h"
 
 using namespace Turbo;
+
 
 FSwapChain::FSwapChain(FVulkanDevice& device)
 	: mDevice(&device)
@@ -32,10 +32,10 @@ void FSwapChain::Init()
 	createInfo.setImageFormat(pixelFormat.format);
 	createInfo.setImageColorSpace(pixelFormat.colorSpace);
 	createInfo.setImageArrayLayers(1);
-	createInfo.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment);
+	createInfo.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst);
 	createInfo.setPresentMode(SelectBestPresentMode(supportDetails.PresentModes));
 
-	uint32 imageCount = supportDetails.Capabilities.minImageCount + 1;
+	uint32 imageCount = supportDetails.Capabilities.minImageCount;
 	if (supportDetails.Capabilities.maxImageCount > 0)
 	{
 		imageCount = FMath::Min(imageCount, supportDetails.Capabilities.maxImageCount);
@@ -67,13 +67,15 @@ void FSwapChain::Init()
 	createInfo.oldSwapchain = nullptr;
 
 	vk::Result vulkanResult;
-	std::tie(vulkanResult, mVulkanSwapChain) = mDevice->GetVulkanDevice().createSwapchainKHR(createInfo);
+	std::tie(vulkanResult, mVulkanSwapChain) = mDevice->Get().createSwapchainKHR(createInfo);
 	CHECK_VULKAN_HPP_MSG(vulkanResult, "Cannot create swapchain");
 
 	mImageFormat = createInfo.imageFormat;
 	mImageSize = createInfo.imageExtent;
 
-	std::tie(vulkanResult, mImages) = mDevice->GetVulkanDevice().getSwapchainImagesKHR(mVulkanSwapChain);
+	std::tie(vulkanResult, mImages) = mDevice->Get().getSwapchainImagesKHR(mVulkanSwapChain);
+	CHECK_VULKAN_HPP(vulkanResult);
+
 	InitializeImageViews();
 }
 
@@ -83,13 +85,19 @@ void FSwapChain::Destroy()
 	TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying Swap chain");
 	TURBO_CHECK(mDevice->IsValid());
 
-	for (vk::ImageView& view : mImageViews)
+	for (int frameId = 0; frameId < GetNumBufferedFrames(); ++frameId)
 	{
-		mDevice->GetVulkanDevice().destroyImageView(view);
+		mDevice->Get().destroyImageView(mImageViews[frameId]);
 	}
+
 	mImageViews.clear();
 
-	mDevice->GetVulkanDevice().destroySwapchainKHR((mVulkanSwapChain));
+	mDevice->Get().destroySwapchainKHR((mVulkanSwapChain));
+}
+
+bool FSwapChain::IsValid() const
+{
+	return mVulkanSwapChain;
 }
 
 vk::SurfaceFormatKHR FSwapChain::SelectBestSurfacePixelFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) const
@@ -112,10 +120,12 @@ vk::PresentModeKHR FSwapChain::SelectBestPresentMode(const std::vector<vk::Prese
 {
 	TURBO_CHECK(!availableModes.empty());
 
+#if 0 // For now, I would pick an easier path.
 	if (std::ranges::contains(availableModes, vk::PresentModeKHR::eImmediate))
 	{
 		return vk::PresentModeKHR::eImmediate;
 	}
+#endif
 
 	return vk::PresentModeKHR::eFifo;
 }
@@ -150,7 +160,7 @@ void FSwapChain::InitializeImageViews()
 		createInfo.setImage(mImages[imageId]);
 
 		vk::Result result;
-		std::tie(result, mImageViews[imageId]) = mDevice->GetVulkanDevice().createImageView(createInfo);
+		std::tie(result, mImageViews[imageId]) = mDevice->Get().createImageView(createInfo);
 		CHECK_VULKAN_HPP_MSG(result, "Cannot create swapchain image view");
 	}
 }

@@ -31,18 +31,25 @@ namespace Turbo
 		[[nodiscard]] bool IsValid() const;
 
 	public:
+		[[nodiscard]] vk::Device Get() const { return mVulkanDevice; }
+		[[nodiscard]] vk::CommandPool GetRenderCommandPool() const { return mRenderCommandPool; }
+
 		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return mHardwareDevice; }
-		[[nodiscard]] vk::Device& GetVulkanDevice() { return mVulkanDevice; }
 		[[nodiscard]] const FQueueFamilyIndices& GetQueueIndices() const {return mQueueIndices; }
+
+		[[nodiscard]] const AcquiredQueues& GetQueues() const { return mQueues; }
 
 	private:
 		void SetupQueues();
 		vk::PhysicalDeviceFeatures GetRequiredDeviceFeatures();
 
+		void SetupCommandPools();
+
 	private:
 		FVulkanHardwareDevice* mHardwareDevice = nullptr;
 
 		vk::Device mVulkanDevice = nullptr;
+		vk::CommandPool mRenderCommandPool = nullptr;
 
 		FQueueFamilyIndices mQueueIndices;
 		AcquiredQueues mQueues;

@@ -22,6 +22,9 @@
 #include "LoggingMacros.h"
 #include "CommonTypeDefs.h"
 
+// GLM
+#include "glm/glm.hpp"
+
 // Internal Math
 #include "Core/Math/Math.h"
 #include "Core/Math/Vector2D.h"

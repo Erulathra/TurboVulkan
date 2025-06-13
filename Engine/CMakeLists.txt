@@ -19,18 +19,17 @@ target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC eventpp::eventpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
+target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
+target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
 
 find_package(fmt REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
+target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
 
 find_package(spdlog REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
 find_package(SDL3 REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3)
-
-find_package(glm REQUIRED)
-target_link_libraries(${PROJECT_NAME} PUBLIC glm)
 
 find_package(VulkanMemoryAllocator REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)

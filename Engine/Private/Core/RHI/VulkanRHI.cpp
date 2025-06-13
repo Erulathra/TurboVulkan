@@ -1,10 +1,12 @@
 #include "Core/RHI/VulkanRHI.h"
 
+#include "Core/CoreTimer.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
 #include "Core/RHI/SwapChain.h"
 #include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/VulkanHardwareDevice.h"
+#include "Core/RHI/Utils/VulkanUtils.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -30,6 +32,11 @@ namespace Turbo
             mSwapChain = std::make_unique<FSwapChain>(*mDevice);
             mSwapChain->Init();
         }
+
+        if (IsValid(mSwapChain))
+        {
+            InitFrameData();
+        }
     }
 
     void FVulkanRHI::InitWindow(FSDLWindow* window)
@@ -41,7 +48,18 @@ namespace Turbo
     {
         if (mDevice)
         {
-            vk::Result result = mDevice->GetVulkanDevice().waitIdle();
+            CHECK_VULKAN_HPP(mDevice->Get().waitIdle());
+        }
+
+        for (auto& frameData : mFrameDatas)
+        {
+            frameData.Destroy();
+        }
+        mFrameDatas.clear();
+
+        if (mDevice)
+        {
+            vk::Result result = mDevice->Get().waitIdle();
         }
 
         if (mSwapChain)
@@ -140,6 +158,103 @@ namespace Turbo
         }
     }
 
+    void FVulkanRHI::InitFrameData()
+    {
+        TURBO_CHECK(mDevice->IsValid());
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Initializing frame datas");
+
+        for (uint32 frameId = 0; frameId < mSwapChain->GetNumBufferedFrames(); ++frameId)
+        {
+            FFrameData& newFrameData = mFrameDatas.emplace_back(*mDevice);
+            newFrameData.Init();
+        }
+    }
+
+    void FVulkanRHI::RenderSync()
+    {
+        const FFrameData& fd = GetCurrentFrame();
+
+        // Wait until gpu finish its work.
+        CHECK_VULKAN_HPP(mDevice->Get().waitForFences(1, &fd.mRenderFence, true, kDefaultVulkanTimeout));
+        CHECK_VULKAN_HPP(mDevice->Get().resetFences(1, &fd.mRenderFence));
+    }
+
+    void FVulkanRHI::Tick()
+    {
+        RenderSync();
+        AcquireSwapChainImage();
+        DrawFrame();
+        PresentImage();
+    }
+
+    void FVulkanRHI::AcquireSwapChainImage()
+    {
+        const FFrameData& fd = GetCurrentFrame();
+
+        // Request image from a swap chain
+        vk::Result result;
+        std::tie(result, mSwapChainImageIndex) = mDevice->Get().acquireNextImageKHR(mSwapChain->GetVulkanSwapChain(), kDefaultVulkanTimeout, fd.mSwapChainSemaphore, nullptr);
+        CHECK_VULKAN_HPP_MSG(result, "Cannot obtain image from a swap chain.");
+    }
+
+    void FVulkanRHI::DrawFrame()
+    {
+        const FFrameData& fd = GetCurrentFrame();
+
+        const vk::Image& currentImage = mSwapChain->GetImage(mSwapChainImageIndex);
+
+        CHECK_VULKAN_HPP(fd.mCommandBuffer.reset());
+
+        const vk::CommandBufferBeginInfo bufferBeginInfo = VulkanInitializers::BufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+        CHECK_VULKAN_HPP(fd.mCommandBuffer.begin(bufferBeginInfo));
+
+        VulkanUtils::TransitionImage(fd.mCommandBuffer, currentImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+
+        // TODO: Remove me
+        const double currentTime = FCoreTimer::Get()->GetTimeFromEngineStart();
+        const glm::vec3 clearColor = FMath::Lerp(glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), FMath::Sin(currentTime) * 0.5f + 0.5f);
+
+        const vk::ClearColorValue clearColorValue { clearColor.r, clearColor.g, clearColor.b, 1.f};
+        const vk::ImageSubresourceRange clearSubresourceRange = VulkanInitializers::ImageSubresourceRange();
+
+        fd.mCommandBuffer.clearColorImage(currentImage, vk::ImageLayout::eGeneral, clearColorValue, clearSubresourceRange);
+
+        VulkanUtils::TransitionImage(fd.mCommandBuffer, currentImage, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
+
+        CHECK_VULKAN_HPP(fd.mCommandBuffer.end());
+
+        // Submit queue
+
+        const vk::CommandBufferSubmitInfo cmdBufferInfo = VulkanInitializers::CommandBufferSubmitInfo(fd.mCommandBuffer);
+
+        const vk::SemaphoreSubmitInfo waitSemaphoreInfo = VulkanInitializers::SemaphoreSubmitInfo(fd.mSwapChainSemaphore, vk::PipelineStageFlagBits2::eColorAttachmentOutput);
+        const vk::SemaphoreSubmitInfo signalSemaphoreInfo = VulkanInitializers::SemaphoreSubmitInfo(fd.mRenderSemaphore, vk::PipelineStageFlagBits2::eAllGraphics);
+
+        const vk::SubmitInfo2 submitInfo = VulkanInitializers::SubmitInfo(cmdBufferInfo, &signalSemaphoreInfo, &waitSemaphoreInfo);
+
+        CHECK_VULKAN_HPP(mDevice->GetQueues().GraphicsQueue.submit2(1, &submitInfo, fd.mRenderFence));
+    }
+
+    void FVulkanRHI::PresentImage()
+    {
+        const FFrameData& fd = GetCurrentFrame();
+
+        vk::PresentInfoKHR presentInfo = VulkanInitializers::PresentInfo(mSwapChain->GetVulkanSwapChain(), fd.mRenderSemaphore, mSwapChainImageIndex);
+        CHECK_VULKAN_HPP_MSG(mDevice->GetQueues().PresentQueue.presentKHR(presentInfo), "Cannot present swap chain image.");
+
+        mFrameNumber++;
+    }
+
+    uint32 FVulkanRHI::GetFrameDataIndex() const
+    {
+#if 1
+        const uint32 numBufferedFrames = mSwapChain->GetNumBufferedFrames();
+        return numBufferedFrames > 0 ? mFrameNumber % numBufferedFrames : 0;
+#else
+        return mSwapChainImageIndex;
+#endif
+    }
+
 #if WITH_VALIDATION_LAYERS
 
     bool FVulkanRHI::CheckValidationLayersSupport()
@@ -179,7 +294,6 @@ namespace Turbo
     void FVulkanRHI::SetupValidationLayersCallbacks()
     {
         TURBO_LOG(LOG_RHI, LOG_INFO, "Assigning validation layers callback.");
-
 
         vk::DebugUtilsMessengerCreateInfoEXT createInfo{};
 

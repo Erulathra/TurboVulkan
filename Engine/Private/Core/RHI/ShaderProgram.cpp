@@ -4,19 +4,24 @@
 #include "Core/RHI/VulkanDevice.h"
 
 namespace Turbo {
-	FShaderProgram::~FShaderProgram()
+	FShaderModule::FShaderModule(FVulkanDevice& Device)
+		: mDevice(&Device)
 	{
-		mDevice->GetVulkanDevice().destroyShaderModule(mVulkanShaderModule);
 	}
 
-	void FShaderProgram::Init(const std::vector<uint8>& ShaderCode, const FVulkanDevice* InDevice)
+	FShaderModule::~FShaderModule()
+	{
+		mDevice->Get().destroyShaderModule(mVulkanShaderModule);
+	}
+
+	void FShaderModule::Init(const std::vector<uint8>& shaderCode, EShaderType newShaderType)
 	{
 		vk::ShaderModuleCreateInfo createInfo;
 		createInfo.codeSize = shaderCode.size();
 		createInfo.pCode = reinterpret_cast<const uint32*>(shaderCode.data());
 
 		vk::Result vulkanResult;
-		std::tie(vulkanResult, mVulkanShaderModule) = mDevice->GetVulkanDevice().createShaderModule(createInfo);
+		std::tie(vulkanResult, mVulkanShaderModule) = mDevice->Get().createShaderModule(createInfo);
 		CHECK_VULKAN_HPP(vulkanResult);
 
 		mShaderType = newShaderType;

@@ -2,6 +2,7 @@
 
 #include "Core/Engine.h"
 #include "Core/RHI/VulkanHardwareDevice.h"
+#include "Core/RHI/Utils/VulkanInitializers.h"
 #include "Core/RHI/VulkanRHI.h"
 
 using namespace Turbo;
@@ -68,11 +69,12 @@ void FVulkanDevice::Init()
     VULKAN_HPP_DEFAULT_DISPATCHER.init(mVulkanDevice);
 
     SetupQueues();
+    SetupCommandPools();
 }
 
 void FVulkanDevice::SetupQueues()
 {
-    TURBO_CHECK(IsValid());
+    TURBO_CHECK(mVulkanDevice && mQueueIndices.IsValid());
 
     if (mQueueIndices.IsValid())
     {
@@ -88,6 +90,11 @@ void FVulkanDevice::Destroy()
 {
     TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying logical device.");
 
+    if (mRenderCommandPool)
+    {
+        mVulkanDevice.destroyCommandPool(mRenderCommandPool);
+    }
+
     mVulkanDevice.destroy();
     mVulkanDevice = nullptr;
 }
@@ -95,7 +102,8 @@ void FVulkanDevice::Destroy()
 bool FVulkanDevice::IsValid() const
 {
     return mVulkanDevice != nullptr
-        && mQueueIndices.IsValid();
+        && mQueueIndices.IsValid()
+        && mRenderCommandPool != nullptr;
 }
 
 vk::PhysicalDeviceFeatures FVulkanDevice::GetRequiredDeviceFeatures()
@@ -110,5 +118,19 @@ vk::PhysicalDeviceFeatures FVulkanDevice::GetRequiredDeviceFeatures()
     features.sampleRateShading = supportedFeatures.sampleRateShading;
 
     return features;
+}
+
+void FVulkanDevice::SetupCommandPools()
+{
+    TURBO_LOG(LOG_RHI, LOG_INFO, "Creating command pools.");
+
+    const vk::CommandPoolCreateInfo createInfo = VulkanInitializers::CommandPoolCreateInfo(
+        mHardwareDevice->GetQueueFamilyIndices().GraphicsFamily,
+        vk::CommandPoolCreateFlagBits::eResetCommandBuffer
+    );
+
+    vk::Result result;
+    std::tie(result, mRenderCommandPool) = mVulkanDevice.createCommandPool(createInfo);
+    CHECK_VULKAN_HPP(result);
 }
 

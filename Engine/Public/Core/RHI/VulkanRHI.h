@@ -1,6 +1,8 @@
 #pragma once
 
 #include "RHICore.h"
+#include "FrameData.h"
+#include "SwapChain.h"
 
 #define WITH_VALIDATION_LAYERS DEBUG
 
@@ -35,6 +37,31 @@ namespace Turbo
 	private:
 		void CreateVulkanInstance();
 		void DestroyVulkanInstance();
+
+		/** Frame rendering */
+	public:
+		void InitFrameData();
+
+		void RenderSync();
+		void Tick();
+
+	private:
+		void AcquireSwapChainImage();
+		void DrawFrame();
+		void PresentImage();
+
+	public:
+		uint64 GetFrameNumber() const { return mFrameNumber; }
+		uint32 GetFrameDataIndex() const;
+		const FFrameData& GetCurrentFrame() const { return mFrameDatas[GetFrameDataIndex()]; }
+
+	private:
+		std::vector<FFrameData> mFrameDatas;
+
+		uint32 mSwapChainImageIndex = 0;
+		uint64 mFrameNumber = 0;
+
+		/** Frame rendering end */
 
 /** Validation Layers */
 #if WITH_VALIDATION_LAYERS

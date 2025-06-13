@@ -6,17 +6,31 @@ namespace Turbo
 {
 	class FVulkanDevice;
 
-	class FShaderProgram
+	enum class EShaderType : uint8
+	{
+		None = 0,
+		Vertex = 1 << 1,
+		Fragment = 1 << 2
+	};
+
+	DEFINE_ENUM_OPERATORS(EShaderType);
+
+	class FShaderModule
 	{
 	public:
-		FShaderProgram() = default;
-		virtual ~FShaderProgram();
+		FShaderModule() = delete;
+		FShaderModule(FVulkanDevice& Device);
+		virtual ~FShaderModule();
 
 	public:
-		void Init(const std::vector<uint8>& ShaderCode, const FVulkanDevice* InDevice);
+		void Init(const std::vector<uint8>& shaderCode, EShaderType newShaderType);
+		[[nodiscard]] std::vector<vk::PipelineShaderStageCreateInfo> GetShaderStageCreateInfo() const;
 
 	private:
-		VkShaderModule ShaderModule = nullptr;
+		FVulkanDevice* mDevice;
+
+		EShaderType mShaderType = EShaderType::None;
+		vk::ShaderModule mVulkanShaderModule{};
 	};
 } // Turbo
 
