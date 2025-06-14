@@ -3,6 +3,7 @@
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
+#include "Core/Math/Color.h"
 #include "Core/RHI/SwapChain.h"
 #include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/VulkanHardwareDevice.h"
@@ -212,7 +213,7 @@ namespace Turbo
 
         // TODO: Remove me
         const double currentTime = FCoreTimer::Get()->GetTimeFromEngineStart();
-        const glm::vec3 clearColor = FMath::Lerp(glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), FMath::Sin(currentTime) * 0.5f + 0.5f);
+        const glm::vec4 clearColor = glm::mix(ELinearColor::kRed, ELinearColor::kBlue, glm::sin(currentTime) * 0.5f + 0.5f);
 
         const vk::ClearColorValue clearColorValue { clearColor.r, clearColor.g, clearColor.b, 1.f};
         const vk::ImageSubresourceRange clearSubresourceRange = VulkanInitializers::ImageSubresourceRange();

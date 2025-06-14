@@ -3,7 +3,6 @@
 #include "Core/Engine.h"
 #include "Core/Window.h"
 #include "Core/Math/Math.h"
-#include "Core/Math/Vector2D.h"
 #include "Core/RHI/VulkanHardwareDevice.h"
 #include "Core/RHI/VulkanDevice.h"
 
@@ -38,7 +37,7 @@ void FSwapChain::Init()
 	uint32 imageCount = supportDetails.Capabilities.minImageCount;
 	if (supportDetails.Capabilities.maxImageCount > 0)
 	{
-		imageCount = FMath::Min(imageCount, supportDetails.Capabilities.maxImageCount);
+		imageCount = glm::min(imageCount, supportDetails.Capabilities.maxImageCount);
 	}
 	createInfo.minImageCount = imageCount;
 	createInfo.imageExtent = CalculateSwapChainExtent(supportDetails.Capabilities);
@@ -132,11 +131,14 @@ vk::PresentModeKHR FSwapChain::SelectBestPresentMode(const std::vector<vk::Prese
 
 vk::Extent2D FSwapChain::CalculateSwapChainExtent(const vk::SurfaceCapabilitiesKHR& capabilities) const
 {
-	FUIntVector2 FramebufferSize = gEngine->GetWindow()->GetFrameBufferSize();
-	FramebufferSize.x = FMath::Clamp(FramebufferSize.x, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-	FramebufferSize.y = FMath::Clamp(FramebufferSize.y, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+	const glm::ivec2 framebufferSize = gEngine->GetWindow()->GetFrameBufferSize();
+	TURBO_CHECK(framebufferSize.x > 0 && framebufferSize.y > 0);
 
-	return  {FramebufferSize.x, FramebufferSize.y};
+	glm::uvec2 unsignedSize = framebufferSize;
+	unsignedSize.x = glm::clamp(unsignedSize.x, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+	unsignedSize.y = glm::clamp(unsignedSize.y, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+	return  {unsignedSize.x, unsignedSize.y};
 }
 
 void FSwapChain::InitializeImageViews()

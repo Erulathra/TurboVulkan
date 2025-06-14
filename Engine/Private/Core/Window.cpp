@@ -1,7 +1,5 @@
 #include "Core/Window.h"
 
-#include "Core/Math/Vector2D.h"
-
 namespace Turbo
 {
 	FSDLWindow::FSDLWindow() = default;
@@ -77,16 +75,16 @@ namespace Turbo
 		}
 	}
 
-	FUIntVector2 FSDLWindow::GetFrameBufferSize() const
+	glm::ivec2 FSDLWindow::GetFrameBufferSize() const
 	{
-		FIntVector2 Result;
+		glm::ivec2 Result;
 		if (!SDL_GetWindowSizeInPixels(mSDLWindow, &Result.x, &Result.y))
 		{
 			LogError();
-			Result = FIntVector2(WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY);
+			Result = glm::ivec2(WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY);
 		}
 
-		return FUIntVector2(Result);
+		return glm::ivec2(Result);
 	}
 
 	void FSDLWindow::InitForVulkan()

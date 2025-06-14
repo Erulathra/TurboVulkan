@@ -53,7 +53,7 @@ namespace Turbo
 		void PollWindowEventsAndErrors();
 
 		void ShowWindow(bool bVisible);
-		FUIntVector2 GetFrameBufferSize() const;
+		glm::ivec2 GetFrameBufferSize() const;
 
 		/** Vulkan Interface */
 	public:

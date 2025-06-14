@@ -27,6 +27,6 @@
 
 // Internal Math
 #include "Core/Math/Math.h"
-#include "Core/Math/Vector2D.h"
+#include "Core/Math/MathCommon.h"
 
 #include "magic_enum/magic_enum.hpp"
