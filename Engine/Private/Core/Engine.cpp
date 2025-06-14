@@ -69,9 +69,10 @@ namespace Turbo
 
 	void FEngine::GameThreadTick()
 	{
-		TURBO_LOG(LOG_ENGINE, LOG_DISPLAY, "Engine Tick");
-
 		mCoreTimer->Tick();
+
+		TURBO_LOG(LOG_ENGINE, LOG_DISPLAY, "Engine Tick. FrameTime: {}, FPS: {}", mCoreTimer->GetDeltaTime(), 1.f / mCoreTimer->GetDeltaTime());
+
 		GetRHI()->Tick();
 	}
 

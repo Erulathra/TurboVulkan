@@ -119,12 +119,15 @@ vk::PresentModeKHR FSwapChain::SelectBestPresentMode(const std::vector<vk::Prese
 {
 	TURBO_CHECK(!availableModes.empty());
 
-#if 0 // For now, I would pick an easier path.
 	if (std::ranges::contains(availableModes, vk::PresentModeKHR::eImmediate))
 	{
 		return vk::PresentModeKHR::eImmediate;
 	}
-#endif
+
+	if (std::ranges::contains(availableModes, vk::PresentModeKHR::eMailbox))
+	{
+		return vk::PresentModeKHR::eMailbox;
+	}
 
 	return vk::PresentModeKHR::eFifo;
 }
