@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DeletionQueue.h"
 #include "RHICore.h"
 #include "FrameData.h"
 #include "SwapChain.h"
@@ -51,9 +52,11 @@ namespace Turbo
 		void PresentImage();
 
 	public:
-		uint64 GetFrameNumber() const { return mFrameNumber; }
-		uint32 GetFrameDataIndex() const;
-		const FFrameData& GetCurrentFrame() const { return mFrameDatas[GetFrameDataIndex()]; }
+		[[nodiscard]] uint64 GetFrameNumber() const { return mFrameNumber; }
+		[[nodiscard]] uint32 GetFrameDataIndex() const;
+		[[nodiscard]] FFrameData& GetCurrentFrame() { return mFrameDatas[GetFrameDataIndex()]; }
+
+		[[nodiscard]] FDeletionQueue& GetFrameDeletionQueue() { return GetCurrentFrame().GetDeletionQueue(); }
 
 	private:
 		std::vector<FFrameData> mFrameDatas;
@@ -83,6 +86,8 @@ namespace Turbo
 	public:
 		[[nodiscard]] vk::Instance GetVulkanInstance() const { return mVulkanInstance; }
 
+		[[nodiscard]] FDeletionQueue& GetMainDeletionQueue() { return mMainDeletionQueue; }
+
 	private:
 		void AcquirePhysicalDevice();
 
@@ -99,6 +104,8 @@ namespace Turbo
 		std::unique_ptr<FVulkanHardwareDevice> mHardwareDevice;
 		std::unique_ptr<FVulkanDevice> mDevice;
 		std::unique_ptr<FSwapChain> mSwapChain;
+
+		FDeletionQueue mMainDeletionQueue;
 
 	public:
 		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return mHardwareDevice.get(); }

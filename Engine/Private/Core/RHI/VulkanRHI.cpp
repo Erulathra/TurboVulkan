@@ -58,9 +58,11 @@ namespace Turbo
         }
         mFrameDatas.clear();
 
+        mMainDeletionQueue.Flush();
+
         if (mDevice)
         {
-            vk::Result result = mDevice->Get().waitIdle();
+            CHECK_VULKAN_HPP(mDevice->Get().waitIdle());
         }
 
         if (mSwapChain)
@@ -183,6 +185,8 @@ namespace Turbo
     void FVulkanRHI::Tick()
     {
         RenderSync();
+        GetFrameDeletionQueue().Flush();
+
         AcquireSwapChainImage();
         DrawFrame();
         PresentImage();

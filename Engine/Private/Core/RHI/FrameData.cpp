@@ -63,5 +63,7 @@ namespace Turbo {
 			mDevice->Get().destroySemaphore(mRenderSemaphore);
 			mRenderSemaphore = nullptr;
 		}
+
+		mDeletionQueue.Flush();
 	}
 } // Turbo
