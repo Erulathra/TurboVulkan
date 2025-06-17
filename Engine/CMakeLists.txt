@@ -22,11 +22,12 @@ target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
 target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
 
-find_package(fmt REQUIRED)
+#find_package(fmt REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
 
-find_package(spdlog REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+#find_package(spdlog REQUIRED)
+#target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 
 find_package(SDL3 REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3)
