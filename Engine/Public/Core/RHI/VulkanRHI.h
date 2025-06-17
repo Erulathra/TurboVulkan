@@ -4,6 +4,7 @@
 #include "RHICore.h"
 #include "FrameData.h"
 #include "SwapChain.h"
+#include "vk_mem_alloc.h"
 
 #define WITH_VALIDATION_LAYERS DEBUG
 
@@ -38,6 +39,8 @@ namespace Turbo
 	private:
 		void CreateVulkanInstance();
 		void DestroyVulkanInstance();
+
+		void CreateMemoryAllocator();
 
 		/** Frame rendering */
 	public:
@@ -86,6 +89,7 @@ namespace Turbo
 	public:
 		[[nodiscard]] vk::Instance GetVulkanInstance() const { return mVulkanInstance; }
 
+		[[nodiscard]] VmaAllocator& GetAllocator() { return mVMAAllocator; }
 		[[nodiscard]] FDeletionQueue& GetMainDeletionQueue() { return mMainDeletionQueue; }
 
 	private:
@@ -106,6 +110,8 @@ namespace Turbo
 		std::unique_ptr<FSwapChain> mSwapChain;
 
 		FDeletionQueue mMainDeletionQueue;
+
+		VmaAllocator mVMAAllocator;
 
 	public:
 		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return mHardwareDevice.get(); }

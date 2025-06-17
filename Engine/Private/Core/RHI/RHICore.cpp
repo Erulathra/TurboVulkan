@@ -1,6 +1,7 @@
 #include "Core/RHI/RHICore.h"
 
-#include "magic_enum/magic_enum.hpp"
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
 
 fmt::format_context::iterator fmt::formatter<vk::Result>::format(vk::Result result, format_context& ctx) const
 {

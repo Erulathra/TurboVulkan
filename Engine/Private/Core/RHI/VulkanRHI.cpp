@@ -19,6 +19,8 @@ namespace Turbo
     void FVulkanRHI::Init()
     {
         CreateVulkanInstance();
+        CreateMemoryAllocator();
+
         gEngine->GetWindow()->CreateVulkanSurface(mVulkanInstance);
         AcquirePhysicalDevice();
 
@@ -159,6 +161,11 @@ namespace Turbo
             mVulkanInstance.destroy();
             mVulkanInstance = nullptr;
         }
+    }
+
+    void FVulkanRHI::CreateMemoryAllocator()
+    {
+
     }
 
     void FVulkanRHI::InitFrameData()
