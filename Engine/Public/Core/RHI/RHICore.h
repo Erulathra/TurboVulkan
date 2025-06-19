@@ -25,10 +25,32 @@ struct fmt::formatter<VkResult> : formatter<int32>
 	TURBO_CHECK_MSG(_result == vk::Result::eSuccess, "Vulkan error: {}", (_result));									\
 }
 
+#if DEBUG
 #define CHECK_VULKAN_HPP_MSG(EXPRESSION, MESSAGE, ...)																						\
 {																																			\
 	vk::Result _result = (EXPRESSION);																										\
-	TURBO_CHECK_MSG(_result == vk::Result::eSuccess, "[Vulkan error: {}] " MESSAGE, _result __VA_OPT__(,) __VA_ARGS__)						\
+	if (_result == vk::Result::eSuboptimalKHR)																								\
+	{																																		\
+		static bool _subOptimalShown = false;																								\
+		if (!_subOptimalShown)																												\
+		{																																	\
+			SPDLOG_WARN("Suboptimal result");																								\
+			TURBO_DEBUG_BREAK();																											\
+			_subOptimalShown = true;																										\
+		}																																	\
+	}																																		\
+	else																																	\
+	{																																		\
+		TURBO_CHECK_MSG(_result == vk::Result::eSuccess, "[Vulkan error: {}] " MESSAGE, _result __VA_OPT__(,) __VA_ARGS__);					\
+	}																																		\
 }
+#else // DEBUG
+#define CHECK_VULKAN_HPP_MSG(EXPRESSION, MESSAGE, ...)																						\
+{																																			\
+	vk::Result _result = (EXPRESSION);																										\
+	TURBO_CHECK_MSG(_result == vk::Result::eSuccess, "[Vulkan error: {}] " MESSAGE, _result __VA_OPT__(,) __VA_ARGS__);						\
+}
+#endif // else DEBUG
+
 
 constexpr inline uint32 kDefaultVulkanTimeout = 1000000000; // 1 second

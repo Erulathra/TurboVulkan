@@ -20,7 +20,8 @@
 #include <intrin.h>
 #define TURBO_DEBUG_BREAK() __debugbreak()
 #else
-#define TURBO_DEBUG_BREAK() __builtin_trap()
+#include <signal.h>
+#define TURBO_DEBUG_BREAK() raise(SIGTRAP);
 #endif
 
 // Assertions
