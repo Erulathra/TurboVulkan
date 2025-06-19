@@ -1,5 +1,5 @@
 #include "Core/Delegate.h"
 
 namespace Turbo {
-	unsigned int DelegateHandle::CURRENT_ID = 0;
+	uint32 FDelegateHandle::sCurrentId = 0;
 } // Turbo

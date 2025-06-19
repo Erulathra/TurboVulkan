@@ -16,13 +16,17 @@
 #define TURBO_VERSION() MAKE_VERSION(TURBO_VERSION_MAJOR, TURBO_VERSION_MINOR, TURBO_VERSION_PATCH)
 
 // Debug break
+#if DEBUG
 #if WITH_MSVC
 #include <intrin.h>
 #define TURBO_DEBUG_BREAK() __debugbreak()
 #else
-#include <signal.h>
+#include <csignal>
 #define TURBO_DEBUG_BREAK() raise(SIGTRAP);
 #endif
+#else // DEBUG
+#define TURBO_DEBUG_BREAK() {};
+#endif // else DEBUG
 
 // Assertions
 #define TURBO_CHECK(CONDITION)																	\
@@ -40,6 +44,9 @@
 		TURBO_DEBUG_BREAK();																								\
 		std::terminate();																									\
 	}
+
+#define TURBO_STATIC_ASSERT(CONDITION) static_assert(CONDITION, #CONDITION)
+#define TURBO_STATIC_ASSERT_MSG(CONDITION, MSG) static_assert(CONDITION, "Static assert '" #CONDITION "' failed. Message: " MSG)
 
 #if DEBUG
 namespace Turbo
@@ -108,3 +115,18 @@ constexpr ENUM_TYPE operator^(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return st
 constexpr ENUM_TYPE& operator|=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs | rhs); }															\
 constexpr ENUM_TYPE& operator&=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs & rhs); }															\
 constexpr ENUM_TYPE& operator^=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs ^ rhs); }
+
+#define EXPAND(X) X
+#define GET_MACRO(_1, _2, NAME, ...) NAME
+#define GENERATED_BODY(...) EXPAND( GET_MACRO(__VA_ARGS__, GENERATED_BODY_2, GENERATED_BODY_1)(__VA_ARGS__) )
+
+#define GENERATED_BODY_1(THIS_CLASS)			\
+public:											\
+using ThisClass = THIS_CLASS;					\
+private:
+
+#define GENERATED_BODY_2(THIS_CLASS, SUPER_CLASS)	\
+public:												\
+	using ThisClass = THIS_CLASS;					\
+	using Super = SUPER_CLASS;						\
+private:

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
-
 #include "Core/RHI/Utils/VulkanInitializers.h"
+#include "vk_mem_alloc.h"
 
 template <>
 struct fmt::formatter<vk::Result> : formatter<int32>

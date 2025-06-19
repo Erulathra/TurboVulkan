@@ -12,10 +12,7 @@ namespace Turbo
 		}
 		mObjectsToDelete.clear();
 
-		for (const FDeletionDelegate& delegateToCall : std::ranges::reverse_view(mDelegatesToCall))
-		{
-			std::invoke(delegateToCall);
-		}
-		mDelegatesToCall.clear();
+		mOnDeletion.Broadcast();
+		mOnDeletion.RemoveAll();
 	}
 } // Turbo

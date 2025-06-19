@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Delegate.h"
 
 namespace Turbo
 {
@@ -11,18 +12,21 @@ namespace Turbo
 		virtual void Delete() = 0;
 	};
 
-	using FDeletionDelegate = std::function<void()>;
 
 	class FDeletionQueue
 	{
+	public:
+		DECLARE_MULTICAST_DELEGATE_REVERSE(FOnDeletion);
 
 	public:
 		void RequestDeletion(const std::shared_ptr<IDeletable>& objectToDelete) { mObjectsToDelete.push_back(objectToDelete); }
-		void AddDelegate(const FDeletionDelegate& delegate) { mDelegatesToCall.push_back(delegate); }
 		void Flush();
+
+	public:
+		FOnDeletion& OnDeletion() { return mOnDeletion; }
 
 	private:
 		std::vector<std::shared_ptr<IDeletable>> mObjectsToDelete;
-		std::vector<FDeletionDelegate> mDelegatesToCall;
+		FOnDeletion mOnDeletion;
 	};
 } // Turbo

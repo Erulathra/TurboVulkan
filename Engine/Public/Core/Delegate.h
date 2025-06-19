@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <memory>
+#include <ranges>
 #include <tuple>
 #include <spdlog/spdlog.h>
 
@@ -17,14 +18,16 @@
 #endif
 
 #define DECLARE_DELEGATE(name, ...) \
-using name = Delegate<void, __VA_ARGS__>
+using name = TDelegate<void, __VA_ARGS__>
 
 #define DECLARE_DELEGATE_RET(name, retValue, ...) \
-using name = Delegate<retValue, __VA_ARGS__>
+using name = TDelegate<retValue, __VA_ARGS__>
 
 #define DECLARE_MULTICAST_DELEGATE(name, ...) \
-using name = MulticastDelegate<__VA_ARGS__>; \
-using name ## Delegate = MulticastDelegate<__VA_ARGS__>::DelegateT
+using name = TMulticastDelegate<EDelegateExecutionOrder::Undefined __VA_OPT__(,) __VA_ARGS__>
+
+#define DECLARE_MULTICAST_DELEGATE_REVERSE(name, ...) \
+using name = TMulticastDelegate<EDelegateExecutionOrder::Reverse __VA_OPT__(,) __VA_ARGS__>
 
 #define DECLARE_EVENT(name, ownerType, ...) \
 class name : public MulticastDelegate<__VA_ARGS__> \
@@ -76,11 +79,9 @@ namespace Turbo
 	public:
 		IDelegateBase() = default;
 		virtual ~IDelegateBase() noexcept = default;
-		virtual const void* GetOwner() const { return nullptr; }
+		[[nodiscard]] virtual const void* GetOwner() const { return nullptr; }
 
 		virtual void Clone(void* pDestination) = 0;
-
-		// TODO: Add rvalue constructor
 	};
 
 	/** Base type for delegates */
@@ -100,7 +101,7 @@ namespace Turbo
 	public:
 		using DelegateFunction = RetVal(*)(Args..., Args2...);
 
-		TStaticDelegate(DelegateFunction function, Args2&&... payload)
+		explicit TStaticDelegate(DelegateFunction function, Args2&&... payload)
 			: mFunction(function), mPayload(std::forward<Args2>(payload)...)
 		{
 		}
@@ -280,6 +281,9 @@ namespace Turbo
 	class FDelegateHandle
 	{
 	public:
+		using FDelegateID = uint32;
+		static constexpr FDelegateID INVALID_ID = 0;
+	public:
 		constexpr FDelegateHandle() noexcept
 			: mId(INVALID_ID)
 		{
@@ -324,26 +328,24 @@ namespace Turbo
 
 		bool IsValid() const noexcept
 		{
-			return mId != INVALID_ID;
+			return mId != INDEX_NONE;
 		}
 
 		void Reset() noexcept
 		{
-			mId = INVALID_ID;
+			mId = INDEX_NONE;
 		}
 
-		constexpr static uint32 INVALID_ID = static_cast<uint32>(~0);
-
 	private:
-		unsigned int mId;
-		static unsigned int sCurrentId;
+		FDelegateID mId;
+		static FDelegateID sCurrentId;
 
-		static int GetNewID()
+		static FDelegateID GetNewID()
 		{
-			unsigned int output = FDelegateHandle::sCurrentId++;
-			if (FDelegateHandle::sCurrentId == INVALID_ID)
+			const FDelegateID output = sCurrentId++;
+			if (sCurrentId == INDEX_NONE)
 			{
-				FDelegateHandle::sCurrentId = 0;
+				sCurrentId = 0;
 			}
 			return output;
 		}
@@ -355,10 +357,10 @@ namespace Turbo
 	public:
 		//Constructor
 		constexpr FInlineAllocator() noexcept
-			: mSize(0)
+			: mPtr(nullptr)
+			, mSize(0)
 		{
-			DELEGATE_STATIC_ASSERT(MaxStackSize > sizeof(void*),
-			                       "MaxStackSize is smaller or equal to the size of a pointer. This will make the use of an InlineAllocator pointless. Please increase the MaxStackSize.");
+			TURBO_STATIC_ASSERT_MSG(MaxStackSize > sizeof(void*), "MaxStackSize is smaller or equal to the size of a pointer. This will make the use of an InlineAllocator pointless. Please increase the MaxStackSize.");
 		}
 
 		//Destructor
@@ -449,11 +451,11 @@ namespace Turbo
 		}
 
 		//Return the allocated memory either on the stack or on the heap
-		void* GetAllocation() const
+		[[nodiscard]] void* GetAllocation() const
 		{
 			if (HasAllocation())
 			{
-				return HasHeapAllocation() ? mPtr : static_cast<void*>(mBuffer);
+				return HasHeapAllocation() ? mPtr : (void*)(mBuffer);
 			}
 			else
 			{
@@ -481,7 +483,7 @@ namespace Turbo
 		//Otherwise pPtr is used together with a separate dynamic allocation
 		union
 		{
-			char mBuffer[MaxStackSize];
+			uint8 mBuffer[MaxStackSize];
 			void* mPtr;
 		};
 
@@ -490,6 +492,8 @@ namespace Turbo
 
 	class FDelegateBase
 	{
+		GENERATED_BODY(FDelegateBase)
+
 	public:
 		//Default constructor
 		constexpr FDelegateBase() noexcept
@@ -503,7 +507,7 @@ namespace Turbo
 			Release();
 		}
 
-		//Copy contructor
+		//Copy constructor
 		FDelegateBase(const FDelegateBase& other)
 		{
 			if (other.mAllocator.HasAllocation())
@@ -539,9 +543,9 @@ namespace Turbo
 			return *this;
 		}
 
-		//Gets the owner of the deletage
+		//Gets the owner of the delegate
 		//Only valid for SPDelegate and RawDelegate.
-		//Otherwise returns nullptr by default
+		//Otherwise, returns nullptr by default
 		const void* GetOwner() const
 		{
 			if (mAllocator.HasAllocation())
@@ -551,7 +555,7 @@ namespace Turbo
 			return nullptr;
 		}
 
-		size_t GetSize() const
+		virtual size_t GetSize() const
 		{
 			return mAllocator.GetSize();
 		}
@@ -567,7 +571,7 @@ namespace Turbo
 		}
 
 		//Clear the bound delegate if it exists
-		void Clear()
+		virtual void Clear()
 		{
 			Release();
 		}
@@ -740,11 +744,19 @@ namespace Turbo
 		}
 	};
 
-	// TODO: Add execution order Arg
+	enum class EDelegateExecutionOrder : uint8
+	{
+		Undefined = 0,
+		Sequential = 1,
+		Reverse = 1,
+	};
+
 	//Delegate that can be bound to by MULTIPLE objects
-	template <typename... Args>
+	template <EDelegateExecutionOrder ExecutionOrder, typename... Args>
 	class TMulticastDelegate final : public FDelegateBase
 	{
+		GENERATED_BODY(TMulticastDelegate, FDelegateBase)
+
 	public:
 		using DelegateT = TDelegate<void, Args...>;
 
@@ -803,22 +815,11 @@ namespace Turbo
 			return *this;
 		}
 
-		template <typename T>
-		FDelegateHandle operator+=(T&& l)
+		void Clear() override
 		{
-			return Add(DelegateT::CreateLambda(std::move(l)));
-		}
+			Super::Clear();
 
-		//Add delegate with the += operator
-		FDelegateHandle operator+=(DelegateT&& handler) noexcept
-		{
-			return Add(std::forward<DelegateT>(handler));
-		}
-
-		//Remove a delegate using its DelegateHandle
-		bool operator-=(FDelegateHandle& handle)
-		{
-			return Remove(handle);
+			RemoveAll();
 		}
 
 		FDelegateHandle Add(DelegateT&& handler) noexcept
@@ -982,11 +983,24 @@ namespace Turbo
 		void Broadcast(Args... args)
 		{
 			Lock();
-			for (size_t i = 0; i < mEvents.size(); ++i)
+			if constexpr (ExecutionOrder == EDelegateExecutionOrder::Sequential)
 			{
-				if (mEvents[i].Handle.IsValid())
+				for (const auto& [handle, callback] : std::ranges::reverse_view(mEvents))
 				{
-					mEvents[i].Callback.Execute(args...);
+					if (handle.IsValid())
+					{
+						callback.Execute(args...);
+					}
+				}
+			}
+			else
+			{
+				for (const auto& [handle, callback] : mEvents)
+				{
+					if (handle.IsValid())
+					{
+						callback.Execute(args...);
+					}
 				}
 			}
 			Unlock();
@@ -1005,8 +1019,7 @@ namespace Turbo
 
 		void Unlock()
 		{
-			//Unlock() should never be called more than Lock()!
-			DELEGATE_ASSERT(mLocks > 0);
+			TURBO_CHECK_MSG(mLocks > 0, "Unlock() should never be called more than Lock()!");
 			--mLocks;
 		}
 
@@ -1018,7 +1031,7 @@ namespace Turbo
 		}
 
 		std::vector<FDelegateHandlerPair> mEvents;
-		unsigned int mLocks;
+		uint32 mLocks;
 	};
 
 } // Turbo
