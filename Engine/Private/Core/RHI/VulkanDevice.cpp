@@ -59,8 +59,8 @@ void FVulkanDevice::Init()
 
     vk::PhysicalDeviceSynchronization2Features synchronizationFeatures{vk::True};
     vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{vk::True};
-    synchronizationFeatures.setPNext(dynamicRenderingFeatures);
-    deviceCreateInfo.setPNext(synchronizationFeatures);
+    synchronizationFeatures.setPNext(&dynamicRenderingFeatures);
+    deviceCreateInfo.setPNext(&synchronizationFeatures);
 
     vk::Result vkResult;
     std::tie(vkResult, mVulkanDevice) = mHardwareDevice->GetVulkanPhysicalDevice().createDevice(deviceCreateInfo);

@@ -44,6 +44,10 @@ void FSwapChain::Init()
 
 	const FQueueFamilyIndices& queueIndices = mDevice->GetQueueIndices();
 	const std::set<uint32> uniqueQueueIndices = queueIndices.GetUniqueQueueIndices();
+
+#if 1
+		createInfo.imageSharingMode = vk::SharingMode::eExclusive;
+#else
 	if (queueIndices.GraphicsFamily == queueIndices.PresentFamily)
 	{
 		createInfo.imageSharingMode = vk::SharingMode::eExclusive;
@@ -56,6 +60,7 @@ void FSwapChain::Init()
 		const std::vector queueIndicesVector(uniqueQueueIndices.begin(), uniqueQueueIndices.end());
 		createInfo.setQueueFamilyIndices(queueIndicesVector);
 	}
+#endif
 
 	createInfo.preTransform = supportDetails.Capabilities.currentTransform;
 	createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
