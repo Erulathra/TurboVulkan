@@ -1006,7 +1006,7 @@ namespace Turbo
 			Unlock();
 		}
 
-		[[nodiscard]] size_t GetSize() const
+		[[nodiscard]] virtual size_t GetSize() const override
 		{
 			return mEvents.size();
 		}
