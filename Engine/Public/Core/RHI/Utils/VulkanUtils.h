@@ -7,6 +7,6 @@ namespace Turbo
 	class VulkanUtils
 	{
 	public:
-		static void TransitionImage(const vk::CommandBuffer& commandBuffer, const vk::Image& image, const vk::ImageLayout oldLayout, const vk::ImageLayout newLayout);
+		static void TransitionImage(const vk::CommandBuffer& commandBuffer, const vk::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 	};
 } // Turbo

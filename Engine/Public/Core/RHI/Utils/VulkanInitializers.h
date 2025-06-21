@@ -20,6 +20,9 @@ public:
 	static vk::SubmitInfo2 SubmitInfo(const vk::CommandBufferSubmitInfo& commandBuffer, const vk::SemaphoreSubmitInfo* signalSemaphore, const vk::SemaphoreSubmitInfo* waitSemaphore);
 
 	static vk::PresentInfoKHR PresentInfo(const vk::SwapchainKHR& swapChain, const vk::Semaphore& waitSemaphore, const uint32& imageIndex);
+
+	static vk::ImageCreateInfo Image2DCreateInfo(vk::Format format, vk::ImageUsageFlags usageFlags, vk::Extent2D extent, bool bCpuReadback = false);
+	static vk::ImageViewCreateInfo ImageView2DCreateInfo(vk::Format format, const vk::Image& image, vk::ImageAspectFlags imageAspect);
 };
 
 } // Turbo

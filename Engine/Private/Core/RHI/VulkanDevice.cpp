@@ -63,7 +63,7 @@ void FVulkanDevice::Init()
     deviceCreateInfo.setPNext(&synchronizationFeatures);
 
     vk::Result vkResult;
-    std::tie(vkResult, mVulkanDevice) = mHardwareDevice->GetVulkanPhysicalDevice().createDevice(deviceCreateInfo);
+    std::tie(vkResult, mVulkanDevice) = mHardwareDevice->Get().createDevice(deviceCreateInfo);
     CHECK_VULKAN_HPP_MSG(vkResult, "Cannot create logical device");
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(mVulkanDevice);

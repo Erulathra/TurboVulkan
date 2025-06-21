@@ -64,6 +64,6 @@ namespace Turbo {
 			mRenderSemaphore = nullptr;
 		}
 
-		mDeletionQueue.Flush();
+		mDeletionQueue.Flush(mDevice);
 	}
 } // Turbo

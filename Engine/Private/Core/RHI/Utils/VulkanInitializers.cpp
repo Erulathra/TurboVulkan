@@ -116,4 +116,50 @@ namespace Turbo {
 
 		return result;
 	}
+
+	vk::ImageCreateInfo VulkanInitializers::Image2DCreateInfo(vk::Format format, vk::ImageUsageFlags usageFlags, vk::Extent2D extent, bool bCpuReadback)
+	{
+		vk::ImageCreateInfo createInfo{};
+		createInfo.setPNext(nullptr);
+
+		createInfo.setImageType(vk::ImageType::e2D);
+
+		createInfo.setFormat(format);
+		createInfo.setExtent({extent.width, extent.height, 1});
+
+		// No mips and single texture by default
+		createInfo.setMipLevels(1);
+		createInfo.setArrayLayers(1);
+
+		// Disable multi sampling by default
+		createInfo.setSamples(vk::SampleCountFlagBits::e1);
+
+		createInfo.setTiling(bCpuReadback ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal);
+
+		createInfo.setUsage(usageFlags);
+
+		return createInfo;
+	}
+
+	vk::ImageViewCreateInfo VulkanInitializers::ImageView2DCreateInfo(vk::Format format, const vk::Image& image, vk::ImageAspectFlags imageAspect)
+	{
+		vk::ImageViewCreateInfo createInfo{};
+		createInfo.setPNext(nullptr);
+
+		createInfo.setViewType(vk::ImageViewType::e2D);
+
+		createInfo.setFormat(format);
+		createInfo.setImage(image);
+
+		vk::ImageSubresourceRange subresourceRange;
+		subresourceRange.setAspectMask(imageAspect);
+		subresourceRange.setBaseMipLevel(0);
+		subresourceRange.setLevelCount(1);
+		subresourceRange.setBaseArrayLayer(0);
+		subresourceRange.setLayerCount(1);
+
+		createInfo.setSubresourceRange(subresourceRange);
+
+		return createInfo;
+	}
 } // Turbo

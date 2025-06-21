@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DeletionQueue.h"
+#include "RHIDestoryQueue.h"
 #include "RHICore.h"
 #include "FrameData.h"
 #include "SwapChain.h"
@@ -59,7 +59,7 @@ namespace Turbo
 		[[nodiscard]] uint32 GetFrameDataIndex() const;
 		[[nodiscard]] FFrameData& GetCurrentFrame() { return mFrameDatas[GetFrameDataIndex()]; }
 
-		[[nodiscard]] FDeletionQueue& GetFrameDeletionQueue() { return GetCurrentFrame().GetDeletionQueue(); }
+		[[nodiscard]] FRHIDestroyQueue& GetFrameDeletionQueue() { return GetCurrentFrame().GetDeletionQueue(); }
 
 	private:
 		std::vector<FFrameData> mFrameDatas;
@@ -89,8 +89,8 @@ namespace Turbo
 	public:
 		[[nodiscard]] vk::Instance GetVulkanInstance() const { return mVulkanInstance; }
 
-		[[nodiscard]] VmaAllocator& GetAllocator() { return mVMAAllocator; }
-		[[nodiscard]] FDeletionQueue& GetMainDeletionQueue() { return mMainDeletionQueue; }
+		[[nodiscard]] VmaAllocator& GetAllocator() { return mAllocator; }
+		[[nodiscard]] FRHIDestroyQueue& GetMainDeletionQueue() { return mMainDeletionQueue; }
 
 	private:
 		void AcquirePhysicalDevice();
@@ -109,9 +109,9 @@ namespace Turbo
 		std::unique_ptr<FVulkanDevice> mDevice;
 		std::unique_ptr<FSwapChain> mSwapChain;
 
-		FDeletionQueue mMainDeletionQueue;
+		FRHIDestroyQueue mMainDeletionQueue;
 
-		VmaAllocator mVMAAllocator;
+		VmaAllocator mAllocator;
 
 	public:
 		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return mHardwareDevice.get(); }

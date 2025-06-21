@@ -34,7 +34,7 @@ namespace Turbo
 		[[nodiscard]] SwapChainDeviceSupportDetails QuerySwapChainSupport() const;
 
 	public:
-		[[nodiscard]] vk::PhysicalDevice GetVulkanPhysicalDevice() const { return mVulkanPhysicalDevice; }
+		[[nodiscard]] vk::PhysicalDevice Get() const { return mVulkanPhysicalDevice; }
 		[[nodiscard]] const FQueueFamilyIndices& GetQueueFamilyIndices() const { return mQueueFamilyIndices; }
 		[[nodiscard]] const vk::PhysicalDeviceFeatures& GetSupportedFeatures() const { return mSupportedFeatures; }
 

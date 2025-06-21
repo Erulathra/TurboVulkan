@@ -19,7 +19,6 @@ namespace Turbo
     void FVulkanRHI::Init()
     {
         CreateVulkanInstance();
-        CreateMemoryAllocator();
 
         gEngine->GetWindow()->CreateVulkanSurface(mVulkanInstance);
         AcquirePhysicalDevice();
@@ -35,6 +34,8 @@ namespace Turbo
             mSwapChain = std::make_unique<FSwapChain>(*mDevice);
             mSwapChain->Init();
         }
+
+        CreateMemoryAllocator();
 
         if (IsValid(mSwapChain))
         {
@@ -60,7 +61,7 @@ namespace Turbo
         }
         mFrameDatas.clear();
 
-        mMainDeletionQueue.Flush();
+        mMainDeletionQueue.Flush(mDevice.get());
 
         if (mDevice)
         {
@@ -165,7 +166,31 @@ namespace Turbo
 
     void FVulkanRHI::CreateMemoryAllocator()
     {
+        TURBO_CHECK(mDevice && mHardwareDevice);
 
+        TURBO_LOG(LOG_RHI, LOG_INFO, "Creating memory allocator")
+
+        VmaAllocatorCreateInfo createInfo {};
+        createInfo.instance = mVulkanInstance;
+        createInfo.physicalDevice = mHardwareDevice->Get();
+        createInfo.device = mDevice->Get();
+        createInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+
+        vk::detail::DispatchLoaderDynamic dispacher = VULKAN_HPP_DEFAULT_DISPATCHER;
+
+        VmaVulkanFunctions vulkanFunctions{};
+        vulkanFunctions.vkGetInstanceProcAddr = dispacher.vkGetInstanceProcAddr;
+        vulkanFunctions.vkGetDeviceProcAddr = dispacher.vkGetDeviceProcAddr;
+
+        createInfo.pVulkanFunctions = &vulkanFunctions;
+
+        CHECK_VULKAN(vmaCreateAllocator(&createInfo, &mAllocator))
+
+        mMainDeletionQueue.OnDestroy().AddLambda([this]()
+        {
+            TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying memory allocator")
+            vmaDestroyAllocator(mAllocator);
+        });
     }
 
     void FVulkanRHI::InitFrameData()
@@ -192,7 +217,7 @@ namespace Turbo
     void FVulkanRHI::Tick()
     {
         RenderSync();
-        GetFrameDeletionQueue().Flush();
+        GetFrameDeletionQueue().Flush(mDevice.get());
 
         AcquireSwapChainImage();
         DrawFrame();
@@ -396,7 +421,7 @@ namespace Turbo
 
         TURBO_CHECK_MSG(IsValid(mHardwareDevice), "There is no suitable GPU device.");
 
-        vk::PhysicalDeviceProperties deviceProperties = mHardwareDevice->GetVulkanPhysicalDevice().getProperties();
+        vk::PhysicalDeviceProperties deviceProperties = mHardwareDevice->Get().getProperties();
         std::string_view deviceName{deviceProperties.deviceName};
         TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device. (Score: {})", deviceName, mHardwareDevice->CalculateDeviceScore());
     }
