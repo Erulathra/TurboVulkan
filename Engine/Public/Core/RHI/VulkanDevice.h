@@ -26,12 +26,15 @@ namespace Turbo
 		explicit FVulkanDevice(FVulkanHardwareDevice& hardwareDevice);
 
 		void Init();
+		void InitAllocator();
+
 		void Destroy();
 
 		[[nodiscard]] bool IsValid() const;
 
 	public:
 		[[nodiscard]] vk::Device Get() const { return mVulkanDevice; }
+		[[nodiscard]] VmaAllocator GetAllocator() const { return mAllocator; }
 		[[nodiscard]] vk::CommandPool GetRenderCommandPool() const { return mRenderCommandPool; }
 
 		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return mHardwareDevice; }
@@ -41,7 +44,7 @@ namespace Turbo
 
 	private:
 		void SetupQueues();
-		vk::PhysicalDeviceFeatures GetRequiredDeviceFeatures();
+		vk::PhysicalDeviceFeatures2 GetRequiredDeviceFeatures() const;
 
 		void SetupCommandPools();
 
@@ -50,6 +53,8 @@ namespace Turbo
 
 		vk::Device mVulkanDevice = nullptr;
 		vk::CommandPool mRenderCommandPool = nullptr;
+
+		VmaAllocator mAllocator;
 
 		FQueueFamilyIndices mQueueIndices;
 		AcquiredQueues mQueues;

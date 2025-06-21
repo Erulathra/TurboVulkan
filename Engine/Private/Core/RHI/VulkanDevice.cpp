@@ -50,17 +50,24 @@ void FVulkanDevice::Init()
         queueCreateInfos.push_back(QueueCreateInfo);
     }
 
+
     vk::DeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.setQueueCreateInfos(queueCreateInfos);
     deviceCreateInfo.setPEnabledExtensionNames(RequiredDeviceExtensions);
 
-    vk::PhysicalDeviceFeatures deviceFeatures = GetRequiredDeviceFeatures();
-    deviceCreateInfo.setPEnabledFeatures(&deviceFeatures);
+    vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{true};
+    dynamicRenderingFeatures.setPNext(nullptr);
 
-    vk::PhysicalDeviceSynchronization2Features synchronizationFeatures{vk::True};
-    vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{vk::True};
-    synchronizationFeatures.setPNext(&dynamicRenderingFeatures);
-    deviceCreateInfo.setPNext(&synchronizationFeatures);
+    vk::PhysicalDeviceSynchronization2Features synchronizationFeatures{true};
+    synchronizationFeatures.setPNext(dynamicRenderingFeatures);
+
+    vk::PhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{true};
+    bufferDeviceAddressFeatures.setPNext(synchronizationFeatures);
+
+    vk::PhysicalDeviceFeatures2 deviceFeatures = GetRequiredDeviceFeatures();
+    deviceFeatures.setPNext(bufferDeviceAddressFeatures);
+
+    deviceCreateInfo.setPNext(deviceFeatures);
 
     vk::Result vkResult;
     std::tie(vkResult, mVulkanDevice) = mHardwareDevice->Get().createDevice(deviceCreateInfo);
@@ -68,8 +75,34 @@ void FVulkanDevice::Init()
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(mVulkanDevice);
 
+    InitAllocator();
+
     SetupQueues();
     SetupCommandPools();
+}
+
+void FVulkanDevice::InitAllocator()
+{
+    TURBO_CHECK(mVulkanDevice && mHardwareDevice);
+
+    TURBO_LOG(LOG_RHI, LOG_INFO, "Creating memory allocator")
+
+    VmaAllocatorCreateInfo createInfo {};
+    createInfo.instance = gEngine->GetRHI()->GetVulkanInstance();
+    createInfo.physicalDevice = mHardwareDevice->Get();
+    createInfo.device = mVulkanDevice;
+    createInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+
+    const vk::detail::DispatchLoaderDynamic dispatcher = VULKAN_HPP_DEFAULT_DISPATCHER;
+
+    VmaVulkanFunctions vulkanFunctions{};
+    vulkanFunctions.vkGetInstanceProcAddr = dispatcher.vkGetInstanceProcAddr;
+    vulkanFunctions.vkGetDeviceProcAddr = dispatcher.vkGetDeviceProcAddr;
+
+    createInfo.pVulkanFunctions = &vulkanFunctions;
+
+    CHECK_VULKAN(vmaCreateAllocator(&createInfo, &mAllocator))
+
 }
 
 void FVulkanDevice::SetupQueues()
@@ -83,12 +116,15 @@ void FVulkanDevice::SetupQueues()
         mQueues.TransferQueue = mVulkanDevice.getQueue(mQueueIndices.TransferFamily, 0);
     }
 
-    TURBO_CHECK_MSG(mQueues.IsValid(), "Cannot obtain required device queues.")
+    TURBO_CHECK_MSG(mQueues.IsValid(), "Cannot obtain required device queues")
 }
 
 void FVulkanDevice::Destroy()
 {
-    TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying logical device.");
+    TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VMA's allocator");
+    vmaDestroyAllocator(mAllocator);
+
+    TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying logical device");
 
     if (mRenderCommandPool)
     {
@@ -106,7 +142,7 @@ bool FVulkanDevice::IsValid() const
         && mRenderCommandPool != nullptr;
 }
 
-vk::PhysicalDeviceFeatures FVulkanDevice::GetRequiredDeviceFeatures()
+vk::PhysicalDeviceFeatures2 FVulkanDevice::GetRequiredDeviceFeatures() const
 {
     vk::PhysicalDeviceFeatures supportedFeatures = mHardwareDevice->GetSupportedFeatures();
 
@@ -117,7 +153,10 @@ vk::PhysicalDeviceFeatures FVulkanDevice::GetRequiredDeviceFeatures()
     features.samplerAnisotropy = supportedFeatures.samplerAnisotropy;
     features.sampleRateShading = supportedFeatures.sampleRateShading;
 
-    return features;
+    vk::PhysicalDeviceFeatures2 features2;
+    features2.setFeatures(features);
+
+    return features2;
 }
 
 void FVulkanDevice::SetupCommandPools()

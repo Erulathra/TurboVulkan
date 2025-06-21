@@ -2,7 +2,7 @@
 
 // Code assumes 64bit platform
 #if !defined(WITH_TURBO_64) || !WITH_TURBO_64
-#error C++ compiler required.
+#error 64 bit C++ compiler required.
 #endif // !WITH_TURBO_64
 
 // Version macros

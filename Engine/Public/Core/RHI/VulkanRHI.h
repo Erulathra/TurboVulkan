@@ -4,12 +4,12 @@
 #include "RHICore.h"
 #include "FrameData.h"
 #include "SwapChain.h"
-#include "vk_mem_alloc.h"
 
 #define WITH_VALIDATION_LAYERS DEBUG
 
 namespace Turbo
 {
+	class FImage;
 	class FSwapChain;
 	class FSDLWindow;
 	class FVulkanDevice;
@@ -40,11 +40,10 @@ namespace Turbo
 		void CreateVulkanInstance();
 		void DestroyVulkanInstance();
 
-		void CreateMemoryAllocator();
-
 		/** Frame rendering */
 	public:
 		void InitFrameData();
+		void InitDrawImage();
 
 		void RenderSync();
 		void Tick();
@@ -61,8 +60,11 @@ namespace Turbo
 
 		[[nodiscard]] FRHIDestroyQueue& GetFrameDeletionQueue() { return GetCurrentFrame().GetDeletionQueue(); }
 
+		[[nodiscard]] FImage& GetDrawImage() const { TURBO_CHECK(mDrawImage); return *mDrawImage; }
+
 	private:
 		std::vector<FFrameData> mFrameDatas;
+		std::unique_ptr<FImage> mDrawImage;
 
 		uint32 mSwapChainImageIndex = 0;
 		uint64 mFrameNumber = 0;
@@ -88,8 +90,6 @@ namespace Turbo
 
 	public:
 		[[nodiscard]] vk::Instance GetVulkanInstance() const { return mVulkanInstance; }
-
-		[[nodiscard]] VmaAllocator& GetAllocator() { return mAllocator; }
 		[[nodiscard]] FRHIDestroyQueue& GetMainDeletionQueue() { return mMainDeletionQueue; }
 
 	private:
@@ -110,8 +110,6 @@ namespace Turbo
 		std::unique_ptr<FSwapChain> mSwapChain;
 
 		FRHIDestroyQueue mMainDeletionQueue;
-
-		VmaAllocator mAllocator;
 
 	public:
 		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return mHardwareDevice.get(); }

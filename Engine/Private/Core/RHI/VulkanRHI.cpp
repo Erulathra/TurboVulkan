@@ -8,6 +8,7 @@
 #include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/VulkanHardwareDevice.h"
 #include "Core/RHI/Utils/VulkanUtils.h"
+#include "Core/RHI/Image.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -35,11 +36,10 @@ namespace Turbo
             mSwapChain->Init();
         }
 
-        CreateMemoryAllocator();
-
         if (IsValid(mSwapChain))
         {
             InitFrameData();
+            InitDrawImage();
         }
     }
 
@@ -164,35 +164,6 @@ namespace Turbo
         }
     }
 
-    void FVulkanRHI::CreateMemoryAllocator()
-    {
-        TURBO_CHECK(mDevice && mHardwareDevice);
-
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Creating memory allocator")
-
-        VmaAllocatorCreateInfo createInfo {};
-        createInfo.instance = mVulkanInstance;
-        createInfo.physicalDevice = mHardwareDevice->Get();
-        createInfo.device = mDevice->Get();
-        createInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-
-        vk::detail::DispatchLoaderDynamic dispacher = VULKAN_HPP_DEFAULT_DISPATCHER;
-
-        VmaVulkanFunctions vulkanFunctions{};
-        vulkanFunctions.vkGetInstanceProcAddr = dispacher.vkGetInstanceProcAddr;
-        vulkanFunctions.vkGetDeviceProcAddr = dispacher.vkGetDeviceProcAddr;
-
-        createInfo.pVulkanFunctions = &vulkanFunctions;
-
-        CHECK_VULKAN(vmaCreateAllocator(&createInfo, &mAllocator))
-
-        mMainDeletionQueue.OnDestroy().AddLambda([this]()
-        {
-            TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying memory allocator")
-            vmaDestroyAllocator(mAllocator);
-        });
-    }
-
     void FVulkanRHI::InitFrameData()
     {
         TURBO_CHECK(mDevice->IsValid());
@@ -203,6 +174,19 @@ namespace Turbo
             FFrameData& newFrameData = mFrameDatas.emplace_back(*mDevice);
             newFrameData.Init();
         }
+    }
+
+    void FVulkanRHI::InitDrawImage()
+    {
+        TURBO_CHECK(mDevice);
+
+        mDrawImage = std::make_unique<FImage>(*mDevice);
+        mDrawImage->SetFormat(vk::Format::eR16G16B16A16Sfloat);
+        mDrawImage->SetSize(gEngine->GetWindow()->GetFrameBufferSize());
+        mDrawImage->SetUsage(vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eColorAttachment);
+
+        mDrawImage->InitResource();
+        mDrawImage->RequestDestroy(mMainDeletionQueue);
     }
 
     void FVulkanRHI::RenderSync()

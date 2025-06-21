@@ -25,8 +25,9 @@ namespace Turbo
 		[[nodiscard]] const glm::ivec2& GetSize() const { return mSize; }
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
 
-		void SetSize(const glm::ivec2& size) { mSize = size; }
-		void SetFormat(const vk::Format format) { mFormat = format; }
+		void SetSize(const glm::ivec2& size);
+		void SetFormat(vk::Format format);
+		void SetUsage(vk::ImageUsageFlags usage);
 
 	private:
 		FVulkanDevice* mDevice;
@@ -35,10 +36,12 @@ namespace Turbo
 		vk::ImageView mImageView;
 		VmaAllocation mAllocation;
 
+		bool bResourceInitialized = false;
 		bool bManualDestroy = false;
 
 		glm::ivec2 mSize;
 		vk::Format mFormat;
+		vk::ImageUsageFlags mUsageFlags;
 	};
 
 } // Turbo

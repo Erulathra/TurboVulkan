@@ -2,6 +2,7 @@
 
 #include <typeindex>
 
+#include "Core/RHI/RHICore.h"
 #include "Core/Delegate.h"
 
 namespace Turbo
