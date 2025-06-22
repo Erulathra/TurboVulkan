@@ -51,6 +51,8 @@ namespace Turbo
 	private:
 		void AcquireSwapChainImage();
 		void DrawFrame();
+		void BlitDrawImageToSwapchainImage(const vk::CommandBuffer& cmd);
+		void Draw(const vk::CommandBuffer& cmd);
 		void PresentImage();
 
 	public:

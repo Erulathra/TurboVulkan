@@ -81,6 +81,15 @@ namespace Turbo
 	{
 		bManualDestroy = true;
 		deletionQueue.RequestDestroy(FImageDestroyer(*this));
+	}
+
+	void FImage::Destroy()
+	{
+		bManualDestroy = true;
+
+		// TODO: Handle when engine is tearing down.
+		FRHIDestroyQueue& deletionQueue = gEngine->GetRHI()->GetCurrentFrame().GetDeletionQueue();
+		deletionQueue.RequestDestroy(FImageDestroyer(*this));
 
 		mImage = nullptr;
 		mImageView = nullptr;

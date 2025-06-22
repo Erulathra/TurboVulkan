@@ -222,31 +222,21 @@ namespace Turbo
     {
         const FFrameData& fd = GetCurrentFrame();
 
-        const vk::Image& currentImage = mSwapChain->GetImage(mSwapChainImageIndex);
-
-        CHECK_VULKAN_HPP(fd.mCommandBuffer.reset());
+        CHECK_VULKAN_HPP(fd.mCMD.reset());
 
         const vk::CommandBufferBeginInfo bufferBeginInfo = VulkanInitializers::BufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-        CHECK_VULKAN_HPP(fd.mCommandBuffer.begin(bufferBeginInfo));
+        CHECK_VULKAN_HPP(fd.mCMD.begin(bufferBeginInfo));
 
-        VulkanUtils::TransitionImage(fd.mCommandBuffer, currentImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+        VulkanUtils::TransitionImage(fd.mCMD, mDrawImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+        Draw(fd.mCMD);
 
-        // TODO: Remove me
-        const double currentTime = FCoreTimer::Get()->GetTimeFromEngineStart();
-        const glm::vec4 clearColor = glm::mix(ELinearColor::kRed, ELinearColor::kBlue, glm::sin(currentTime) * 0.5f + 0.5f);
+        BlitDrawImageToSwapchainImage(fd.mCMD);
 
-        const vk::ClearColorValue clearColorValue { clearColor.r, clearColor.g, clearColor.b, 1.f};
-        const vk::ImageSubresourceRange clearSubresourceRange = VulkanInitializers::ImageSubresourceRange();
-
-        fd.mCommandBuffer.clearColorImage(currentImage, vk::ImageLayout::eGeneral, clearColorValue, clearSubresourceRange);
-
-        VulkanUtils::TransitionImage(fd.mCommandBuffer, currentImage, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
-
-        CHECK_VULKAN_HPP(fd.mCommandBuffer.end());
+        CHECK_VULKAN_HPP(fd.mCMD.end());
 
         // Submit queue
 
-        const vk::CommandBufferSubmitInfo cmdBufferInfo = VulkanInitializers::CommandBufferSubmitInfo(fd.mCommandBuffer);
+        const vk::CommandBufferSubmitInfo cmdBufferInfo = VulkanInitializers::CommandBufferSubmitInfo(fd.mCMD);
 
         const vk::SemaphoreSubmitInfo waitSemaphoreInfo = VulkanInitializers::SemaphoreSubmitInfo(fd.mSwapChainSemaphore, vk::PipelineStageFlagBits2::eColorAttachmentOutput);
         const vk::SemaphoreSubmitInfo signalSemaphoreInfo = VulkanInitializers::SemaphoreSubmitInfo(fd.mRenderSemaphore, vk::PipelineStageFlagBits2::eAllGraphics);
@@ -254,6 +244,28 @@ namespace Turbo
         const vk::SubmitInfo2 submitInfo = VulkanInitializers::SubmitInfo(cmdBufferInfo, &signalSemaphoreInfo, &waitSemaphoreInfo);
 
         CHECK_VULKAN_HPP(mDevice->GetQueues().GraphicsQueue.submit2(1, &submitInfo, fd.mRenderFence));
+    }
+
+    void FVulkanRHI::BlitDrawImageToSwapchainImage(const vk::CommandBuffer& cmd)
+    {
+        const vk::Image& currentImage = mSwapChain->GetImage(mSwapChainImageIndex);
+
+        VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal);
+        VulkanUtils::TransitionImage(cmd, currentImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+        VulkanUtils::BlitImage(cmd, mDrawImage->GetImage(), mDrawImage->GetSize(), currentImage, mSwapChain->GetImageSize());
+        VulkanUtils::TransitionImage(cmd, currentImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+    }
+
+    void FVulkanRHI::Draw(const vk::CommandBuffer& cmd)
+    {
+        // TODO: Remove me
+        const double currentTime = FCoreTimer::Get()->GetTimeFromEngineStart();
+        const glm::vec4 clearColor = glm::mix(ELinearColor::kRed, ELinearColor::kBlue, glm::sin(currentTime) * 0.5f + 0.5f);
+
+        const vk::ClearColorValue clearColorValue { clearColor.r, clearColor.g, clearColor.b, 1.f};
+        const vk::ImageSubresourceRange clearSubresourceRange = VulkanInitializers::ImageSubresourceRange();
+
+        cmd.clearColorImage(mDrawImage->GetImage(), vk::ImageLayout::eGeneral, clearColorValue, clearSubresourceRange);
     }
 
     void FVulkanRHI::PresentImage()

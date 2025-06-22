@@ -23,7 +23,7 @@ namespace Turbo {
 		void Init();
 		void Destroy();
 
-		vk::CommandBuffer& GetCommandBuffer() { return mCommandBuffer; }
+		vk::CommandBuffer& GetCommandBuffer() { return mCMD; }
 		FRHIDestroyQueue& GetDeletionQueue() { return mDeletionQueue; }
 
 	private:
@@ -34,7 +34,7 @@ namespace Turbo {
 		vk::Semaphore mSwapChainSemaphore;
 		vk::Semaphore mRenderSemaphore;
 
-		vk::CommandBuffer mCommandBuffer;
+		vk::CommandBuffer mCMD;
 
 		FRHIDestroyQueue mDeletionQueue;
 

@@ -15,6 +15,7 @@ namespace Turbo
 
 		void InitResource();
 		void RequestDestroy(FRHIDestroyQueue& deletionQueue);
+		void Destroy();
 
 	public:
 

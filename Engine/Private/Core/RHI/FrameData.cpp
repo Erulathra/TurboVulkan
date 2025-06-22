@@ -15,12 +15,12 @@ namespace Turbo {
 		mRenderFence = rhs.mRenderFence;
 		mSwapChainSemaphore = rhs.mSwapChainSemaphore;
 		mRenderSemaphore = rhs.mRenderSemaphore;
-		mCommandBuffer = rhs.mCommandBuffer;
+		mCMD = rhs.mCMD;
 
 		rhs.mRenderFence = nullptr;
 		rhs.mSwapChainSemaphore = nullptr;
 		rhs.mRenderSemaphore = nullptr;
-		rhs.mCommandBuffer = nullptr;
+		rhs.mCMD = nullptr;
 	}
 
 	void FFrameData::Init()
@@ -41,7 +41,7 @@ namespace Turbo {
 		std::tie(vkResult, commandBuffers) = mDevice->Get().allocateCommandBuffers(commandBufferAllocateInfo);
 		CHECK_VULKAN_HPP(vkResult);
 
-		mCommandBuffer = commandBuffers[0];
+		mCMD = commandBuffers[0];
 	}
 
 	void FFrameData::Destroy()

@@ -22,7 +22,7 @@ namespace Turbo
 	public:
 		[[nodiscard]] vk::SwapchainKHR GetVulkanSwapChain() const { return mVulkanSwapChain; }
 		[[nodiscard]] vk::Format GetImageFormat() const { return mImageFormat; }
-		[[nodiscard]] vk::Extent2D GetImageSize() const { return mImageSize; }
+		[[nodiscard]] glm::uvec2 GetImageSize() const { return {mImageSize.width, mImageSize.height}; }
 		[[nodiscard]] int32 GetNumBufferedFrames() const { return mImages.size(); }
 		[[nodiscard]] std::vector<vk::ImageView> GetImageViews() const { return mImageViews; }
 
