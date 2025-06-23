@@ -1,6 +1,7 @@
 #include "Core/RHI/VulkanRHI.h"
 
 #include "Core/CoreTimer.h"
+#include "Core/CoreUtils.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
 #include "Core/Math/Color.h"
@@ -233,9 +234,18 @@ namespace Turbo
 
         mDevice->Get().updateDescriptorSets({drawImageWrite}, 0);
 
-        mMainDestroyQueue.OnDestroy().AddLambda([device = mDevice.get(), layout]()
+        mComputePipeline = std::make_unique<FComputePipeline>(mDevice.get());
+        mComputePipeline->SetDescriptors(layout, set);
+
+        std::vector<uint32> shaderData = FCoreUtils::ReadWholeFile<uint32>("Shaders/Shader.spv");
+        vk::ShaderModule shaderModule = VulkanUtils::CreateShaderModule(mDevice.get(), shaderData);
+        mComputePipeline->Init(shaderModule);
+        mDevice->Get().destroyShaderModule(shaderModule);
+
+        mMainDestroyQueue.OnDestroy().AddLambda([this]()
         {
-            device->Get().destroyDescriptorSetLayout(layout);
+            // TODO: Create proper pipeline destructor
+            mComputePipeline->Destroy();
         });
     }
 
@@ -278,7 +288,7 @@ namespace Turbo
         CHECK_VULKAN_HPP(fd.mCMD.begin(bufferBeginInfo));
 
         VulkanUtils::TransitionImage(fd.mCMD, mDrawImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
-        Draw(fd.mCMD);
+        DrawScene(fd.mCMD);
 
         BlitDrawImageToSwapchainImage(fd.mCMD);
 
@@ -306,16 +316,16 @@ namespace Turbo
         VulkanUtils::TransitionImage(cmd, currentImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
     }
 
-    void FVulkanRHI::Draw(const vk::CommandBuffer& cmd)
+    void FVulkanRHI::DrawScene(const vk::CommandBuffer& cmd)
     {
-        // TODO: Remove me
-        const double currentTime = FCoreTimer::Get()->GetTimeFromEngineStart();
-        const glm::vec4 clearColor = glm::mix(ELinearColor::kRed, ELinearColor::kBlue, glm::sin(currentTime) * 0.5f + 0.5f);
-
+        constexpr glm::vec4 clearColor = ELinearColor::kBlack;
         const vk::ClearColorValue clearColorValue { clearColor.r, clearColor.g, clearColor.b, 1.f};
         const vk::ImageSubresourceRange clearSubresourceRange = VulkanInitializers::ImageSubresourceRange();
 
         cmd.clearColorImage(mDrawImage->GetImage(), vk::ImageLayout::eGeneral, clearColorValue, clearSubresourceRange);
+
+        glm::ivec3 dispatchSize = glm::ivec3( glm::ceil(glm::vec2(mDrawImage->GetSize()) / 8.f), 1);
+        mComputePipeline->Dispatch(cmd, dispatchSize);
     }
 
     void FVulkanRHI::PresentImage()

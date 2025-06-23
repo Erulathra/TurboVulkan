@@ -15,7 +15,16 @@ namespace Turbo
 		{
 		}
 
+		void Init(const vk::ShaderModule& shaderModule);
 		void SetDescriptors(const vk::DescriptorSetLayout& layout, const vk::DescriptorSet& set);
+
+		void Dispatch(const vk::CommandBuffer& cmd, glm::ivec3 groupCount);
+
+		void Destroy();
+
+	private:
+		void CreatePipelineLayout();
+		void CreatePipeline(const vk::ShaderModule& shaderModule);
 
 	private:
 		FVulkanDevice* mDevice;

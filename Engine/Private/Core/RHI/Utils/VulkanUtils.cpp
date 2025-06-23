@@ -1,13 +1,6 @@
 #include "Core/RHI/Utils/VulkanUtils.h"
 
-#include "Core/Math/Math.h"
-#include "Core/Math/Math.h"
-#include "Core/Math/Math.h"
-#include "Core/Math/Math.h"
-#include "Core/Math/Math.h"
-#include "Core/Math/Math.h"
-#include "Core/Math/Math.h"
-#include "Core/Math/Math.h"
+#include "Core/RHI/VulkanDevice.h"
 
 namespace Turbo {
 	void VulkanUtils::TransitionImage(
@@ -75,5 +68,22 @@ namespace Turbo {
 		blitInfo.setRegions(region);
 
 		cmd.blitImage2(blitInfo);
+	}
+
+	vk::ShaderModule VulkanUtils::CreateShaderModule(const FVulkanDevice* device, const std::span<uint32>& shaderData)
+	{
+		vk::ShaderModuleCreateInfo createInfo {};
+		createInfo.setCode(shaderData);
+
+		vk::ShaderModule shaderModule = nullptr;
+		vk::Result result;
+		std::tie(result, shaderModule) = device->Get().createShaderModule(createInfo);
+
+		if (result == vk::Result::eSuccess)
+		{
+			return shaderModule;
+		}
+
+		return nullptr;
 	}
 } // Turbo
