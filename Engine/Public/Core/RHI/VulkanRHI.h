@@ -9,6 +9,8 @@
 
 namespace Turbo
 {
+	class FComputePipeline;
+	class FDescriptorAllocator;
 	class FImage;
 	class FSwapChain;
 	class FSDLWindow;
@@ -44,6 +46,10 @@ namespace Turbo
 	public:
 		void InitFrameData();
 		void InitDrawImage();
+		void InitDescriptors();
+
+		// TODO: remove me
+		void InitScene();
 
 		void RenderSync();
 		void Tick();
@@ -92,7 +98,7 @@ namespace Turbo
 
 	public:
 		[[nodiscard]] vk::Instance GetVulkanInstance() const { return mVulkanInstance; }
-		[[nodiscard]] FRHIDestroyQueue& GetMainDeletionQueue() { return mMainDeletionQueue; }
+		[[nodiscard]] FRHIDestroyQueue& GetMainDeletionQueue() { return mMainDestroyQueue; }
 
 	private:
 		void AcquirePhysicalDevice();
@@ -111,7 +117,12 @@ namespace Turbo
 		std::unique_ptr<FVulkanDevice> mDevice;
 		std::unique_ptr<FSwapChain> mSwapChain;
 
-		FRHIDestroyQueue mMainDeletionQueue;
+		std::unique_ptr<FDescriptorAllocator> mMainDescriptorAllocator;
+		FRHIDestroyQueue mMainDestroyQueue;
+
+		/** TODO: REMOVE ME */
+		std::unique_ptr<FComputePipeline> mComputePipeline;
+		/** TODO: REMOVE ME END */
 
 	public:
 		[[nodiscard]] FVulkanHardwareDevice* GetHardwareDevice() const { return mHardwareDevice.get(); }

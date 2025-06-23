@@ -9,6 +9,9 @@
 #include "Core/RHI/VulkanHardwareDevice.h"
 #include "Core/RHI/Utils/VulkanUtils.h"
 #include "Core/RHI/Image.h"
+#include "Core/RHI/Pipelines/ComputePipeline.h"
+#include "Core/RHI/Pipelines/DescriptorAllocator.h"
+#include "Core/RHI/Pipelines/DescriptorLayoutBuilder.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -39,8 +42,12 @@ namespace Turbo
         if (IsValid(mSwapChain))
         {
             InitFrameData();
-            InitDrawImage();
         }
+
+        InitDrawImage();
+        InitDescriptors();
+
+        InitScene();
     }
 
     void FVulkanRHI::InitWindow(FSDLWindow* window)
@@ -61,7 +68,7 @@ namespace Turbo
         }
         mFrameDatas.clear();
 
-        mMainDeletionQueue.Flush(mDevice.get());
+        mMainDestroyQueue.Flush(mDevice.get());
 
         if (mDevice)
         {
@@ -186,7 +193,50 @@ namespace Turbo
         mDrawImage->SetUsage(vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eColorAttachment);
 
         mDrawImage->InitResource();
-        mDrawImage->RequestDestroy(mMainDeletionQueue);
+        mDrawImage->RequestDestroy(mMainDestroyQueue);
+    }
+
+    void FVulkanRHI::InitDescriptors()
+    {
+        mMainDescriptorAllocator = std::make_unique<FDescriptorAllocator>(mDevice.get());
+        std::vector<FDescriptorAllocator::FPoolSizeRatio> ratios = { {vk::DescriptorType::eStorageImage, 1}};
+        mMainDescriptorAllocator->Init(10, ratios);
+
+        mMainDestroyQueue.OnDestroy().AddLambda([this]()
+        {
+            mMainDescriptorAllocator->Destroy();
+        });
+    }
+
+    void FVulkanRHI::InitScene()
+    {
+        mComputePipeline = std::make_unique<FComputePipeline>(mDevice.get());
+
+        FDescriptorLayoutBuilder descriptorLayoutBuilder;
+        descriptorLayoutBuilder.AddBinding(0, vk::DescriptorType::eStorageImage);
+
+        const vk::DescriptorSetLayout layout = descriptorLayoutBuilder.Build(mDevice.get(), vk::ShaderStageFlagBits::eCompute);
+        const vk::DescriptorSet set = mMainDescriptorAllocator->Allocate(layout);
+
+        mComputePipeline->SetDescriptors(layout, set);
+
+        vk::DescriptorImageInfo imgInfo {};
+        imgInfo.setImageLayout(vk::ImageLayout::eGeneral);
+        imgInfo.setImageView(mDrawImage->GetImageView());
+
+        vk::WriteDescriptorSet drawImageWrite = {};
+        drawImageWrite.setDstBinding(0);
+        drawImageWrite.setDstSet(set);
+        drawImageWrite.descriptorCount = 1;
+        drawImageWrite.descriptorType = vk::DescriptorType::eStorageImage;
+        drawImageWrite.setImageInfo(imgInfo);
+
+        mDevice->Get().updateDescriptorSets({drawImageWrite}, 0);
+
+        mMainDestroyQueue.OnDestroy().AddLambda([device = mDevice.get(), layout]()
+        {
+            device->Get().destroyDescriptorSetLayout(layout);
+        });
     }
 
     void FVulkanRHI::RenderSync()
