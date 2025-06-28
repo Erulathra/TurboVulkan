@@ -19,4 +19,4 @@ add_subdirectory(Engine)
 add_subdirectory(Project)
 
 # Shaders
-add_subdirectory(Shaders)
+add_subdirectory(ShaderPrograms)

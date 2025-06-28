@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.20)
 
-function(add_spirv_modules TARGET_NAME)
+function(add_slang_modules TARGET_NAME)
     set(SLANG_EXECUTABLE $ENV{SLANG_PATH}/slangc)
 
     if (WIN32)
@@ -10,8 +10,8 @@ function(add_spirv_modules TARGET_NAME)
     # Parse arguments
     cmake_parse_arguments(PARSE_ARGV 1 "ARG"
             ""
-            "SOURCE_DIR;BINARY_DIR"
-            "SOURCES;OPTIONS"
+            "SOURCE_DIR"
+            "SOURCES"
     )
 
     # Adjust arguments / provide defaults
@@ -21,11 +21,7 @@ function(add_spirv_modules TARGET_NAME)
         set(ARG_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${ARG_SOURCE_DIR})
     endif()
 
-    if(NOT DEFINED ARG_BINARY_DIR)
-        set(ARG_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
-    elseif(NOT IS_ABSOLUTE ${ARG_BINARY_DIR})
-        set(ARG_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${ARG_BINARY_DIR})
-    endif()
+    set(ARG_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
     # Define custom compilation commands
     foreach(FILE IN LISTS ARG_SOURCES)
@@ -42,7 +38,7 @@ function(add_spirv_modules TARGET_NAME)
                 -profile glsl_450
                 -target spirv
                 -o ${BINARY_FILE}
-                ${ARG_OPTIONS}
+                -I ${PROJECT_SOURCE_DIR}/ShaderModules
                 MAIN_DEPENDENCY ${SOURCE_FILE}
                 COMMENT         "Building SPIR-V shader ${BIN_FILE_REL_PATH}"
                 VERBATIM
@@ -56,3 +52,23 @@ function(add_spirv_modules TARGET_NAME)
     add_custom_target(${TARGET_NAME} DEPENDS ${BINARIES})
 
 endfunction()
+
+file(GLOB_RECURSE SHADER_SOURCE_FILES
+        *.slang)
+
+list(LENGTH SHADER_SOURCE_FILES FILE_COUNT)
+
+if(FILE_COUNT GREATER 0)
+
+    set(SHADER_FILES)
+
+    foreach(SHADER_PATH IN LISTS SHADER_SOURCE_FILES)
+        file(RELATIVE_PATH SHADER_RELATIVE_PATH ${PROJECT_SOURCE_DIR} ${SHADER_PATH})
+        list(APPEND SHADER_FILES ${SHADER_RELATIVE_PATH})
+    endforeach()
+
+    # Create shader target
+    add_slang_modules(TurboVulcan_Shaders
+            SOURCE_DIR ${PROJECT_SOURCE_DIR}
+            SOURCES    ${SHADER_FILES})
+endif()

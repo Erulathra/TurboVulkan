@@ -1,8 +1,18 @@
-[[vk::binding(0, 0)]]
+#include "MathConstants.slang"
+
+import Math;
+
 RWTexture2D<float4> inOutTexture;
 
+struct UBO
+{
+    float Time;
+};
+
+ConstantBuffer<UBO> ubo;
+
 static const float2 triangleVertices[3] = {
-    float2(0.5f, 0.2f),
+    float2(0.5f, 0.5f),
     float2(0.2f, 0.8f),
     float2(0.8f, 0.8f)
 };
@@ -36,10 +46,13 @@ void main(uint3 threadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupTh
 
     const float2 uv = float2(threadId.xy) / float2(imageSize);
     float3 outColor = float3(uv.x, uv.y, 0.0f);
+
+    float angle = ubo.Time * 0.5f + (uv.x + uv.y) * 0.1f;
+
     outColor *= lerp(0.1f, 1.f, PointInTriangle(
-        triangleVertices[0],
-        triangleVertices[1],
-        triangleVertices[2],
+        RotateUV(triangleVertices[0], angle),
+        RotateUV(triangleVertices[1], angle),
+        RotateUV(triangleVertices[2], angle),
         uv
     ) ? 1.0f : 0.0f);
 
