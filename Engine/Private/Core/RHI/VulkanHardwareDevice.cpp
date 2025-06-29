@@ -31,7 +31,7 @@ bool FVulkanHardwareDevice::IsDeviceCapable() const
 {
 	bool bResult = true;
 
-	bResult &= mProperties.apiVersion >= VK_API_VERSION_1_3;
+	bResult &= mProperties.apiVersion >= VULKAN_VERSION;
 	bResult &= mQueueFamilyIndices.IsValid();
 	bResult &= AreExtensionsSupportedByDevice(RequiredDeviceExtensions);
 

@@ -1,5 +1,8 @@
 #include "Core/RHI/Utils/VulkanInitializers.h"
 
+#include "Core/Math/Vector.h"
+#include "Core/RHI/Utils/VulkanUtils.h"
+
 namespace Turbo {
 	vk::CommandPoolCreateInfo VulkanInitializers::CommandPoolCreateInfo(uint32 queueFamilyIndex, vk::CommandPoolCreateFlags flags)
 	{
@@ -161,5 +164,33 @@ namespace Turbo {
 		createInfo.setSubresourceRange(subresourceRange);
 
 		return createInfo;
+	}
+
+	vk::RenderingAttachmentInfo VulkanInitializers::AttachmentInfo(const vk::ImageView& imageView, vk::ClearValue* clearValue, vk::ImageLayout imageLayout)
+	{
+		vk::RenderingAttachmentInfo attachmentInfo{};
+		attachmentInfo.setImageView(imageView);
+		attachmentInfo.setImageLayout(imageLayout);
+		attachmentInfo.setLoadOp(clearValue ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eLoad);
+		attachmentInfo.setStoreOp(vk::AttachmentStoreOp::eStore);
+
+		if (clearValue)
+		{
+			attachmentInfo.setClearValue(*clearValue);
+		}
+
+		return attachmentInfo;
+	}
+
+	vk::RenderingInfo VulkanInitializers::RenderingInfo(const glm::uvec2& imgSize, const vk::RenderingAttachmentInfo* colorAttachment, const vk::RenderingAttachmentInfo* depthAttachment, const vk::RenderingAttachmentInfo* stencilAttachment)
+	{
+		vk::RenderingInfo renderInfo{};
+		renderInfo.setRenderArea(vk::Rect2D(vk::Offset2D{0, 0}, VulkanUtils::ToExtent2D(imgSize)));
+		renderInfo.setLayerCount(1);
+		renderInfo.setColorAttachments({*colorAttachment});
+		renderInfo.setPDepthAttachment(depthAttachment);
+		renderInfo.setPStencilAttachment(stencilAttachment);
+
+		return renderInfo;
 	}
 } // Turbo

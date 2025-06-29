@@ -1,6 +1,5 @@
 #include "Core/RHI/VulkanRHI.h"
 
-#include "Core/CoreTimer.h"
 #include "Core/CoreUtils.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
@@ -13,6 +12,10 @@
 #include "Core/RHI/Pipelines/ComputePipeline.h"
 #include "Core/RHI/Pipelines/DescriptorAllocator.h"
 #include "Core/RHI/Pipelines/DescriptorLayoutBuilder.h"
+
+#include "backends/imgui_impl_vulkan.h"
+#include "backends/imgui_impl_sdl3.h"
+#include "Core/CoreTimer.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -47,7 +50,7 @@ namespace Turbo
 
         InitDrawImage();
         InitDescriptors();
-
+        InitImGui();
         InitScene();
     }
 
@@ -62,6 +65,8 @@ namespace Turbo
         {
             CHECK_VULKAN_HPP(mDevice->Get().waitIdle());
         }
+
+        DestroyImGui();
 
         for (auto& frameData : mFrameDatas)
         {
@@ -103,14 +108,14 @@ namespace Turbo
         vk::Result vulkanResult;
         uint32 instanceVersion;
         std::tie(vulkanResult, instanceVersion)  = vk::enumerateInstanceVersion();
-        TURBO_CHECK_MSG(vulkanResult == vk::Result::eSuccess && instanceVersion >= VK_API_VERSION_1_3, "Your device doesn't support Vulkan 1.3");
+        TURBO_CHECK_MSG(vulkanResult == vk::Result::eSuccess && instanceVersion >= VULKAN_VERSION, "Your device doesn't support Vulkan 1.3");
 
         vk::ApplicationInfo appInfo{};
         appInfo.pApplicationName = "Turbo Vulkan";
         appInfo.applicationVersion = TURBO_VERSION();
         appInfo.pEngineName = "Turbo Vulkan";
         appInfo.engineVersion = TURBO_VERSION();
-        appInfo.apiVersion = VK_API_VERSION_1_3;
+        appInfo.apiVersion = VULKAN_VERSION;
 
         vk::InstanceCreateInfo createInfo{};
         createInfo.pApplicationInfo = &appInfo;
@@ -264,6 +269,7 @@ namespace Turbo
         GetFrameDeletionQueue().Flush(mDevice.get());
 
         AcquireSwapChainImage();
+        BeginImGuiFrame();
         DrawFrame();
         PresentImage();
     }
@@ -292,6 +298,13 @@ namespace Turbo
 
         BlitDrawImageToSwapchainImage(fd.mCMD);
 
+        const vk::Image& currentImage = mSwapChain->GetImage(mSwapChainImageIndex);
+        const vk::ImageView& currentImageView = mSwapChain->GetImageView(mSwapChainImageIndex);
+
+        VulkanUtils::TransitionImage(fd.mCMD, currentImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eAttachmentOptimal);
+        DrawImGuiFrame(fd.mCMD, currentImageView);
+        VulkanUtils::TransitionImage(fd.mCMD, currentImage, vk::ImageLayout::eAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
+
         CHECK_VULKAN_HPP(fd.mCMD.end());
 
         // Submit queue
@@ -313,7 +326,6 @@ namespace Turbo
         VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal);
         VulkanUtils::TransitionImage(cmd, currentImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
         VulkanUtils::BlitImage(cmd, mDrawImage->GetImage(), mDrawImage->GetSize(), currentImage, mSwapChain->GetImageSize());
-        VulkanUtils::TransitionImage(cmd, currentImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
     }
 
     void FVulkanRHI::DrawScene(const vk::CommandBuffer& cmd)
@@ -326,6 +338,13 @@ namespace Turbo
 
         glm::ivec3 dispatchSize = glm::ivec3( glm::ceil(glm::vec2(mDrawImage->GetSize()) / 8.f), 1);
         mComputePipeline->Dispatch(cmd, dispatchSize);
+
+        ImGui::Begin("Turbo VULKAN!");
+        ImGui::Text("FrameTime: %2f ms, FPS: %1f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
+        float test;
+        ImGui::SliderFloat("Testowy Float", &test, 0.f, 1.f);
+
+        ImGui::End();
     }
 
     void FVulkanRHI::PresentImage()
@@ -438,8 +457,106 @@ namespace Turbo
 
         return VK_FALSE;
     }
-
 #endif // WITH_VALIDATION_LAYERS
+
+    void FVulkanRHI::InitImGui()
+    {
+        std::vector<FDescriptorAllocator::FPoolSizeRatio> ratios = {
+            {vk::DescriptorType::eSampler, 1},
+            {vk::DescriptorType::eCombinedImageSampler, 1},
+            {vk::DescriptorType::eSampledImage, 1},
+            {vk::DescriptorType::eStorageImage, 1},
+            {vk::DescriptorType::eUniformTexelBuffer, 1},
+            {vk::DescriptorType::eStorageTexelBuffer, 1},
+            {vk::DescriptorType::eUniformBuffer, 1},
+            {vk::DescriptorType::eStorageBuffer, 1},
+            {vk::DescriptorType::eUniformBufferDynamic, 1},
+            {vk::DescriptorType::eStorageBufferDynamic, 1},
+            {vk::DescriptorType::eInputAttachment, 1},
+        };
+
+        mImGuiAllocator = std::make_unique<FDescriptorAllocator>(mDevice.get());
+        mImGuiAllocator->SetFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
+        mImGuiAllocator->Init(1000, ratios);
+
+        mMainDestroyQueue.OnDestroy().AddLambda([this]()
+        {
+            mImGuiAllocator->Destroy();
+        });
+
+        ImGui::CreateContext();
+
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+        ImGui_ImplSDL3_InitForVulkan(gEngine->GetWindow()->GetWindow());
+        ImGui_ImplVulkan_InitInfo initInfo {};
+
+        initInfo.ApiVersion = VULKAN_VERSION;
+        initInfo.Instance = mVulkanInstance;
+        initInfo.PhysicalDevice = mHardwareDevice->Get();
+        initInfo.Device = mDevice->Get();
+        initInfo.Queue = mDevice->GetQueues().GraphicsQueue;
+        initInfo.DescriptorPool = mImGuiAllocator->Get();
+        initInfo.MinImageCount = mSwapChain->GetNumBufferedFrames();
+        initInfo.ImageCount = mSwapChain->GetNumBufferedFrames();
+        initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+        initInfo.CheckVkResultFn = [](VkResult result) {CHECK_VULKAN_MSG(result, "ImGUI RHI Error.")};
+        initInfo.UseDynamicRendering = true;
+
+        // Dynamic rendering info
+        vk::PipelineRenderingCreateInfo imGuiPipelineCI {};
+        imGuiPipelineCI.setColorAttachmentCount(1);
+        const vk::Format format = mSwapChain->GetImageFormat();
+        imGuiPipelineCI.setPColorAttachmentFormats(&format);
+
+        initInfo.PipelineRenderingCreateInfo = imGuiPipelineCI;
+
+        ImGui_ImplVulkan_LoadFunctions(VULKAN_VERSION, [](const char* functionName, void* vulkan_instance)
+        {
+            return static_cast<vk::Instance*>(vulkan_instance)->getProcAddr(functionName);
+        }, &mVulkanInstance);
+        ImGui_ImplVulkan_Init(&initInfo);
+
+        ImGui::StyleColorsDark();
+
+        // TODO: Move to config
+        ImFont* firaCodeImFont = io.Fonts->AddFontFromFileTTF("Runtime/Fonts/FiraCode/FiraCode-Regular.ttf", 18);
+        io.FontGlobalScale = 0.75f;
+
+        ImGui::PushFont(firaCodeImFont);
+    }
+
+    void FVulkanRHI::BeginImGuiFrame()
+    {
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
+
+        ImGui::NewFrame();
+    }
+
+    void FVulkanRHI::DrawImGuiFrame(const vk::CommandBuffer& cmd, const vk::ImageView& targetImageView)
+    {
+        ImGui::Render();
+
+        const vk::RenderingAttachmentInfo colorAttachment = VulkanInitializers::AttachmentInfo(targetImageView);
+        const vk::RenderingInfo renderInfo = VulkanInitializers::RenderingInfo(mSwapChain->GetImageSize(), &colorAttachment);
+
+        cmd.beginRendering(renderInfo);
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+        cmd.endRendering();
+    }
+
+    void FVulkanRHI::DestroyImGui()
+    {
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplSDL3_Shutdown();
+        ImGui::DestroyContext();
+    }
+
 
     void FVulkanRHI::AcquirePhysicalDevice()
     {

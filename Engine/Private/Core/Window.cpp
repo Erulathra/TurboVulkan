@@ -1,5 +1,7 @@
 #include "Core/Window.h"
 
+#include "backends/imgui_impl_sdl3.h"
+
 namespace Turbo
 {
 	FSDLWindow::FSDLWindow() = default;
@@ -49,14 +51,19 @@ namespace Turbo
 
 	void FSDLWindow::PollWindowEventsAndErrors()
 	{
-		SDL_Event WindowEvent;
-		while (SDL_PollEvent(&WindowEvent))
+		SDL_Event event;
+
+		// Handle events
+		while (SDL_PollEvent(&event))
 		{
-			if (WindowEvent.type == SDL_EVENT_QUIT || WindowEvent.type == SDL_EVENT_TERMINATING)
+			// Handle ImGui events
+			ImGui_ImplSDL3_ProcessEvent(&event);
+
+			if (event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_TERMINATING)
 				OnWindowEvent(EWindowEvent::WindowCloseRequest);
-			else if (WindowEvent.type == SDL_EVENT_WINDOW_FOCUS_LOST)
+			else if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
 				OnWindowEvent(EWindowEvent::FocusLost);
-			else if (WindowEvent.type == SDL_EVENT_WINDOW_FOCUS_GAINED)
+			else if (event.type == SDL_EVENT_WINDOW_FOCUS_GAINED)
 				OnWindowEvent(EWindowEvent::FocusGained);
 		}
 	}

@@ -23,6 +23,7 @@ namespace Turbo
 		}
 
 	public:
+		void SetFlags(const vk::DescriptorPoolCreateFlags& newFlags) { TURBO_CHECK(!mDescriptorPool); mFlags = newFlags; }
 		void Init(uint32 maxSets, std::span<FPoolSizeRatio> poolSizeRatios);
 
 		vk::DescriptorSet Allocate(const vk::DescriptorSetLayout& layout);
@@ -30,9 +31,13 @@ namespace Turbo
 		void Reset();
 		void Destroy();
 
+	public:
+		[[nodiscard]] vk::DescriptorPool Get() const { return mDescriptorPool; }
+
 	private:
 		FVulkanDevice* mDevice;
 
-		vk::DescriptorPool mDescriptorPool;
+		vk::DescriptorPool mDescriptorPool = nullptr;
+		vk::DescriptorPoolCreateFlags mFlags = {};
 	};
 } // Turbo

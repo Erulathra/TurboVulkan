@@ -16,8 +16,8 @@ namespace Turbo
 	// TODO: Replace that with config
 	namespace WindowDefaultValues
 	{
-		static constexpr int32 kSizeX = 640;
-		static constexpr int32 kSizeY = 480;
+		static constexpr int32 kSizeX = 1280;
+		static constexpr int32 kSizeY = 720;
 		static constexpr std::string kName = "Turbo Vulkan";
 	}
 
@@ -53,17 +53,18 @@ namespace Turbo
 		void PollWindowEventsAndErrors();
 
 		void ShowWindow(bool bVisible);
-		glm::ivec2 GetFrameBufferSize() const;
+		[[nodiscard]] glm::ivec2 GetFrameBufferSize() const;
+		[[nodiscard]] SDL_Window* GetWindow() const { return mSDLWindow; }
 
 		/** Vulkan Interface */
 	public:
 		void InitForVulkan();
 
 		void DeInitForVulkan();
-		std::vector<const char*> GetVulkanRequiredExtensions();
+		[[nodiscard]] std::vector<const char*> GetVulkanRequiredExtensions();
 
 		bool CreateVulkanSurface(VkInstance vulkanInstance);
-		VkSurfaceKHR GetVulkanSurface();
+		[[nodiscard]] VkSurfaceKHR GetVulkanSurface();
 		bool DestroyVulkanSurface(VkInstance vulkanInstance);
 
 		/** Internal methods */

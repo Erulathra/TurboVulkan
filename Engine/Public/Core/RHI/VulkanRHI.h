@@ -7,6 +7,8 @@
 
 #define WITH_VALIDATION_LAYERS DEBUG
 
+#define VULKAN_VERSION VK_API_VERSION_1_3
+
 namespace Turbo
 {
 	class FComputePipeline;
@@ -95,6 +97,18 @@ namespace Turbo
 			void* userData);
 #endif // WITH_VALIDATION_LAYERS
 /** Validation Layers End */
+
+		/** ImGui */
+	private:
+		void InitImGui();
+		void BeginImGuiFrame();
+		void DrawImGuiFrame(const vk::CommandBuffer& cmd, const vk::ImageView& targetImageView);
+		void DestroyImGui();
+
+	private:
+		std::unique_ptr<FDescriptorAllocator> mImGuiAllocator;
+
+		/** ImGui end */
 
 	public:
 		[[nodiscard]] vk::Instance GetVulkanInstance() const { return mVulkanInstance; }

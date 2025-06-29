@@ -27,6 +27,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
+target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
 

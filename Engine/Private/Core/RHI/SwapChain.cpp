@@ -75,6 +75,8 @@ void FSwapChain::Init()
 	CHECK_VULKAN_HPP_MSG(vulkanResult, "Cannot create swapchain");
 
 	mImageFormat = createInfo.imageFormat;
+	TURBO_LOG(LOG_RHI, LOG_INFO, "Swapchain color format: {}", magic_enum::enum_name(mImageFormat));
+
 	mImageSize = createInfo.imageExtent;
 
 	std::tie(vulkanResult, mImages) = mDevice->Get().getSwapchainImagesKHR(mVulkanSwapChain);

@@ -4,7 +4,7 @@
 
 namespace Turbo
 {
-	namespace EVector2
+	namespace EVec2
 	{
 		constexpr glm::vec2 One(1.f);
 		constexpr glm::vec2 Zero(0.f);
@@ -13,7 +13,7 @@ namespace Turbo
 		constexpr glm::vec2 Right(-1.f, 0.f);
 	}
 
-	namespace EVector3
+	namespace EVec3
 	{
 		constexpr glm::vec3 One(1.f);
 		constexpr glm::vec3 Zero(0.f);

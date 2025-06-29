@@ -12,12 +12,15 @@ namespace Turbo
 		void Destroy();
 
 		static FCoreTimer* Get();
-
-		[[nodiscard]] double GetDeltaTime() const { return mDeltaTime; }
-		[[nodiscard]] double GetTimeFromEngineStart() const { return mTimeFromEngineStart; };
+		[[nodiscard]] static double DeltaTime() { return Get()->GetDeltaTime(); }
+		[[nodiscard]] static double TimeFromEngineStart() { return Get()->GetTimeFromEngineStart(); }
 
 	protected:
 		void Tick();
+
+	private:
+		[[nodiscard]] double GetDeltaTime() const { return mDeltaTime; }
+		[[nodiscard]] double GetTimeFromEngineStart() const { return mTimeFromEngineStart; };
 
 	private:
 		std::chrono::time_point<std::chrono::system_clock> mEngineStartTime {};

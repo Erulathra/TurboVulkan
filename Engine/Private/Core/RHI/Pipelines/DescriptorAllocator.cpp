@@ -14,6 +14,7 @@ namespace Turbo {
 		vk::DescriptorPoolCreateInfo createInfo {};
 		createInfo.setPNext(nullptr);
 
+		createInfo.flags = mFlags;
 		createInfo.setMaxSets(maxSets);
 		createInfo.setPoolSizes(poolSizes);
 

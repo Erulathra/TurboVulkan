@@ -20,3 +20,18 @@ CPMAddPackage(
         GIT_TAG "v3.3.0"
         OPTIONS "VMA_BUILD_SAMPLES OFF"
 )
+
+CPMAddPackage("gh:ocornut/imgui@1.92.0-docking")
+add_library(imgui STATIC
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+
+        ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
+)
+target_compile_definitions(imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
+target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
