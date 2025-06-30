@@ -524,7 +524,7 @@ namespace Turbo
         ImGui::StyleColorsDark();
 
         // TODO: Move to config
-        ImFont* firaCodeImFont = io.Fonts->AddFontFromFileTTF("Runtime/Fonts/FiraCode/FiraCode-Regular.ttf", 18);
+        ImFont* firaCodeImFont = io.Fonts->AddFontFromFileTTF("Content/Fonts/FiraCode/FiraCode-Regular.ttf", 18);
         io.FontGlobalScale = 0.75f;
 
         ImGui::PushFont(firaCodeImFont);
