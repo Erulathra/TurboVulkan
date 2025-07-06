@@ -120,13 +120,15 @@ constexpr ENUM_TYPE& operator^=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return
 #define GET_MACRO(_1, _2, NAME, ...) NAME
 #define GENERATED_BODY(...) EXPAND( GET_MACRO(__VA_ARGS__, GENERATED_BODY_2, GENERATED_BODY_1)(__VA_ARGS__) )
 
-#define GENERATED_BODY_1(THIS_CLASS)			\
-public:											\
-using ThisClass = THIS_CLASS;					\
+#define GENERATED_BODY_1(THIS_CLASS)								\
+public:																\
+	using ThisClass = THIS_CLASS;									\
+	static inline const FName mClassName =  FName (#THIS_CLASS);	\
 private:
 
-#define GENERATED_BODY_2(THIS_CLASS, SUPER_CLASS)	\
-public:												\
-	using ThisClass = THIS_CLASS;					\
-	using Super = SUPER_CLASS;						\
+#define GENERATED_BODY_2(THIS_CLASS, SUPER_CLASS)					\
+public:																\
+	using ThisClass = THIS_CLASS;									\
+	using Super = SUPER_CLASS;										\
+	static inline const FName mClassName =  FName (#THIS_CLASS);	\
 private:

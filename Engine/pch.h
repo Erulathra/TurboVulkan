@@ -29,4 +29,6 @@
 #include "Core/Math/Math.h"
 #include "Core/Math/MathCommon.h"
 
+#include "Core/Name.h"
+
 #include "magic_enum/magic_enum.hpp"
