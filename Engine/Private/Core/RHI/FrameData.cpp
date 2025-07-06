@@ -29,17 +29,12 @@ namespace Turbo {
 		const vk::SemaphoreCreateInfo semaphoreCreateInfo = VulkanInitializers::SemaphoreCreateInfo();
 		const vk::CommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::BufferAllocateInfo(mDevice->GetRenderCommandPool());
 
-		vk::Result vkResult;
-		std::tie(vkResult, mRenderFence) = mDevice->Get().createFence(fenceCreateInfo);
-		CHECK_VULKAN_HPP(vkResult);
-		std::tie(vkResult,mSwapChainSemaphore) = mDevice->Get().createSemaphore(semaphoreCreateInfo);
-		CHECK_VULKAN_HPP(vkResult);
-		std::tie(vkResult, mRenderSemaphore) = mDevice->Get().createSemaphore(semaphoreCreateInfo);
-		CHECK_VULKAN_HPP(vkResult);
+		CHECK_VULKAN_RESULT( mRenderFence, mDevice->Get().createFence(fenceCreateInfo));
+		CHECK_VULKAN_RESULT( mSwapChainSemaphore, mDevice->Get().createSemaphore(semaphoreCreateInfo));
+		CHECK_VULKAN_RESULT( mRenderSemaphore, mDevice->Get().createSemaphore(semaphoreCreateInfo));
 
 		std::vector<vk::CommandBuffer> commandBuffers;
-		std::tie(vkResult, commandBuffers) = mDevice->Get().allocateCommandBuffers(commandBufferAllocateInfo);
-		CHECK_VULKAN_HPP(vkResult);
+		CHECK_VULKAN_RESULT( commandBuffers, mDevice->Get().allocateCommandBuffers(commandBufferAllocateInfo));
 
 		mCMD = commandBuffers[0];
 	}

@@ -47,6 +47,13 @@ struct fmt::formatter<VkResult> : formatter<int32>
 }
 #endif // else DEBUG
 
+#define CHECK_VULKAN_RESULT(VALUE, EXPRESSION)																				\
+{																														\
+	vk::Result _resultNew;																								\
+	std::tie(_resultNew, VALUE) = EXPRESSION;																			\
+	CHECK_VULKAN_HPP(_resultNew);																						\
+}
+
 #if DEBUG
 #define CHECK_VULKAN_HPP_MSG(EXPRESSION, MESSAGE, ...)																						\
 {																																			\

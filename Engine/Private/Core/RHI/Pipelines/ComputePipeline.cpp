@@ -1,7 +1,7 @@
 #include "Core/RHI/Pipelines/ComputePipeline.h"
 
-#include "Core/Math/Math.h"
-#include "Core/Math/Math.h"
+#include "Core/CoreTimer.h"
+#include "Core/Engine.h"
 #include "Core/RHI/VulkanDevice.h"
 
 namespace Turbo
@@ -14,10 +14,17 @@ namespace Turbo
 
 	void FComputePipeline::CreatePipelineLayout()
 	{
-		vk::PipelineLayoutCreateInfo layoutCreateInfo {};
+		vk::PipelineLayoutCreateInfo layoutCreateInfo{};
 
 		TURBO_CHECK(mDescriptorSetLayout);
 		layoutCreateInfo.setSetLayouts({mDescriptorSetLayout});
+
+		vk::PushConstantRange pushConstant{};
+		pushConstant.setOffset(0);
+		pushConstant.setSize(sizeof(float));
+		pushConstant.setStageFlags(vk::ShaderStageFlagBits::eCompute);
+
+		layoutCreateInfo.setPushConstantRanges(pushConstant);
 
 		vk::Result result;
 		std::tie(result, mPipelineLayout) = mDevice->Get().createPipelineLayout(layoutCreateInfo);
@@ -26,12 +33,12 @@ namespace Turbo
 
 	void FComputePipeline::CreatePipeline(const vk::ShaderModule& shaderModule)
 	{
-		vk::PipelineShaderStageCreateInfo stageInfo {};
+		vk::PipelineShaderStageCreateInfo stageInfo{};
 		stageInfo.setStage(vk::ShaderStageFlagBits::eCompute);
 		stageInfo.setModule(shaderModule);
 		stageInfo.setPName("main"); // TODO: Hardcoded for now
 
-		vk::ComputePipelineCreateInfo computePipelineCreateInfo {};
+		vk::ComputePipelineCreateInfo computePipelineCreateInfo{};
 		computePipelineCreateInfo.setLayout(mPipelineLayout);
 		computePipelineCreateInfo.setStage(stageInfo);
 
@@ -50,6 +57,9 @@ namespace Turbo
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, mPipeline);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, mPipelineLayout, 0, {mDescriptorSet}, {});
+
+		const float time = static_cast<float>(FCoreTimer::TimeFromEngineStart());
+		cmd.pushConstants<float>(mPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, {time});
 		cmd.dispatch(groupCount.x, groupCount.y, groupCount.z);
 	}
 

@@ -557,6 +557,35 @@ namespace Turbo
         ImGui::DestroyContext();
     }
 
+    void FVulkanRHI::SubmitImmediateCommand(const FSubmitDelegate& submitDelegate)
+    {
+        CHECK_VULKAN_HPP(mDevice->Get().resetFences({mImmediateCommands.fence}));
+
+        const vk::CommandBuffer& cmd = mImmediateCommands.commandBuffer;
+        CHECK_VULKAN_HPP(cmd.reset({}));
+
+        const vk::CommandBufferBeginInfo beginInfo = VulkanInitializers::BufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+        CHECK_VULKAN_HPP(cmd.begin(beginInfo));
+
+        submitDelegate.ExecuteIfBound(cmd);
+
+        CHECK_VULKAN_HPP(cmd.end());
+        vk::SubmitInfo2 submitInfo = VulkanInitializers::SubmitInfo(cmd, nullptr, nullptr);
+        CHECK_VULKAN_HPP(mDevice->GetQueues().GraphicsQueue.submit2(1, &submitInfo, mImmediateCommands.fence));
+
+        CHECK_VULKAN_HPP(mDevice->Get().waitForFences({mImmediateCommands.fence}, true, kDefaultVulkanTimeout));
+    }
+
+    void FVulkanRHI::InitImmediateCommands()
+    {
+        const vk::CommandBufferAllocateInfo allocateInfo = VulkanInitializers::BufferAllocateInfo(mDevice->GetImmediateCommandPool());
+		std::vector<vk::CommandBuffer> commandBuffers;
+        CHECK_VULKAN_RESULT(commandBuffers, mDevice->Get().allocateCommandBuffers(allocateInfo))
+        mImmediateCommands.commandBuffer = commandBuffers[0];
+
+		const vk::FenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
+        CHECK_VULKAN_RESULT(mImmediateCommands.fence, mDevice->Get().createFence(fenceCreateInfo));
+    }
 
     void FVulkanRHI::AcquirePhysicalDevice()
     {

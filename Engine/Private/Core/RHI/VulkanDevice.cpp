@@ -131,6 +131,11 @@ void FVulkanDevice::Destroy()
         mVulkanDevice.destroyCommandPool(mRenderCommandPool);
     }
 
+    if (mImmediateCommandPool)
+    {
+        mVulkanDevice.destroyCommandPool(mImmediateCommandPool);
+    }
+
     mVulkanDevice.destroy();
     mVulkanDevice = nullptr;
 }
@@ -139,7 +144,8 @@ bool FVulkanDevice::IsValid() const
 {
     return mVulkanDevice != nullptr
         && mQueueIndices.IsValid()
-        && mRenderCommandPool != nullptr;
+        && mRenderCommandPool != nullptr
+        && mImmediateCommandPool != nullptr;
 }
 
 vk::PhysicalDeviceFeatures2 FVulkanDevice::GetRequiredDeviceFeatures() const
@@ -168,8 +174,7 @@ void FVulkanDevice::SetupCommandPools()
         vk::CommandPoolCreateFlagBits::eResetCommandBuffer
     );
 
-    vk::Result result;
-    std::tie(result, mRenderCommandPool) = mVulkanDevice.createCommandPool(createInfo);
-    CHECK_VULKAN_HPP(result);
+    CHECK_VULKAN_RESULT(mRenderCommandPool, mVulkanDevice.createCommandPool(createInfo));
+    CHECK_VULKAN_RESULT(mImmediateCommandPool, mVulkanDevice.createCommandPool(createInfo));
 }
 

@@ -29,7 +29,7 @@ bool PointInTriangle(float2 a, float2 b, float2 c, float2 p)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void main(uint3 threadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID)
+void main(uint3 threadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uniform float time)
 {
     uint2 imageSize;
     inOutTexture.GetDimensions(imageSize.x, imageSize.y);
@@ -40,7 +40,7 @@ void main(uint3 threadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupTh
     const float2 uv = float2(threadId.xy) / float2(imageSize);
     float3 outColor = float3(uv.x, uv.y, 0.0f);
 
-    float angle = 0.f;
+    float angle = time * M_PI;
 
     outColor *= lerp(0.1f, 1.f, PointInTriangle(
         RotateUV(triangleVertices[0], angle),

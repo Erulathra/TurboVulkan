@@ -27,6 +27,8 @@ namespace Turbo
 	};
 #endif // WITH_VALIDATION_LAYERS
 
+	DECLARE_DELEGATE(FSubmitDelegate, vk::CommandBuffer /** cmd **/);
+
 	class FVulkanRHI
 	{
 	private:
@@ -109,6 +111,21 @@ namespace Turbo
 		std::unique_ptr<FDescriptorAllocator> mImGuiAllocator;
 
 		/** ImGui end */
+
+		/** Immediate commands */
+	public:
+		void SubmitImmediateCommand(const FSubmitDelegate& submitDelegate);
+
+	private:
+		void InitImmediateCommands();
+
+	private:
+		struct
+		{
+			vk::Fence fence;
+			vk::CommandBuffer commandBuffer;
+		} mImmediateCommands;
+		/** Immediate command end */
 
 	public:
 		[[nodiscard]] vk::Instance GetVulkanInstance() const { return mVulkanInstance; }
