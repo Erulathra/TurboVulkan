@@ -16,6 +16,7 @@
 #include "backends/imgui_impl_vulkan.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "Core/CoreTimer.h"
+#include "Rendering/Pipelines/TestGPPipeline.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -247,10 +248,14 @@ namespace Turbo
         mComputePipeline->Init(shaderModule);
         mDevice->Get().destroyShaderModule(shaderModule);
 
+        mGraphicsPipeline = std::make_unique<FTestGPPipeline>(mDevice.get());
+        mGraphicsPipeline->Init();
+
         mMainDestroyQueue.OnDestroy().AddLambda([this]()
         {
             // TODO: Create proper pipeline destructor
             mComputePipeline->Destroy();
+            mGraphicsPipeline->Destroy();
         });
     }
 
@@ -339,6 +344,26 @@ namespace Turbo
         glm::ivec3 dispatchSize = glm::ivec3( glm::ceil(glm::vec2(mDrawImage->GetSize()) / 8.f), 1);
         mComputePipeline->Dispatch(cmd, dispatchSize);
 
+        VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eAttachmentOptimal);
+
+        const vk::RenderingAttachmentInfo colorAttachment = VulkanInitializers::AttachmentInfo(mDrawImage->GetImageView());
+        const vk::RenderingInfo renderInfo = VulkanInitializers::RenderingInfo(mSwapChain->GetImageSize(), &colorAttachment);
+        cmd.beginRendering(&renderInfo);
+
+        const vk::Viewport viewport = GetMainViewport();
+        const vk::Rect2D scissor = VulkanUtils::CreateRect(glm::ivec2(0), mDrawImage->GetSize());
+
+        mGraphicsPipeline->Bind(cmd);
+
+        cmd.setViewport(0, 1, &viewport);
+        cmd.setScissor(0, 1, &scissor);
+
+        cmd.draw(3, 1, 0, 0);
+
+        cmd.endRendering();
+
+        VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eAttachmentOptimal, vk::ImageLayout::eGeneral);
+
         ImGui::Begin("Turbo VULKAN!");
         ImGui::Text("FrameTime: %2f ms, FPS: %1f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
         float test;
@@ -365,6 +390,11 @@ namespace Turbo
 #else
         return mSwapChainImageIndex;
 #endif
+    }
+
+    vk::Viewport FVulkanRHI::GetMainViewport() const
+    {
+        return VulkanUtils::CreateViewport(glm::vec2(0.f), mDrawImage->GetSize());
     }
 
 #if WITH_VALIDATION_LAYERS

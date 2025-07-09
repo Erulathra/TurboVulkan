@@ -11,6 +11,11 @@
 
 namespace Turbo
 {
+	class FGraphicsPipelineBase;
+}
+
+namespace Turbo
+{
 	class FComputePipeline;
 	class FDescriptorAllocator;
 	class FImage;
@@ -73,6 +78,7 @@ namespace Turbo
 		[[nodiscard]] FRHIDestroyQueue& GetFrameDeletionQueue() { return GetCurrentFrame().GetDeletionQueue(); }
 
 		[[nodiscard]] FImage& GetDrawImage() const { TURBO_CHECK(mDrawImage); return *mDrawImage; }
+		[[nodiscard]] vk::Viewport GetMainViewport() const;
 
 	private:
 		std::vector<FFrameData> mFrameDatas;
@@ -153,6 +159,7 @@ namespace Turbo
 
 		/** TODO: REMOVE ME */
 		std::unique_ptr<FComputePipeline> mComputePipeline;
+		std::unique_ptr<FGraphicsPipelineBase> mGraphicsPipeline;
 		/** TODO: REMOVE ME END */
 
 	public:

@@ -70,6 +70,30 @@ namespace Turbo {
 		cmd.blitImage2(blitInfo);
 	}
 
+	vk::Viewport VulkanUtils::CreateViewport(const glm::vec2& start, const glm::vec2& end, float depthStart, float depthEnd)
+	{
+		vk::Viewport result;
+		result.setX(start.x);
+		result.setY(start.y);
+		const glm::vec2 size = glm::abs(end - start);
+		result.setWidth(size.x);
+		result.setHeight(size.y);
+		result.setMinDepth(depthStart);
+		result.setMaxDepth(depthEnd);
+
+		return result;
+	}
+
+	vk::Rect2D VulkanUtils::CreateRect(const glm::ivec2& start, const glm::ivec2& end)
+	{
+		vk::Rect2D result;
+		result.setOffset(ToOffset2D(start));
+		const glm::ivec2 size = glm::abs(end - start);
+		result.setExtent(ToExtent2D(size));
+
+		return result;
+	}
+
 	vk::ShaderModule VulkanUtils::CreateShaderModule(const FVulkanDevice* device, const std::span<uint32>& shaderData)
 	{
 		vk::ShaderModuleCreateInfo createInfo {};

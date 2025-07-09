@@ -31,6 +31,12 @@ function(add_slang_modules TARGET_NAME)
         set(BINARY_FILE ${ARG_BINARY_DIR}/${BINARY_FILE_NAME})
         file(RELATIVE_PATH BIN_FILE_REL_PATH ${CMAKE_BINARY_DIR} ${BINARY_FILE})
 
+        if (CMAKE_BUILD_TYPE MATCHES Debug)
+            set(DEBUG_OPTIONS -g -O0)
+        else()
+            set(DEBUG_OPTIONS)
+        endif()
+
         add_custom_command(
                 OUTPUT          ${BINARY_FILE}
                 COMMAND         ${SLANG_EXECUTABLE}
@@ -39,6 +45,7 @@ function(add_slang_modules TARGET_NAME)
                 -target spirv
                 -o ${BINARY_FILE}
                 -I ${PROJECT_SOURCE_DIR}/ShaderModules
+                ${DEBUG_OPTIONS}
                 MAIN_DEPENDENCY ${SOURCE_FILE}
                 COMMENT         "Building SPIR-V shader ${BIN_FILE_REL_PATH}"
                 VERBATIM
