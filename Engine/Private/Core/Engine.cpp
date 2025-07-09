@@ -42,11 +42,7 @@ namespace Turbo
 			return static_cast<int32_t>(EExitCode::WindowCreationError);
 		}
 
-		mMainWindowInstance->OnWindowEvent.append(
-			[this](EWindowEvent windowEvent)
-			{
-				HandleMainWindowEvents(windowEvent);
-			});
+		mMainWindowInstance->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
 		mRHIInstance->Init();
 		mMainWindowInstance->ShowWindow(true);

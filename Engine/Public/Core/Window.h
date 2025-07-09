@@ -2,7 +2,7 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
-#include <eventpp/eventqueue.h>
+#include "Core/Delegate.h"
 
 namespace Turbo
 {
@@ -21,7 +21,7 @@ namespace Turbo
 		static constexpr std::string kName = "Turbo Vulkan";
 	}
 
-	using WindowEventDelegate = eventpp::CallbackList<void(EWindowEvent)>;
+	DECLARE_MULTICAST_DELEGATE(FWindowEventDelegate, EWindowEvent);
 
 	class FSDLWindow
 	{
@@ -46,7 +46,7 @@ namespace Turbo
 
 		/** Events */
 	public:
-		WindowEventDelegate OnWindowEvent;
+		FWindowEventDelegate OnWindowEvent;
 
 		/** Basic Interface */
 	public:

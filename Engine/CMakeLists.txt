@@ -22,7 +22,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SDL3)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC eventpp::eventpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
@@ -40,6 +39,10 @@ add_compile_definitions(TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 # Vulkan HPP definitions
 add_compile_definitions(VULKAN_HPP_NO_EXCEPTIONS)
 add_compile_definitions(VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
+
+option(TRACY_ENABLE "" ON)
+option(TRACY_ON_DEMAND "" ON)
+target_link_libraries(${PROJECT_NAME} PUBLIC Tracy::TracyClient)
 
 
 

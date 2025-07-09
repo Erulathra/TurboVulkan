@@ -60,11 +60,11 @@ namespace Turbo
 			ImGui_ImplSDL3_ProcessEvent(&event);
 
 			if (event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_TERMINATING)
-				OnWindowEvent(EWindowEvent::WindowCloseRequest);
+				OnWindowEvent.Broadcast(EWindowEvent::WindowCloseRequest);
 			else if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
-				OnWindowEvent(EWindowEvent::FocusLost);
+				OnWindowEvent.Broadcast(EWindowEvent::FocusLost);
 			else if (event.type == SDL_EVENT_WINDOW_FOCUS_GAINED)
-				OnWindowEvent(EWindowEvent::FocusGained);
+				OnWindowEvent.Broadcast(EWindowEvent::FocusGained);
 		}
 	}
 

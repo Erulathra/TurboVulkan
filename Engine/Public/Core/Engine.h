@@ -19,6 +19,8 @@ namespace Turbo
 
 	class FEngine
 	{
+		GENERATED_BODY(FEngine)
+
 	private:
 		explicit FEngine();
 
@@ -56,8 +58,6 @@ namespace Turbo
 		void HandleMainWindowEvents(EWindowEvent event);
 
 	private:
-		WindowEventDelegate::Handle mHandleMainWindowEventsHandle;
-
 		bool mbExitRequested = false;
 		EExitCode mExitCode = EExitCode::Success;
 	};

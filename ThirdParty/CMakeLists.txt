@@ -4,7 +4,6 @@ include(CPM)
 # Lib which enhances enums
 CPMAddPackage("gh:Neargye/magic_enum@0.9.7")
 # events and delegate support
-CPMAddPackage( "gh:wqking/eventpp@0.1.3")
 CPMAddPackage( "gh:fmtlib/fmt#11.2.0")
 CPMAddPackage( "gh:gabime/spdlog@1.15.3")
 # Math library
@@ -33,5 +32,8 @@ add_library(imgui STATIC
 
         ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
 )
+
+CPMAddPackage("gh:wolfpld/tracy@0.12.2")
+
 target_compile_definitions(imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
