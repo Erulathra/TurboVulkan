@@ -146,3 +146,7 @@ public:																\
 	using Super = SUPER_CLASS;										\
 	static inline const FName mClassName =  FName (#THIS_CLASS);	\
 private:
+
+#if WITH_PROFILER
+
+#endif

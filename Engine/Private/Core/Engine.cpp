@@ -70,6 +70,8 @@ namespace Turbo
 		TURBO_LOG(LOG_ENGINE, LOG_DISPLAY, "Engine Tick. FrameTime: {}, FPS: {}", mCoreTimer->GetDeltaTime(), 1.f / mCoreTimer->GetDeltaTime());
 
 		GetRHI()->Tick();
+
+		TRACE_MARK_FRAME();
 	}
 
 	void FEngine::HandleMainWindowEvents(EWindowEvent event)

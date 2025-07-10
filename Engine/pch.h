@@ -21,6 +21,7 @@
 #include "CommonMacros.h"
 #include "LoggingMacros.h"
 #include "CommonTypeDefs.h"
+#include "ProfilingMacros.h"
 
 // GLM
 #include "glm/glm.hpp"

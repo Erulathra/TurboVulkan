@@ -1,5 +1,6 @@
 #include "Core/RHI/VulkanRHI.h"
 
+#include "../../../../cmake-build-release-clang/_deps/tracy-src/public/tracy/TracyC.h"
 #include "Core/CoreUtils.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
@@ -270,6 +271,8 @@ namespace Turbo
 
     void FVulkanRHI::Tick()
     {
+        TRACE_ZONE();
+
         RenderSync();
         GetFrameDeletionQueue().Flush(mDevice.get());
 

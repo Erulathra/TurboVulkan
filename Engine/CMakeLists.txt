@@ -17,8 +17,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC Public)
 
 target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
 
-find_package(SDL3 REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL3)
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
 
@@ -40,9 +39,24 @@ add_compile_definitions(TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 add_compile_definitions(VULKAN_HPP_NO_EXCEPTIONS)
 add_compile_definitions(VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 
-option(TRACY_ENABLE "" ON)
-option(TRACY_ON_DEMAND "" ON)
-target_link_libraries(${PROJECT_NAME} PUBLIC Tracy::TracyClient)
+# Tracy profiler support
+# Enable profiler when the `WITH_PROFILER` command line option is provided
+SET(WITH_PROFILER false CACHE BOOL "Enable profiling support.")
+
+if (${WITH_PROFILER})
+    message("[TURBO] Enabling profiling support")
+
+    target_link_libraries(${PROJECT_NAME} PUBLIC Tracy::TracyClient)
+
+    option(TRACY_ENABLE "" ON)
+    option(TRACY_ON_DEMAND "" ON)
+    add_compile_definitions(WITH_PROFILER=1)
+
+else ()
+    message("[TURBO] Disabling profiling support")
+
+    add_compile_definitions(WITH_PROFILER=0)
+endif ()
 
 
 

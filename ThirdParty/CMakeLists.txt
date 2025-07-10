@@ -1,6 +1,16 @@
 # CPM - package manager
 include(CPM)
 
+# SDL setup
+#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+CPMAddPackage(
+        GITHUB_REPOSITORY "libsdl-org/SDL"
+        GIT_TAG "release-3.2.16"
+)
+
+
 # Lib which enhances enums
 CPMAddPackage("gh:Neargye/magic_enum@0.9.7")
 # events and delegate support
