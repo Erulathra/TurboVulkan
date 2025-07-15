@@ -10,7 +10,6 @@ CPMAddPackage(
         GIT_TAG "release-3.2.16"
 )
 
-
 # Lib which enhances enums
 CPMAddPackage("gh:Neargye/magic_enum@0.9.7")
 # events and delegate support
