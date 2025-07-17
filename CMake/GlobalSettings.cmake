@@ -13,9 +13,9 @@ elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
     add_definitions(-DWITH_TURBO_32)
 endif ()
 
-if (EXISTS "/usr/bin/mold" AND UNIX)
-    add_link_options("-fuse-ld=mold")
-endif ()
+#if (EXISTS "/usr/bin/mold" AND UNIX)
+#    add_link_options("-fuse-ld=mold")
+#endif ()
 
 if (MSVC)
     add_definitions(-DWITH_MSVC)

@@ -87,22 +87,21 @@ void FVulkanDevice::InitAllocator()
 
     TURBO_LOG(LOG_RHI, LOG_INFO, "Creating memory allocator")
 
-    VmaAllocatorCreateInfo createInfo {};
+    vma::AllocatorCreateInfo createInfo {};
     createInfo.instance = gEngine->GetRHI()->GetVulkanInstance();
     createInfo.physicalDevice = mHardwareDevice->Get();
     createInfo.device = mVulkanDevice;
-    createInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    createInfo.flags = vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
 
     const vk::detail::DispatchLoaderDynamic dispatcher = VULKAN_HPP_DEFAULT_DISPATCHER;
 
-    VmaVulkanFunctions vulkanFunctions{};
+    vma::VulkanFunctions vulkanFunctions{};
     vulkanFunctions.vkGetInstanceProcAddr = dispatcher.vkGetInstanceProcAddr;
     vulkanFunctions.vkGetDeviceProcAddr = dispatcher.vkGetDeviceProcAddr;
 
     createInfo.pVulkanFunctions = &vulkanFunctions;
 
-    CHECK_VULKAN(vmaCreateAllocator(&createInfo, &mAllocator))
-
+    CHECK_VULKAN_RESULT(mAllocator, vma::createAllocator(createInfo))
 }
 
 void FVulkanDevice::SetupQueues()

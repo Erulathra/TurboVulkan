@@ -31,14 +31,14 @@ namespace Turbo
 
 			if (mImage && mAllocation)
 			{
-				vmaDestroyImage(device->GetAllocator(), mImage, mAllocation);
+				device->GetAllocator().destroyImage(mImage, mAllocation);
 			}
 		}
 
 	private:
 		vk::Image mImage;
 		vk::ImageView mImageView;
-		VmaAllocation mAllocation;
+		vma::Allocation mAllocation;
 	};
 
 	FImage::FImage(FVulkanDevice& device)
@@ -62,13 +62,13 @@ namespace Turbo
 		TURBO_CHECK(!bResourceInitialized)
 
 		vk::ImageCreateInfo imageCreateInfo = VulkanInitializers::Image2DCreateInfo(mFormat, mUsageFlags, VulkanUtils::ToExtent2D(mSize));
-		VmaAllocationCreateInfo imageAllocationInfo {};
-		imageAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-		imageAllocationInfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(vk::MemoryPropertyFlagBits::eDeviceLocal);
+		vma::AllocationCreateInfo imageAllocationInfo{};
+		imageAllocationInfo.usage = vma::MemoryUsage::eAutoPreferDevice;
+		imageAllocationInfo.requiredFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
 
-		VkImage tempImage{};
-		CHECK_VULKAN(vmaCreateImage(mDevice->GetAllocator(), imageCreateInfo, &imageAllocationInfo, &tempImage, &mAllocation, nullptr));
-		mImage = tempImage;
+		std::pair<vk::Image, vma::Allocation> allocationResult;
+		CHECK_VULKAN_RESULT(allocationResult, mDevice->GetAllocator().createImage(imageCreateInfo, imageAllocationInfo))
+		std::tie(mImage, mAllocation) = allocationResult;
 
 		const vk::ImageViewCreateInfo imageViewCreateInfo = VulkanInitializers::ImageView2DCreateInfo(mFormat, mImage, vk::ImageAspectFlagBits::eColor);
 

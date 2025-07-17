@@ -28,6 +28,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(${PROJECT_NAME} PRIVATE  VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp)
 
 add_dependencies(${PROJECT_NAME} TurboVulcan_Shaders)
 

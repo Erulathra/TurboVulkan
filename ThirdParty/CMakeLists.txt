@@ -25,9 +25,11 @@ CPMAddPackage(
 # Vulkan memory allocator
 CPMAddPackage(
         GITHUB_REPOSITORY "GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator"
-        GIT_TAG "v3.3.0"
+        GIT_TAG "v3.2.1"
         OPTIONS "VMA_BUILD_SAMPLES OFF"
 )
+
+CPMAddPackage( "gh:YaaZ/VulkanMemoryAllocator-Hpp@3.2.1")
 
 CPMAddPackage("gh:ocornut/imgui@1.92.0-docking")
 add_library(imgui STATIC

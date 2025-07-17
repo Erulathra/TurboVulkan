@@ -34,7 +34,7 @@ namespace Turbo
 
 	public:
 		[[nodiscard]] vk::Device Get() const { return mVulkanDevice; }
-		[[nodiscard]] VmaAllocator GetAllocator() const { return mAllocator; }
+		[[nodiscard]] vma::Allocator GetAllocator() const { return mAllocator; }
 		[[nodiscard]] vk::CommandPool GetRenderCommandPool() const { return mRenderCommandPool; }
 		[[nodiscard]] vk::CommandPool GetImmediateCommandPool() const { return mImmediateCommandPool; }
 
@@ -56,7 +56,7 @@ namespace Turbo
 		vk::CommandPool mRenderCommandPool = nullptr;
 		vk::CommandPool mImmediateCommandPool = nullptr;
 
-		VmaAllocator mAllocator;
+		vma::Allocator mAllocator;
 
 		FQueueFamilyIndices mQueueIndices;
 		AcquiredQueues mQueues;

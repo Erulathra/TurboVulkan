@@ -21,7 +21,7 @@ namespace Turbo
 
 		[[nodiscard]] const vk::Image& GetImage() const { return mImage; }
 		[[nodiscard]] const vk::ImageView& GetImageView() const { return mImageView; }
-		[[nodiscard]] VmaAllocation GetAllocation() const { return mAllocation; }
+		[[nodiscard]] vma::Allocation GetAllocation() const { return mAllocation; }
 
 		[[nodiscard]] const glm::ivec2& GetSize() const { return mSize; }
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
@@ -35,7 +35,7 @@ namespace Turbo
 
 		vk::Image mImage;
 		vk::ImageView mImageView;
-		VmaAllocation mAllocation;
+		vma::Allocation mAllocation;
 
 		bool bResourceInitialized = false;
 		bool bManualDestroy = false;
