@@ -1,6 +1,7 @@
 #include "Core/RHI/VulkanDevice.h"
 
 #include "Core/Engine.h"
+#include "Core/RHI/Buffer.h"
 #include "Core/RHI/VulkanHardwareDevice.h"
 #include "Core/RHI/Utils/VulkanInitializers.h"
 #include "Core/RHI/VulkanRHI.h"
@@ -102,6 +103,14 @@ void FVulkanDevice::InitAllocator()
     createInfo.pVulkanFunctions = &vulkanFunctions;
 
     CHECK_VULKAN_RESULT(mAllocator, vma::createAllocator(createInfo))
+}
+
+vk::DeviceAddress FVulkanDevice::GetBufferAddress(const FBuffer* buffer)
+{
+    vk::BufferDeviceAddressInfo deviceAddressInfo{};
+    deviceAddressInfo.buffer = buffer->GetBuffer();
+
+    return mVulkanDevice.getBufferAddress(deviceAddressInfo);
 }
 
 void FVulkanDevice::SetupQueues()

@@ -9,7 +9,7 @@
 
 namespace Turbo
 {
-	class FImageDestroyer : IDestroyer
+	class FImageDestroyer : public IDestroyer
 	{
 	public:
 		FImageDestroyer() = delete;
@@ -41,40 +41,38 @@ namespace Turbo
 		vma::Allocation mAllocation;
 	};
 
-	FImage::FImage(FVulkanDevice& device)
-		: mDevice(&device)
+	FImage::FImage(FVulkanDevice* device)
+		: mDevice(device)
 		, mAllocation(nullptr)
 		, mSize()
 		, mFormat()
 	{
 	}
 
+	std::unique_ptr<FImage> FImage::CreateUnique(FVulkanDevice* device, glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags)
+	{
+		TURBO_CHECK(device);
+		std::unique_ptr<FImage> resultImage(new FImage(device));
+		resultImage->InitResource(size, format, flags);
+
+		return std::move(resultImage);
+	}
+
+	std::shared_ptr<FImage> FImage::CreateShared(FVulkanDevice* device, glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags)
+	{
+		TURBO_CHECK(device);
+		std::shared_ptr<FImage> resultImage(new FImage(device));
+		resultImage->InitResource(size, format, flags);
+
+		return std::move(resultImage);
+	}
+
 	FImage::~FImage()
 	{
 		if (!bManualDestroy)
 		{
-			gEngine->GetRHI()->GetCurrentFrame().GetDeletionQueue().RequestDestroy(FImageDestroyer(*this));
+			gEngine->GetRHI()->GetDeletionQueue().RequestDestroy(FImageDestroyer(*this));
 		}
-	}
-
-	void FImage::InitResource()
-	{
-		TURBO_CHECK(!bResourceInitialized)
-
-		vk::ImageCreateInfo imageCreateInfo = VulkanInitializers::Image2DCreateInfo(mFormat, mUsageFlags, VulkanUtils::ToExtent2D(mSize));
-		vma::AllocationCreateInfo imageAllocationInfo{};
-		imageAllocationInfo.usage = vma::MemoryUsage::eAutoPreferDevice;
-		imageAllocationInfo.requiredFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
-
-		std::pair<vk::Image, vma::Allocation> allocationResult;
-		CHECK_VULKAN_RESULT(allocationResult, mDevice->GetAllocator().createImage(imageCreateInfo, imageAllocationInfo))
-		std::tie(mImage, mAllocation) = allocationResult;
-
-		const vk::ImageViewCreateInfo imageViewCreateInfo = VulkanInitializers::ImageView2DCreateInfo(mFormat, mImage, vk::ImageAspectFlagBits::eColor);
-
-		vk::Result result;
-		std::tie(result, mImageView) = mDevice->Get().createImageView(imageViewCreateInfo, nullptr);
-		CHECK_VULKAN_HPP(result);
 	}
 
 	void FImage::RequestDestroy(FRHIDestroyQueue& deletionQueue)
@@ -88,30 +86,31 @@ namespace Turbo
 		bManualDestroy = true;
 
 		// TODO: Handle when engine is tearing down.
-		FRHIDestroyQueue& deletionQueue = gEngine->GetRHI()->GetCurrentFrame().GetDeletionQueue();
+		FRHIDestroyQueue& deletionQueue = gEngine->GetRHI()->GetDeletionQueue();
 		deletionQueue.RequestDestroy(FImageDestroyer(*this));
 
 		mImage = nullptr;
 		mImageView = nullptr;
 		mAllocation = nullptr;
-		bResourceInitialized = false;
 	}
 
-	void FImage::SetSize(const glm::ivec2& size)
+	void FImage::InitResource(glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags)
 	{
-		TURBO_CHECK(!bResourceInitialized);
 		mSize = size;
-	}
-
-	void FImage::SetFormat(const vk::Format format)
-	{
-		TURBO_CHECK(!bResourceInitialized);
 		mFormat = format;
-	}
+		mUsageFlags = flags;
 
-	void FImage::SetUsage(vk::ImageUsageFlags usage)
-	{
-		TURBO_CHECK(!bResourceInitialized);
-		mUsageFlags = usage;
+		vk::ImageCreateInfo imageCreateInfo = VulkanInitializers::Image2DCreateInfo(format, flags, VulkanUtils::ToExtent2D(size));
+		vma::AllocationCreateInfo imageAllocationInfo{};
+		imageAllocationInfo.usage = vma::MemoryUsage::eAutoPreferDevice;
+		imageAllocationInfo.requiredFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
+
+		std::pair<vk::Image, vma::Allocation> allocationResult;
+		CHECK_VULKAN_RESULT(allocationResult, mDevice->GetAllocator().createImage(imageCreateInfo, imageAllocationInfo))
+		std::tie(mImage, mAllocation) = allocationResult;
+
+		const vk::ImageViewCreateInfo imageViewCreateInfo = VulkanInitializers::ImageView2DCreateInfo(format, mImage, vk::ImageAspectFlagBits::eColor);
+
+		CHECK_VULKAN_RESULT(mImageView, mDevice->Get().createImageView(imageViewCreateInfo, nullptr));
 	}
 } // Turbo

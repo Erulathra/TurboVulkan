@@ -35,7 +35,13 @@ namespace Turbo {
 		const vk::PipelineRenderingCreateInfo pipelineRendering = InitRenderingState(attachmentFormats);
 		pipelineCI.setPNext(&pipelineRendering);
 
-		const vk::PipelineLayoutCreateInfo layoutCreateInfo = InitPipelineLayout();
+		std::vector<vk::PushConstantRange> pushConstantRanges = InitPushConstantRanges();
+		std::vector<vk::DescriptorSetLayout> descriptorSetsLayouts = InitDescriptorSetLayouts();
+
+		vk::PipelineLayoutCreateInfo layoutCreateInfo{};
+		layoutCreateInfo.setPushConstantRanges(pushConstantRanges);
+		layoutCreateInfo.setSetLayouts(descriptorSetsLayouts);
+
 		CHECK_VULKAN_RESULT(mPipelineLayout, mDevice->Get().createPipelineLayout(layoutCreateInfo));
 		pipelineCI.setLayout(mPipelineLayout);
 
@@ -69,7 +75,6 @@ namespace Turbo {
 	void FGraphicsPipelineBase::Bind(const vk::CommandBuffer& cmd)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline);
-		// Start with `Now fill the draw_geometry function`
 	}
 
 	std::vector<vk::PipelineShaderStageCreateInfo> FGraphicsPipelineBase::InitStages()
@@ -79,14 +84,16 @@ namespace Turbo {
 
 		// todo: Load shader binary async or preload all shader binaries
 		std::vector<uint32> shaderData = FCoreUtils::ReadWholeFile<uint32>(mVertexShaderPath);
+		TURBO_CHECK_MSG(shaderData.size() > 0, "Error creating shader module. \"{}\".", mVertexShaderPath);
 		vertexShaderModule = fragmentShaderModule = VulkanUtils::CreateShaderModule(mDevice, shaderData);
-		TURBO_CHECK_MSG(vertexShaderModule, "Error during loading shader. \"{}\".", mVertexShaderPath);
+		TURBO_CHECK_MSG(vertexShaderModule, "Error creating shader module. \"{}\".", mVertexShaderPath);
 
 		if (mVertexShaderPath != mFragmentShaderPath)
 		{
 			shaderData = FCoreUtils::ReadWholeFile<uint32>(mFragmentShaderPath);
+			TURBO_CHECK_MSG(shaderData.size() > 0, "Error creating shader module. \"{}\".", mVertexShaderPath);
 			fragmentShaderModule = VulkanUtils::CreateShaderModule(mDevice, shaderData);
-			TURBO_CHECK_MSG(fragmentShaderModule, "Error during loading shader. \"{}\".", mFragmentShaderPath);
+			TURBO_CHECK_MSG(vertexShaderModule, "Error creating shader module. \"{}\".", mVertexShaderPath);
 		}
 
 		std::vector<vk::PipelineShaderStageCreateInfo> result;
@@ -267,8 +274,13 @@ namespace Turbo {
 		return multisampleState;
 	}
 
-	vk::PipelineLayoutCreateInfo FGraphicsPipelineBase::InitPipelineLayout()
+	std::vector<vk::PushConstantRange> FGraphicsPipelineBase::InitPushConstantRanges()
 	{
-		return vk::PipelineLayoutCreateInfo{};
+		return {};
+	}
+
+	std::vector<vk::DescriptorSetLayout> FGraphicsPipelineBase::InitDescriptorSetLayouts()
+	{
+		return {};
 	}
 } // Turbo

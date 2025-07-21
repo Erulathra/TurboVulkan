@@ -9,16 +9,26 @@ namespace Turbo
 
 	class FImage
 	{
+		GENERATED_BODY(FImage)
+	private:
+		explicit FImage(FVulkanDevice* device);
+
 	public:
-		explicit FImage(FVulkanDevice& device);
+		FImage() = delete;
+		FImage(FImage& other) = delete;
+		FImage& operator=(const FImage& other) = delete;
+		FImage(const FImage& other) = delete;
+
+	public:
+		static std::unique_ptr<FImage> CreateUnique(FVulkanDevice* device, glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags);
+		static std::shared_ptr<FImage> CreateShared(FVulkanDevice* device, glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags);
+
 		~FImage();
 
-		void InitResource();
 		void RequestDestroy(FRHIDestroyQueue& deletionQueue);
 		void Destroy();
 
 	public:
-
 		[[nodiscard]] const vk::Image& GetImage() const { return mImage; }
 		[[nodiscard]] const vk::ImageView& GetImageView() const { return mImageView; }
 		[[nodiscard]] vma::Allocation GetAllocation() const { return mAllocation; }
@@ -26,21 +36,20 @@ namespace Turbo
 		[[nodiscard]] const glm::ivec2& GetSize() const { return mSize; }
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
 
-		void SetSize(const glm::ivec2& size);
-		void SetFormat(vk::Format format);
-		void SetUsage(vk::ImageUsageFlags usage);
+	private:
+		void InitResource(glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags);
 
 	private:
 		FVulkanDevice* mDevice;
 
 		vk::Image mImage;
 		vk::ImageView mImageView;
-		vma::Allocation mAllocation;
+		vma::Allocation mAllocation{};
 
-		bool bResourceInitialized = false;
+		// bool bResourceInitialized = false;
 		bool bManualDestroy = false;
 
-		glm::ivec2 mSize;
+		glm::ivec2 mSize{};
 		vk::Format mFormat;
 		vk::ImageUsageFlags mUsageFlags;
 	};

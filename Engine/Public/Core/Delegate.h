@@ -30,13 +30,13 @@ using name = TMulticastDelegate<EDelegateExecutionOrder::Undefined __VA_OPT__(,)
 using name = TMulticastDelegate<EDelegateExecutionOrder::Reverse __VA_OPT__(,) __VA_ARGS__>
 
 #define DECLARE_EVENT(name, ownerType, ...) \
-class name : public MulticastDelegate<__VA_ARGS__> \
+class name final : public TMulticastDelegate<EDelegateExecutionOrder::Undefined __VA_OPT__(,) __VA_ARGS__> \
 { \
 private: \
 friend class ownerType; \
-using MulticastDelegate::Broadcast; \
-using MulticastDelegate::RemoveAll; \
-using MulticastDelegate::Remove; \
+using TMulticastDelegate::Broadcast; \
+using TMulticastDelegate::RemoveAll; \
+using TMulticastDelegate::Remove; \
 };
 
 namespace Turbo
@@ -492,7 +492,7 @@ namespace Turbo
 
 	class FDelegateBase
 	{
-		GENERATED_BODY(FDelegateBase)
+		GENERATED_BODY_MINIMAL(FDelegateBase)
 
 	public:
 		//Default constructor
@@ -753,9 +753,9 @@ namespace Turbo
 
 	//Delegate that can be bound to by MULTIPLE objects
 	template <EDelegateExecutionOrder ExecutionOrder, typename... Args>
-	class TMulticastDelegate final : public FDelegateBase
+	class TMulticastDelegate : public FDelegateBase
 	{
-		GENERATED_BODY(TMulticastDelegate, FDelegateBase)
+		GENERATED_BODY_MINIMAL(TMulticastDelegate, FDelegateBase)
 
 	public:
 		using DelegateT = TDelegate<void, Args...>;

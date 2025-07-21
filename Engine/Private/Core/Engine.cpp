@@ -28,6 +28,8 @@ namespace Turbo
 		// TODO: Move me elsewhere
 		spdlog::set_level(spdlog::level::debug);
 
+		mEngineState = EEngineState::Initializing;
+
 		mCoreTimer = std::unique_ptr<FCoreTimer>(new FCoreTimer());
 		mCoreTimer->Init();
 
@@ -47,7 +49,12 @@ namespace Turbo
 		mRHIInstance->Init();
 		mMainWindowInstance->ShowWindow(true);
 
+		mEngineState = EEngineState::Running;
+
 		GameThreadLoop();
+
+		mEngineState = EEngineState::Finalizing;
+		End();
 
 		return static_cast<int32_t>(mExitCode);
 	}
@@ -59,8 +66,6 @@ namespace Turbo
 			GameThreadTick();
 			mMainWindowInstance->PollWindowEventsAndErrors();
 		}
-
-		End();
 	}
 
 	void FEngine::GameThreadTick()

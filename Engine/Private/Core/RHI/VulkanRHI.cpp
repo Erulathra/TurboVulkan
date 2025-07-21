@@ -1,6 +1,5 @@
 #include "Core/RHI/VulkanRHI.h"
 
-#include "../../../../cmake-build-release-clang/_deps/tracy-src/public/tracy/TracyC.h"
 #include "Core/CoreUtils.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
@@ -17,6 +16,8 @@
 #include "backends/imgui_impl_vulkan.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "Core/CoreTimer.h"
+#include "Core/RHI/RHIMesh.h"
+#include "Rendering/Pipelines/MeshGPPipeline.h"
 #include "Rendering/Pipelines/TestGPPipeline.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -52,6 +53,7 @@ namespace Turbo
 
         InitDrawImage();
         InitDescriptors();
+        InitImmediateCommands();
         InitImGui();
         InitScene();
     }
@@ -63,6 +65,9 @@ namespace Turbo
 
     void FVulkanRHI::Destroy()
     {
+        // TODO: Remove me
+        mSceneData.mRectMesh = nullptr;
+
         if (mDevice)
         {
             CHECK_VULKAN_HPP(mDevice->Get().waitIdle());
@@ -76,7 +81,9 @@ namespace Turbo
         }
         mFrameDatas.clear();
 
-        mMainDestroyQueue.Flush(mDevice.get());
+        mMainDeletionQueue.Flush(mDevice.get());
+
+        DestroyImmediateCommands();
 
         if (mDevice)
         {
@@ -194,14 +201,15 @@ namespace Turbo
     void FVulkanRHI::InitDrawImage()
     {
         TURBO_CHECK(mDevice);
+        mDrawImage = FImage::CreateUnique(
+            mDevice.get(),
+            gEngine->GetWindow()->GetFrameBufferSize(),
+            vk::Format::eR16G16B16A16Sfloat,
+            vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage |
+            vk::ImageUsageFlagBits::eColorAttachment
+        );
 
-        mDrawImage = std::make_unique<FImage>(*mDevice);
-        mDrawImage->SetFormat(vk::Format::eR16G16B16A16Sfloat);
-        mDrawImage->SetSize(gEngine->GetWindow()->GetFrameBufferSize());
-        mDrawImage->SetUsage(vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eColorAttachment);
-
-        mDrawImage->InitResource();
-        mDrawImage->RequestDestroy(mMainDestroyQueue);
+        mDrawImage->RequestDestroy(GetMainDeletionQueue());
     }
 
     void FVulkanRHI::InitDescriptors()
@@ -210,7 +218,7 @@ namespace Turbo
         std::vector<FDescriptorAllocator::FPoolSizeRatio> ratios = { {vk::DescriptorType::eStorageImage, 1}};
         mMainDescriptorAllocator->Init(10, ratios);
 
-        mMainDestroyQueue.OnDestroy().AddLambda([this]()
+        mMainDeletionQueue.OnDestroy().AddLambda([this]()
         {
             mMainDescriptorAllocator->Destroy();
         });
@@ -218,7 +226,7 @@ namespace Turbo
 
     void FVulkanRHI::InitScene()
     {
-        mComputePipeline = std::make_unique<FComputePipeline>(mDevice.get());
+        mSceneData.mComputePipeline = std::make_unique<FComputePipeline>(mDevice.get());
 
         FDescriptorLayoutBuilder descriptorLayoutBuilder;
         descriptorLayoutBuilder.AddBinding(0, vk::DescriptorType::eStorageImage);
@@ -226,7 +234,7 @@ namespace Turbo
         const vk::DescriptorSetLayout layout = descriptorLayoutBuilder.Build(mDevice.get(), vk::ShaderStageFlagBits::eCompute);
         const vk::DescriptorSet set = mMainDescriptorAllocator->Allocate(layout);
 
-        mComputePipeline->SetDescriptors(layout, set);
+        mSceneData.mComputePipeline->SetDescriptors(layout, set);
 
         vk::DescriptorImageInfo imgInfo {};
         imgInfo.setImageLayout(vk::ImageLayout::eGeneral);
@@ -241,22 +249,37 @@ namespace Turbo
 
         mDevice->Get().updateDescriptorSets({drawImageWrite}, 0);
 
-        mComputePipeline = std::make_unique<FComputePipeline>(mDevice.get());
-        mComputePipeline->SetDescriptors(layout, set);
+        mSceneData.mComputePipeline = std::make_unique<FComputePipeline>(mDevice.get());
+        mSceneData.mComputePipeline->SetDescriptors(layout, set);
 
         std::vector<uint32> shaderData = FCoreUtils::ReadWholeFile<uint32>("Shaders/Shader.spv");
         vk::ShaderModule shaderModule = VulkanUtils::CreateShaderModule(mDevice.get(), shaderData);
-        mComputePipeline->Init(shaderModule);
+        mSceneData.mComputePipeline->Init(shaderModule);
         mDevice->Get().destroyShaderModule(shaderModule);
 
-        mGraphicsPipeline = std::make_unique<FTestGPPipeline>(mDevice.get());
-        mGraphicsPipeline->Init();
+        mSceneData.mGraphicsPipeline = std::make_unique<FMeshGPPipeline>(mDevice.get());
+        mSceneData.mGraphicsPipeline->Init();
 
-        mMainDestroyQueue.OnDestroy().AddLambda([this]()
+        std::array<FVertexWithColor, 4> rectVertices;
+        rectVertices[0].Position = {0.5f, -0.5, 0.f};
+        rectVertices[1].Position = {0.5f, 0.5, 0.f};
+        rectVertices[2].Position = {-0.5f, -0.5, 0.f};
+        rectVertices[3].Position = {-0.5f, 0.5, 0.f};
+
+        rectVertices[0].Color = {0.f, 0.f, 1.f, 1.f};
+        rectVertices[1].Color = {1.f, 0.f, 0.f, 1.f};
+        rectVertices[2].Color = {1.f, 0.f, 0.f, 1.f};
+        rectVertices[3].Color = {0.f, 0.f, 1.f, 1.f};
+
+        std::array<uint32, 6> rectIndices = {0, 1, 2, 2, 1, 3};
+
+        mSceneData.mRectMesh = FRHIMesh::CreateUnique<FVertexWithColor>(mDevice.get(), rectIndices, rectVertices);
+
+        mMainDeletionQueue.OnDestroy().AddLambda([this]()
         {
             // TODO: Create proper pipeline destructor
-            mComputePipeline->Destroy();
-            mGraphicsPipeline->Destroy();
+            mSceneData.mComputePipeline->Destroy();
+            mSceneData.mGraphicsPipeline->Destroy();
         });
     }
 
@@ -271,7 +294,7 @@ namespace Turbo
 
     void FVulkanRHI::Tick()
     {
-        TRACE_ZONE();
+        TRACE_ZONE_SCOPED();
 
         RenderSync();
         GetFrameDeletionQueue().Flush(mDevice.get());
@@ -345,7 +368,7 @@ namespace Turbo
         cmd.clearColorImage(mDrawImage->GetImage(), vk::ImageLayout::eGeneral, clearColorValue, clearSubresourceRange);
 
         glm::ivec3 dispatchSize = glm::ivec3( glm::ceil(glm::vec2(mDrawImage->GetSize()) / 8.f), 1);
-        mComputePipeline->Dispatch(cmd, dispatchSize);
+        mSceneData.mComputePipeline->Dispatch(cmd, dispatchSize);
 
         VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eAttachmentOptimal);
 
@@ -356,12 +379,13 @@ namespace Turbo
         const vk::Viewport viewport = GetMainViewport();
         const vk::Rect2D scissor = VulkanUtils::CreateRect(glm::ivec2(0), mDrawImage->GetSize());
 
-        mGraphicsPipeline->Bind(cmd);
-
         cmd.setViewport(0, 1, &viewport);
         cmd.setScissor(0, 1, &scissor);
 
-        cmd.draw(3, 1, 0, 0);
+        mSceneData.mGraphicsPipeline->Bind(cmd);
+        const FMeshGPPipeline::FPushConstants pushConstants {glm::mat4(1.f), mSceneData.mRectMesh->GetVertexBufferAddress()};
+        mSceneData.mGraphicsPipeline->PushConstants(cmd, vk::ShaderStageFlagBits::eVertex, pushConstants);
+        mSceneData.mRectMesh->Draw(cmd);
 
         cmd.endRendering();
 
@@ -398,6 +422,17 @@ namespace Turbo
     vk::Viewport FVulkanRHI::GetMainViewport() const
     {
         return VulkanUtils::CreateViewport(glm::vec2(0.f), mDrawImage->GetSize());
+    }
+
+    FRHIDestroyQueue& FVulkanRHI::GetDeletionQueue()
+    {
+        const EEngineState CurrentEngineState = gEngine->GetEngineState();
+        if (CurrentEngineState == EEngineState::Running)
+        {
+            return GetCurrentFrame().GetDeletionQueue();
+        }
+
+        return mMainDeletionQueue;
     }
 
 #if WITH_VALIDATION_LAYERS
@@ -512,7 +547,7 @@ namespace Turbo
         mImGuiAllocator->SetFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
         mImGuiAllocator->Init(1000, ratios);
 
-        mMainDestroyQueue.OnDestroy().AddLambda([this]()
+        mMainDeletionQueue.OnDestroy().AddLambda([this]()
         {
             mImGuiAllocator->Destroy();
         });
@@ -592,6 +627,8 @@ namespace Turbo
 
     void FVulkanRHI::SubmitImmediateCommand(const FSubmitDelegate& submitDelegate)
     {
+        TRACE_ZONE_SCOPED();
+
         CHECK_VULKAN_HPP(mDevice->Get().resetFences({mImmediateCommands.fence}));
 
         const vk::CommandBuffer& cmd = mImmediateCommands.commandBuffer;
@@ -618,6 +655,11 @@ namespace Turbo
 
 		const vk::FenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
         CHECK_VULKAN_RESULT(mImmediateCommands.fence, mDevice->Get().createFence(fenceCreateInfo));
+    }
+
+    void FVulkanRHI::DestroyImmediateCommands()
+    {
+        mDevice->Get().destroyFence(mImmediateCommands.fence);
     }
 
     void FVulkanRHI::AcquirePhysicalDevice()

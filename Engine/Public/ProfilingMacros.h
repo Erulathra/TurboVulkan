@@ -10,9 +10,10 @@
 
 #include <tracy/Tracy.hpp>
 
-#define TRACE_ZONE() ZoneScoped
+#define TRACE_ZONE_SCOPED() ZoneScoped
 #define TRACE_MARK_FRAME() FrameMark
 
+#if 0 // broken
 inline void * operator new ( std :: size_t count )
 {
 	auto ptr = malloc ( count ) ;
@@ -25,6 +26,7 @@ inline void operator delete ( void * ptr ) noexcept
 	TracyFree ( ptr ) ;
 	free ( ptr ) ;
 }
+#endif
 
 #else
 

@@ -11,6 +11,11 @@
 
 namespace Turbo
 {
+	class FRHIMesh;
+}
+
+namespace Turbo
+{
 	class FGraphicsPipelineBase;
 }
 
@@ -80,6 +85,7 @@ namespace Turbo
 		[[nodiscard]] FImage& GetDrawImage() const { TURBO_CHECK(mDrawImage); return *mDrawImage; }
 		[[nodiscard]] vk::Viewport GetMainViewport() const;
 
+		[[nodiscard]] FRHIDestroyQueue& GetDeletionQueue();
 	private:
 		std::vector<FFrameData> mFrameDatas;
 		std::unique_ptr<FImage> mDrawImage;
@@ -124,6 +130,7 @@ namespace Turbo
 
 	private:
 		void InitImmediateCommands();
+		void DestroyImmediateCommands();
 
 	private:
 		struct
@@ -135,7 +142,14 @@ namespace Turbo
 
 	public:
 		[[nodiscard]] vk::Instance GetVulkanInstance() const { return mVulkanInstance; }
-		[[nodiscard]] FRHIDestroyQueue& GetMainDeletionQueue() { return mMainDestroyQueue; }
+		[[nodiscard]] FRHIDestroyQueue& GetMainDeletionQueue() { return mMainDeletionQueue; }
+
+	public:
+		DECLARE_EVENT(FOnRHIDestroy, FVulkanRHI);
+		FOnRHIDestroy GetOnRhiDestroy() { return mOnRhiDestroy; }
+
+	private:
+		FOnRHIDestroy mOnRhiDestroy;
 
 	private:
 		void AcquirePhysicalDevice();
@@ -155,11 +169,16 @@ namespace Turbo
 		std::unique_ptr<FSwapChain> mSwapChain;
 
 		std::unique_ptr<FDescriptorAllocator> mMainDescriptorAllocator;
-		FRHIDestroyQueue mMainDestroyQueue;
+		FRHIDestroyQueue mMainDeletionQueue;
+
 
 		/** TODO: REMOVE ME */
-		std::unique_ptr<FComputePipeline> mComputePipeline;
-		std::unique_ptr<FGraphicsPipelineBase> mGraphicsPipeline;
+		struct FSceneData
+		{
+			std::unique_ptr<FComputePipeline> mComputePipeline;
+			std::unique_ptr<FGraphicsPipelineBase> mGraphicsPipeline;
+			std::unique_ptr<FRHIMesh> mRectMesh;
+		} mSceneData;
 		/** TODO: REMOVE ME END */
 
 	public:

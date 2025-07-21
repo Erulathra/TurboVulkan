@@ -7,6 +7,7 @@
 namespace Turbo
 {
 	class FVulkanHardwareDevice;
+	class FBuffer;
 	struct FQueueFamilyIndices;
 
 	class FVulkanDevice
@@ -42,6 +43,9 @@ namespace Turbo
 		[[nodiscard]] const FQueueFamilyIndices& GetQueueIndices() const {return mQueueIndices; }
 
 		[[nodiscard]] const AcquiredQueues& GetQueues() const { return mQueues; }
+
+	public:
+		[[nodiscard]] vk::DeviceAddress GetBufferAddress(const FBuffer* buffer);
 
 	private:
 		void SetupQueues();

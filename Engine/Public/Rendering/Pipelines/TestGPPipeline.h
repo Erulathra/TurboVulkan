@@ -7,8 +7,8 @@ namespace Turbo
 	class FTestGPPipeline : public FGraphicsPipelineBase
 	{
 	public:
-		FTestGPPipeline(FVulkanDevice* device);
-		virtual ~FTestGPPipeline() = default;
+		explicit FTestGPPipeline(FVulkanDevice* device);
+		virtual ~FTestGPPipeline() override = default;
 	};
 
 } // Turbo

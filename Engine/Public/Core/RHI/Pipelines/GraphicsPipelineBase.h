@@ -33,6 +33,13 @@ namespace Turbo
 
 		virtual void Bind(const vk::CommandBuffer& cmd);
 
+		template<typename PushConstantType>
+		void PushConstants(const vk::CommandBuffer& cmd, vk::ShaderStageFlags shaderStage, const PushConstantType& data);
+
+	public:
+		[[nodiscard]] vk::Pipeline GetPipeline() const { return mPipeline; }
+		[[nodiscard]] vk::PipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
+
 	protected:
 		virtual std::vector<vk::PipelineShaderStageCreateInfo> InitStages();
 		virtual const char* GetShaderName(vk::ShaderStageFlagBits stage);
@@ -66,7 +73,8 @@ namespace Turbo
 
 		virtual vk::PipelineMultisampleStateCreateInfo InitMultisampleState();
 
-		virtual vk::PipelineLayoutCreateInfo InitPipelineLayout();
+		virtual std::vector<vk::PushConstantRange> InitPushConstantRanges();
+		virtual std::vector<vk::DescriptorSetLayout> InitDescriptorSetLayouts();
 
 	private:
 		void DestroyShaderModules(const std::vector<vk::PipelineShaderStageCreateInfo>& pipelineStages) const;
@@ -81,4 +89,11 @@ namespace Turbo
 		const std::string mVertexShaderPath{};
 		const std::string mFragmentShaderPath{};
 	};
+
+	template <typename PushConstantType>
+	void FGraphicsPipelineBase::PushConstants(const vk::CommandBuffer& cmd, vk::ShaderStageFlags shaderStage, const PushConstantType& data)
+	{
+		cmd.pushConstants(mPipelineLayout, shaderStage, 0, sizeof(data), &data);
+	}
+
 } // Turbo

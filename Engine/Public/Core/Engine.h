@@ -17,6 +17,14 @@ namespace Turbo
 		DeviceNotSupported
 	};
 
+	enum class EEngineState : int32_t
+	{
+		Undefined = 0,
+		Initializing,
+		Running,
+		Finalizing
+	};
+
 	class FEngine
 	{
 		GENERATED_BODY(FEngine)
@@ -51,6 +59,9 @@ namespace Turbo
 
 		void RequestExit(EExitCode InExitCode = EExitCode::Success);
 
+	public:
+		[[nodiscard]] EEngineState GetEngineState() { return mEngineState; }
+
 	private:
 		void GameThreadLoop();
 		void GameThreadTick();
@@ -60,6 +71,8 @@ namespace Turbo
 	private:
 		bool mbExitRequested = false;
 		EExitCode mExitCode = EExitCode::Success;
+
+		EEngineState mEngineState = EEngineState::Undefined;
 	};
 
 	inline std::unique_ptr<FEngine> gEngine(nullptr);
