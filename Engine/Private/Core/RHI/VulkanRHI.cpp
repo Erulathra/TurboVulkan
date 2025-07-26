@@ -260,20 +260,24 @@ namespace Turbo
         mSceneData.mGraphicsPipeline = std::make_unique<FMeshGPPipeline>(mDevice.get());
         mSceneData.mGraphicsPipeline->Init();
 
-        std::array<FVertexWithColor, 4> rectVertices;
-        rectVertices[0].Position = {0.5f, -0.5, 0.f};
-        rectVertices[1].Position = {0.5f, 0.5, 0.f};
-        rectVertices[2].Position = {-0.5f, -0.5, 0.f};
-        rectVertices[3].Position = {-0.5f, 0.5, 0.f};
+        FRHIMeshCreationInfo meshCreateInfo;
+        meshCreateInfo.Positions = {
+            {0.5f, -0.5, 0.f},
+            {0.5f, 0.5, 0.f},
+            {-0.5f, -0.5, 0.f},
+            {-0.5f, 0.5, 0.f}
+        };
 
-        rectVertices[0].Color = {0.f, 0.f, 1.f, 1.f};
-        rectVertices[1].Color = {1.f, 0.f, 0.f, 1.f};
-        rectVertices[2].Color = {1.f, 0.f, 0.f, 1.f};
-        rectVertices[3].Color = {0.f, 0.f, 1.f, 1.f};
+        meshCreateInfo.Colors = {
+            {0.f, 0.f, 1.f, 1.f},
+            {1.f, 0.f, 0.f, 1.f},
+            {1.f, 0.f, 0.f, 1.f},
+            {0.f, 0.f, 1.f, 1.f}
+        };
 
-        std::array<uint32, 6> rectIndices = {0, 1, 2, 2, 1, 3};
+        meshCreateInfo.Indices = {0, 1, 2, 2, 1, 3};
 
-        mSceneData.mRectMesh = FRHIMesh::CreateUnique<FVertexWithColor>(mDevice.get(), rectIndices, rectVertices);
+        mSceneData.mRectMesh = FRHIMesh::CreateUnique(mDevice.get(), meshCreateInfo);
 
         mMainDeletionQueue.OnDestroy().AddLambda([this]()
         {
@@ -383,7 +387,7 @@ namespace Turbo
         cmd.setScissor(0, 1, &scissor);
 
         mSceneData.mGraphicsPipeline->Bind(cmd);
-        const FMeshGPPipeline::FPushConstants pushConstants {glm::mat4(1.f), mSceneData.mRectMesh->GetVertexBufferAddress()};
+        const FMeshGPPipeline::FPushConstants pushConstants {glm::mat4(1.f), mSceneData.mRectMesh->GetPositionsAddress(), mSceneData.mRectMesh->GetColorAddress()};
         mSceneData.mGraphicsPipeline->PushConstants(cmd, vk::ShaderStageFlagBits::eVertex, pushConstants);
         mSceneData.mRectMesh->Draw(cmd);
 

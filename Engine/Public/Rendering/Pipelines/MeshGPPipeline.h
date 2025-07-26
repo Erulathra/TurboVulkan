@@ -10,7 +10,9 @@ namespace Turbo
 		struct FPushConstants
 		{
 			glm::mat4 ViewMatrix{1.f};
-			vk::DeviceAddress VertexBuffer = 0;
+
+			vk::DeviceAddress Positions = 0;
+			vk::DeviceAddress Colors = 0;
 		};
 
 	public:

@@ -10,7 +10,7 @@ namespace Turbo {
 	{
 		vk::PushConstantRange pushConstantRange;
 		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(std::tuple<glm::mat4, uint64>);
+		pushConstantRange.size = sizeof(FPushConstants);
 		pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex;
 
 		return {pushConstantRange};

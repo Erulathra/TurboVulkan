@@ -30,9 +30,7 @@ namespace Turbo
 	public:
 		[[nodiscard]] vk::Buffer GetBuffer() const { return mBuffer; }
 		[[nodiscard]] vma::Allocation GetAllocation() const { return mAllocation; }
-		[[nodiscard]] vma::AllocationInfo GetAllocationInfo() const { return mAllocationInfo; }
-
-		[[nodiscard]] byte* GetMappedData() { return reinterpret_cast<byte*>(mAllocationInfo.pMappedData); }
+		[[nodiscard]] byte* GetMappedData() const { return mMappedDataPtr; }
 
 	private:
 		void InitResource(size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags);
@@ -42,7 +40,7 @@ namespace Turbo
 
 		vk::Buffer mBuffer = nullptr;
 		vma::Allocation mAllocation = nullptr;
-		vma::AllocationInfo mAllocationInfo{};
+		byte* mMappedDataPtr = nullptr;
 
 		bool bManualDestroy = false;
 

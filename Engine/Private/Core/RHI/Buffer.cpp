@@ -48,9 +48,11 @@ namespace Turbo {
 		vmaAllocInfo.usage = memoryUsageFlags;
 		vmaAllocInfo.flags = vma::AllocationCreateFlagBits::eMapped | vma::AllocationCreateFlagBits::eHostAccessSequentialWrite;
 
+		vma::AllocationInfo allocationInfo;
 		std::pair<vk::Buffer, vma::Allocation> creationResult;
-		CHECK_VULKAN_RESULT(creationResult, mDevice->GetAllocator().createBuffer(bufferInfo, vmaAllocInfo, &mAllocationInfo));
+		CHECK_VULKAN_RESULT(creationResult, mDevice->GetAllocator().createBuffer(bufferInfo, vmaAllocInfo, &allocationInfo));
 		std::tie(mBuffer, mAllocation) = creationResult;
+		mMappedDataPtr = static_cast<byte*>(allocationInfo.pMappedData);
 	}
 
 	std::unique_ptr<FBuffer> FBuffer::CreateUnique(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags)
@@ -92,7 +94,7 @@ namespace Turbo {
 
 		mBuffer = nullptr;
 		mAllocation = nullptr;
-		mAllocationInfo = vma::AllocationInfo{};
+		mMappedDataPtr = nullptr;
 
 		mDevice->GetAllocator().destroyBuffer(mBuffer, mAllocation);
 	}

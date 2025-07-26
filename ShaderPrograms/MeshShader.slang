@@ -4,7 +4,9 @@ import CommonTypes;
 cbuffer PushConstants
 {
     float4x4 world2View;
-    VertexWithColor* vertices;
+
+    float3* positions;
+    float4* colors;
 };
 
 struct VSOut
@@ -17,10 +19,11 @@ struct VSOut
 VSOut vsMain(in uint vertexId : SV_VertexID)
 {
     VSOut result;
-    VertexWithColor vertex = vertices[vertexId];
+    float3 position = positions[vertexId];
+    float4 color = colors[vertexId];
 
-    result.position = mul(world2View, float4(vertex.position, 1.f));
-    result.color = vertex.color.xyz;
+    result.position = mul(world2View, float4(position, 1.f));
+    result.color = color.xyz;
 
     return result;
 }
