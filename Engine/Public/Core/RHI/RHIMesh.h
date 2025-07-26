@@ -27,9 +27,11 @@ namespace Turbo
 	public:
 		[[nodiscard]] bool IsValid() const;
 		[[nodiscard]] size_t GetVertexBufferSize() const;
+
+		void Reserve(size_t numVertices, size_t numIndices);
 	};
 
-	enum class EVertexComponents
+	enum class EVertexComponents : uint8
 	{
 		None = 0,
 

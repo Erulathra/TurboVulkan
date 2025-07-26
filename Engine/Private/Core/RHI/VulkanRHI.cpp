@@ -1,5 +1,6 @@
 #include "Core/RHI/VulkanRHI.h"
 
+#include "AssetLoading/MeshLoader.h"
 #include "Core/CoreUtils.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
@@ -16,6 +17,7 @@
 #include "backends/imgui_impl_vulkan.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "Core/CoreTimer.h"
+#include "Core/Math/Vector.h"
 #include "Core/RHI/RHIMesh.h"
 #include "Rendering/Pipelines/MeshGPPipeline.h"
 #include "Rendering/Pipelines/TestGPPipeline.h"
@@ -66,7 +68,7 @@ namespace Turbo
     void FVulkanRHI::Destroy()
     {
         // TODO: Remove me
-        mSceneData.mRectMesh = nullptr;
+        mSceneData.mTestMesh = nullptr;
 
         if (mDevice)
         {
@@ -260,24 +262,7 @@ namespace Turbo
         mSceneData.mGraphicsPipeline = std::make_unique<FMeshGPPipeline>(mDevice.get());
         mSceneData.mGraphicsPipeline->Init();
 
-        FRHIMeshCreationInfo meshCreateInfo;
-        meshCreateInfo.Positions = {
-            {0.5f, -0.5, 0.f},
-            {0.5f, 0.5, 0.f},
-            {-0.5f, -0.5, 0.f},
-            {-0.5f, 0.5, 0.f}
-        };
-
-        meshCreateInfo.Colors = {
-            {0.f, 0.f, 1.f, 1.f},
-            {1.f, 0.f, 0.f, 1.f},
-            {1.f, 0.f, 0.f, 1.f},
-            {0.f, 0.f, 1.f, 1.f}
-        };
-
-        meshCreateInfo.Indices = {0, 1, 2, 2, 1, 3};
-
-        mSceneData.mRectMesh = FRHIMesh::CreateUnique(mDevice.get(), meshCreateInfo);
+        mSceneData.mTestMesh = IMeshLoader::Get()->LoadMesh(mDevice.get(), std::filesystem::path{"Content/Meshes/BlenderMonkey.glb"}, ELoadMeshFlags::LoadVertexWithColor);
 
         mMainDeletionQueue.OnDestroy().AddLambda([this]()
         {
@@ -365,7 +350,14 @@ namespace Turbo
 
     void FVulkanRHI::DrawScene(const vk::CommandBuffer& cmd)
     {
-        constexpr glm::vec4 clearColor = ELinearColor::kBlack;
+        ImGui::Begin("Turbo VULKAN!");
+        ImGui::Text("FrameTime: %2f ms, FPS: %1f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
+        static glm::vec3 cameraPosition;
+        ImGui::DragFloat3("CameraPos", glm::value_ptr(cameraPosition));
+
+        ImGui::End();
+
+        const glm::vec4 clearColor = ELinearColor::kBlack;
         const vk::ClearColorValue clearColorValue { clearColor.r, clearColor.g, clearColor.b, 1.f};
         const vk::ImageSubresourceRange clearSubresourceRange = VulkanInitializers::ImageSubresourceRange();
 
@@ -386,21 +378,21 @@ namespace Turbo
         cmd.setViewport(0, 1, &viewport);
         cmd.setScissor(0, 1, &scissor);
 
+        const glm::vec2 viewSize = mDrawImage->GetSize();
+        const glm::mat4 projectionMatrix = glm::perspectiveFov(glm::radians(60.f), viewSize.x, viewSize.y, 0.1f, 100.f);
+        const glm::mat4 viewMatrix = glm::lookAt(cameraPosition, glm::vec3(0.f), EVec3::Up);
+
+        const glm::mat4 cameraMatrix = projectionMatrix * viewMatrix;
+
         mSceneData.mGraphicsPipeline->Bind(cmd);
-        const FMeshGPPipeline::FPushConstants pushConstants {glm::mat4(1.f), mSceneData.mRectMesh->GetPositionsAddress(), mSceneData.mRectMesh->GetColorAddress()};
+        const FMeshGPPipeline::FPushConstants pushConstants {cameraMatrix, mSceneData.mTestMesh->GetPositionsAddress(), mSceneData.mTestMesh->GetColorAddress()};
         mSceneData.mGraphicsPipeline->PushConstants(cmd, vk::ShaderStageFlagBits::eVertex, pushConstants);
-        mSceneData.mRectMesh->Draw(cmd);
+        mSceneData.mTestMesh->Draw(cmd);
 
         cmd.endRendering();
 
         VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eAttachmentOptimal, vk::ImageLayout::eGeneral);
 
-        ImGui::Begin("Turbo VULKAN!");
-        ImGui::Text("FrameTime: %2f ms, FPS: %1f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
-        float test;
-        ImGui::SliderFloat("Testowy Float", &test, 0.f, 1.f);
-
-        ImGui::End();
     }
 
     void FVulkanRHI::PresentImage()

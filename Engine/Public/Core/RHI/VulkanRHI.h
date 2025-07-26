@@ -12,15 +12,7 @@
 namespace Turbo
 {
 	class FRHIMesh;
-}
-
-namespace Turbo
-{
 	class FGraphicsPipelineBase;
-}
-
-namespace Turbo
-{
 	class FComputePipeline;
 	class FDescriptorAllocator;
 	class FImage;
@@ -171,13 +163,12 @@ namespace Turbo
 		std::unique_ptr<FDescriptorAllocator> mMainDescriptorAllocator;
 		FRHIDestroyQueue mMainDeletionQueue;
 
-
 		/** TODO: REMOVE ME */
 		struct FSceneData
 		{
 			std::unique_ptr<FComputePipeline> mComputePipeline;
 			std::unique_ptr<FGraphicsPipelineBase> mGraphicsPipeline;
-			std::unique_ptr<FRHIMesh> mRectMesh;
+			std::shared_ptr<FRHIMesh> mTestMesh;
 		} mSceneData;
 		/** TODO: REMOVE ME END */
 

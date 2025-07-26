@@ -72,22 +72,15 @@
 #define TURBO_STATIC_ASSERT_MSG(CONDITION, MSG) static_assert(CONDITION, "Static assert '" #CONDITION "' failed. Message: " MSG)
 
 #if DEBUG
-namespace Turbo
-{
-	inline bool Ensure_Impl(bool bCondition)
-	{
-		if (!bCondition)
-		{
-			TURBO_DEBUG_BREAK();
-		}
 
-		return bCondition;
-	}
-}
+#define TURBO_ENSURE(CONDITION) \
+if (!(CONDITION))				\
+{								\
+	TURBO_DEBUG_BREAK();		\
+}								\
 
-#define TURBO_ENSURE(CONDITION) Ensure_Impl(CONDITION)
 #else
-#define TURBO_ENSURE(CONDITION) CONDITION
+#define TURBO_ENSURE(CONDITION) {}
 #endif // DEBUG
 
 // Other

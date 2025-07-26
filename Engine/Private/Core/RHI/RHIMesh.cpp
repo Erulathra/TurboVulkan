@@ -19,6 +19,16 @@ namespace Turbo {
 			+ Colors.size() * sizeof(glm::vec4);
 	}
 
+	void FRHIMeshCreationInfo::Reserve(size_t numVertices, size_t numIndices)
+	{
+		Positions.reserve(numVertices);
+		Normals.reserve(numVertices);
+		UVs.reserve(numVertices);
+		Colors.reserve(numVertices);
+
+		Indices.reserve(numIndices);
+	}
+
 	std::shared_ptr<FRHIMesh> FRHIMesh::CreateShared(FVulkanDevice* device, const FRHIMeshCreationInfo& creationInfo)
 	{
 		std::shared_ptr<FRHIMesh> result(new FRHIMesh());
@@ -45,6 +55,10 @@ namespace Turbo {
 		if (creationInfo.SubMeshes.empty())
 		{
 			mSubMeshes.emplace_back(0, creationInfo.Indices.size());
+		}
+		else
+		{
+			mSubMeshes = creationInfo.SubMeshes;
 		}
 
 		const size_t vertexBufferSize = creationInfo.GetVertexBufferSize();
