@@ -7,7 +7,7 @@ namespace Turbo
 {
 	namespace VulkanUtils
 	{
-		void TransitionImage(const vk::CommandBuffer& cmd, const vk::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+		void TransitionImage(const vk::CommandBuffer& cmd, const vk::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor);
 		void BlitImage(const vk::CommandBuffer& cmd, const vk::Image& src, const glm::uvec2& srcSize, const vk::Image& dst, const glm::uvec2& dstSize);
 
 		inline vk::Extent2D ToExtent2D(const glm::uvec2& size) { return {size.x, size.y}; }

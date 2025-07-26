@@ -15,4 +15,20 @@ namespace Turbo {
 
 		return {pushConstantRange};
 	}
+
+	vk::Format FMeshGPPipeline::GetDepthFormat()
+	{
+		return vk::Format::eD32Sfloat;
+	}
+
+	vk::PipelineDepthStencilStateCreateInfo FMeshGPPipeline::InitDepthStencilState()
+	{
+		vk::PipelineDepthStencilStateCreateInfo depthStencilState = Super::InitDepthStencilState();
+		depthStencilState.setDepthTestEnable(true);
+		depthStencilState.setDepthWriteEnable(true);
+		depthStencilState.setDepthCompareOp(vk::CompareOp::eGreaterOrEqual);
+		depthStencilState.setDepthBoundsTestEnable(false);
+
+		return depthStencilState;
+	}
 } // Turbo

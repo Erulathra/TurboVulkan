@@ -49,20 +49,20 @@ namespace Turbo
 	{
 	}
 
-	std::unique_ptr<FImage> FImage::CreateUnique(FVulkanDevice* device, glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags)
+	std::unique_ptr<FImage> FImage::CreateUnique(FVulkanDevice* device, const FImageCreateInfo& imageCreateInfo)
 	{
 		TURBO_CHECK(device);
 		std::unique_ptr<FImage> resultImage(new FImage(device));
-		resultImage->InitResource(size, format, flags);
+		resultImage->InitResource(imageCreateInfo);
 
 		return std::move(resultImage);
 	}
 
-	std::shared_ptr<FImage> FImage::CreateShared(FVulkanDevice* device, glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags)
+	std::shared_ptr<FImage> FImage::CreateShared(FVulkanDevice* device, const FImageCreateInfo& imageCreateInfo)
 	{
 		TURBO_CHECK(device);
 		std::shared_ptr<FImage> resultImage(new FImage(device));
-		resultImage->InitResource(size, format, flags);
+		resultImage->InitResource(imageCreateInfo);
 
 		return std::move(resultImage);
 	}
@@ -94,13 +94,13 @@ namespace Turbo
 		mAllocation = nullptr;
 	}
 
-	void FImage::InitResource(glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags)
+	void FImage::InitResource(const FImageCreateInfo& createInfo)
 	{
-		mSize = size;
-		mFormat = format;
-		mUsageFlags = flags;
+		mSize = createInfo.Size;
+		mFormat = createInfo.Format;
+		mUsageFlags = createInfo.UsageFlags;
 
-		vk::ImageCreateInfo imageCreateInfo = VulkanInitializers::Image2DCreateInfo(format, flags, VulkanUtils::ToExtent2D(size));
+		vk::ImageCreateInfo imageCreateInfo = VulkanInitializers::Image2DCreateInfo(mFormat, mUsageFlags, VulkanUtils::ToExtent2D(mSize));
 		vma::AllocationCreateInfo imageAllocationInfo{};
 		imageAllocationInfo.usage = vma::MemoryUsage::eAutoPreferDevice;
 		imageAllocationInfo.requiredFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
@@ -109,7 +109,7 @@ namespace Turbo
 		CHECK_VULKAN_RESULT(allocationResult, mDevice->GetAllocator().createImage(imageCreateInfo, imageAllocationInfo))
 		std::tie(mImage, mAllocation) = allocationResult;
 
-		const vk::ImageViewCreateInfo imageViewCreateInfo = VulkanInitializers::ImageView2DCreateInfo(format, mImage, vk::ImageAspectFlagBits::eColor);
+		const vk::ImageViewCreateInfo imageViewCreateInfo = VulkanInitializers::ImageView2DCreateInfo(mFormat, mImage, createInfo.AspectFlags);
 
 		CHECK_VULKAN_RESULT(mImageView, mDevice->Get().createImageView(imageViewCreateInfo, nullptr));
 	}

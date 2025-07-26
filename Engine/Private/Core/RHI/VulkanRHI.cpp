@@ -203,15 +203,19 @@ namespace Turbo
     void FVulkanRHI::InitDrawImage()
     {
         TURBO_CHECK(mDevice);
-        mDrawImage = FImage::CreateUnique(
-            mDevice.get(),
-            gEngine->GetWindow()->GetFrameBufferSize(),
-            vk::Format::eR16G16B16A16Sfloat,
-            vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage |
-            vk::ImageUsageFlagBits::eColorAttachment
-        );
 
+        FImageCreateInfo createInfo;
+        createInfo.Size = gEngine->GetWindow()->GetFrameBufferSize();
+        createInfo.Format = vk::Format::eR16G16B16A16Sfloat;
+        createInfo.UsageFlags = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eColorAttachment;
+        mDrawImage = FImage::CreateUnique(mDevice.get(), createInfo);
         mDrawImage->RequestDestroy(GetMainDeletionQueue());
+
+        createInfo.Format = vk::Format::eD32Sfloat;
+        createInfo.UsageFlags = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eDepthStencilAttachment;
+        createInfo.AspectFlags = vk::ImageAspectFlagBits::eDepth;
+        mDepthImage = FImage::CreateUnique(mDevice.get(), createInfo);
+        mDepthImage->RequestDestroy(GetMainDeletionQueue());
     }
 
     void FVulkanRHI::InitDescriptors()
@@ -314,6 +318,7 @@ namespace Turbo
         CHECK_VULKAN_HPP(fd.mCMD.begin(bufferBeginInfo));
 
         VulkanUtils::TransitionImage(fd.mCMD, mDrawImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+        VulkanUtils::TransitionImage(fd.mCMD, mDepthImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, vk::ImageAspectFlagBits::eDepth);
         DrawScene(fd.mCMD);
 
         BlitDrawImageToSwapchainImage(fd.mCMD);
@@ -352,24 +357,27 @@ namespace Turbo
     {
         ImGui::Begin("Turbo VULKAN!");
         ImGui::Text("FrameTime: %2f ms, FPS: %1f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
-        static glm::vec3 cameraPosition;
-        ImGui::DragFloat3("CameraPos", glm::value_ptr(cameraPosition));
+        static glm::vec3 cameraPosition = glm::vec3(0.f, 0.f, 3.f);
+        ImGui::DragFloat3("CameraPos", glm::value_ptr(cameraPosition), 0.1f);
 
         ImGui::End();
 
-        const glm::vec4 clearColor = ELinearColor::kBlack;
+        const glm::vec4 clearColor = ELinearColor::kBlue;
         const vk::ClearColorValue clearColorValue { clearColor.r, clearColor.g, clearColor.b, 1.f};
-        const vk::ImageSubresourceRange clearSubresourceRange = VulkanInitializers::ImageSubresourceRange();
+        const vk::ImageSubresourceRange clearColorSubresourceRange = VulkanInitializers::ImageSubresourceRange();
 
-        cmd.clearColorImage(mDrawImage->GetImage(), vk::ImageLayout::eGeneral, clearColorValue, clearSubresourceRange);
+        cmd.clearColorImage(mDrawImage->GetImage(), vk::ImageLayout::eGeneral, clearColorValue, clearColorSubresourceRange);
 
-        glm::ivec3 dispatchSize = glm::ivec3( glm::ceil(glm::vec2(mDrawImage->GetSize()) / 8.f), 1);
-        mSceneData.mComputePipeline->Dispatch(cmd, dispatchSize);
+        constexpr vk::ClearDepthStencilValue clearDepthValue {0.f, 0};
+        const vk::ImageSubresourceRange clearDepthSubresourceRange = VulkanInitializers::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth);
+        cmd.clearDepthStencilImage(mDepthImage->GetImage(), vk::ImageLayout::eGeneral, clearDepthValue, clearDepthSubresourceRange);
 
         VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eAttachmentOptimal);
+        VulkanUtils::TransitionImage(cmd, mDepthImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageAspectFlagBits::eDepth);
 
         const vk::RenderingAttachmentInfo colorAttachment = VulkanInitializers::AttachmentInfo(mDrawImage->GetImageView());
-        const vk::RenderingInfo renderInfo = VulkanInitializers::RenderingInfo(mSwapChain->GetImageSize(), &colorAttachment);
+        const vk::RenderingAttachmentInfo depthAttachment = VulkanInitializers::AttachmentInfo(mDepthImage->GetImageView());
+        const vk::RenderingInfo renderInfo = VulkanInitializers::RenderingInfo(mSwapChain->GetImageSize(), &colorAttachment, &depthAttachment);
         cmd.beginRendering(&renderInfo);
 
         const vk::Viewport viewport = GetMainViewport();
@@ -379,13 +387,18 @@ namespace Turbo
         cmd.setScissor(0, 1, &scissor);
 
         const glm::vec2 viewSize = mDrawImage->GetSize();
-        const glm::mat4 projectionMatrix = glm::perspectiveFov(glm::radians(60.f), viewSize.x, viewSize.y, 0.1f, 100.f);
+        const glm::mat4 projectionMatrix = glm::perspectiveFov(glm::radians(60.f), viewSize.x, viewSize.y, 100.f, 0.1f);
         const glm::mat4 viewMatrix = glm::lookAt(cameraPosition, glm::vec3(0.f), EVec3::Up);
 
         const glm::mat4 cameraMatrix = projectionMatrix * viewMatrix;
 
         mSceneData.mGraphicsPipeline->Bind(cmd);
-        const FMeshGPPipeline::FPushConstants pushConstants {cameraMatrix, mSceneData.mTestMesh->GetPositionsAddress(), mSceneData.mTestMesh->GetColorAddress()};
+        const FMeshGPPipeline::FPushConstants pushConstants{
+            cameraMatrix, mSceneData.mTestMesh->GetPositionsAddress(),
+            mSceneData.mTestMesh->GetNormalsAddress(),
+            mSceneData.mTestMesh->GetColorAddress()
+        };
+
         mSceneData.mGraphicsPipeline->PushConstants(cmd, vk::ShaderStageFlagBits::eVertex, pushConstants);
         mSceneData.mTestMesh->Draw(cmd);
 

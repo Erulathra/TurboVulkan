@@ -7,6 +7,14 @@ namespace Turbo
 	class FVulkanDevice;
 	class FRHIDestroyQueue;
 
+	struct FImageCreateInfo
+	{
+		glm::ivec2 Size{};
+		vk::Format Format{};
+		vk::ImageUsageFlags UsageFlags{};
+		vk::ImageAspectFlags AspectFlags = vk::ImageAspectFlagBits::eColor;
+	};
+
 	class FImage
 	{
 		GENERATED_BODY(FImage)
@@ -20,8 +28,8 @@ namespace Turbo
 		FImage(const FImage& other) = delete;
 
 	public:
-		static std::unique_ptr<FImage> CreateUnique(FVulkanDevice* device, glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags);
-		static std::shared_ptr<FImage> CreateShared(FVulkanDevice* device, glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags);
+		static std::unique_ptr<FImage> CreateUnique(FVulkanDevice* device, const FImageCreateInfo& imageCreateInfo);
+		static std::shared_ptr<FImage> CreateShared(FVulkanDevice* device, const FImageCreateInfo& imageCreateInfo);
 
 		~FImage();
 
@@ -37,7 +45,7 @@ namespace Turbo
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
 
 	private:
-		void InitResource(glm::ivec2 size, vk::Format format, vk::ImageUsageFlags flags);
+		void InitResource(const FImageCreateInfo& createInfo);
 
 	private:
 		FVulkanDevice* mDevice;

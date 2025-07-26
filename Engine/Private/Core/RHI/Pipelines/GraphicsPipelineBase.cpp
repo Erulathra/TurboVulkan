@@ -182,7 +182,6 @@ namespace Turbo {
 
 	vk::PipelineDepthStencilStateCreateInfo FGraphicsPipelineBase::InitDepthStencilState()
 	{
-		// TODO: Enable depth test by default
 		vk::PipelineDepthStencilStateCreateInfo depthStencilState{};
 		depthStencilState.setDepthTestEnable(false);
 		depthStencilState.setDepthWriteEnable(false);

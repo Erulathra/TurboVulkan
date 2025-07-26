@@ -81,6 +81,7 @@ namespace Turbo
 	private:
 		std::vector<FFrameData> mFrameDatas;
 		std::unique_ptr<FImage> mDrawImage;
+		std::unique_ptr<FImage> mDepthImage;
 
 		uint32 mSwapChainImageIndex = 0;
 		uint64 mFrameNumber = 0;

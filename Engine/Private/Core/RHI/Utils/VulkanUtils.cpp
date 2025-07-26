@@ -7,7 +7,9 @@ namespace Turbo {
 		const vk::CommandBuffer& cmd,
 		const vk::Image& image,
 		const vk::ImageLayout oldLayout,
-		const vk::ImageLayout newLayout)
+		const vk::ImageLayout newLayout,
+		const vk::ImageAspectFlags aspectMask
+		)
 	{
 		vk::ImageMemoryBarrier2 imageBarrier{};
 		imageBarrier.setPNext(nullptr);
@@ -19,11 +21,6 @@ namespace Turbo {
 
 		imageBarrier.setOldLayout(oldLayout);
 		imageBarrier.setNewLayout(newLayout);
-
-		const vk::ImageAspectFlags aspectMask =
-			newLayout == vk::ImageLayout::eColorAttachmentOptimal
-				? vk::ImageAspectFlagBits::eDepth
-				: vk::ImageAspectFlagBits::eColor;
 
 		imageBarrier.setSubresourceRange(VulkanInitializers::ImageSubresourceRange(aspectMask));
 		imageBarrier.setImage(image);
