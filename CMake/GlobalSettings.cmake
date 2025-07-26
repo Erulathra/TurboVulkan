@@ -22,3 +22,16 @@ if (MSVC)
 endif ()
 
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+
+set(BuildType false CACHE STRING "Build type")
+
+set(BuildType_Development "Development")
+set(BuildType_Shipping "Shipping")
+
+if (${BuildType} STREQUAL BuildType_Shipping)
+    add_compile_definitions(TURBO_BUILD_SHIPPING)
+    set(TURBO_BUILD_SHIPPING true)
+else ()
+    add_compile_definitions(TURBO_BUILD_DEVELOPMENT)
+    set(TURBO_BUILD_DEVELOPMENT true)
+endif ()

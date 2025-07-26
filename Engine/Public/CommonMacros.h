@@ -29,6 +29,8 @@
 #endif // else DEBUG
 
 // Assertions
+#if WITH_ASSERTIONS
+
 #define TURBO_CHECK(CONDITION)																	\
 	if (!(CONDITION))																			\
 	{																							\
@@ -44,6 +46,13 @@
 		TURBO_DEBUG_BREAK();																							\
 		std::terminate();																								\
 	}
+
+#else // WITH_ASSERTIONS
+
+#define TURBO_CHECK(CONDITION) {}
+#define TURBO_CHECK_MSG(CONDITION, MESSAGE, ...) {}
+
+#endif // else WITH_ASSERTIONS
 
 #define TURBO_UNINPLEMENTED()																							\
 	{																													\

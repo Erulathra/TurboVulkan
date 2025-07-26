@@ -26,6 +26,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
+target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
 target_link_libraries(${PROJECT_NAME} PRIVATE  VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp)
@@ -40,10 +41,16 @@ add_compile_definitions(TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 add_compile_definitions(VULKAN_HPP_NO_EXCEPTIONS)
 add_compile_definitions(VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 
-# Tracy profiler support
-# Enable profiler when the `WITH_PROFILER` command line option is provided
-SET(WITH_PROFILER false CACHE BOOL "Enable profiling support.")
+if (${TURBO_BUILD_SHIPPING})
+    SET(WITH_PROFILER false)
+    add_compile_definitions(WITH_ASSERTIONS=0)
+else ()
+    SET(WITH_PROFILER true)
+    add_compile_definitions(WITH_ASSERTIONS=1)
+endif ()
 
+
+# Tracy profiler support
 if (${WITH_PROFILER})
     message("[TURBO] Enabling profiling support")
 
@@ -58,7 +65,6 @@ else ()
 
     add_compile_definitions(WITH_PROFILER=0)
 endif ()
-
 
 
 

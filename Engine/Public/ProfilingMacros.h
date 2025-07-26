@@ -30,7 +30,7 @@ inline void operator delete ( void * ptr ) noexcept
 
 #else
 
-#define TRACE_ZONE()
+#define TRACE_ZONE_SCOPED()
 #define TRACE_MARK_FRAME()
 
 #endif
