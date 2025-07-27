@@ -235,6 +235,8 @@ namespace Turbo {
 		vk::PipelineRasterizationStateCreateInfo rasterizationState{};
 		rasterizationState.setPolygonMode(GetPolygonMode());
 		rasterizationState.setLineWidth(GetPolygonLineWidth());
+		rasterizationState.setCullMode(GetCullMode());
+		rasterizationState.setPolygonMode(GetPolygonMode());
 
 		return rasterizationState;
 	}
