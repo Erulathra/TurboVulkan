@@ -1,5 +1,6 @@
 #pragma once
 #include "Window.h"
+#include "Input/Input.h"
 
 namespace Turbo
 {
@@ -36,6 +37,7 @@ namespace Turbo
 	public:
 		[[nodiscard]] FVulkanRHI* GetRHI() const { return mRHIInstance.get(); };
 		[[nodiscard]] FSDLWindow* GetWindow() const { return mMainWindowInstance.get(); };
+		[[nodiscard]] IInputSystem* GetInputSystem() const { return mInputSystemInstance.get(); };
 
 		[[nodiscard]] FCoreTimer* GetTimer() const { return mCoreTimer.get(); }
 
@@ -43,6 +45,8 @@ namespace Turbo
 		// Replace us with GenericRHI
 		std::unique_ptr<FVulkanRHI> mRHIInstance;
 		std::unique_ptr<FSDLWindow> mMainWindowInstance;
+
+		std::unique_ptr<IInputSystem> mInputSystemInstance;
 
 		std::unique_ptr<FCoreTimer> mCoreTimer;
 

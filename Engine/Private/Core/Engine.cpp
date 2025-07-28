@@ -3,7 +3,9 @@
 #include "Core/CoreTimer.h"
 #include "Core/RHI/VulkanRHI.h"
 #include "Core/Window.h"
-#include "Core/RHI/SwapChain.h"
+#include "Core/Input/Input.h"
+#include "Core/Input/FSDLInputSystem.h"
+#include "Core/Input/Keys.h"
 
 namespace Turbo
 {
@@ -16,7 +18,7 @@ namespace Turbo
 
 	void FEngine::Init()
 	{
-		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Creating engine instance.");
+		TURBO_LOG(LOG_ENGINE, Info, "Creating engine instance.");
 		gEngine = std::unique_ptr<FEngine>(new FEngine());
 
 		// TODO: Move thread configuration to separate class
@@ -35,6 +37,7 @@ namespace Turbo
 
 		mRHIInstance = std::unique_ptr<FVulkanRHI>(new FVulkanRHI());
 		mMainWindowInstance = std::unique_ptr<FSDLWindow>(new FSDLWindow());
+		mInputSystemInstance = std::unique_ptr<FSDLInputSystem>(new FSDLInputSystem());
 
 		mMainWindowInstance->InitBackend();
 		mRHIInstance->InitWindow(mMainWindowInstance.get());
@@ -43,8 +46,9 @@ namespace Turbo
 		{
 			return static_cast<int32_t>(EExitCode::WindowCreationError);
 		}
-
 		mMainWindowInstance->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
+
+		mInputSystemInstance->Init();
 
 		mRHIInstance->Init();
 		mMainWindowInstance->ShowWindow(true);
@@ -72,7 +76,7 @@ namespace Turbo
 	{
 		mCoreTimer->Tick();
 
-		TURBO_LOG(LOG_ENGINE, LOG_DISPLAY, "Engine Tick. FrameTime: {}, FPS: {}", mCoreTimer->GetDeltaTime(), 1.f / mCoreTimer->GetDeltaTime());
+		TURBO_LOG(LOG_ENGINE, Display, "Engine Tick. FrameTime: {}, FPS: {}", mCoreTimer->GetDeltaTime(), 1.f / mCoreTimer->GetDeltaTime());
 
 		GetRHI()->Tick();
 
@@ -85,13 +89,19 @@ namespace Turbo
 		{
 			RequestExit(EExitCode::Success);
 		}
+		else if (event == EWindowEvent::WindowResized)
+		{
+			const glm::vec2 windowSize = GetWindow()->GetFrameBufferSize();
+			TURBO_LOG(LOG_ENGINE, Info, "Window resized. New size {}", windowSize)
+		}
 	}
 
 	void FEngine::End()
 	{
-		TURBO_LOG(LOG_ENGINE, LOG_INFO, "Begin exit sequence.");
+		TURBO_LOG(LOG_ENGINE, Info, "Begin exit sequence.");
 
 		mRHIInstance->Destroy();
+		mInputSystemInstance->Destroy();
 		mMainWindowInstance->Destroy();
 		mMainWindowInstance->StopBackend();
 

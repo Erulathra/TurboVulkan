@@ -14,7 +14,7 @@ Turbo::FGLTFMeshLoader::~FGLTFMeshLoader() = default;
 
 std::shared_ptr<Turbo::FRHIMesh> Turbo::FGLTFMeshLoader::LoadMesh(FVulkanDevice* device, const std::filesystem::path& path, ELoadMeshFlags loadMeshFlags)
 {
-	TURBO_LOG(LOG_STREAMING, LOG_INFO, "Loading GLTF mesh: {}.", path.c_str());
+	TURBO_LOG(LOG_STREAMING, Info, "Loading GLTF mesh: {}.", path.c_str());
 
 	// Currently only this type is supported
 	TURBO_ENSURE(loadMeshFlags == ELoadMeshFlags::LoadVertexWithColor);
@@ -22,14 +22,14 @@ std::shared_ptr<Turbo::FRHIMesh> Turbo::FGLTFMeshLoader::LoadMesh(FVulkanDevice*
 	fastgltf::Expected<fastgltf::GltfDataBuffer> meshData = fastgltf::GltfDataBuffer::FromPath(path);
 	if (meshData.error() != fastgltf::Error::None)
 	{
-		TURBO_LOG(LOG_STREAMING, LOG_ERROR, "GLTF Mesh load error. Reason: {}", magic_enum::enum_name(meshData.error()));
+		TURBO_LOG(LOG_STREAMING, Error, "GLTF Mesh load error. Reason: {}", magic_enum::enum_name(meshData.error()));
 		return nullptr;
 	}
 
 	fastgltf::Expected<fastgltf::Asset> meshAsset = mParser.loadGltf(meshData.get(), path.parent_path());
 	if (meshAsset.error() != fastgltf::Error::None)
 	{
-		TURBO_LOG(LOG_STREAMING, LOG_ERROR, "GLTF Mesh parsing error. Reason: {}", magic_enum::enum_name(meshAsset.error()));
+		TURBO_LOG(LOG_STREAMING, Error, "GLTF Mesh parsing error. Reason: {}", magic_enum::enum_name(meshAsset.error()));
 		return nullptr;
 	}
 

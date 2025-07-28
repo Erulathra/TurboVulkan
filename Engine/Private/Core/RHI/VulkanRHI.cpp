@@ -112,7 +112,7 @@ namespace Turbo
 
     void FVulkanRHI::CreateVulkanInstance()
     {
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Initialize VOLK");
+        TURBO_LOG(LOG_RHI, Info, "Initialize VOLK");
 
         VULKAN_HPP_DEFAULT_DISPATCHER.init();
 
@@ -136,7 +136,7 @@ namespace Turbo
 #if WITH_VALIDATION_LAYERS
         if (CheckValidationLayersSupport())
         {
-            TURBO_LOG(LOG_RHI, LOG_INFO, "Validation layers supported.")
+            TURBO_LOG(LOG_RHI, Info, "Validation layers supported.")
 
             createInfo.enabledLayerCount = kVulkanValidationLayers.size();
             createInfo.ppEnabledLayerNames = kVulkanValidationLayers.data();
@@ -146,7 +146,7 @@ namespace Turbo
         else
 #endif // else !WITH_VALIDATION_LAYERS
         {
-            TURBO_LOG(LOG_RHI, LOG_INFO, "Validation layers are unsupported or disabled.")
+            TURBO_LOG(LOG_RHI, Info, "Validation layers are unsupported or disabled.")
 
             createInfo.enabledLayerCount = 0;
             createInfo.ppEnabledLayerNames = nullptr;
@@ -155,7 +155,7 @@ namespace Turbo
         createInfo.enabledExtensionCount = extensionNames.size();
         createInfo.ppEnabledExtensionNames = extensionNames.data();
 
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Creating VKInstance.")
+        TURBO_LOG(LOG_RHI, Info, "Creating VKInstance.")
         CHECK_VULKAN_HPP(vk::createInstance(&createInfo, nullptr, &mVulkanInstance));
         VULKAN_HPP_DEFAULT_DISPATCHER.init(mVulkanInstance);
 
@@ -171,7 +171,7 @@ namespace Turbo
         {
             extensionsStream << "\t" << extension.extensionName << "\n";
         }
-        TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Supported Extensions: \n {}", extensionsStream.str());
+        TURBO_LOG(LOG_RHI, Display, "Supported Extensions: \n {}", extensionsStream.str());
     }
 
     void FVulkanRHI::DestroyVulkanInstance()
@@ -182,7 +182,7 @@ namespace Turbo
             DestroyValidationLayersCallbacks();
 #endif // WITH_VALIDATION_LAYERS
 
-            TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VKInstance.")
+            TURBO_LOG(LOG_RHI, Info, "Destroying VKInstance.")
             mVulkanInstance.destroy();
             mVulkanInstance = nullptr;
         }
@@ -191,7 +191,7 @@ namespace Turbo
     void FVulkanRHI::InitFrameData()
     {
         TURBO_CHECK(mDevice->IsValid());
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Initializing frame datas");
+        TURBO_LOG(LOG_RHI, Info, "Initializing frame datas");
 
         for (uint32 frameId = 0; frameId < mSwapChain->GetNumBufferedFrames(); ++frameId)
         {
@@ -467,14 +467,14 @@ namespace Turbo
 
             if (!bLayerFound)
             {
-                TURBO_LOG(LOG_RHI, LOG_CRITICAL, "Missing Validation Layer: {}", requestedValidationLayer);
+                TURBO_LOG(LOG_RHI, Critical, "Missing Validation Layer: {}", requestedValidationLayer);
                 bSuccess = false;
             }
         }
 
         if (bSuccess)
         {
-            TURBO_LOG(LOG_RHI, LOG_INFO, "All requested validation layers are supported.");
+            TURBO_LOG(LOG_RHI, Info, "All requested validation layers are supported.");
         }
 
         return bSuccess;
@@ -482,7 +482,7 @@ namespace Turbo
 
     void FVulkanRHI::SetupValidationLayersCallbacks()
     {
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Assigning validation layers callback.");
+        TURBO_LOG(LOG_RHI, Info, "Assigning validation layers callback.");
 
         vk::DebugUtilsMessengerCreateInfoEXT createInfo{};
 
@@ -501,7 +501,7 @@ namespace Turbo
     {
         if (mDebugMessengerHandle)
         {
-            TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying validation layers callback.");
+            TURBO_LOG(LOG_RHI, Info, "Destroying validation layers callback.");
             mVulkanInstance.destroyDebugUtilsMessengerEXT(mDebugMessengerHandle);
         }
     }
@@ -515,20 +515,20 @@ namespace Turbo
         using msgSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT;
         if (messageSeverity & msgSeverity::eVerbose)
         {
-            TURBO_LOG(LOG_RHI, LOG_DISPLAY, "{}", callbackData->pMessage)
+            TURBO_LOG(LOG_RHI, Display, "{}", callbackData->pMessage)
         }
         else if (messageSeverity & msgSeverity::eInfo)
         {
             // Messages with info severity are very verbose, so I reduced its verbosity to display.
-            TURBO_LOG(LOG_RHI, LOG_DISPLAY, "{}", callbackData->pMessage)
+            TURBO_LOG(LOG_RHI, Display, "{}", callbackData->pMessage)
         }
         else if (messageSeverity & msgSeverity::eWarning)
         {
-            TURBO_LOG(LOG_RHI, LOG_WARN, "{}", callbackData->pMessage)
+            TURBO_LOG(LOG_RHI, Warn, "{}", callbackData->pMessage)
         }
         else if (messageSeverity & msgSeverity::eError)
         {
-            TURBO_LOG(LOG_RHI, LOG_ERROR, "{}", callbackData->pMessage)
+            TURBO_LOG(LOG_RHI, Error, "{}", callbackData->pMessage)
             TURBO_DEBUG_BREAK();
         }
 
@@ -709,6 +709,6 @@ namespace Turbo
 
         vk::PhysicalDeviceProperties deviceProperties = mHardwareDevice->Get().getProperties();
         std::string_view deviceName{deviceProperties.deviceName};
-        TURBO_LOG(LOG_RHI, LOG_INFO, "Using \"{}\" as primary physical device. (Score: {})", deviceName, mHardwareDevice->CalculateDeviceScore());
+        TURBO_LOG(LOG_RHI, Info, "Using \"{}\" as primary physical device. (Score: {})", deviceName, mHardwareDevice->CalculateDeviceScore());
     }
 } // Turbo

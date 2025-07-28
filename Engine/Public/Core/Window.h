@@ -8,9 +8,13 @@ namespace Turbo
 {
 	enum class EWindowEvent : uint32_t
 	{
+		None = 0,
+
 		WindowCloseRequest,
 		FocusLost,
 		FocusGained,
+
+		WindowResized
 	};
 
 	// TODO: Replace that with config
@@ -22,9 +26,12 @@ namespace Turbo
 	}
 
 	DECLARE_MULTICAST_DELEGATE(FWindowEventDelegate, EWindowEvent);
+	DECLARE_DELEGATE(FOnSDLKeyboardEvent, const SDL_KeyboardEvent&);
 
 	class FSDLWindow
 	{
+		GENERATED_BODY(FSDLWindow)
+
 		/** Constexpr */
 	public:
 		/** Statics */
@@ -56,6 +63,11 @@ namespace Turbo
 		[[nodiscard]] glm::ivec2 GetFrameBufferSize() const;
 		[[nodiscard]] SDL_Window* GetWindow() const { return mSDLWindow; }
 
+		/** SDL Interface **/
+	public:
+		void BindKeyboardEvent(const FOnSDLKeyboardEvent& NewDelegate) { OnSdlKeyboardEvent = NewDelegate; }
+		void RemoveKeyboardEvent() { OnSdlKeyboardEvent = FOnSDLKeyboardEvent(); }
+
 		/** Vulkan Interface */
 	public:
 		void InitForVulkan();
@@ -69,13 +81,14 @@ namespace Turbo
 
 		/** Internal methods */
 	private:
-
 		static void LogError();
 
 		/** properties */
 	private:
 		SDL_Window* mSDLWindow = nullptr;
 		VkSurfaceKHR mVulkanSurface = nullptr;
+
+		FOnSDLKeyboardEvent OnSdlKeyboardEvent;
 
 	public:
 		friend class FEngine;

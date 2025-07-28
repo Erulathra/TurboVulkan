@@ -1,6 +1,8 @@
 #include "Core/Window.h"
 
 #include "backends/imgui_impl_sdl3.h"
+#include "Core/Engine.h"
+#include "Input/FSDLInputSystem.h"
 
 namespace Turbo
 {
@@ -9,7 +11,7 @@ namespace Turbo
 
 	void FSDLWindow::InitBackend()
 	{
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing SDL.");
+		TURBO_LOG(LOG_WINDOW, Info, "Initializing SDL.");
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
 			LogError();
@@ -18,24 +20,24 @@ namespace Turbo
 
 	void FSDLWindow::StopBackend()
 	{
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Stopping SDL.");
+		TURBO_LOG(LOG_WINDOW, Info, "Stopping SDL.");
 		SDL_Quit();
 	}
 
 	void FSDLWindow::Destroy()
 	{
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Destroying window.");
+		TURBO_LOG(LOG_WINDOW, Info, "Destroying window.");
 		SDL_DestroyWindow(mSDLWindow);
 	}
 
 	bool FSDLWindow::Init()
 	{
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Initializing Window.");
+		TURBO_LOG(LOG_WINDOW, Info, "Initializing Window.");
 		mSDLWindow = SDL_CreateWindow(WindowDefaultValues::kName.c_str(), WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY,
 		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN);
 		if (!mSDLWindow)
 		{
-			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "SDL window creation error. See bellow logs for details");
+			TURBO_LOG(LOG_WINDOW, Error, "SDL window creation error. See bellow logs for details");
 			LogError();
 
 			return false;
@@ -46,7 +48,7 @@ namespace Turbo
 
 	void FSDLWindow::LogError()
 	{
-		TURBO_LOG(LOG_WINDOW, LOG_ERROR, "SDL_ERROR: {}", SDL_GetError());
+		TURBO_LOG(LOG_WINDOW, Error, "SDL_ERROR: {}", SDL_GetError());
 	}
 
 	void FSDLWindow::PollWindowEventsAndErrors()
@@ -65,12 +67,16 @@ namespace Turbo
 				OnWindowEvent.Broadcast(EWindowEvent::FocusLost);
 			else if (event.type == SDL_EVENT_WINDOW_FOCUS_GAINED)
 				OnWindowEvent.Broadcast(EWindowEvent::FocusGained);
+			else if (event.type == SDL_EVENT_WINDOW_RESIZED)
+				OnWindowEvent.Broadcast(EWindowEvent::WindowResized);
+			else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP)
+				OnSdlKeyboardEvent.ExecuteIfBound(event.key);
 		}
 	}
 
 	void FSDLWindow::ShowWindow(bool bVisible)
 	{
-		TURBO_LOG(LOG_WINDOW, LOG_INFO, "Setting window visibility to {}", bVisible);
+		TURBO_LOG(LOG_WINDOW, Info, "Setting window visibility to {}", bVisible);
 
 		if (bVisible)
 		{
@@ -136,7 +142,7 @@ namespace Turbo
 
 		if (!SDL_Vulkan_CreateSurface(mSDLWindow, vulkanInstance, nullptr, &mVulkanSurface))
 		{
-			TURBO_LOG(LOG_WINDOW, LOG_ERROR, "Window Vulkan surface creation error. Check bellow logs:");
+			TURBO_LOG(LOG_WINDOW, Error, "Window Vulkan surface creation error. Check bellow logs:");
 			LogError();
 
 			return false;

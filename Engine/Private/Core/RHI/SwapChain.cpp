@@ -21,7 +21,7 @@ void FSwapChain::Init()
 
 	const FVulkanHardwareDevice* hardwareDevice = mDevice->GetHardwareDevice();
 
-	TURBO_LOG(LOG_RHI, LOG_INFO, "Creating Swap chain");
+	TURBO_LOG(LOG_RHI, Info, "Creating Swap chain");
 
 	const SwapChainDeviceSupportDetails supportDetails = hardwareDevice->QuerySwapChainSupport();
 
@@ -75,7 +75,7 @@ void FSwapChain::Init()
 	CHECK_VULKAN_HPP_MSG(vulkanResult, "Cannot create swapchain");
 
 	mImageFormat = createInfo.imageFormat;
-	TURBO_LOG(LOG_RHI, LOG_INFO, "Swapchain color format: {}", magic_enum::enum_name(mImageFormat));
+	TURBO_LOG(LOG_RHI, Info, "Swapchain color format: {}", magic_enum::enum_name(mImageFormat));
 
 	mImageSize = createInfo.imageExtent;
 
@@ -88,7 +88,7 @@ void FSwapChain::Init()
 
 void FSwapChain::Destroy()
 {
-	TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying Swap chain");
+	TURBO_LOG(LOG_RHI, Info, "Destroying Swap chain");
 	TURBO_CHECK(mDevice->IsValid());
 
 	for (int frameId = 0; frameId < GetNumBufferedFrames(); ++frameId)
@@ -153,7 +153,7 @@ vk::Extent2D FSwapChain::CalculateSwapChainExtent(const vk::SurfaceCapabilitiesK
 
 void FSwapChain::InitializeImageViews()
 {
-	TURBO_LOG(LOG_RHI, LOG_DISPLAY, "Creating swap chain's image views")
+	TURBO_LOG(LOG_RHI, Display, "Creating swap chain's image views")
 
 	mImageViews.resize(mImages.size());
 

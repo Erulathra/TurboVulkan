@@ -27,12 +27,12 @@ void FVulkanDevice::Init()
     vk::Instance vkInstance = gEngine->GetRHI()->GetVulkanInstance();
     TURBO_CHECK(vkInstance);
 
-    TURBO_LOG(LOG_RHI, LOG_INFO, "Creating logical device.")
+    TURBO_LOG(LOG_RHI, Info, "Creating logical device.")
 
     mQueueIndices = mHardwareDevice->GetQueueFamilyIndices();
     if (!mQueueIndices.IsValid())
     {
-        TURBO_LOG(LOG_RHI, LOG_ERROR, "Cannot obtain queue family indices.")
+        TURBO_LOG(LOG_RHI, Error, "Cannot obtain queue family indices.")
         return;
     }
 
@@ -86,7 +86,7 @@ void FVulkanDevice::InitAllocator()
 {
     TURBO_CHECK(mVulkanDevice && mHardwareDevice);
 
-    TURBO_LOG(LOG_RHI, LOG_INFO, "Creating memory allocator")
+    TURBO_LOG(LOG_RHI, Info, "Creating memory allocator")
 
     vma::AllocatorCreateInfo createInfo {};
     createInfo.instance = gEngine->GetRHI()->GetVulkanInstance();
@@ -129,10 +129,10 @@ void FVulkanDevice::SetupQueues()
 
 void FVulkanDevice::Destroy()
 {
-    TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying VMA's allocator");
+    TURBO_LOG(LOG_RHI, Info, "Destroying VMA's allocator");
     vmaDestroyAllocator(mAllocator);
 
-    TURBO_LOG(LOG_RHI, LOG_INFO, "Destroying logical device");
+    TURBO_LOG(LOG_RHI, Info, "Destroying logical device");
 
     if (mRenderCommandPool)
     {
@@ -175,7 +175,7 @@ vk::PhysicalDeviceFeatures2 FVulkanDevice::GetRequiredDeviceFeatures() const
 
 void FVulkanDevice::SetupCommandPools()
 {
-    TURBO_LOG(LOG_RHI, LOG_INFO, "Creating command pools.");
+    TURBO_LOG(LOG_RHI, Info, "Creating command pools.");
 
     const vk::CommandPoolCreateInfo createInfo = VulkanInitializers::CommandPoolCreateInfo(
         mHardwareDevice->GetQueueFamilyIndices().GraphicsFamily,
