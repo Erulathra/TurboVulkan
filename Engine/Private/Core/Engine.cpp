@@ -49,6 +49,13 @@ namespace Turbo
 		mMainWindowInstance->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
 		mInputSystemInstance->Init();
+		mInputSystemInstance->OnKeyEvent.AddLambda([](const FKeyEvent& keyEvent)
+		{
+			if (keyEvent.bDown && !keyEvent.bRepeat)
+			{
+				TURBO_LOG(LOG_INPUT, Info, "KeyEvent: {}", keyEvent.Key.keyName);
+			}
+		});
 
 		mRHIInstance->Init();
 		mMainWindowInstance->ShowWindow(true);
