@@ -63,6 +63,9 @@ namespace Turbo
 		[[nodiscard]] glm::ivec2 GetFrameBufferSize() const;
 		[[nodiscard]] SDL_Window* GetWindow() const { return mSDLWindow; }
 
+		[[nodiscard]] bool IsFullscreenEnabled() const;
+		void SetFullscreen(bool bFullscreen);
+
 		/** SDL Interface **/
 	public:
 		void BindKeyboardEvent(const FOnSDLKeyboardEvent& NewDelegate) { OnSdlKeyboardEvent = NewDelegate; }
@@ -89,6 +92,10 @@ namespace Turbo
 		VkSurfaceKHR mVulkanSurface = nullptr;
 
 		FOnSDLKeyboardEvent OnSdlKeyboardEvent;
+
+		bool mbFullscreenEnabled = false;
+
+		// bool bFullscreen
 
 	public:
 		friend class FEngine;

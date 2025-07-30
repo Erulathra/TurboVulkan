@@ -78,27 +78,14 @@ namespace Turbo
 		return false;
 	}
 
-	FOnActionEvent* FSDLInputSystem::GetActionEvent(FName actionName)
+	FOnActionEvent& FSDLInputSystem::GetActionEvent(FName actionName)
 	{
-		FOnActionEvent* result = nullptr;
-
-		if (const auto actionEventIt = mActionEventDelegates.find(actionName);
-			actionEventIt != mActionEventDelegates.end())
-		{
-			result = &actionEventIt->second;
-		}
-
-		return result;
+		return mActionEventDelegates[actionName];
 	}
 
 	bool FSDLInputSystem::RegisterBinding(FName actionName, const FKey& key)
 	{
 		mActionBindings[actionName] = key;
-
-		if (!mActionEventDelegates.contains(actionName))
-		{
-			mActionEventDelegates[actionName] = FOnActionEvent();
-		}
 
 		return true;
 	}

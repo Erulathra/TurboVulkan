@@ -70,6 +70,9 @@ namespace Turbo
 		void GameThreadLoop();
 		void GameThreadTick();
 
+		// TODO: Move me somewhere else
+		void SetupBasicInputBindings();
+
 		void HandleMainWindowEvents(EWindowEvent event);
 
 	private:

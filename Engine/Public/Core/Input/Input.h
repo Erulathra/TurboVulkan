@@ -83,7 +83,7 @@ namespace Turbo
 		virtual bool IsKeyPressed(const FKey& key) = 0;
 		virtual bool IsActionPressed(FName actionName) = 0;
 
-		virtual FOnActionEvent* GetActionEvent(FName actionName) = 0;
+		virtual FOnActionEvent& GetActionEvent(FName actionName) = 0;
 
 		virtual bool RegisterBinding(FName actionName, const FKey& key) = 0;
 		virtual std::unordered_map<FName, FKey>& GetBindings() = 0;

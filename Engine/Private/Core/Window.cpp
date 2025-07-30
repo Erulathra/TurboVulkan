@@ -100,6 +100,22 @@ namespace Turbo
 		return glm::ivec2(Result);
 	}
 
+	bool FSDLWindow::IsFullscreenEnabled() const
+	{
+		return mbFullscreenEnabled;
+	}
+
+	void FSDLWindow::SetFullscreen(bool bFullscreen)
+	{
+		if (!SDL_SetWindowFullscreen(mSDLWindow, bFullscreen))
+		{
+			LogError();
+			return;
+		}
+
+		 mbFullscreenEnabled = bFullscreen;
+	}
+
 	void FSDLWindow::InitForVulkan()
 	{
 		if (!SDL_Vulkan_LoadLibrary(nullptr))

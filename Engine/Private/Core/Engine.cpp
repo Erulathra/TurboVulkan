@@ -49,13 +49,8 @@ namespace Turbo
 		mMainWindowInstance->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
 		mInputSystemInstance->Init();
-		mInputSystemInstance->OnKeyEvent.AddLambda([](const FKeyEvent& keyEvent)
-		{
-			if (keyEvent.bDown && !keyEvent.bRepeat)
-			{
-				TURBO_LOG(LOG_INPUT, Info, "KeyEvent: {}", keyEvent.Key.keyName);
-			}
-		});
+
+		SetupBasicInputBindings();
 
 		mRHIInstance->Init();
 		mMainWindowInstance->ShowWindow(true);
@@ -88,6 +83,19 @@ namespace Turbo
 		GetRHI()->Tick();
 
 		TRACE_MARK_FRAME();
+	}
+
+	void FEngine::SetupBasicInputBindings()
+	{
+		const FName ToggleFullscreenName("ToggleFullscreen");
+		mInputSystemInstance->RegisterBinding(ToggleFullscreenName, EKeys::F12);
+		mInputSystemInstance->GetActionEvent(ToggleFullscreenName).AddLambda([this](const FActionEvent& actionEvent)
+		{
+			if (actionEvent.bDown)
+			{
+				mMainWindowInstance->SetFullscreen(!mMainWindowInstance->IsFullscreenEnabled());
+			}
+		});
 	}
 
 	void FEngine::HandleMainWindowEvents(EWindowEvent event)
