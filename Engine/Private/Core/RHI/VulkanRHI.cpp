@@ -449,7 +449,17 @@ namespace Turbo
         const FFrameData& fd = GetCurrentFrame();
 
         vk::PresentInfoKHR presentInfo = VulkanInitializers::PresentInfo(mSwapChain->GetVulkanSwapChain(), fd.mRenderSemaphore, mSwapChainImageIndex);
-        CHECK_VULKAN_HPP_MSG(mDevice->GetQueues().PresentQueue.presentKHR(presentInfo), "Cannot present swap chain image.");
+        const vk::Result result = mDevice->GetQueues().PresentQueue.presentKHR(presentInfo);
+
+        switch (result)
+        {
+        case vk::Result::eErrorOutOfDateKHR:
+            mSwapChain->RequestResize();
+            break;
+        default:
+            CHECK_VULKAN_HPP_MSG(result, "Cannot present swap chain image.");
+            break;
+        }
 
         mFrameNumber++;
     }

@@ -54,7 +54,7 @@ struct fmt::formatter<VkResult> : formatter<int32>
 	CHECK_VULKAN_HPP(_resultNew);																						\
 }
 
-#if DEBUG
+#if !TURBO_BUILD_SHIPPING
 #define CHECK_VULKAN_HPP_MSG(EXPRESSION, MESSAGE, ...)																						\
 {																																			\
 	vk::Result _result = (EXPRESSION);																										\
@@ -72,13 +72,9 @@ struct fmt::formatter<VkResult> : formatter<int32>
 		TURBO_CHECK_MSG(_result == vk::Result::eSuccess, "[Vulkan error: {}] " MESSAGE, _result __VA_OPT__(,) __VA_ARGS__);					\
 	}																																		\
 }
-#else // DEBUG
-#define CHECK_VULKAN_HPP_MSG(EXPRESSION, MESSAGE, ...)																						\
-{																																			\
-	vk::Result _result = (EXPRESSION);																										\
-	TURBO_CHECK_MSG(_result == vk::Result::eSuccess, "[Vulkan error: {}] " MESSAGE, _result __VA_OPT__(,) __VA_ARGS__);						\
-}
-#endif // else DEBUG
+#else
+#define CHECK_VULKAN_HPP_MSG(EXPRESSION, MESSAGE, ...) { (void)(EXPRESSION); }
+#endif // else TURBO_BUILD_SHIPPING
 
 
 constexpr inline uint32 kDefaultVulkanTimeout = 1000000000; // 1 second
