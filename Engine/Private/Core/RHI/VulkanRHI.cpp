@@ -58,6 +58,8 @@ namespace Turbo
         InitImmediateCommands();
         InitImGui();
         InitScene();
+
+        gEngine->GetWindow()->GetEventTypeDelegate(EWindowEvent::WindowResized).AddRaw(this, &ThisClass::HandleWindowResized);
     }
 
     void FVulkanRHI::InitWindow(FSDLWindow* window)
@@ -65,15 +67,27 @@ namespace Turbo
         window->InitForVulkan();
     }
 
+    void FVulkanRHI::HandleWindowResized(EWindowEvent windowEvent) const
+    {
+        if (mSwapChain)
+        {
+            mSwapChain->RequestResize();
+        }
+    }
+
     void FVulkanRHI::Destroy()
     {
         // TODO: Remove me
         mSceneData.mTestMesh = nullptr;
 
+        gEngine->GetWindow()->GetEventTypeDelegate(EWindowEvent::WindowResized).RemoveObject(this);
+
         if (mDevice)
         {
             CHECK_VULKAN_HPP(mDevice->Get().waitIdle());
         }
+
+        DestroyDrawImage();
 
         DestroyImGui();
 
@@ -209,13 +223,17 @@ namespace Turbo
         createInfo.Format = vk::Format::eR16G16B16A16Sfloat;
         createInfo.UsageFlags = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eColorAttachment;
         mDrawImage = FImage::CreateUnique(mDevice.get(), createInfo);
-        mDrawImage->RequestDestroy(GetMainDeletionQueue());
 
         createInfo.Format = vk::Format::eD32Sfloat;
         createInfo.UsageFlags = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eDepthStencilAttachment;
         createInfo.AspectFlags = vk::ImageAspectFlagBits::eDepth;
         mDepthImage = FImage::CreateUnique(mDevice.get(), createInfo);
-        mDepthImage->RequestDestroy(GetMainDeletionQueue());
+    }
+
+    void FVulkanRHI::DestroyDrawImage()
+    {
+        mDrawImage = nullptr;
+        mDepthImage = nullptr;
     }
 
     void FVulkanRHI::InitDescriptors()
@@ -290,6 +308,15 @@ namespace Turbo
         TRACE_ZONE_SCOPED();
 
         RenderSync();
+
+        if (mSwapChain->ResizeIfRequested())
+        {
+            // Resize draw image to match swapchain size
+
+            CHECK_VULKAN_HPP(mDevice->Get().waitIdle());
+            InitDrawImage();
+        }
+
         GetFrameDeletionQueue().Flush(mDevice.get());
 
         AcquireSwapChainImage();
@@ -305,7 +332,16 @@ namespace Turbo
         // Request image from a swap chain
         vk::Result result;
         std::tie(result, mSwapChainImageIndex) = mDevice->Get().acquireNextImageKHR(mSwapChain->GetVulkanSwapChain(), kDefaultVulkanTimeout, fd.mSwapChainSemaphore, nullptr);
-        CHECK_VULKAN_HPP_MSG(result, "Cannot obtain image from a swap chain.");
+
+        switch (result)
+        {
+        case vk::Result::eErrorOutOfDateKHR:
+            mSwapChain->RequestResize();
+            break;
+        default:
+            CHECK_VULKAN_HPP_MSG(result, "Cannot obtain image from a swap chain.");
+            break;
+        }
     }
 
     void FVulkanRHI::DrawFrame()
@@ -377,7 +413,7 @@ namespace Turbo
 
         const vk::RenderingAttachmentInfo colorAttachment = VulkanInitializers::AttachmentInfo(mDrawImage->GetImageView());
         const vk::RenderingAttachmentInfo depthAttachment = VulkanInitializers::AttachmentInfo(mDepthImage->GetImageView());
-        const vk::RenderingInfo renderInfo = VulkanInitializers::RenderingInfo(mSwapChain->GetImageSize(), &colorAttachment, &depthAttachment);
+        const vk::RenderingInfo renderInfo = VulkanInitializers::RenderingInfo(mDrawImage->GetSize(), &colorAttachment, &depthAttachment);
         cmd.beginRendering(&renderInfo);
 
         const vk::Viewport viewport = GetMainViewport();

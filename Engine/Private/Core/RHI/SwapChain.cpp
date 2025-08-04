@@ -106,6 +106,22 @@ bool FSwapChain::IsValid() const
 	return mVulkanSwapChain;
 }
 
+bool FSwapChain::ResizeIfRequested()
+{
+	if (bResizeRequested)
+	{
+		TURBO_LOG(LOG_RHI, Info, "Resizing Swapchain");
+		Destroy();
+		Init();
+
+		bResizeRequested = false;
+
+		return true;
+	}
+
+	return false;
+}
+
 vk::SurfaceFormatKHR FSwapChain::SelectBestSurfacePixelFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) const
 {
 	TURBO_CHECK(!availableFormats.empty());

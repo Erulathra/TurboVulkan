@@ -43,6 +43,8 @@ namespace Turbo
 			return false;
 		}
 
+		PerTypeWindowEvents.resize(static_cast<uint32>(EWindowEvent::Num));
+
 		return true;
 	}
 
@@ -61,16 +63,32 @@ namespace Turbo
 			// Handle ImGui events
 			ImGui_ImplSDL3_ProcessEvent(&event);
 
-			if (event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_TERMINATING)
-				OnWindowEvent.Broadcast(EWindowEvent::WindowCloseRequest);
-			else if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
-				OnWindowEvent.Broadcast(EWindowEvent::FocusLost);
-			else if (event.type == SDL_EVENT_WINDOW_FOCUS_GAINED)
-				OnWindowEvent.Broadcast(EWindowEvent::FocusGained);
-			else if (event.type == SDL_EVENT_WINDOW_RESIZED)
-				OnWindowEvent.Broadcast(EWindowEvent::WindowResized);
-			else if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP)
+			EWindowEvent convertedEvent = EWindowEvent::None;
+			switch (event.type)
+			{
+			case SDL_EVENT_QUIT:
+			case SDL_EVENT_TERMINATING:
+				convertedEvent = EWindowEvent::WindowCloseRequest;
+				break;
+			case SDL_EVENT_WINDOW_FOCUS_LOST:
+				convertedEvent = EWindowEvent::FocusLost;
+				break;
+			case SDL_EVENT_WINDOW_FOCUS_GAINED:
+				convertedEvent = EWindowEvent::FocusGained;
+				break;
+			case SDL_EVENT_WINDOW_RESIZED:
+				convertedEvent = EWindowEvent::WindowResized;
+				break;
+			case SDL_EVENT_KEY_DOWN:
+			case SDL_EVENT_KEY_UP:
 				OnSdlKeyboardEvent.ExecuteIfBound(event.key);
+				break;
+			default:
+				break;
+			}
+
+			OnWindowEvent.Broadcast(convertedEvent);
+			PerTypeWindowEvents[static_cast<uint32>(convertedEvent)].Broadcast(convertedEvent);
 		}
 	}
 

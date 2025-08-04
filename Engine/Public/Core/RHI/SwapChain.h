@@ -20,6 +20,9 @@ namespace Turbo
 		[[nodiscard]] bool IsValid() const;
 
 	public:
+		void RequestResize() { bResizeRequested = true; };
+		bool ResizeIfRequested();
+
 		[[nodiscard]] vk::SwapchainKHR GetVulkanSwapChain() const { return mVulkanSwapChain; }
 		[[nodiscard]] vk::Format GetImageFormat() const { return mImageFormat; }
 		[[nodiscard]] glm::uvec2 GetImageSize() const { return {mImageSize.width, mImageSize.height}; }
@@ -47,5 +50,7 @@ namespace Turbo
 
 		std::vector<vk::Image> mImages;
 		std::vector<vk::ImageView> mImageViews;
+
+		bool bResizeRequested = false;
 	};
 }

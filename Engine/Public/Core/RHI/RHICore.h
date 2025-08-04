@@ -64,7 +64,6 @@ struct fmt::formatter<VkResult> : formatter<int32>
 		if (!_subOptimalShown)																												\
 		{																																	\
 			SPDLOG_WARN("Suboptimal result");																								\
-			TURBO_DEBUG_BREAK();																											\
 			_subOptimalShown = true;																										\
 		}																																	\
 	}																																		\

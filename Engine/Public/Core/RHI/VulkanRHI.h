@@ -4,6 +4,7 @@
 #include "RHICore.h"
 #include "FrameData.h"
 #include "SwapChain.h"
+#include "Core/Engine.h"
 
 #define WITH_VALIDATION_LAYERS DEBUG
 
@@ -33,6 +34,8 @@ namespace Turbo
 
 	class FVulkanRHI
 	{
+		GENERATED_BODY(FVulkanRHI)
+
 	private:
 		explicit FVulkanRHI();
 
@@ -42,6 +45,7 @@ namespace Turbo
 	public:
 		void Init();
 		void InitWindow(FSDLWindow* window);
+		void HandleWindowResized(EWindowEvent windowEvent) const;
 		void Destroy();
 
 	private:
@@ -52,6 +56,7 @@ namespace Turbo
 	public:
 		void InitFrameData();
 		void InitDrawImage();
+		void DestroyDrawImage();
 		void InitDescriptors();
 
 		// TODO: remove me

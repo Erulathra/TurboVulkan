@@ -6,7 +6,7 @@
 
 namespace Turbo
 {
-	enum class EWindowEvent : uint32_t
+	enum class EWindowEvent : uint32
 	{
 		None = 0,
 
@@ -14,7 +14,9 @@ namespace Turbo
 		FocusLost,
 		FocusGained,
 
-		WindowResized
+		WindowResized,
+
+		Num
 	};
 
 	// TODO: Replace that with config
@@ -54,6 +56,13 @@ namespace Turbo
 		/** Events */
 	public:
 		FWindowEventDelegate OnWindowEvent;
+
+	public:
+		FWindowEventDelegate& GetEventTypeDelegate(EWindowEvent EventType) { return PerTypeWindowEvents[static_cast<uint32>(EventType)]; }
+
+	private:
+		std::vector<FWindowEventDelegate> PerTypeWindowEvents;
+
 
 		/** Basic Interface */
 	public:
