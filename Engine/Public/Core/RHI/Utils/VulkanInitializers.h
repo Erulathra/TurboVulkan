@@ -14,7 +14,7 @@ namespace VulkanInitializers {
 
 	vk::ImageSubresourceRange ImageSubresourceRange(vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor);
 
-	vk::SemaphoreSubmitInfo SemaphoreSubmitInfo(const vk::Semaphore& semaphore, vk::PipelineStageFlags2 stageMask);
+	vk::SemaphoreSubmitInfo SemaphoreSubmitInfo(const vk::Semaphore& signalSemaphore, vk::PipelineStageFlags2 stageMask);
 	vk::CommandBufferSubmitInfo CommandBufferSubmitInfo(const vk::CommandBuffer& commandBuffer);
 	vk::SubmitInfo2 SubmitInfo(const vk::CommandBufferSubmitInfo& commandBuffer, const vk::SemaphoreSubmitInfo* signalSemaphore, const vk::SemaphoreSubmitInfo* waitSemaphore);
 

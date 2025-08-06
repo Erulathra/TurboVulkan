@@ -7,6 +7,14 @@ namespace Turbo
 	class FVulkanHardwareDevice;
 	class FVulkanDevice;
 
+	struct FSwapchainImageData
+	{
+		vk::Image Image;
+		vk::ImageView ImageView;
+
+		vk::Semaphore QueueSubmitSemaphore;
+	};
+
 	class FSwapChain
 	{
 	public:
@@ -26,11 +34,12 @@ namespace Turbo
 		[[nodiscard]] vk::SwapchainKHR GetVulkanSwapChain() const { return mVulkanSwapChain; }
 		[[nodiscard]] vk::Format GetImageFormat() const { return mImageFormat; }
 		[[nodiscard]] glm::uvec2 GetImageSize() const { return {mImageSize.width, mImageSize.height}; }
-		[[nodiscard]] int32 GetNumBufferedFrames() const { return mImages.size(); }
-		[[nodiscard]] std::vector<vk::ImageView> GetImageViews() const { return mImageViews; }
 
-		[[nodiscard]] const vk::Image& GetImage(uint32 id) const { return mImages[id]; }
-		[[nodiscard]] const vk::ImageView& GetImageView(uint32 id) const { return mImageViews[id]; }
+		[[nodiscard]] const FSwapchainImageData& GetImage() const { return mImageDatas[mImageIndex]; }
+		[[nodiscard]] int32 GetNumImages() const { return mImageDatas.size(); }
+
+		bool AcquireImage(const vk::Semaphore& acquireSemaphore);
+		void PresentImage();
 
 	private:
 		[[nodiscard]] vk::SurfaceFormatKHR SelectBestSurfacePixelFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) const;
@@ -39,6 +48,7 @@ namespace Turbo
 
 	private:
 		void InitializeImageViews();
+		void InitializeSemaphores();
 
 	private:
 		FVulkanDevice* mDevice = nullptr;
@@ -48,8 +58,8 @@ namespace Turbo
 		vk::Format mImageFormat = vk::Format::eUndefined;
 		vk::Extent2D mImageSize{};
 
-		std::vector<vk::Image> mImages;
-		std::vector<vk::ImageView> mImageViews;
+		std::vector<FSwapchainImageData> mImageDatas;
+		uint32 mImageIndex = 0;
 
 		bool bResizeRequested = false;
 	};

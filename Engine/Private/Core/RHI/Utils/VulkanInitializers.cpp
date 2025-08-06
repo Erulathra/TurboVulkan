@@ -70,11 +70,11 @@ namespace Turbo {
 		return result;
 	}
 
-	vk::SemaphoreSubmitInfo VulkanInitializers::SemaphoreSubmitInfo(const vk::Semaphore& semaphore, vk::PipelineStageFlags2 stageMask)
+	vk::SemaphoreSubmitInfo VulkanInitializers::SemaphoreSubmitInfo(const vk::Semaphore& signalSemaphore, vk::PipelineStageFlags2 stageMask)
 	{
 		vk::SemaphoreSubmitInfo result{};
 		result.setPNext(nullptr);
-		result.setSemaphore(semaphore);
+		result.setSemaphore(signalSemaphore);
 		result.setStageMask(stageMask);
 		result.setDeviceIndex(0);
 		result.setValue(1);

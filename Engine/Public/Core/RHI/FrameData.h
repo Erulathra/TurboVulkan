@@ -23,18 +23,16 @@ namespace Turbo {
 		void Init();
 		void Destroy();
 
-		vk::CommandBuffer& GetCommandBuffer() { return mCMD; }
+		vk::CommandBuffer& GetCommandBuffer() { return mCommandBuffer; }
 		FRHIDestroyQueue& GetDeletionQueue() { return mDeletionQueue; }
 
 	private:
 		FVulkanDevice* mDevice;
 
+		vk::CommandBuffer mCommandBuffer;
+
 		vk::Fence mRenderFence;
-
-		vk::Semaphore mSwapChainSemaphore;
-		vk::Semaphore mRenderSemaphore;
-
-		vk::CommandBuffer mCMD;
+		vk::Semaphore mSwapChainAcquireSemaphore;
 
 		FRHIDestroyQueue mDeletionQueue;
 

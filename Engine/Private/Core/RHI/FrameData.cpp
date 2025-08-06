@@ -13,14 +13,12 @@ namespace Turbo {
 		mDevice = rhs.mDevice;
 
 		mRenderFence = rhs.mRenderFence;
-		mSwapChainSemaphore = rhs.mSwapChainSemaphore;
-		mRenderSemaphore = rhs.mRenderSemaphore;
-		mCMD = rhs.mCMD;
+		mSwapChainAcquireSemaphore = rhs.mSwapChainAcquireSemaphore;
+		mCommandBuffer = rhs.mCommandBuffer;
 
 		rhs.mRenderFence = nullptr;
-		rhs.mSwapChainSemaphore = nullptr;
-		rhs.mRenderSemaphore = nullptr;
-		rhs.mCMD = nullptr;
+		rhs.mSwapChainAcquireSemaphore = nullptr;
+		rhs.mCommandBuffer = nullptr;
 	}
 
 	void FFrameData::Init()
@@ -30,13 +28,12 @@ namespace Turbo {
 		const vk::CommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::BufferAllocateInfo(mDevice->GetRenderCommandPool());
 
 		CHECK_VULKAN_RESULT( mRenderFence, mDevice->Get().createFence(fenceCreateInfo));
-		CHECK_VULKAN_RESULT( mSwapChainSemaphore, mDevice->Get().createSemaphore(semaphoreCreateInfo));
-		CHECK_VULKAN_RESULT( mRenderSemaphore, mDevice->Get().createSemaphore(semaphoreCreateInfo));
+		CHECK_VULKAN_RESULT( mSwapChainAcquireSemaphore, mDevice->Get().createSemaphore(semaphoreCreateInfo));
 
 		std::vector<vk::CommandBuffer> commandBuffers;
 		CHECK_VULKAN_RESULT( commandBuffers, mDevice->Get().allocateCommandBuffers(commandBufferAllocateInfo));
 
-		mCMD = commandBuffers[0];
+		mCommandBuffer = commandBuffers[0];
 	}
 
 	void FFrameData::Destroy()
@@ -47,16 +44,9 @@ namespace Turbo {
 			mRenderFence = nullptr;
 		}
 
-		if (mSwapChainSemaphore)
+		if (mSwapChainAcquireSemaphore)
 		{
-			mDevice->Get().destroySemaphore(mSwapChainSemaphore);
-			mSwapChainSemaphore = nullptr;
-		}
-
-		if (mRenderSemaphore)
-		{
-			mDevice->Get().destroySemaphore(mRenderSemaphore);
-			mRenderSemaphore = nullptr;
+			mDevice->Get().destroySemaphore(mSwapChainAcquireSemaphore);
 		}
 
 		mDeletionQueue.Flush(mDevice);

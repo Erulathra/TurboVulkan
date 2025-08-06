@@ -79,10 +79,18 @@ void FSwapChain::Init()
 
 	mImageSize = createInfo.imageExtent;
 
-	std::tie(vulkanResult, mImages) = mDevice->Get().getSwapchainImagesKHR(mVulkanSwapChain);
+	std::vector<vk::Image> outImages;
+	std::tie(vulkanResult, outImages) = mDevice->Get().getSwapchainImagesKHR(mVulkanSwapChain);
 	CHECK_VULKAN_HPP(vulkanResult);
 
+	for (const vk::Image& image : outImages)
+	{
+		mImageDatas.push_back({});
+		mImageDatas.back().Image = image;
+	}
+
 	InitializeImageViews();
+	InitializeSemaphores();
 }
 
 
@@ -91,14 +99,15 @@ void FSwapChain::Destroy()
 	TURBO_LOG(LOG_RHI, Info, "Destroying Swap chain");
 	TURBO_CHECK(mDevice->IsValid());
 
-	for (int frameId = 0; frameId < GetNumBufferedFrames(); ++frameId)
+	for (const FSwapchainImageData& imageData : mImageDatas)
 	{
-		mDevice->Get().destroyImageView(mImageViews[frameId]);
+		mDevice->Get().destroyImageView(imageData.ImageView);
+		mDevice->Get().destroySemaphore(imageData.QueueSubmitSemaphore);
 	}
-
-	mImageViews.clear();
+	mImageDatas.clear();
 
 	mDevice->Get().destroySwapchainKHR((mVulkanSwapChain));
+	mImageIndex = 0;
 }
 
 bool FSwapChain::IsValid() const
@@ -111,6 +120,9 @@ bool FSwapChain::ResizeIfRequested()
 	if (bResizeRequested)
 	{
 		TURBO_LOG(LOG_RHI, Info, "Resizing Swapchain");
+
+		CHECK_VULKAN_HPP(mDevice->Get().waitIdle());
+
 		Destroy();
 		Init();
 
@@ -120,6 +132,35 @@ bool FSwapChain::ResizeIfRequested()
 	}
 
 	return false;
+}
+
+bool FSwapChain::AcquireImage(const vk::Semaphore& acquireSemaphore)
+{
+	vk::Result result;
+	std::tie(result, mImageIndex) = mDevice->Get().acquireNextImageKHR(mVulkanSwapChain, kDefaultVulkanTimeout, acquireSemaphore, nullptr);
+
+	if (result == vk::Result::eErrorOutOfDateKHR)
+	{
+		RequestResize();
+		return false;
+	}
+
+	CHECK_VULKAN_HPP_MSG(result, "Cannot obtain image from a swap chain.");
+	return true;
+}
+
+void FSwapChain::PresentImage()
+{
+	const vk::PresentInfoKHR presentInfo = VulkanInitializers::PresentInfo(mVulkanSwapChain, mImageDatas[mImageIndex].QueueSubmitSemaphore, mImageIndex);
+	const vk::Result result = mDevice->GetQueues().PresentQueue.presentKHR(presentInfo);
+
+	if (result == vk::Result::eErrorOutOfDateKHR)
+	{
+		RequestResize();
+		return;
+	}
+
+	CHECK_VULKAN_HPP_MSG(result, "Cannot present image.");
 }
 
 vk::SurfaceFormatKHR FSwapChain::SelectBestSurfacePixelFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) const
@@ -171,8 +212,6 @@ void FSwapChain::InitializeImageViews()
 {
 	TURBO_LOG(LOG_RHI, Display, "Creating swap chain's image views")
 
-	mImageViews.resize(mImages.size());
-
 	vk::ImageSubresourceRange subresourceRange{};
 	subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
 	subresourceRange.setLayerCount(1);
@@ -183,12 +222,21 @@ void FSwapChain::InitializeImageViews()
 	createInfo.setFormat(mImageFormat);
 	createInfo.setSubresourceRange(subresourceRange);
 
-	for (uint32 imageId = 0; imageId < mImageViews.size(); ++imageId)
+	for (FSwapchainImageData& imageData : mImageDatas)
 	{
-		createInfo.setImage(mImages[imageId]);
+		createInfo.setImage(imageData.Image);
 
 		vk::Result result;
-		std::tie(result, mImageViews[imageId]) = mDevice->Get().createImageView(createInfo);
+		std::tie(result, imageData.ImageView) = mDevice->Get().createImageView(createInfo);
 		CHECK_VULKAN_HPP_MSG(result, "Cannot create swapchain image view");
+	}
+}
+
+void FSwapChain::InitializeSemaphores()
+{
+	const vk::SemaphoreCreateInfo semaphoreCreateInfo = VulkanInitializers::SemaphoreCreateInfo();
+	for (FSwapchainImageData& imageData : mImageDatas)
+	{
+		CHECK_VULKAN_RESULT(imageData.QueueSubmitSemaphore, mDevice->Get().createSemaphore(semaphoreCreateInfo));
 	}
 }

@@ -207,7 +207,7 @@ namespace Turbo
         TURBO_CHECK(mDevice->IsValid());
         TURBO_LOG(LOG_RHI, Info, "Initializing frame datas");
 
-        for (uint32 frameId = 0; frameId < mSwapChain->GetNumBufferedFrames(); ++frameId)
+        for (uint32 frameId = 0; frameId < GetNumBufferedFrames(); ++frameId)
         {
             FFrameData& newFrameData = mFrameDatas.emplace_back(*mDevice);
             newFrameData.Init();
@@ -294,99 +294,68 @@ namespace Turbo
         });
     }
 
-    void FVulkanRHI::RenderSync()
-    {
-        const FFrameData& fd = GetCurrentFrame();
-
-        // Wait until gpu finish its work.
-        CHECK_VULKAN_HPP(mDevice->Get().waitForFences(1, &fd.mRenderFence, true, kDefaultVulkanTimeout));
-        CHECK_VULKAN_HPP(mDevice->Get().resetFences(1, &fd.mRenderFence));
-    }
-
     void FVulkanRHI::Tick()
     {
         TRACE_ZONE_SCOPED();
 
-        RenderSync();
+        const FFrameData& fd = GetCurrentFrame();
+
+        CHECK_VULKAN_HPP(mDevice->Get().waitForFences(1, &fd.mRenderFence, true, kDefaultVulkanTimeout));
 
         if (mSwapChain->ResizeIfRequested())
         {
             // Resize draw image to match swapchain size
-
-            CHECK_VULKAN_HPP(mDevice->Get().waitIdle());
             InitDrawImage();
         }
 
         GetFrameDeletionQueue().Flush(mDevice.get());
 
-        AcquireSwapChainImage();
+        if (!mSwapChain->AcquireImage(fd.mSwapChainAcquireSemaphore))
+        {
+            return;
+        }
+
+        CHECK_VULKAN_HPP(mDevice->Get().resetFences(1, &fd.mRenderFence));
+
         BeginImGuiFrame();
         DrawFrame();
-        PresentImage();
-    }
-
-    void FVulkanRHI::AcquireSwapChainImage()
-    {
-        const FFrameData& fd = GetCurrentFrame();
-
-        // Request image from a swap chain
-        vk::Result result;
-        std::tie(result, mSwapChainImageIndex) = mDevice->Get().acquireNextImageKHR(mSwapChain->GetVulkanSwapChain(), kDefaultVulkanTimeout, fd.mSwapChainSemaphore, nullptr);
-
-        switch (result)
-        {
-        case vk::Result::eErrorOutOfDateKHR:
-            mSwapChain->RequestResize();
-            break;
-        default:
-            CHECK_VULKAN_HPP_MSG(result, "Cannot obtain image from a swap chain.");
-            break;
-        }
+        mSwapChain->PresentImage();
     }
 
     void FVulkanRHI::DrawFrame()
     {
         const FFrameData& fd = GetCurrentFrame();
 
-        CHECK_VULKAN_HPP(fd.mCMD.reset());
+        CHECK_VULKAN_HPP(fd.mCommandBuffer.reset());
 
         const vk::CommandBufferBeginInfo bufferBeginInfo = VulkanInitializers::BufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-        CHECK_VULKAN_HPP(fd.mCMD.begin(bufferBeginInfo));
+        CHECK_VULKAN_HPP(fd.mCommandBuffer.begin(bufferBeginInfo));
 
-        VulkanUtils::TransitionImage(fd.mCMD, mDrawImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
-        VulkanUtils::TransitionImage(fd.mCMD, mDepthImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, vk::ImageAspectFlagBits::eDepth);
-        DrawScene(fd.mCMD);
+        VulkanUtils::TransitionImage(fd.mCommandBuffer, mDrawImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+        VulkanUtils::TransitionImage(fd.mCommandBuffer, mDepthImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, vk::ImageAspectFlagBits::eDepth);
+        DrawScene(fd.mCommandBuffer);
 
-        BlitDrawImageToSwapchainImage(fd.mCMD);
+        const FSwapchainImageData swapchainImage = mSwapChain->GetImage();
 
-        const vk::Image& currentImage = mSwapChain->GetImage(mSwapChainImageIndex);
-        const vk::ImageView& currentImageView = mSwapChain->GetImageView(mSwapChainImageIndex);
+        // Blit draw image to swap chain image
+        VulkanUtils::TransitionImage(fd.mCommandBuffer, mDrawImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal);
+        VulkanUtils::TransitionImage(fd.mCommandBuffer, swapchainImage.Image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+        VulkanUtils::BlitImage(fd.mCommandBuffer, mDrawImage->GetImage(), mDrawImage->GetSize(), swapchainImage.Image, mSwapChain->GetImageSize());
 
-        VulkanUtils::TransitionImage(fd.mCMD, currentImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eAttachmentOptimal);
-        DrawImGuiFrame(fd.mCMD, currentImageView);
-        VulkanUtils::TransitionImage(fd.mCMD, currentImage, vk::ImageLayout::eAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
+        VulkanUtils::TransitionImage(fd.mCommandBuffer, swapchainImage.Image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eAttachmentOptimal);
+        DrawImGuiFrame(fd.mCommandBuffer, swapchainImage.ImageView);
+        VulkanUtils::TransitionImage(fd.mCommandBuffer, swapchainImage.Image, vk::ImageLayout::eAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
 
-        CHECK_VULKAN_HPP(fd.mCMD.end());
+        CHECK_VULKAN_HPP(fd.mCommandBuffer.end());
 
         // Submit queue
-
-        const vk::CommandBufferSubmitInfo cmdBufferInfo = VulkanInitializers::CommandBufferSubmitInfo(fd.mCMD);
-
-        const vk::SemaphoreSubmitInfo waitSemaphoreInfo = VulkanInitializers::SemaphoreSubmitInfo(fd.mSwapChainSemaphore, vk::PipelineStageFlagBits2::eColorAttachmentOutput);
-        const vk::SemaphoreSubmitInfo signalSemaphoreInfo = VulkanInitializers::SemaphoreSubmitInfo(fd.mRenderSemaphore, vk::PipelineStageFlagBits2::eAllGraphics);
+        const vk::CommandBufferSubmitInfo cmdBufferInfo = VulkanInitializers::CommandBufferSubmitInfo(fd.mCommandBuffer);
+        const vk::SemaphoreSubmitInfo waitSemaphoreInfo = VulkanInitializers::SemaphoreSubmitInfo(fd.mSwapChainAcquireSemaphore, vk::PipelineStageFlagBits2::eColorAttachmentOutput);
+        const vk::SemaphoreSubmitInfo signalSemaphoreInfo = VulkanInitializers::SemaphoreSubmitInfo(swapchainImage.QueueSubmitSemaphore, vk::PipelineStageFlagBits2::eAllGraphics);
 
         const vk::SubmitInfo2 submitInfo = VulkanInitializers::SubmitInfo(cmdBufferInfo, &signalSemaphoreInfo, &waitSemaphoreInfo);
 
         CHECK_VULKAN_HPP(mDevice->GetQueues().GraphicsQueue.submit2(1, &submitInfo, fd.mRenderFence));
-    }
-
-    void FVulkanRHI::BlitDrawImageToSwapchainImage(const vk::CommandBuffer& cmd)
-    {
-        const vk::Image& currentImage = mSwapChain->GetImage(mSwapChainImageIndex);
-
-        VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal);
-        VulkanUtils::TransitionImage(cmd, currentImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-        VulkanUtils::BlitImage(cmd, mDrawImage->GetImage(), mDrawImage->GetSize(), currentImage, mSwapChain->GetImageSize());
     }
 
     void FVulkanRHI::DrawScene(const vk::CommandBuffer& cmd)
@@ -444,34 +413,10 @@ namespace Turbo
 
     }
 
-    void FVulkanRHI::PresentImage()
-    {
-        const FFrameData& fd = GetCurrentFrame();
-
-        vk::PresentInfoKHR presentInfo = VulkanInitializers::PresentInfo(mSwapChain->GetVulkanSwapChain(), fd.mRenderSemaphore, mSwapChainImageIndex);
-        const vk::Result result = mDevice->GetQueues().PresentQueue.presentKHR(presentInfo);
-
-        switch (result)
-        {
-        case vk::Result::eErrorOutOfDateKHR:
-            mSwapChain->RequestResize();
-            break;
-        default:
-            CHECK_VULKAN_HPP_MSG(result, "Cannot present swap chain image.");
-            break;
-        }
-
-        mFrameNumber++;
-    }
-
     uint32 FVulkanRHI::GetFrameDataIndex() const
     {
-#if 1
-        const uint32 numBufferedFrames = mSwapChain->GetNumBufferedFrames();
-        return numBufferedFrames > 0 ? mFrameNumber % numBufferedFrames : 0;
-#else
-        return mSwapChainImageIndex;
-#endif
+        const uint32 numBufferedFrames = GetNumBufferedFrames();
+        return mFrameNumber % numBufferedFrames;
     }
 
     vk::Viewport FVulkanRHI::GetMainViewport() const
@@ -624,8 +569,8 @@ namespace Turbo
         initInfo.Device = mDevice->Get();
         initInfo.Queue = mDevice->GetQueues().GraphicsQueue;
         initInfo.DescriptorPool = mImGuiAllocator->Get();
-        initInfo.MinImageCount = mSwapChain->GetNumBufferedFrames();
-        initInfo.ImageCount = mSwapChain->GetNumBufferedFrames();
+        initInfo.MinImageCount = mSwapChain->GetNumImages();
+        initInfo.ImageCount = mSwapChain->GetNumImages();
         initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
         initInfo.CheckVkResultFn = [](VkResult result) {CHECK_VULKAN_MSG(result, "ImGUI RHI Error.")};
         initInfo.UseDynamicRendering = true;

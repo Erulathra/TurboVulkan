@@ -62,20 +62,17 @@ namespace Turbo
 		// TODO: remove me
 		void InitScene();
 
-		void RenderSync();
 		void Tick();
 
 	private:
-		void AcquireSwapChainImage();
 		void DrawFrame();
-		void BlitDrawImageToSwapchainImage(const vk::CommandBuffer& cmd);
 		void DrawScene(const vk::CommandBuffer& cmd);
-		void PresentImage();
 
 	public:
 		[[nodiscard]] uint64 GetFrameNumber() const { return mFrameNumber; }
 		[[nodiscard]] uint32 GetFrameDataIndex() const;
 		[[nodiscard]] FFrameData& GetCurrentFrame() { return mFrameDatas[GetFrameDataIndex()]; }
+		[[nodiscard]] uint32 GetNumBufferedFrames() const { return 2; }
 
 		[[nodiscard]] FRHIDestroyQueue& GetFrameDeletionQueue() { return GetCurrentFrame().GetDeletionQueue(); }
 
