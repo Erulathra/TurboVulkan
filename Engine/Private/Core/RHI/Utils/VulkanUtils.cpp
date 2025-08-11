@@ -4,8 +4,8 @@
 
 namespace Turbo {
 	void VulkanUtils::TransitionImage(
-		const vk::CommandBuffer& cmd,
-		const vk::Image& image,
+		vk::CommandBuffer cmd,
+		vk::Image image,
 		const vk::ImageLayout oldLayout,
 		const vk::ImageLayout newLayout,
 		const vk::ImageAspectFlags aspectMask
@@ -34,7 +34,7 @@ namespace Turbo {
 		cmd.pipelineBarrier2(dependencyInfo);
 	}
 
-	void VulkanUtils::BlitImage(const vk::CommandBuffer& cmd, const vk::Image& src, const glm::uvec2& srcSize, const vk::Image& dst, const glm::uvec2& dstSize)
+	void VulkanUtils::BlitImage(vk::CommandBuffer cmd, vk::Image src, const glm::uvec2& srcSize, const vk::Image& dst, const glm::uvec2& dstSize)
 	{
 		vk::ImageBlit2 region{};
 		region.setPNext(nullptr);

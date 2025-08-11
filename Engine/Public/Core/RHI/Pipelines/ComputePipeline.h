@@ -4,7 +4,7 @@
 
 namespace Turbo
 {
-	class FDescriptorAllocator;
+	class FDescriptorAllocatorStatic;
 	class FVulkanDevice;
 
 	class FComputePipeline

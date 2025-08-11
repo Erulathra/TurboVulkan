@@ -15,7 +15,7 @@ namespace Turbo
 	class FRHIMesh;
 	class FGraphicsPipelineBase;
 	class FComputePipeline;
-	class FDescriptorAllocator;
+	class FDescriptorAllocatorStatic;
 	class FImage;
 	class FSwapChain;
 	class FSDLWindow;
@@ -115,7 +115,7 @@ namespace Turbo
 		void DestroyImGui();
 
 	private:
-		std::unique_ptr<FDescriptorAllocator> mImGuiAllocator;
+		std::unique_ptr<FDescriptorAllocatorStatic> mImGuiAllocator;
 
 		/** ImGui end */
 
@@ -163,7 +163,7 @@ namespace Turbo
 		std::unique_ptr<FVulkanDevice> mDevice;
 		std::unique_ptr<FSwapChain> mSwapChain;
 
-		std::unique_ptr<FDescriptorAllocator> mMainDescriptorAllocator;
+		std::unique_ptr<FDescriptorAllocatorStatic> mMainDescriptorAllocator;
 		FRHIDestroyQueue mMainDeletionQueue;
 
 		/** TODO: REMOVE ME */

@@ -238,8 +238,8 @@ namespace Turbo
 
     void FVulkanRHI::InitDescriptors()
     {
-        mMainDescriptorAllocator = std::make_unique<FDescriptorAllocator>(mDevice.get());
-        std::vector<FDescriptorAllocator::FPoolSizeRatio> ratios = { {vk::DescriptorType::eStorageImage, 1}};
+        mMainDescriptorAllocator = std::make_unique<FDescriptorAllocatorStatic>(mDevice.get());
+        std::vector<FPoolSizeRatio> ratios = { {vk::DescriptorType::eStorageImage, 1}};
         mMainDescriptorAllocator->Init(10, ratios);
 
         mMainDeletionQueue.OnDestroy().AddLambda([this]()
@@ -331,14 +331,14 @@ namespace Turbo
         const vk::CommandBufferBeginInfo bufferBeginInfo = VulkanInitializers::BufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
         CHECK_VULKAN_HPP(fd.mCommandBuffer.begin(bufferBeginInfo));
 
-        VulkanUtils::TransitionImage(fd.mCommandBuffer, mDrawImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
-        VulkanUtils::TransitionImage(fd.mCommandBuffer, mDepthImage->GetImage(), vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, vk::ImageAspectFlagBits::eDepth);
+        mDrawImage->Transition(fd.mCommandBuffer, vk::ImageLayout::eGeneral);
+        mDepthImage->Transition(fd.mCommandBuffer, vk::ImageLayout::eGeneral, vk::ImageAspectFlagBits::eDepth);
         DrawScene(fd.mCommandBuffer);
 
         const FSwapchainImageData swapchainImage = mSwapChain->GetImage();
 
         // Blit draw image to swap chain image
-        VulkanUtils::TransitionImage(fd.mCommandBuffer, mDrawImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal);
+        mDrawImage->Transition(fd.mCommandBuffer, vk::ImageLayout::eTransferSrcOptimal);
         VulkanUtils::TransitionImage(fd.mCommandBuffer, swapchainImage.Image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
         VulkanUtils::BlitImage(fd.mCommandBuffer, mDrawImage->GetImage(), mDrawImage->GetSize(), swapchainImage.Image, mSwapChain->GetImageSize());
 
@@ -377,8 +377,8 @@ namespace Turbo
         const vk::ImageSubresourceRange clearDepthSubresourceRange = VulkanInitializers::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth);
         cmd.clearDepthStencilImage(mDepthImage->GetImage(), vk::ImageLayout::eGeneral, clearDepthValue, clearDepthSubresourceRange);
 
-        VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eAttachmentOptimal);
-        VulkanUtils::TransitionImage(cmd, mDepthImage->GetImage(), vk::ImageLayout::eGeneral, vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageAspectFlagBits::eDepth);
+        mDrawImage->Transition(cmd, vk::ImageLayout::eAttachmentOptimal);
+        mDepthImage->Transition(cmd, vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageAspectFlagBits::eDepth);
 
         const vk::RenderingAttachmentInfo colorAttachment = VulkanInitializers::AttachmentInfo(mDrawImage->GetImageView());
         const vk::RenderingAttachmentInfo depthAttachment = VulkanInitializers::AttachmentInfo(mDepthImage->GetImageView());
@@ -409,8 +409,7 @@ namespace Turbo
 
         cmd.endRendering();
 
-        VulkanUtils::TransitionImage(cmd, mDrawImage->GetImage(), vk::ImageLayout::eAttachmentOptimal, vk::ImageLayout::eGeneral);
-
+        mDrawImage->Transition(cmd, vk::ImageLayout::eGeneral);
     }
 
     uint32 FVulkanRHI::GetFrameDataIndex() const
@@ -529,7 +528,7 @@ namespace Turbo
 
     void FVulkanRHI::InitImGui()
     {
-        std::vector<FDescriptorAllocator::FPoolSizeRatio> ratios = {
+        std::vector<FPoolSizeRatio> ratios = {
             {vk::DescriptorType::eSampler, 1},
             {vk::DescriptorType::eCombinedImageSampler, 1},
             {vk::DescriptorType::eSampledImage, 1},
@@ -543,7 +542,7 @@ namespace Turbo
             {vk::DescriptorType::eInputAttachment, 1},
         };
 
-        mImGuiAllocator = std::make_unique<FDescriptorAllocator>(mDevice.get());
+        mImGuiAllocator = std::make_unique<FDescriptorAllocatorStatic>(mDevice.get());
         mImGuiAllocator->SetFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
         mImGuiAllocator->Init(1000, ratios);
 

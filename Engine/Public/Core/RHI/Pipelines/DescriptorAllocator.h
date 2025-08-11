@@ -6,17 +6,16 @@ namespace Turbo
 {
 	class FVulkanDevice;
 
-	class FDescriptorAllocator
+	struct FPoolSizeRatio
+	{
+		vk::DescriptorType type;
+		float ratio;
+	};
+
+	class FDescriptorAllocatorStatic
 	{
 	public:
-		struct FPoolSizeRatio
-		{
-			vk::DescriptorType type;
-			float ratio;
-		};
-
-	public:
-		explicit FDescriptorAllocator(FVulkanDevice* device)
+		explicit FDescriptorAllocatorStatic(FVulkanDevice* device)
 			: mDevice(device)
 		{
 			TURBO_CHECK(device);
@@ -24,7 +23,7 @@ namespace Turbo
 
 	public:
 		void SetFlags(const vk::DescriptorPoolCreateFlags& newFlags) { TURBO_CHECK(!mDescriptorPool); mFlags = newFlags; }
-		void Init(uint32 maxSets, std::span<FPoolSizeRatio> poolSizeRatios);
+		void Init(uint32 sets, std::span<FPoolSizeRatio> poolSizeRatios);
 
 		vk::DescriptorSet Allocate(const vk::DescriptorSetLayout& layout);
 
@@ -39,5 +38,38 @@ namespace Turbo
 
 		vk::DescriptorPool mDescriptorPool = nullptr;
 		vk::DescriptorPoolCreateFlags mFlags = {};
+	};
+
+	class FDescriptorAllocatorGrowable
+	{
+	public:
+		explicit FDescriptorAllocatorGrowable(FVulkanDevice* device)
+			: mDevice(device)
+			, mSetsPerPool(0)
+		{
+			TURBO_CHECK(device);
+		}
+
+		void Init(uint32 numSets, std::span<FPoolSizeRatio> poolSizeRatios);
+
+		[[nodiscard]] vk::DescriptorSet Allocate(const vk::DescriptorSetLayout& layout);
+
+		void Reset();
+		void Destroy();
+
+	private:
+		[[nodiscard]] vk::DescriptorPool GetPool();
+		[[nodiscard]] vk::DescriptorPool CreatePool(uint32 numSets, std::span<FPoolSizeRatio> poolSizeRatios) const;
+
+	private:
+		constexpr static uint32 kMaxSetsPerPool = 4096;
+
+		FVulkanDevice* mDevice;
+
+		std::vector<FPoolSizeRatio> mRatios{};
+		std::vector<vk::DescriptorPool> mFullPools{};
+		std::vector<vk::DescriptorPool> mReadyPools{};
+
+		mutable uint32 mSetsPerPool;
 	};
 } // Turbo

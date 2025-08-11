@@ -94,6 +94,16 @@ namespace Turbo
 		mAllocation = nullptr;
 	}
 
+	void FImage::Transition(vk::CommandBuffer cmd, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectFlags)
+	{
+		if (mCurrentLayout == newLayout)
+		{
+			return;
+		}
+
+        VulkanUtils::TransitionImage(cmd, mImage, mCurrentLayout, newLayout, aspectFlags);
+	}
+
 	void FImage::InitResource(const FImageCreateInfo& createInfo)
 	{
 		mSize = createInfo.Size;

@@ -43,6 +43,10 @@ namespace Turbo
 
 		[[nodiscard]] const glm::ivec2& GetSize() const { return mSize; }
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
+		[[nodiscard]] vk::ImageLayout GetLayout() const { return mCurrentLayout; }
+
+	public:
+		void Transition(vk::CommandBuffer cmd, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor);
 
 	private:
 		void InitResource(const FImageCreateInfo& createInfo);
@@ -53,6 +57,8 @@ namespace Turbo
 		vk::Image mImage;
 		vk::ImageView mImageView;
 		vma::Allocation mAllocation{};
+
+		vk::ImageLayout mCurrentLayout = vk::ImageLayout::eUndefined;
 
 		// bool bResourceInitialized = false;
 		bool bManualDestroy = false;
