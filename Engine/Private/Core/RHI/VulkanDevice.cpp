@@ -105,7 +105,7 @@ void FVulkanDevice::InitAllocator()
     CHECK_VULKAN_RESULT(mAllocator, vma::createAllocator(createInfo))
 }
 
-vk::DeviceAddress FVulkanDevice::GetBufferAddress(const FBuffer* buffer)
+vk::DeviceAddress FVulkanDevice::GetBufferAddress(const FVulkanBuffer* buffer)
 {
     vk::BufferDeviceAddressInfo deviceAddressInfo{};
     deviceAddressInfo.buffer = buffer->GetBuffer();

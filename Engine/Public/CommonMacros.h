@@ -123,11 +123,11 @@ namespace Turbo
 	}
 }
 
-#define DEFINE_ENUM_OPERATORS(ENUM_TYPE)																														\
-constexpr ENUM_TYPE operator~(ENUM_TYPE rhs) noexcept {	return static_cast<ENUM_TYPE>(~static_cast<uint32>(rhs)); }												\
-constexpr ENUM_TYPE operator|(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<uint32>(lhs) | static_cast<uint32>(rhs)); }	\
-constexpr ENUM_TYPE operator&(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<uint32>(lhs) & static_cast<uint32>(rhs)); }	\
-constexpr ENUM_TYPE operator^(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<uint32>(lhs) ^ static_cast<uint32>(rhs)); }	\
+#define DEFINE_ENUM_OPERATORS(ENUM_TYPE, INTEGER_TYPE)																														\
+constexpr ENUM_TYPE operator~(ENUM_TYPE rhs) noexcept {	return static_cast<ENUM_TYPE>(~static_cast<INTEGER_TYPE>(rhs)); }												\
+constexpr ENUM_TYPE operator|(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<INTEGER_TYPE>(lhs) | static_cast<INTEGER_TYPE>(rhs)); }	\
+constexpr ENUM_TYPE operator&(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<INTEGER_TYPE>(lhs) & static_cast<INTEGER_TYPE>(rhs)); }	\
+constexpr ENUM_TYPE operator^(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<INTEGER_TYPE>(lhs) ^ static_cast<INTEGER_TYPE>(rhs)); }	\
 constexpr ENUM_TYPE& operator|=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs | rhs); }															\
 constexpr ENUM_TYPE& operator&=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs & rhs); }															\
 constexpr ENUM_TYPE& operator^=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs ^ rhs); }

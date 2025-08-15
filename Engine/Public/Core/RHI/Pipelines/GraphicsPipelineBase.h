@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CommonMacros.h"
 #include "Core/RHI/RHICore.h"
 
 namespace Turbo

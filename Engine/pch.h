@@ -7,7 +7,6 @@
 #include <ranges>
 #include <functional>
 #include <chrono>
-#include <cstdint>
 #include <functional>
 #include <type_traits>
 
@@ -24,12 +23,10 @@
 #include "ProfilingMacros.h"
 
 // GLM
-#include "glm/glm.hpp"
+#include "Core/Math/MathCommon.h"
 
 // Internal Math
 #include "Core/Math/Math.h"
-#include "Core/Math/MathCommon.h"
-
 #include "Core/Name.h"
 
 #include "magic_enum/magic_enum.hpp"

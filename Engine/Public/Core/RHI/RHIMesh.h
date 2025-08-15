@@ -43,7 +43,7 @@ namespace Turbo
 		Basic = Position | Normal | UV,
 		All = Position | Normal | UV | Color
 	};
-	DEFINE_ENUM_OPERATORS(EVertexComponents)
+	DEFINE_ENUM_OPERATORS(EVertexComponents, uint8)
 
 	class FRHIMesh
 	{
@@ -60,8 +60,8 @@ namespace Turbo
 		void Draw(vk::CommandBuffer cmd, uint32 instanceCount = 1);
 
 	public:
-		[[nodiscard]] std::shared_ptr<FBuffer> GetVertexBuffer() const { return mVertexBuffer; }
-		[[nodiscard]] std::shared_ptr<FBuffer> GetIndexBuffer() const { return mIndexBuffer; }
+		[[nodiscard]] std::shared_ptr<FVulkanBuffer> GetVertexBuffer() const { return mVertexBuffer; }
+		[[nodiscard]] std::shared_ptr<FVulkanBuffer> GetIndexBuffer() const { return mIndexBuffer; }
 
 		[[nodiscard]] vk::DeviceAddress GetPositionsAddress() const { return mPositionsAddress; }
 		[[nodiscard]] vk::DeviceAddress GetNormalsAddress() const { return mNormalsAddress; }
@@ -72,8 +72,8 @@ namespace Turbo
 		void Init(FVulkanDevice* device, const FRHIMeshCreationInfo& CreationInfo);
 
 	private:
-		std::shared_ptr<FBuffer> mVertexBuffer = nullptr;
-		std::shared_ptr<FBuffer> mIndexBuffer = nullptr;
+		std::shared_ptr<FVulkanBuffer> mVertexBuffer = nullptr;
+		std::shared_ptr<FVulkanBuffer> mIndexBuffer = nullptr;
 
 		vk::DeviceAddress mPositionsAddress = 0;
 		vk::DeviceAddress mNormalsAddress = 0;

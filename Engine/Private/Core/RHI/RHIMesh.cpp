@@ -64,14 +64,14 @@ namespace Turbo {
 		const size_t vertexBufferSize = creationInfo.GetVertexBufferSize();
 		const size_t indexBufferSize = creationInfo.Indices.size() * sizeof(uint32);
 
-		mVertexBuffer = FBuffer::CreateShared(
+		mVertexBuffer = FVulkanBuffer::CreateShared(
 			device,
 			vertexBufferSize,
 			vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress,
 			vma::MemoryUsage::eAutoPreferDevice
 			);
 
-		mIndexBuffer = FBuffer::CreateShared(
+		mIndexBuffer = FVulkanBuffer::CreateShared(
 			device,
 			indexBufferSize,
 			vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
@@ -80,7 +80,7 @@ namespace Turbo {
 
 		mPositionsAddress = device->GetBufferAddress(mVertexBuffer.get());
 
-		std::unique_ptr<FBuffer> tempBuffer = FBuffer::CreateUnique(
+		std::unique_ptr<FVulkanBuffer> tempBuffer = FVulkanBuffer::CreateUnique(
 			device,
 			vertexBufferSize + indexBufferSize,
 			vk::BufferUsageFlagBits::eTransferSrc,

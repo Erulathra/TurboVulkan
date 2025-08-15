@@ -9,7 +9,7 @@ namespace Turbo {
 	{
 	public:
 		FBufferDestroyer() = delete;
-		explicit FBufferDestroyer(const FBuffer& buffer)
+		explicit FBufferDestroyer(const FVulkanBuffer& buffer)
 			: mBuffer(buffer.mBuffer)
 			, mAllocation(buffer.mAllocation)
 		{}
@@ -30,13 +30,13 @@ namespace Turbo {
 		vma::Allocation mAllocation;
 	};
 
-	FBuffer::FBuffer(FVulkanDevice* device)
+	FVulkanBuffer::FVulkanBuffer(FVulkanDevice* device)
 		: mDevice(device)
 	{
 
 	}
 
-	void FBuffer::InitResource(size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags)
+	void FVulkanBuffer::InitResource(size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags)
 	{
 		TURBO_CHECK(mDevice);
 
@@ -55,23 +55,23 @@ namespace Turbo {
 		mMappedDataPtr = static_cast<byte*>(allocationInfo.pMappedData);
 	}
 
-	std::unique_ptr<FBuffer> FBuffer::CreateUnique(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags)
+	std::unique_ptr<FVulkanBuffer> FVulkanBuffer::CreateUnique(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags)
 	{
-		std::unique_ptr<FBuffer> result(new FBuffer(device));
+		std::unique_ptr<FVulkanBuffer> result(new FVulkanBuffer(device));
 		result->InitResource(allocSize, usageFlags, memoryUsageFlags);
 
 		return std::move(result);
 	}
 
-	std::shared_ptr<FBuffer> FBuffer::CreateShared(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags)
+	std::shared_ptr<FVulkanBuffer> FVulkanBuffer::CreateShared(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags)
 	{
-		std::shared_ptr<FBuffer> result(new FBuffer(device));
+		std::shared_ptr<FVulkanBuffer> result(new FVulkanBuffer(device));
 		result->InitResource(allocSize, usageFlags, memoryUsageFlags);
 
 		return std::move(result);
 	}
 
-	FBuffer::~FBuffer()
+	FVulkanBuffer::~FVulkanBuffer()
 	{
 		if (!bManualDestroy)
 		{
@@ -79,13 +79,13 @@ namespace Turbo {
 		}
 	}
 
-	void FBuffer::RequestDestroy(FRHIDestroyQueue& deletionQueue)
+	void FVulkanBuffer::RequestDestroy(FRHIDestroyQueue& deletionQueue)
 	{
 		bManualDestroy = true;
 		deletionQueue.RequestDestroy(FBufferDestroyer(*this));
 	}
 
-	void FBuffer::Destroy()
+	void FVulkanBuffer::Destroy()
 	{
 		bManualDestroy = true;
 

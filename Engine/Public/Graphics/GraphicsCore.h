@@ -1,5 +1,23 @@
 #pragma once
 
+#include "CommonTypeDefs.h"
+#include "Core/Math/MathCommon.h"
+
+/** Constants */
+
+inline constexpr uint16 kInvalidSetIndex = std::numeric_limits<uint16>::max();
+
+inline constexpr uint8 kMaxImageOutputs = 8;
+inline constexpr uint8 kMaxDescriptorSetLayouts = 8;
+inline constexpr uint8 kMaxShaderStages = 5;
+inline constexpr uint8 kMaxDescriptorsPerSet = 16;
+
+/** Constants end */
+
+// TODO: Replace me when new graphics backend would be ready.
+#if 1
+#include "Core/RHI/RHICore.h"
+#else
 #define VULKAN_HPP_ASSERT_ON_RESULT {}
 #include <vulkan/vulkan.hpp>
 #include "Core/RHI/Utils/VulkanInitializers.h"
@@ -77,4 +95,5 @@ struct fmt::formatter<VkResult> : formatter<int32>
 #define CHECK_VULKAN_HPP_MSG(EXPRESSION, MESSAGE, ...) { (void)(EXPRESSION); }
 #endif // else TURBO_BUILD_SHIPPING
 
-constexpr inline uint32 kDefaultVulkanTimeout = 1000000000; // 1 second
+constexpr inline uint32 kDefaultTimeout = 1000000000; // 1 second
+#endif

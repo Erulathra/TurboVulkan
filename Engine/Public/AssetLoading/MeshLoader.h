@@ -20,7 +20,7 @@ namespace Turbo
 		LoadVertex = LoadPositions | LoadUV | LoadNormals,
 		LoadVertexWithColor = LoadVertex | LoadColor
 	};
-	DEFINE_ENUM_OPERATORS(ELoadMeshFlags)
+	DEFINE_ENUM_OPERATORS(ELoadMeshFlags, uint8)
 
 	class IMeshLoader
 	{

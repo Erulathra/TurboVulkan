@@ -6,10 +6,6 @@
 #include <memory>
 #include <ranges>
 #include <tuple>
-#include <spdlog/spdlog.h>
-
-#include "CommonMacros.h"
-#include "CommonTypeDefs.h"
 
 //The allocation size of delegate data.
 //Delegates larger than this will be heap allocated.

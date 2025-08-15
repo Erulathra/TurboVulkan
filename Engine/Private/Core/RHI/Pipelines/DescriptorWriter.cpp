@@ -83,6 +83,6 @@ namespace Turbo {
 		mSamplerBindings.clear();
 		mBufferBindings.clear();
 
-		return this;
+		return *this;
 	}
 } // Turbo

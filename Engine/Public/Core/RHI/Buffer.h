@@ -7,22 +7,22 @@ namespace Turbo
 	class FVulkanDevice;
 	class FRHIDestroyQueue;
 
-	class FBuffer
+	class FVulkanBuffer
 	{
-		GENERATED_BODY(FBuffer)
+		GENERATED_BODY(FVulkanBuffer)
 	private:
-		explicit FBuffer(FVulkanDevice* device);
+		explicit FVulkanBuffer(FVulkanDevice* device);
 
 	public:
-		FBuffer() = delete;
-		FBuffer(FBuffer& other) = delete;
-		FBuffer& operator=(const FBuffer& other) = delete;
-		FBuffer(const FBuffer& other) = delete;
+		FVulkanBuffer() = delete;
+		FVulkanBuffer(FVulkanBuffer& other) = delete;
+		FVulkanBuffer& operator=(const FVulkanBuffer& other) = delete;
+		FVulkanBuffer(const FVulkanBuffer& other) = delete;
 
 	public:
-		static std::unique_ptr<FBuffer> CreateUnique(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags);
-		static std::shared_ptr<FBuffer> CreateShared(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags);
-		~FBuffer();
+		static std::unique_ptr<FVulkanBuffer> CreateUnique(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags);
+		static std::shared_ptr<FVulkanBuffer> CreateShared(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags);
+		~FVulkanBuffer();
 
 		void RequestDestroy(FRHIDestroyQueue& deletionQueue);
 		void Destroy();
