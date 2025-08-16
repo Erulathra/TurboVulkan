@@ -2,10 +2,12 @@
 
 #include "Graphics/GraphicsCore.h"
 
-#define DECLARE_RESOURCE_HANDLE(RESOURCE_NAME)	\
-	struct F##RESOURCE_NAME##Handle final			\
-	{											\
-		FResourceHandle index = kInvalidHandle;	\
+#define DECLARE_RESOURCE_HANDLE(RESOURCE_NAME)						\
+	struct F##RESOURCE_NAME##Handle final							\
+	{																\
+		FResourceHandle Index = kInvalidHandle;						\
+		bool IsValid() const { return Index != kInvalidHandle; }	\
+		void Reset() { Index = kInvalidHandle; }					\
 	}
 
 #define RESOURCE_BODY()			\
@@ -45,7 +47,7 @@ namespace Turbo
 
 		FBufferHandle mHandle = {};
 
-		const char* mDebugName = nullptr;
+		FName mName;
 	};
 
 	class FSampler final
@@ -63,7 +65,7 @@ namespace Turbo
 		vk::SamplerAddressMode mAddressModeV = vk::SamplerAddressMode::eRepeat;
 		vk::SamplerAddressMode mAddressModeW = vk::SamplerAddressMode::eRepeat;
 
-		const char* mName = nullptr;
+		FName mName;
 	};
 
 	class FTexture final
@@ -84,7 +86,7 @@ namespace Turbo
 
 		FTextureHandle mHandle = {};
 
-		const char* mDebugName = nullptr;
+		FName mName;
 	};
 
 	class FShaderState final
@@ -94,7 +96,7 @@ namespace Turbo
 	private:
 		std::array<vk::PipelineShaderStageCreateInfo, kMaxShaderStages> mShaderStageCrateInfo;
 
-		const char* mName = nullptr;
+		FName mName;
 
 		uint32 mNumActiveShaders = 0;
 		bool mbGraphicsPipeline = false;
