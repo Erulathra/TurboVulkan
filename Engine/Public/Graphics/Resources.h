@@ -1,14 +1,7 @@
 #pragma once
 
+#include "Core/DataStructures/ResourcePool.h"
 #include "Graphics/GraphicsCore.h"
-
-#define DECLARE_RESOURCE_HANDLE(RESOURCE_NAME)						\
-	struct F##RESOURCE_NAME##Handle final							\
-	{																\
-		FResourceHandle Index = kInvalidHandle;						\
-		bool IsValid() const { return Index != kInvalidHandle; }	\
-		void Reset() { Index = kInvalidHandle; }					\
-	}
 
 #define RESOURCE_BODY()			\
 	public:						\
@@ -17,8 +10,6 @@
 
 namespace Turbo
 {
-	using FResourceHandle = uint32;
-	inline constexpr FResourceHandle kInvalidHandle = std::numeric_limits<uint32>::max();
 
 	/** Handles */
 
