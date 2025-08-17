@@ -7,11 +7,23 @@
 
 #define BUILDER_BODY()			\
 	public:						\
-		friend class GPUDevice;	\
+		friend class FGPUDevice;	\
 	private:
 
 namespace Turbo
 {
+	class FWindow;
+
+	class FGPUDeviceBuilder final
+	{
+		BUILDER_BODY()
+
+	public:
+		FGPUDeviceBuilder& SetWindow(const std::shared_ptr<FWindow>& window) { mWindow = window; return *this; }
+
+	private:
+		std::shared_ptr<FWindow> mWindow = nullptr;
+	};
 
 	class FBufferBuilder final
 	{
@@ -112,7 +124,7 @@ namespace Turbo
 		}
 		FDescriptorSetLayoutBuilder& SetSetIndex(uint16 index) { mSetIndex = index; return *this; }
 
-		FDescriptorSetLayoutBuilder& SetName(cstring name) { mName = name; return *this; }
+		FDescriptorSetLayoutBuilder& SetName(FName name) { mName = name; return *this; }
 
 	private:
 		std::array<FBinding, kMaxDescriptorsPerSet> mBindings;

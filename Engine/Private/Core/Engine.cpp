@@ -1,11 +1,11 @@
 #include "Core/Engine.h"
 
 #include "Core/CoreTimer.h"
-#include "Core/RHI/VulkanRHI.h"
 #include "Core/Window.h"
 #include "Core/Input/Input.h"
 #include "Core/Input/FSDLInputSystem.h"
 #include "Core/Input/Keys.h"
+#include "Graphics/GPUDevice.h"
 
 namespace Turbo
 {
@@ -35,25 +35,28 @@ namespace Turbo
 		mCoreTimer = std::unique_ptr<FCoreTimer>(new FCoreTimer());
 		mCoreTimer->Init();
 
-		mRHIInstance = std::unique_ptr<FVulkanRHI>(new FVulkanRHI());
-		mMainWindowInstance = std::unique_ptr<FSDLWindow>(new FSDLWindow());
+		mGpuDevice = std::shared_ptr<FGPUDevice>(new FGPUDevice());
+		mWindow = std::shared_ptr<FWindow>(new FWindow());
 		mInputSystemInstance = std::unique_ptr<FSDLInputSystem>(new FSDLInputSystem());
 
-		mMainWindowInstance->InitBackend();
-		mRHIInstance->InitWindow(mMainWindowInstance.get());
+		mWindow->InitBackend();
 
-		if (!mMainWindowInstance->Init())
+		FGPUDeviceBuilder gpuDeviceBuilder;
+		gpuDeviceBuilder.SetWindow(mWindow);
+
+		mGpuDevice->Init(gpuDeviceBuilder);
+
+		if (!mWindow->Init())
 		{
 			return static_cast<int32_t>(EExitCode::WindowCreationError);
 		}
-		mMainWindowInstance->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
+		mWindow->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
 		mInputSystemInstance->Init();
 
 		SetupBasicInputBindings();
 
-		mRHIInstance->Init();
-		mMainWindowInstance->ShowWindow(true);
+		mWindow->ShowWindow(true);
 
 		mEngineState = EEngineState::Running;
 
@@ -70,7 +73,7 @@ namespace Turbo
 		while (!mbExitRequested)
 		{
 			GameThreadTick();
-			mMainWindowInstance->PollWindowEventsAndErrors();
+			mWindow->PollWindowEventsAndErrors();
 		}
 	}
 
@@ -80,7 +83,7 @@ namespace Turbo
 
 		TURBO_LOG(LOG_ENGINE, Display, "Engine Tick. FrameTime: {}, FPS: {}", mCoreTimer->GetDeltaTime(), 1.f / mCoreTimer->GetDeltaTime());
 
-		GetRHI()->Tick();
+		// GetRHI()->Tick();
 
 		TRACE_MARK_FRAME();
 	}
@@ -93,7 +96,7 @@ namespace Turbo
 		{
 			if (actionEvent.bDown)
 			{
-				mMainWindowInstance->SetFullscreen(!mMainWindowInstance->IsFullscreenEnabled());
+				mWindow->SetFullscreen(!mWindow->IsFullscreenEnabled());
 			}
 		});
 	}
@@ -115,13 +118,13 @@ namespace Turbo
 	{
 		TURBO_LOG(LOG_ENGINE, Info, "Begin exit sequence.");
 
-		mRHIInstance->Destroy();
+		mGpuDevice->Shutdown();
 		mInputSystemInstance->Destroy();
-		mMainWindowInstance->Destroy();
-		mMainWindowInstance->StopBackend();
+		mWindow->Destroy();
+		mWindow->StopBackend();
 
-		mRHIInstance.release();
-		mMainWindowInstance.release();
+		mGpuDevice = nullptr;
+		mWindow = nullptr;
 	}
 
 	void FEngine::RequestExit(EExitCode InExitCode)

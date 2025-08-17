@@ -5,7 +5,7 @@
 namespace Turbo
 {
 	class FVulkanDevice;
-	class FRHIDestroyQueue;
+	class FDestroyQueue;
 
 	struct FImageCreateInfo
 	{
@@ -33,7 +33,7 @@ namespace Turbo
 
 		~FImage();
 
-		void RequestDestroy(FRHIDestroyQueue& deletionQueue);
+		void RequestDestroy(FDestroyQueue& deletionQueue);
 		void Destroy();
 
 	public:

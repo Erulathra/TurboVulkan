@@ -6,10 +6,10 @@
 
 namespace Turbo
 {
-	FSDLWindow::FSDLWindow() = default;
-	FSDLWindow::~FSDLWindow() = default;
+	FWindow::FWindow() = default;
+	FWindow::~FWindow() = default;
 
-	void FSDLWindow::InitBackend()
+	void FWindow::InitBackend()
 	{
 		TURBO_LOG(LOG_WINDOW, Info, "Initializing SDL.");
 		if (!SDL_Init(SDL_INIT_VIDEO))
@@ -18,19 +18,19 @@ namespace Turbo
 		}
 	}
 
-	void FSDLWindow::StopBackend()
+	void FWindow::StopBackend()
 	{
 		TURBO_LOG(LOG_WINDOW, Info, "Stopping SDL.");
 		SDL_Quit();
 	}
 
-	void FSDLWindow::Destroy()
+	void FWindow::Destroy()
 	{
 		TURBO_LOG(LOG_WINDOW, Info, "Destroying window.");
 		SDL_DestroyWindow(mSDLWindow);
 	}
 
-	bool FSDLWindow::Init()
+	bool FWindow::Init()
 	{
 		TURBO_LOG(LOG_WINDOW, Info, "Initializing Window.");
 		mSDLWindow = SDL_CreateWindow(WindowDefaultValues::kName.c_str(), WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY,
@@ -48,12 +48,12 @@ namespace Turbo
 		return true;
 	}
 
-	void FSDLWindow::LogError()
+	void FWindow::LogError()
 	{
 		TURBO_LOG(LOG_WINDOW, Error, "SDL_ERROR: {}", SDL_GetError());
 	}
 
-	void FSDLWindow::PollWindowEventsAndErrors()
+	void FWindow::PollWindowEventsAndErrors()
 	{
 		SDL_Event event;
 
@@ -92,7 +92,7 @@ namespace Turbo
 		}
 	}
 
-	void FSDLWindow::ShowWindow(bool bVisible)
+	void FWindow::ShowWindow(bool bVisible)
 	{
 		TURBO_LOG(LOG_WINDOW, Info, "Setting window visibility to {}", bVisible);
 
@@ -106,7 +106,7 @@ namespace Turbo
 		}
 	}
 
-	glm::ivec2 FSDLWindow::GetFrameBufferSize() const
+	glm::ivec2 FWindow::GetFrameBufferSize() const
 	{
 		glm::ivec2 Result;
 		if (!SDL_GetWindowSizeInPixels(mSDLWindow, &Result.x, &Result.y))
@@ -118,12 +118,12 @@ namespace Turbo
 		return glm::ivec2(Result);
 	}
 
-	bool FSDLWindow::IsFullscreenEnabled() const
+	bool FWindow::IsFullscreenEnabled() const
 	{
 		return mbFullscreenEnabled;
 	}
 
-	void FSDLWindow::SetFullscreen(bool bFullscreen)
+	void FWindow::SetFullscreen(bool bFullscreen)
 	{
 		if (!SDL_SetWindowFullscreen(mSDLWindow, bFullscreen))
 		{
@@ -134,7 +134,7 @@ namespace Turbo
 		 mbFullscreenEnabled = bFullscreen;
 	}
 
-	void FSDLWindow::InitForVulkan()
+	void FWindow::InitForVulkan()
 	{
 		if (!SDL_Vulkan_LoadLibrary(nullptr))
 		{
@@ -142,12 +142,12 @@ namespace Turbo
 		}
 	}
 
-	void FSDLWindow::DeInitForVulkan()
+	void FWindow::DeInitForVulkan()
 	{
 		SDL_Vulkan_UnloadLibrary();
 	}
 
-	std::vector<const char*> FSDLWindow::GetVulkanRequiredExtensions()
+	std::vector<const char*> FWindow::GetVulkanRequiredExtensions()
 	{
 		std::vector<const char*> Result;
 
@@ -167,7 +167,7 @@ namespace Turbo
 		return Result;
 	}
 
-	bool FSDLWindow::CreateVulkanSurface(VkInstance vulkanInstance)
+	bool FWindow::CreateVulkanSurface(VkInstance vulkanInstance)
 	{
 		if (mVulkanSurface)
 		{
@@ -185,14 +185,14 @@ namespace Turbo
 		return true;
 	}
 
-	VkSurfaceKHR FSDLWindow::GetVulkanSurface()
+	VkSurfaceKHR FWindow::GetVulkanSurface()
 	{
 		TURBO_CHECK(mVulkanSurface);
 
 		return mVulkanSurface;
 	}
 
-	bool FSDLWindow::DestroyVulkanSurface(VkInstance vulkanInstance)
+	bool FWindow::DestroyVulkanSurface(VkInstance vulkanInstance)
 	{
 		if (vulkanInstance)
 		{

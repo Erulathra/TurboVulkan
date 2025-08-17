@@ -111,6 +111,7 @@ namespace Turbo {
 
 		std::memcpy(tempBufferData + vertexBufferSize, creationInfo.Indices.data(), indexBufferSize);
 
+#if 0
 		// Copy from host to device
 		gEngine->GetRHI()->SubmitImmediateCommand(
 			FSubmitDelegate::CreateLambda([&](vk::CommandBuffer cmd)
@@ -124,6 +125,7 @@ namespace Turbo {
 				indicesCopy.srcOffset = vertexBufferSize;
 				cmd.copyBuffer(tempBuffer->GetBuffer(), mIndexBuffer->GetBuffer(), 1, &indicesCopy);
 			}));
+#endif
 	}
 
 	void FRHIMesh::Draw(const vk::CommandBuffer cmd, uint32 instanceCount)

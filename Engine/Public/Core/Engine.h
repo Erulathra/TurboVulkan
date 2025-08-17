@@ -4,6 +4,7 @@
 
 namespace Turbo
 {
+	class FGPUDevice;
 	class FCoreTimer;
 	class FVulkanRHI;
 	class CommandLineArgsParser;
@@ -35,16 +36,17 @@ namespace Turbo
 
 		/** Services */
 	public:
-		[[nodiscard]] FVulkanRHI* GetRHI() const { return mRHIInstance.get(); };
-		[[nodiscard]] FSDLWindow* GetWindow() const { return mMainWindowInstance.get(); };
-		[[nodiscard]] IInputSystem* GetInputSystem() const { return mInputSystemInstance.get(); };
+		[[nodiscard]] FGPUDevice* GetGpu() const { return mGpuDevice.get(); }
+
+		[[nodiscard]] FWindow* GetWindow() const { return mWindow.get(); }
+		[[nodiscard]] IInputSystem* GetInputSystem() const { return mInputSystemInstance.get(); }
 
 		[[nodiscard]] FCoreTimer* GetTimer() const { return mCoreTimer.get(); }
 
 	private:
 		// Replace us with GenericRHI
-		std::unique_ptr<FVulkanRHI> mRHIInstance;
-		std::unique_ptr<FSDLWindow> mMainWindowInstance;
+		std::shared_ptr<FGPUDevice> mGpuDevice;
+		std::shared_ptr<FWindow> mWindow;
 
 		std::unique_ptr<IInputSystem> mInputSystemInstance;
 

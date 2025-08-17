@@ -1,18 +1,14 @@
 #include <ranges>
 
-#include "Core/RHI/RHIDestoryQueue.h"
-
-#include "Core/RHI/VulkanDevice.h"
+#include "Core/DataStructures/DestoryQueue.h"
 
 namespace Turbo
 {
-	void FRHIDestroyQueue::Flush(const FVulkanDevice* device)
+	void FDestroyQueue::Flush(void* context)
 	{
-		TURBO_CHECK(device)
-
 		for (std::unique_ptr<IDestroyQueue>& destroyQueue : mDestroyQueues | std::views::values)
 		{
-			destroyQueue->Flush(device);
+			destroyQueue->Flush(context);
 		}
 
 		mOnDestroy.Broadcast();

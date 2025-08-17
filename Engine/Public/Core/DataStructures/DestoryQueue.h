@@ -2,7 +2,6 @@
 
 #include <typeindex>
 
-#include "Core/RHI/RHICore.h"
 #include "Core/Delegate.h"
 
 namespace Turbo
@@ -15,7 +14,7 @@ namespace Turbo
 		virtual ~IDestroyer() = default;
 
 	public:
-		virtual void Destroy(const FVulkanDevice* device) = 0;
+		virtual void Destroy(void* device) = 0;
 	};
 
 	class IDestroyQueue
@@ -24,7 +23,7 @@ namespace Turbo
 		virtual ~IDestroyQueue() = default;
 
 	public:
-		virtual void Flush(const FVulkanDevice* device) = 0;
+		virtual void Flush(void* context) = 0;
 	};
 
 	template <typename DestroyerType> requires (std::is_base_of_v<IDestroyer, DestroyerType>)
@@ -32,11 +31,11 @@ namespace Turbo
 	{
 	public:
 		inline void RequestDestroy(const DestroyerType& destroyer) { mDestroyers.push_back(destroyer); }
-		virtual void Flush(const FVulkanDevice* device) override
+		virtual void Flush(void* context) override
 		{
 			for (DestroyerType& destroyer : std::ranges::reverse_view(mDestroyers))
 			{
-				destroyer.Destroy(device);
+				destroyer.Destroy(context);
 			}
 
 			mDestroyers.clear();
@@ -46,7 +45,7 @@ namespace Turbo
 		std::vector<DestroyerType> mDestroyers;
 	};
 
-	class FRHIDestroyQueue
+	class FDestroyQueue
 	{
 	public:
 		DECLARE_MULTICAST_DELEGATE_REVERSE(FOnDestroy);
@@ -75,7 +74,7 @@ namespace Turbo
 			castedQueue->RequestDestroy(destroyer);
 		}
 
-		void Flush(const FVulkanDevice* device);
+		void Flush(void* context);
 
 	public:
 		FOnDestroy& OnDestroy() { return mOnDestroy; }

@@ -1,12 +1,10 @@
 #pragma once
 
-#include "RHIDestoryQueue.h"
+#include "../DataStructures/DestoryQueue.h"
 #include "RHICore.h"
 #include "FrameData.h"
 #include "SwapChain.h"
 #include "Core/Engine.h"
-
-#define WITH_VALIDATION_LAYERS DEBUG
 
 #define VULKAN_VERSION VK_API_VERSION_1_3
 
@@ -18,7 +16,7 @@ namespace Turbo
 	class FDescriptorAllocatorStatic;
 	class FImage;
 	class FSwapChain;
-	class FSDLWindow;
+	class FWindow;
 	class FVulkanDevice;
 	class FVulkanHardwareDevice;
 
@@ -44,7 +42,7 @@ namespace Turbo
 
 	public:
 		void Init();
-		void InitWindow(FSDLWindow* window);
+		void InitWindow(FWindow* window);
 		void HandleWindowResized(EWindowEvent windowEvent) const;
 		void Destroy();
 
@@ -74,12 +72,12 @@ namespace Turbo
 		[[nodiscard]] FFrameData& GetCurrentFrame() { return mFrameDatas[GetFrameDataIndex()]; }
 		[[nodiscard]] uint32 GetNumBufferedFrames() const { return 2; }
 
-		[[nodiscard]] FRHIDestroyQueue& GetFrameDeletionQueue() { return GetCurrentFrame().GetDeletionQueue(); }
+		[[nodiscard]] FDestroyQueue& GetFrameDeletionQueue() { return GetCurrentFrame().GetDeletionQueue(); }
 
 		[[nodiscard]] FImage& GetDrawImage() const { TURBO_CHECK(mDrawImage); return *mDrawImage; }
 		[[nodiscard]] vk::Viewport GetMainViewport() const;
 
-		[[nodiscard]] FRHIDestroyQueue& GetDeletionQueue();
+		[[nodiscard]] FDestroyQueue& GetDeletionQueue();
 	private:
 		std::vector<FFrameData> mFrameDatas;
 		std::unique_ptr<FImage> mDrawImage;
@@ -137,7 +135,7 @@ namespace Turbo
 
 	public:
 		[[nodiscard]] vk::Instance GetVulkanInstance() const { return mVulkanInstance; }
-		[[nodiscard]] FRHIDestroyQueue& GetMainDeletionQueue() { return mMainDeletionQueue; }
+		[[nodiscard]] FDestroyQueue& GetMainDeletionQueue() { return mMainDeletionQueue; }
 
 	public:
 		DECLARE_EVENT(FOnRHIDestroy, FVulkanRHI);
@@ -164,7 +162,7 @@ namespace Turbo
 		std::unique_ptr<FSwapChain> mSwapChain;
 
 		std::unique_ptr<FDescriptorAllocatorStatic> mMainDescriptorAllocator;
-		FRHIDestroyQueue mMainDeletionQueue;
+		FDestroyQueue mMainDeletionQueue;
 
 		/** TODO: REMOVE ME */
 		struct FSceneData

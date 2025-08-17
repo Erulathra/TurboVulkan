@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RHICore.h"
-#include "Core/RHI/RHIDestoryQueue.h"
+#include "../DataStructures/DestoryQueue.h"
 
 namespace Turbo {
 	class FVulkanDevice;
@@ -24,7 +24,7 @@ namespace Turbo {
 		void Destroy();
 
 		vk::CommandBuffer& GetCommandBuffer() { return mCommandBuffer; }
-		FRHIDestroyQueue& GetDeletionQueue() { return mDeletionQueue; }
+		FDestroyQueue& GetDeletionQueue() { return mDeletionQueue; }
 
 	private:
 		FVulkanDevice* mDevice;
@@ -34,7 +34,7 @@ namespace Turbo {
 		vk::Fence mRenderFence;
 		vk::Semaphore mSwapChainAcquireSemaphore;
 
-		FRHIDestroyQueue mDeletionQueue;
+		FDestroyQueue mDeletionQueue;
 
 	public:
 		friend class FVulkanRHI;

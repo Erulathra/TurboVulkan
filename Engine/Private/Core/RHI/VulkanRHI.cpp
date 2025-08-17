@@ -62,7 +62,7 @@ namespace Turbo
         gEngine->GetWindow()->GetEventTypeDelegate(EWindowEvent::WindowResized).AddRaw(this, &ThisClass::HandleWindowResized);
     }
 
-    void FVulkanRHI::InitWindow(FSDLWindow* window)
+    void FVulkanRHI::InitWindow(FWindow* window)
     {
         window->InitForVulkan();
     }
@@ -423,7 +423,7 @@ namespace Turbo
         return VulkanUtils::CreateViewport(glm::vec2(0.f), mDrawImage->GetSize());
     }
 
-    FRHIDestroyQueue& FVulkanRHI::GetDeletionQueue()
+    FDestroyQueue& FVulkanRHI::GetDeletionQueue()
     {
         const EEngineState CurrentEngineState = gEngine->GetEngineState();
         if (CurrentEngineState == EEngineState::Running)

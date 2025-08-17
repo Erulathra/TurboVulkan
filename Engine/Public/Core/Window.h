@@ -30,9 +30,9 @@ namespace Turbo
 	DECLARE_MULTICAST_DELEGATE(FWindowEventDelegate, EWindowEvent);
 	DECLARE_DELEGATE(FOnSDLKeyboardEvent, const SDL_KeyboardEvent&);
 
-	class FSDLWindow
+	class FWindow
 	{
-		GENERATED_BODY(FSDLWindow)
+		GENERATED_BODY(FWindow)
 
 		/** Constexpr */
 	public:
@@ -40,10 +40,10 @@ namespace Turbo
 
 		/** Constructors */
 	private:
-		explicit FSDLWindow();
+		explicit FWindow();
 
 	public:
-		~FSDLWindow();
+		~FWindow();
 
 		/** Static Interface */
 	public:

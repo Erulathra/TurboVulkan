@@ -17,8 +17,10 @@ namespace Turbo {
 		virtual ~FBufferDestroyer() = default;
 
 	public:
-		virtual void Destroy(const FVulkanDevice* device) override
+		virtual void Destroy(void* context) override
 		{
+			const FVulkanDevice* device = static_cast<FVulkanDevice*>(context);
+
 			if (mBuffer && mAllocation)
 			{
 				device->GetAllocator().destroyBuffer(mBuffer, mAllocation);
@@ -79,7 +81,7 @@ namespace Turbo {
 		}
 	}
 
-	void FVulkanBuffer::RequestDestroy(FRHIDestroyQueue& deletionQueue)
+	void FVulkanBuffer::RequestDestroy(FDestroyQueue& deletionQueue)
 	{
 		bManualDestroy = true;
 		deletionQueue.RequestDestroy(FBufferDestroyer(*this));
@@ -89,8 +91,10 @@ namespace Turbo {
 	{
 		bManualDestroy = true;
 
-		FRHIDestroyQueue& deletionQueue = gEngine->GetRHI()->GetDeletionQueue();
+#if 0
+		FDestroyQueue& deletionQueue = gEngine->GetRHI()->GetDeletionQueue();
 		deletionQueue.RequestDestroy(FBufferDestroyer(*this));
+#endif
 
 		mBuffer = nullptr;
 		mAllocation = nullptr;

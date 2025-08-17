@@ -2,7 +2,7 @@
 
 #include "Core/RHI/RHICore.h"
 #include "Core/Engine.h"
-#include "Core/RHI/RHIDestoryQueue.h"
+#include "../../../Public/Core/DataStructures/DestoryQueue.h"
 #include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/VulkanRHI.h"
 #include "Core/RHI/Utils/VulkanUtils.h"
@@ -22,8 +22,10 @@ namespace Turbo
 		virtual ~FImageDestroyer() override = default;
 
 	public:
-		virtual void Destroy(const FVulkanDevice* device) override
+		virtual void Destroy(void* context) override
 		{
+			const FVulkanDevice* device = static_cast<FVulkanDevice*>(context);
+
 			if (mImageView)
 			{
 				device->Get().destroyImageView(mImageView);
@@ -69,13 +71,15 @@ namespace Turbo
 
 	FImage::~FImage()
 	{
+#if 0
 		if (!bManualDestroy)
 		{
 			gEngine->GetRHI()->GetDeletionQueue().RequestDestroy(FImageDestroyer(*this));
 		}
+#endif
 	}
 
-	void FImage::RequestDestroy(FRHIDestroyQueue& deletionQueue)
+	void FImage::RequestDestroy(FDestroyQueue& deletionQueue)
 	{
 		bManualDestroy = true;
 		deletionQueue.RequestDestroy(FImageDestroyer(*this));
@@ -85,9 +89,11 @@ namespace Turbo
 	{
 		bManualDestroy = true;
 
+#if 0
 		// TODO: Handle when engine is tearing down.
-		FRHIDestroyQueue& deletionQueue = gEngine->GetRHI()->GetDeletionQueue();
+		FDestroyQueue& deletionQueue = gEngine->GetRHI()->GetDeletionQueue();
 		deletionQueue.RequestDestroy(FImageDestroyer(*this));
+#endif
 
 		mImage = nullptr;
 		mImageView = nullptr;

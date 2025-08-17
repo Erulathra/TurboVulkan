@@ -7,13 +7,13 @@ namespace Turbo
 {
 	void FSDLInputSystem::Init()
 	{
-		FSDLWindow* SDLWindow = reinterpret_cast<FSDLWindow*>(gEngine->GetWindow());
+		FWindow* SDLWindow = reinterpret_cast<FWindow*>(gEngine->GetWindow());
 		SDLWindow->BindKeyboardEvent(FOnSDLKeyboardEvent::CreateRaw(this, &ThisClass::HandleSDLKeyboardEvent));
 	}
 
 	void FSDLInputSystem::Destroy()
 	{
-		FSDLWindow* SDLWindow = reinterpret_cast<FSDLWindow*>(gEngine->GetWindow());
+		FWindow* SDLWindow = reinterpret_cast<FWindow*>(gEngine->GetWindow());
 		SDLWindow->RemoveKeyboardEvent();
 	}
 

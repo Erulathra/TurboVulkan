@@ -69,7 +69,7 @@ FQueueFamilyIndices FVulkanHardwareDevice::FindQueueFamilies() const
 {
 	FQueueFamilyIndices result{};
 
-	FSDLWindow* window = gEngine->GetWindow();
+	FWindow* window = gEngine->GetWindow();
 	TURBO_CHECK(window);
 
 	const std::vector<vk::QueueFamilyProperties> queueFamilyProperties = mVulkanPhysicalDevice.getQueueFamilyProperties();

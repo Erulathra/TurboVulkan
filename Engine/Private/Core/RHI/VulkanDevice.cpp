@@ -24,7 +24,11 @@ void FVulkanDevice::Init()
 {
     TURBO_CHECK(mHardwareDevice->IsValid());
 
+#if 0
     vk::Instance vkInstance = gEngine->GetRHI()->GetVulkanInstance();
+#else
+    vk::Instance vkInstance = nullptr;
+#endif
     TURBO_CHECK(vkInstance);
 
     TURBO_LOG(LOG_RHI, Info, "Creating logical device.")
@@ -89,7 +93,11 @@ void FVulkanDevice::InitAllocator()
     TURBO_LOG(LOG_RHI, Info, "Creating memory allocator")
 
     vma::AllocatorCreateInfo createInfo {};
+#if 0
     createInfo.instance = gEngine->GetRHI()->GetVulkanInstance();
+#else
+    createInfo.instance = nullptr;
+#endif
     createInfo.physicalDevice = mHardwareDevice->Get();
     createInfo.device = mVulkanDevice;
     createInfo.flags = vma::AllocatorCreateFlagBits::eBufferDeviceAddress;

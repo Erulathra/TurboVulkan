@@ -11,6 +11,7 @@ inline constexpr uint8 kMaxImageOutputs = 8;
 inline constexpr uint8 kMaxDescriptorSetLayouts = 8;
 inline constexpr uint8 kMaxShaderStages = 5;
 inline constexpr uint8 kMaxDescriptorsPerSet = 16;
+inline constexpr uint32 kMaxSwapChainImages = 3;
 
 /** Constants end */
 

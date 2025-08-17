@@ -47,6 +47,6 @@ namespace Turbo
 
 	public:
 		friend class FEngine;
-		friend class FSDLWindow;
+		friend class FWindow;
 	};
 } // Turbo

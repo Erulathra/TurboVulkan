@@ -27,6 +27,7 @@ namespace Turbo
 #define LOG_ENGINE		Info
 #define LOG_WINDOW		Display
 #define LOG_RHI			Info
+#define LOG_GPU_DEVICE	Display
 #define LOG_TEMP		Display
 #define LOG_STREAMING	Display
 #define LOG_INPUT		Display

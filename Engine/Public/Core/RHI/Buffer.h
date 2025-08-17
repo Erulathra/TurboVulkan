@@ -5,7 +5,7 @@
 namespace Turbo
 {
 	class FVulkanDevice;
-	class FRHIDestroyQueue;
+	class FDestroyQueue;
 
 	class FVulkanBuffer
 	{
@@ -24,7 +24,7 @@ namespace Turbo
 		static std::shared_ptr<FVulkanBuffer> CreateShared(FVulkanDevice* device, size_t allocSize, vk::BufferUsageFlags usageFlags, vma::MemoryUsage memoryUsageFlags);
 		~FVulkanBuffer();
 
-		void RequestDestroy(FRHIDestroyQueue& deletionQueue);
+		void RequestDestroy(FDestroyQueue& deletionQueue);
 		void Destroy();
 
 	public:
