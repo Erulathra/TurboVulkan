@@ -1,10 +1,9 @@
 # CPM - package manager
 include(CPM)
 
+CPMAddPackage("gh:KhronosGroup/Vulkan-Headers@1.4.313")
+
 # SDL setup
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 CPMAddPackage(
         GITHUB_REPOSITORY "libsdl-org/SDL"
         GIT_TAG "release-3.2.16"
@@ -21,6 +20,8 @@ CPMAddPackage(
         GIT_TAG "1.0.1"
         OPTIONS "GLM_ENABLE_SIMD_AVX2 ON"
 )
+
+CPMAddPackage("gh:charles-lunarg/vk-bootstrap@1.4.313")
 
 # Vulkan memory allocator
 CPMAddPackage(
@@ -43,9 +44,11 @@ add_library(imgui STATIC
 
         ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
 )
+target_link_libraries(imgui PRIVATE Vulkan-Headers)
 
 CPMAddPackage("gh:wolfpld/tracy@0.12.2")
 CPMAddPackage("gh:spnda/fastgltf@0.9.0")
+
 
 target_compile_definitions(imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})

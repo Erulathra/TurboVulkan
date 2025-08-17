@@ -18,6 +18,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC Public)
 
 target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
 
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan-Headers)
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
@@ -29,8 +30,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
 target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 
+
 target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
 target_link_libraries(${PROJECT_NAME} PRIVATE VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE vk-bootstrap::vk-bootstrap)
 
 add_dependencies(${PROJECT_NAME} TurboVulcan_Shaders)
 
@@ -52,9 +55,11 @@ add_definitions(-DGLM_FORCE_LEFT_HANDED -DGLM_FORCE_DEPTH_ZERO_TO_ONE)
 if (${TURBO_BUILD_SHIPPING})
     SET(WITH_PROFILER false)
     add_compile_definitions(WITH_ASSERTIONS=0)
+    add_compile_definitions(WITH_VALIDATION_LAYERS=0)
 else ()
     SET(WITH_PROFILER true)
     add_compile_definitions(WITH_ASSERTIONS=1)
+    add_compile_definitions(WITH_VALIDATION_LAYERS=1)
 endif ()
 
 
