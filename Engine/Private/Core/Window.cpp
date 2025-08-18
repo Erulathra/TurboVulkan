@@ -60,8 +60,9 @@ namespace Turbo
 		// Handle events
 		while (SDL_PollEvent(&event))
 		{
+			// todo: Move to engine subsystem
 			// Handle ImGui events
-			ImGui_ImplSDL3_ProcessEvent(&event);
+			// ImGui_ImplSDL3_ProcessEvent(&event);
 
 			EWindowEvent convertedEvent = EWindowEvent::None;
 			switch (event.type)

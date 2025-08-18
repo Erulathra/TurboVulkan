@@ -46,10 +46,6 @@ namespace Turbo
 
 		mGpuDevice->Init(gpuDeviceBuilder);
 
-		if (!mWindow->Init())
-		{
-			return static_cast<int32_t>(EExitCode::WindowCreationError);
-		}
 		mWindow->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
 		mInputSystemInstance->Init();

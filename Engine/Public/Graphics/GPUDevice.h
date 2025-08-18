@@ -73,6 +73,8 @@ namespace Turbo
 	private:
 		FDestroyQueue mDestroyQueue;
 
+		vk::DebugUtilsMessengerEXT mVkDebugUtilsMessenger;
+
 		/** Other end */
 
 	private:
