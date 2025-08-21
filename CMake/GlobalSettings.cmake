@@ -21,8 +21,6 @@ if (MSVC)
     add_definitions(-DWITH_MSVC)
 endif ()
 
-set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
-
 set(BuildType false CACHE STRING "Build type")
 
 set(BuildType_Development "Development")

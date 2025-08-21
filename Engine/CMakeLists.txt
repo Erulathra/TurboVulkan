@@ -8,6 +8,8 @@ file(GLOB_RECURSE PUBLIC_FILES Public/*.h)
 
 add_library(${PROJECT_NAME} ${PUBLIC_FILES} ${PRIVATE_FILES})
 
+set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
+
 # Set target language
 set_target_properties(TurboVulcan_Engine PROPERTIES LINKER_LANGUAGE CXX)
 

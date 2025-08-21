@@ -8,6 +8,8 @@ include_directories(Public)
 
 add_executable(${PROJECT_NAME} ${PUBLIC_FILES} ${PRIVATE_FILES})
 
+set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
+
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_Engine)
 
 add_custom_command(
