@@ -70,7 +70,7 @@ namespace Turbo {
 		return result;
 	}
 
-	vk::SemaphoreSubmitInfo VulkanInitializers::SemaphoreSubmitInfo(const vk::Semaphore& signalSemaphore, vk::PipelineStageFlags2 stageMask)
+	vk::SemaphoreSubmitInfo VulkanInitializers::SemaphoreSubmitInfo(vk::Semaphore signalSemaphore, vk::PipelineStageFlags2 stageMask)
 	{
 		vk::SemaphoreSubmitInfo result{};
 		result.setPNext(nullptr);
@@ -82,7 +82,7 @@ namespace Turbo {
 		return result;
 	}
 
-	vk::CommandBufferSubmitInfo VulkanInitializers::CommandBufferSubmitInfo(const vk::CommandBuffer& commandBuffer)
+	vk::CommandBufferSubmitInfo VulkanInitializers::CommandBufferSubmitInfo(vk::CommandBuffer commandBuffer)
 	{
 		vk::CommandBufferSubmitInfo result{};
 		result.setPNext(nullptr);

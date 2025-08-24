@@ -79,7 +79,18 @@ namespace Turbo
 
 		TURBO_LOG(LOG_ENGINE, Display, "Engine Tick. FrameTime: {}, FPS: {}", mCoreTimer->GetDeltaTime(), 1.f / mCoreTimer->GetDeltaTime());
 
-		// GetRHI()->Tick();
+		FGPUDevice* gpu = GetGpu();
+		TURBO_CHECK(gpu);
+
+		gpu->BeginFrame();
+
+		FCommandBuffer* cmd = gpu->GetCommandBuffer();
+		const FTextureHandle image = gpu->GetPresentImage();
+
+		const glm::vec4 color = glm::mix(ELinearColor::kMagenta, ELinearColor::kBlue, glm::sin(FCoreTimer::TimeFromEngineStart()));
+		cmd->ClearImage(image, color);
+
+		gpu->PresentFrame();
 
 		TRACE_MARK_FRAME();
 	}

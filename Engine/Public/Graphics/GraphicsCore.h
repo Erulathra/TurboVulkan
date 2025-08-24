@@ -8,10 +8,15 @@
 inline constexpr uint16 kInvalidSetIndex = std::numeric_limits<uint16>::max();
 
 inline constexpr uint8 kMaxImageOutputs = 8;
-inline constexpr uint8 kMaxDescriptorSetLayouts = 8;
 inline constexpr uint8 kMaxShaderStages = 5;
 inline constexpr uint8 kMaxDescriptorsPerSet = 16;
 inline constexpr uint32 kMaxSwapChainImages = 3;
+inline constexpr uint32 kMaxBufferedFrames = 2;
+
+// In theory VK supports up to 16, but I want to save some memory.
+inline constexpr uint8 kMaxDescriptorSetLayouts = 4;
+inline constexpr uint32 kMaxDescriptorSets = 4;
+inline constexpr uint32 kDescriptorSetsPerPool = 32;
 
 /** Constants end */
 

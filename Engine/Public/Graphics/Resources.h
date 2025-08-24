@@ -3,9 +3,10 @@
 #include "Core/DataStructures/ResourcePool.h"
 #include "Graphics/GraphicsCore.h"
 
-#define RESOURCE_BODY()			\
-	public:						\
-		friend class GPUDevice;	\
+#define RESOURCE_BODY()					\
+	public:								\
+		friend class FGPUDevice;		\
+		friend class FCommandBuffer;	\
 	private:
 
 namespace Turbo
@@ -13,13 +14,14 @@ namespace Turbo
 
 	/** Handles */
 
-	DECLARE_RESOURCE_HANDLE(Buffer);
-	DECLARE_RESOURCE_HANDLE(Texture);
-	DECLARE_RESOURCE_HANDLE(ShaderState);
-	DECLARE_RESOURCE_HANDLE(Sampler);
-	DECLARE_RESOURCE_HANDLE(DescriptorSetLayout);
-	DECLARE_RESOURCE_HANDLE(DescriptorSet);
-	DECLARE_RESOURCE_HANDLE(Pipeline);
+	DECLARE_RESOURCE_HANDLE(Buffer)
+	DECLARE_RESOURCE_HANDLE(Texture)
+	DECLARE_RESOURCE_HANDLE(ShaderState)
+	DECLARE_RESOURCE_HANDLE(Sampler)
+	DECLARE_RESOURCE_HANDLE(DescriptorSetLayout)
+	DECLARE_RESOURCE_HANDLE(DescriptorPool)
+	DECLARE_RESOURCE_HANDLE(DescriptorSet)
+	DECLARE_RESOURCE_HANDLE(Pipeline)
 
 	/** Handles end */
 
@@ -68,6 +70,7 @@ namespace Turbo
 		vk::ImageView mImageView = nullptr;
 		vk::Format mFormat = vk::Format::eUndefined;
 		vk::ImageLayout mCurrentLayout = vk::ImageLayout::eUndefined;
+		vk::ImageAspectFlags mAspectFlags = vk::ImageAspectFlagBits::eNone;
 		vma::Allocation mImageAllocation = nullptr;
 
 		uint16 mWidth = 1;
@@ -111,6 +114,17 @@ namespace Turbo
 
 	private:
 		vk::DescriptorSet mDescriptorSet = nullptr;
+
+		FDescriptorPoolHandle mOwnerPool = {};
+	};
+
+	class FDescriptorPool final
+	{
+		RESOURCE_BODY()
+
+	private:
+		vk::DescriptorPool mDescriptorPool;
+		std::array<FDescriptorSetHandle, kDescriptorSetsPerPool> mDescriptorSets;
 	};
 
 	class FPipeline final
@@ -137,4 +151,3 @@ namespace Turbo
 } // Turbo
 
 #undef RESOURCE_BODY
-#undef DECLARE_RESOURCE_HANDLE

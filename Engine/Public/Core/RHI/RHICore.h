@@ -78,3 +78,4 @@ struct fmt::formatter<VkResult> : formatter<int32>
 #endif // else TURBO_BUILD_SHIPPING
 
 constexpr inline uint32 kDefaultVulkanTimeout = 1000000000; // 1 second
+constexpr inline uint32 kMaxTimeout = std::numeric_limits<uint32>::max(); // 1 second

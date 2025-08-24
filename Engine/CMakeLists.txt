@@ -37,6 +37,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
 target_link_libraries(${PROJECT_NAME} PRIVATE VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE vk-bootstrap::vk-bootstrap)
 
+#target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=address)
+
 add_dependencies(${PROJECT_NAME} TurboVulcan_Shaders)
 
 add_compile_definitions(TURBO_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})

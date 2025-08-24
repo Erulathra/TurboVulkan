@@ -22,8 +22,6 @@
 #include "Rendering/Pipelines/MeshGPPipeline.h"
 #include "Rendering/Pipelines/TestGPPipeline.h"
 
-VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
-
 namespace Turbo
 {
     FVulkanRHI::FVulkanRHI() = default;
@@ -128,7 +126,7 @@ namespace Turbo
     {
         TURBO_LOG(LOG_RHI, Info, "Initialize VOLK");
 
-        VULKAN_HPP_DEFAULT_DISPATCHER.init();
+        // VULKAN_HPP_DEFAULT_DISPATCHER.init();
 
         vk::Result vulkanResult;
         uint32 instanceVersion;
@@ -171,7 +169,7 @@ namespace Turbo
 
         TURBO_LOG(LOG_RHI, Info, "Creating VKInstance.")
         CHECK_VULKAN_HPP(vk::createInstance(&createInfo, nullptr, &mVulkanInstance));
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(mVulkanInstance);
+        // VULKAN_HPP_DEFAULT_DISPATCHER.init(mVulkanInstance);
 
 #if WITH_VALIDATION_LAYERS
         SetupValidationLayersCallbacks();

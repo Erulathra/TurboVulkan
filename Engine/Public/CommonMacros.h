@@ -54,20 +54,6 @@
 
 #endif // else WITH_ASSERTIONS
 
-#define TURBO_UNINPLEMENTED()																							\
-	{																													\
-		SPDLOG_ERROR("Unimplemented behaviour.");																		\
-		TURBO_DEBUG_BREAK();																							\
-		std::terminate();																								\
-	}																													\
-
-#define TURBO_UNINPLEMENTED_MSG(MESSAGE, ...)																			\
-	{																													\
-		SPDLOG_ERROR("Unimplemented behaviour. Message: `" MESSAGE "`" __VA_OPT__(,) __VA_ARGS__);						\
-		TURBO_DEBUG_BREAK();																							\
-		std::terminate();																								\
-	}																													\
-
 #define TURBO_STATIC_ASSERT(CONDITION) static_assert(CONDITION, #CONDITION)
 #define TURBO_STATIC_ASSERT_MSG(CONDITION, MSG) static_assert(CONDITION, "Static assert '" #CONDITION "' failed. Message: " MSG)
 
@@ -82,6 +68,29 @@ if (!(CONDITION))				\
 #else
 #define TURBO_ENSURE(CONDITION) {}
 #endif // DEBUG
+
+#if WITH_ASSERTIONS
+
+#define UNIMPLEMENTED_BODY()	\
+	TURBO_DEBUG_BREAK();
+
+#else // WITH_ASSERTIONS
+
+#define UNIMPLEMENTED_BODY()
+
+#endif // else WITH_ASSERTIONS
+
+#define TURBO_UNINPLEMENTED()																						\
+{																													\
+	SPDLOG_ERROR("Unimplemented behaviour.");																		\
+	UNIMPLEMENTED_BODY();																							\
+}																													\
+
+#define TURBO_UNINPLEMENTED_MSG(MESSAGE, ...)																		\
+{																													\
+	SPDLOG_ERROR("Unimplemented behaviour. Message: `" MESSAGE "`" __VA_OPT__(,) __VA_ARGS__);						\
+	UNIMPLEMENTED_BODY();																							\
+}
 
 // Other
 

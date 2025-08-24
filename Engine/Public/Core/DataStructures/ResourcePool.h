@@ -1,6 +1,6 @@
 #pragma once
 
-#define DECLARE_RESOURCE_HANDLE(RESOURCE_NAME) struct F##RESOURCE_NAME##Handle final : public FTypeSafeResourceHandleBase { }
+#define DECLARE_RESOURCE_HANDLE(RESOURCE_NAME) struct F##RESOURCE_NAME##Handle final : public FTypeSafeResourceHandleBase { };
 
 namespace Turbo
 {
@@ -24,6 +24,9 @@ namespace Turbo
 		TResourcePool() { Clear(); }
 
 	public:
+		[[nodiscard]] static constexpr FResourceHandle GetCapacity() { return size; }
+		[[nodiscard]] FResourceHandle GetAcquiredResources() const { return mUsedIndices; }
+
 		void Clear()
 		{
 			mFreeIndicesHead = 0;
@@ -39,7 +42,7 @@ namespace Turbo
 		{
 			TURBO_CHECK_MSG(mFreeIndicesHead < size, "No more resources left!")
 
-			const THandle NewHandle {};
+			THandle NewHandle {};
 			NewHandle.Index = mFreeIndices[mFreeIndicesHead];
 
 			++mFreeIndicesHead;
@@ -58,9 +61,9 @@ namespace Turbo
 
 		T* Access(THandle handle)
 		{
-			if (handle.IsValid())
+			if (handle.IsValid() && handle.Index < mData.size())
 			{
-				return mData[handle.Index];
+				return &mData[handle.Index];
 			}
 
 			return nullptr;
@@ -68,9 +71,9 @@ namespace Turbo
 
 		const T* Access(THandle handle) const
 		{
-			if (handle.IsValid())
+			if (handle.IsValid() && handle.Index < mData.size())
 			{
-				return mData[handle.Index];
+				return &mData[handle.Index];
 			}
 
 			return nullptr;
@@ -82,5 +85,19 @@ namespace Turbo
 
 		FPoolIndexType mFreeIndicesHead = 0;
 		FPoolIndexType mUsedIndices = 0;
+	};
+
+	template<typename T, typename THandle , uint32 size>
+	requires std::is_base_of_v<FTypeSafeResourceHandleBase, THandle>
+		  && (size < kInvalidHandle)
+	class TResourcePoolHeap
+	{
+		using TPoolType = TResourcePool<T, THandle, size>;
+	public:
+		TResourcePoolHeap() { mPoolPtr = std::make_unique<TPoolType>(); }
+		TPoolType* operator->() { return mPoolPtr.get(); }
+
+	private:
+		std::unique_ptr<TPoolType> mPoolPtr;
 	};
 } // turbo

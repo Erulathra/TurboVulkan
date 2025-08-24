@@ -78,7 +78,9 @@ void FVulkanDevice::Init()
     std::tie(vkResult, mVulkanDevice) = mHardwareDevice->Get().createDevice(deviceCreateInfo);
     CHECK_VULKAN_HPP_MSG(vkResult, "Cannot create logical device");
 
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
     VULKAN_HPP_DEFAULT_DISPATCHER.init(mVulkanDevice);
+#endif // VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
 
     InitAllocator();
 
@@ -102,6 +104,7 @@ void FVulkanDevice::InitAllocator()
     createInfo.device = mVulkanDevice;
     createInfo.flags = vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
 
+#if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
     const vk::detail::DispatchLoaderDynamic dispatcher = VULKAN_HPP_DEFAULT_DISPATCHER;
 
     vma::VulkanFunctions vulkanFunctions{};
@@ -109,6 +112,7 @@ void FVulkanDevice::InitAllocator()
     vulkanFunctions.vkGetDeviceProcAddr = dispatcher.vkGetDeviceProcAddr;
 
     createInfo.pVulkanFunctions = &vulkanFunctions;
+#endif // VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
 
     CHECK_VULKAN_RESULT(mAllocator, vma::createAllocator(createInfo))
 }

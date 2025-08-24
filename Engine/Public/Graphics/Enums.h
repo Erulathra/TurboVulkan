@@ -30,4 +30,13 @@ namespace Turbo
 		Compute = 1 << 2,
 	};
 	DEFINE_ENUM_OPERATORS(ETextureFlags, uint8)
+
+	enum class EQueueType : uint8
+	{
+		Graphics,
+		Compute,
+		CopyTransfer,
+
+		Num
+	};
 }
