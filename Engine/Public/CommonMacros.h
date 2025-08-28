@@ -96,7 +96,7 @@ if (!(CONDITION))				\
 
 #define INDEX_NONE (-1)
 
-#define TEST_FLAG(VALUE, FLAG) static_cast<uint32>(VALUE & FLAG) != 0
+#define TEST_FLAG(VALUE, FLAG) static_cast<uint32>((VALUE) & (FLAG)) != 0
 
 namespace Turbo
 {

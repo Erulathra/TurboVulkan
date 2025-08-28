@@ -55,6 +55,7 @@ namespace Turbo
 			{ mFormat = format; mType = type; mFlags = flags;  return *this; }
 		FTextureBuilder& SetSize(glm::ivec3 size) { mWidth = size.x; mHeight = size.y; mDepth = size.z; return *this; }
 		FTextureBuilder& SetNumMips(uint8 numMips) { mNumMips = numMips; return *this; }
+
 		FTextureBuilder& SetData(void* data) { mInitialData = data; return *this; }
 
 		FTextureBuilder& SetName(FName name) { mName = name; return *this; }

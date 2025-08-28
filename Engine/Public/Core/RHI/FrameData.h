@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RHICore.h"
-#include "../DataStructures/DestoryQueue.h"
+#include "../../Graphics/DestoryQueue.h"
 
 namespace Turbo {
 	class FVulkanDevice;

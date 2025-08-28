@@ -2,11 +2,13 @@
 
 #include <typeindex>
 
+#include "Graphics/GraphicsCore.h"
 #include "Core/Delegate.h"
+
 
 namespace Turbo
 {
-	class FVulkanDevice;
+	class FGPUDevice;
 
 	class IDestroyer
 	{
@@ -14,7 +16,7 @@ namespace Turbo
 		virtual ~IDestroyer() = default;
 
 	public:
-		virtual void Destroy(void* device) = 0;
+		virtual void Destroy(FGPUDevice& GPUDevice) = 0;
 	};
 
 	class IDestroyQueue
@@ -23,19 +25,19 @@ namespace Turbo
 		virtual ~IDestroyQueue() = default;
 
 	public:
-		virtual void Flush(void* context) = 0;
+		virtual void Flush(FGPUDevice& GPUDevice) = 0;
 	};
 
 	template <typename DestroyerType> requires (std::is_base_of_v<IDestroyer, DestroyerType>)
-	class TDestroyQueue : public IDestroyQueue
+	class TDestroyQueue final : public IDestroyQueue
 	{
 	public:
 		inline void RequestDestroy(const DestroyerType& destroyer) { mDestroyers.push_back(destroyer); }
-		virtual void Flush(void* context) override
+		virtual void Flush(FGPUDevice& GPUDevice) override
 		{
 			for (DestroyerType& destroyer : std::ranges::reverse_view(mDestroyers))
 			{
-				destroyer.Destroy(context);
+				destroyer.Destroy(GPUDevice);
 			}
 
 			mDestroyers.clear();
@@ -74,7 +76,7 @@ namespace Turbo
 			castedQueue->RequestDestroy(destroyer);
 		}
 
-		void Flush(void* context);
+		void Flush(FGPUDevice& GPUDevice);
 
 	public:
 		FOnDestroy& OnDestroy() { return mOnDestroy; }

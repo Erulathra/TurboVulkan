@@ -23,6 +23,7 @@ namespace Turbo
 		friend bool operator!=(const FName& lhs, const FName& rhs) { return !(lhs == rhs); }
 
 		[[nodiscard]] std::string_view ToString() const;
+		[[nodiscard]] cstring ToCString() const;
 
 	private:
 		FNameId mStringId;

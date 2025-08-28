@@ -49,6 +49,8 @@ namespace Turbo {
 			mDevice->Get().destroySemaphore(mSwapChainAcquireSemaphore);
 		}
 
+#if 0
 		mDeletionQueue.Flush(mDevice);
+#endif
 	}
 } // Turbo

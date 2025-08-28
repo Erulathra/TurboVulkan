@@ -5,6 +5,7 @@
 #include "Core/RHI/VulkanRHI.h"
 
 namespace Turbo {
+#if 0
 	class FBufferDestroyer : IDestroyer
 	{
 	public:
@@ -102,4 +103,5 @@ namespace Turbo {
 
 		mDevice->GetAllocator().destroyBuffer(mBuffer, mAllocation);
 	}
+#endif
 } // Turbo

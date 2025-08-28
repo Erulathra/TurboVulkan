@@ -2,13 +2,14 @@
 
 #include "Core/RHI/RHICore.h"
 #include "Core/Engine.h"
-#include "../../../Public/Core/DataStructures/DestoryQueue.h"
+#include "../../../Public/Graphics/DestoryQueue.h"
 #include "Core/RHI/VulkanDevice.h"
 #include "Core/RHI/VulkanRHI.h"
 #include "Core/RHI/Utils/VulkanUtils.h"
 
 namespace Turbo
 {
+#if 0
 	class FImageDestroyer : public IDestroyer
 	{
 	public:
@@ -42,6 +43,7 @@ namespace Turbo
 		vk::ImageView mImageView;
 		vma::Allocation mAllocation;
 	};
+#endif
 
 	FImage::FImage(FVulkanDevice* device)
 		: mDevice(device)
@@ -82,7 +84,9 @@ namespace Turbo
 	void FImage::RequestDestroy(FDestroyQueue& deletionQueue)
 	{
 		bManualDestroy = true;
+#if 0
 		deletionQueue.RequestDestroy(FImageDestroyer(*this));
+#endif
 	}
 
 	void FImage::Destroy()

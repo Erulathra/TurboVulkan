@@ -45,6 +45,7 @@ namespace Turbo
 		gpuDeviceBuilder.SetWindow(mWindow);
 
 		mGpuDevice->Init(gpuDeviceBuilder);
+		mGpuDevice->InitGeometryBuffer();
 
 		mWindow->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
@@ -124,6 +125,8 @@ namespace Turbo
 	void FEngine::End()
 	{
 		TURBO_LOG(LOG_ENGINE, Info, "Begin exit sequence.");
+
+		mGpuDevice->DestroyGeometryBuffer();
 
 		mGpuDevice->Shutdown();
 		mInputSystemInstance->Destroy();

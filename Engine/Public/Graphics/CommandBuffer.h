@@ -3,6 +3,7 @@
 #include "Enums.h"
 #include "Core/DataStructures/ResourcePool.h"
 #include "Core/Math/Color.h"
+#include "Core/Math/MathTypes.h"
 #include "Graphics/GraphicsCore.h"
 #include "Graphics/Resources.h"
 
@@ -17,6 +18,7 @@ namespace Turbo
 	public:
 		void TransitionImage(FTextureHandle textureHandle, vk::ImageLayout newLayout);
 		void ClearImage(FTextureHandle textureHandle, glm::vec4 color = ELinearColor::kBlack);
+		void BlitImage(FTextureHandle src, FRect2DInt srcRect, FTextureHandle dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
 
 	private:
 		void Begin();

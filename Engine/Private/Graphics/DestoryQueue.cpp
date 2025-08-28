@@ -1,14 +1,14 @@
 #include <ranges>
 
-#include "Core/DataStructures/DestoryQueue.h"
+#include "Graphics/DestoryQueue.h"
 
 namespace Turbo
 {
-	void FDestroyQueue::Flush(void* context)
+	void FDestroyQueue::Flush(FGPUDevice& GPUDevice)
 	{
 		for (std::unique_ptr<IDestroyQueue>& destroyQueue : mDestroyQueues | std::views::values)
 		{
-			destroyQueue->Flush(context);
+			destroyQueue->Flush(GPUDevice);
 		}
 
 		mOnDestroy.Broadcast();

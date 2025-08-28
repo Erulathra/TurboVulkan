@@ -11,17 +11,13 @@ namespace Turbo {
 
 	uint32 TryRegisterName(std::string_view name)
 	{
+		const std::string nameAsString(name);
+
 		if (!gNameHashMap)
 		{
 			gNameHashMap = std::make_unique<FNameHashMapType>();
 			gNameLookUp = std::make_unique<FNameLookUpTableType>();
 		}
-
-		std::string nameAsString;
-		nameAsString.reserve(name.size());
-		std::ranges::transform(
-			name, std::back_inserter(nameAsString),
-			[](const unsigned char character) { return std::tolower(character); });
 
 		if (const auto foundNameIt = gNameHashMap->find(nameAsString); foundNameIt != gNameHashMap->end())
 		{
@@ -45,5 +41,11 @@ namespace Turbo {
 	{
 		TURBO_CHECK(gNameLookUp->size() > mStringId);
 		return (*gNameLookUp)[mStringId];
+	}
+
+	cstring FName::ToCString() const
+	{
+		TURBO_CHECK(gNameLookUp->size() > mStringId);
+		return (*gNameLookUp)[mStringId].c_str();
 	}
 } // Turbo

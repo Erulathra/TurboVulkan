@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DestoryQueue.h"
 #include "Core/DataStructures/ResourcePool.h"
 #include "Graphics/GraphicsCore.h"
 
@@ -8,6 +9,10 @@
 		friend class FGPUDevice;		\
 		friend class FCommandBuffer;	\
 	private:
+
+#define DESTROYER_BODY()				\
+	public:								\
+		friend class FGPUDevice;
 
 namespace Turbo
 {
@@ -64,23 +69,38 @@ namespace Turbo
 	class FTexture final
 	{
 		RESOURCE_BODY()
+	public:
+		glm::ivec3 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
 
 	private:
 		vk::Image mImage = nullptr;
 		vk::ImageView mImageView = nullptr;
 		vk::Format mFormat = vk::Format::eUndefined;
 		vk::ImageLayout mCurrentLayout = vk::ImageLayout::eUndefined;
-		vk::ImageAspectFlags mAspectFlags = vk::ImageAspectFlagBits::eNone;
 		vma::Allocation mImageAllocation = nullptr;
 
 		uint16 mWidth = 1;
 		uint16 mHeight = 1;
 		uint16 mDepth = 1;
-		uint8 mMips = 1;
+		uint8 mNumMips = 1;
 
 		FTextureHandle mHandle = {};
 
 		FName mName;
+	};
+
+	class FTextureDestroyer final : IDestroyer
+	{
+		DESTROYER_BODY()
+	public:
+		virtual ~FTextureDestroyer() override = default;
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	private:
+		vk::Image mImage = nullptr;
+		vk::ImageView mImageView = nullptr;
+		vma::Allocation mImageAllocation = nullptr;
+		FTextureHandle mHandle = {};
 	};
 
 	class FShaderState final

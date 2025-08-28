@@ -4,9 +4,10 @@
 #include "VkBootstrap.h"
 
 #include "ResourceBuilders.h"
-#include "Core/DataStructures/DestoryQueue.h"
+#include "DestoryQueue.h"
 #include "Core/DataStructures/ResourcePool.h"
 #include "Graphics/Resources.h"
+#include "Graphics/VulkanHelpers.h"
 
 namespace Turbo
 {
@@ -21,6 +22,19 @@ namespace Turbo
 
 		std::unique_ptr<FCommandBuffer> mCommandBuffer;
 		FDescriptorPoolHandle mDescriptorPoolHandle;
+
+		FDestroyQueue mDestroyQueue;
+
+	public:
+		friend class FGPUDevice;
+	};
+
+	class FGeometryBuffer
+	{
+		FTextureHandle mColor = {};
+		FTextureHandle mDepth = {};
+
+		glm::ivec2 resolution;
 
 	public:
 		friend class FGPUDevice;
@@ -41,6 +55,11 @@ namespace Turbo
 		void BeginFrame();
 		void PresentFrame();
 
+		/** Find me better place */
+		void InitGeometryBuffer();
+		void DestroyGeometryBuffer();
+		const FGeometryBuffer& GetGeometryBuffer() const { return mGeometryBuffer; }
+
 		FCommandBuffer* GetCommandBuffer() { return mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
 
 		// TODO: Remove me
@@ -60,6 +79,31 @@ namespace Turbo
 		FShaderState* AccessShaderState(FShaderStateHandle handle) { return mShaderStatePool->Access(handle); }
 
 		/** Resource accessors end */
+
+		/** Resource creation */
+	public:
+		// FBufferHandle CreateBuffer();
+		FTextureHandle CreateTexture(const FTextureBuilder& textureBuilder);
+		// FSamplerHandle CreateSampler();
+		// FPipelineHandle CreatePipeline();
+		// FDescriptorPoolHandle CreateDescriptorPool();
+		// FDescriptorSetLayoutHandle CreateDescriptorSetLayout();
+		// FDescriptorSetHandle CreateDescriptorSet();
+		// FShaderStateHandle CreateShaderState();
+
+		/** Resource creation end */
+
+		/** Resource destroy */
+	public:
+		void DestroyTexture(FTextureHandle handle);
+
+		/** Resource destroy end */
+
+		/** Destroy immediate */
+	public:
+		void DestroyTextureImmediate(FTextureDestroyer& textureDestroyer);
+
+		/** Destroy immediate end */
 
 		/** Initialization methods */
 	private:
@@ -88,14 +132,23 @@ namespace Turbo
 
 		/** Rendering interface end */
 
+		/** Creation helpers */
 	private:
+		void InitVulkanTexture(const FTextureBuilder& builder, FTextureHandle handle, FTexture* texture);
+
+		/** Creation helpers end */
+
 		/** Debug */
+	private:
 		static VkBool32 ValidationLayerCallback(
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT messageType,
 			const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
 			void* userData
 		);
+
+		template<typename HandleType>
+		void SetResourceName(HandleType vkHandle, FName name) const;
 		/** Debug end */
 
 	private:
@@ -147,6 +200,9 @@ namespace Turbo
 		/** Frame handing */
 		std::array<FBufferedFrameData, kMaxBufferedFrames> mFrameDatas;
 
+		/** For now, I would leave it here, but in the future I need proper GBuffer class */
+		FGeometryBuffer mGeometryBuffer;
+
 		/** Note that this is an index of buffered frame */
 		uint32 mBufferedFrameIndex = 0;
 		/** Note that this is an index of rendered frame (from Init) */
@@ -162,7 +218,6 @@ namespace Turbo
 		FDestroyQueue mDestroyQueue;
 		vk::DebugUtilsMessengerEXT mVkDebugUtilsMessenger;
 
-
 		/** Other end */
 
 	private:
@@ -171,4 +226,18 @@ namespace Turbo
 	public:
 		friend class FEngine;
 	};
+
+
+	template <typename HandleType>
+	void FGPUDevice::SetResourceName(HandleType vkHandle, FName name) const
+	{
+#if WITH_DEBUG_RENDERING_FEATURES
+		vk::DebugUtilsObjectNameInfoEXT nameInfo = {};
+		nameInfo.objectType = vkHandle.objectType;
+		nameInfo.objectHandle = HandleTraits<HandleType>::CastToU64Handle(vkHandle);
+		const std::string objectName = std::string(name.ToCString()) + std::string(HandleTraits<HandleType>::GetTypePostFix());
+		nameInfo.pObjectName = objectName.c_str();
+		CHECK_VULKAN_HPP(mVkDevice.setDebugUtilsObjectNameEXT(nameInfo));
+#endif // WITH_DEBUG_RENDERING_FEATURES
+	}
 } // Turbo

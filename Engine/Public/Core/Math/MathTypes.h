@@ -14,6 +14,7 @@ namespace Turbo
 		glm::ivec2 Size = {};
 	};
 
+
 	struct FViewport final
 	{
 		FRect2DInt Rect;

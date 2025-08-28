@@ -25,7 +25,7 @@ namespace Turbo
 
 	public:
 		[[nodiscard]] static constexpr FResourceHandle GetCapacity() { return size; }
-		[[nodiscard]] FResourceHandle GetAcquiredResources() const { return mUsedIndices; }
+		[[nodiscard]] FResourceHandle GetNumAcquiredResources() const { return mUsedIndices; }
 
 		void Clear()
 		{

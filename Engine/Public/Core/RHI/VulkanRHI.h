@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../DataStructures/DestoryQueue.h"
+#include "../../Graphics/DestoryQueue.h"
 #include "RHICore.h"
 #include "FrameData.h"
 #include "SwapChain.h"

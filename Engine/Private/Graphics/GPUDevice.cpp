@@ -1,6 +1,7 @@
 #include "Graphics/GPUDevice.h"
 
 #include "VkBootstrap.h"
+#include "VulkanHelpers.h"
 #include "Core/Engine.h"
 
 #include "Core/Window.h"
@@ -33,13 +34,50 @@ namespace Turbo
 		CreateFrameDatas();
 	}
 
+	FTextureHandle FGPUDevice::CreateTexture(const FTextureBuilder& textureBuilder)
+	{
+		const FTextureHandle handle = mTexturePool->Acquire();
+		TURBO_CHECK(handle.IsValid())
+
+		FTexture* texture = mTexturePool->Access(handle);
+		InitVulkanTexture(textureBuilder, handle, texture);
+
+		if (textureBuilder.mInitialData)
+		{
+			TURBO_UNINPLEMENTED_MSG("Texture loading is not implemented yet.");
+		}
+
+		return handle;
+	}
+
+	void FGPUDevice::DestroyTexture(FTextureHandle handle)
+	{
+		FTexture* texture = AccessTexture(handle);
+		TURBO_CHECK(texture);
+
+		FTextureDestroyer destroyer = {};
+		destroyer.mHandle = handle;
+		destroyer.mImage = texture->mImage;
+		destroyer.mImageView = texture->mImageView;
+		destroyer.mImageAllocation = texture->mImageAllocation;
+
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		frameData.mDestroyQueue.RequestDestroy(destroyer);
+	}
+
 	vkb::Instance FGPUDevice::CreateVkInstance(const std::vector<cstring>& requiredExtensions)
 	{
+		std::vector<cstring> enableExtensions = requiredExtensions;
+
+#if WITH_DEBUG_RENDERING
+		enableExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif // WITH_DEBUG_RENDERING
+
 		vkb::InstanceBuilder instanceBuilder;
 		instanceBuilder
 			.set_app_name("TurboEngine")
 			.set_app_version(TURBO_VERSION())
-			.enable_extensions(requiredExtensions)
+			.enable_extensions(enableExtensions)
 #if WITH_VALIDATION_LAYERS
 			.request_validation_layers(true)
 			.set_debug_callback(&ThisClass::ValidationLayerCallback)
@@ -119,6 +157,17 @@ namespace Turbo
 		return buildDeviceResult.value();
 	}
 
+	std::array<FName, kMaxSwapChainImages> CreateSwapChainTexturesNames()
+	{
+		std::array<FName, kMaxSwapChainImages> result;
+		for (uint32 textureId = 0; textureId < result.size(); ++textureId)
+		{
+			result[textureId] = FName(fmt::format("SwapchainTexture_{}", textureId));
+		}
+
+		return result;
+	}
+
 	vkb::Swapchain FGPUDevice::CreateSwapchain()
 	{
 		TURBO_CHECK(mVkWindowSurface)
@@ -149,6 +198,8 @@ namespace Turbo
 		vk::SemaphoreCreateInfo semaphoreCreateInfo = VulkanInitializers::SemaphoreCreateInfo();
 
 		mNumSwapChainImages = builtSwapchain.image_count;
+		TURBO_CHECK(mNumSwapChainImages <= kMaxSwapChainImages);
+
 		for (uint32 imageId = 0; imageId < mNumSwapChainImages; ++imageId)
 		{
 			FTextureHandle handle = mTexturePool->Acquire();
@@ -156,15 +207,16 @@ namespace Turbo
 			texture->mImage = builtImages[imageId];
 			texture->mImageView = builtImageViews[imageId];
 			texture->mFormat = mVkSurfaceFormat.format;
-			texture->mAspectFlags = vk::ImageAspectFlagBits::eColor;
 
 			texture->mWidth = frameBufferSize.x;
 			texture->mHeight = frameBufferSize.y;
 
 			texture->mHandle = handle;
 
-			static const std::array<FName, 3> swapChainTextureNames = {FName("SwapchainTexture_1"), FName("SwapchainTexture_2"), FName("SwapchainTexture_3")};
+			static const std::array<FName, kMaxSwapChainImages> swapChainTextureNames = CreateSwapChainTexturesNames();
 			texture->mName = swapChainTextureNames[imageId];
+			SetResourceName(texture->mImage, texture->mName);
+			SetResourceName(texture->mImageView, texture->mName);
 
 			mSwapChainTextures[imageId] = handle;
 
@@ -291,12 +343,14 @@ namespace Turbo
 
 	void FGPUDevice::BeginFrame()
 	{
-		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 
 		// Wait for previous frame fence, and reset it
 		const vk::Fence renderCompleteFence = frameData.mCommandBufferExecutedFence;
 		CHECK_VULKAN_HPP(mVkDevice.waitForFences({renderCompleteFence}, vk::True, kMaxTimeout));
 		CHECK_VULKAN_HPP(mVkDevice.resetFences({renderCompleteFence}));
+
+		frameData.mDestroyQueue.Flush(*this);
 
 		// Acquire next swapchain image
 		const vk::Semaphore imageAcquiredSemaphore = frameData.mImageAcquiredSemaphore;
@@ -338,15 +392,49 @@ namespace Turbo
 		const vk::PresentInfoKHR presentInfo = VkInit::PresentInfo(mVkSwapchain, submitSemaphore, mCurrentSwapchainImageIndex);
 		const vk::Result presentResult = mVkQueue.presentKHR(&presentInfo);
 
-		if (presentResult == vk::Result::eErrorOutOfDateKHR)
+		if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
 		{
 			// TODO: resize swapchain
 			TURBO_UNINPLEMENTED_MSG("resize swapchain");
+			return;
 		}
-		else
-		{
-			CHECK_VULKAN_HPP_MSG(presentResult, "Cannot present swapchain image.");
-		}
+
+		CHECK_VULKAN_HPP_MSG(presentResult, "Cannot present swapchain image.");
+		AdvanceFrameCounters();
+	}
+
+	void FGPUDevice::InitGeometryBuffer()
+	{
+		const static FName geometryBufferColorName = FName{"GBuffer_Color"};
+		const static FName geometryBufferDepthName = FName{"GBuffer_Depth"};
+
+		FTexture* swapchainTexture = AccessTexture(mSwapChainTextures[0]);
+		TURBO_CHECK(swapchainTexture);
+
+		mGeometryBuffer.resolution = swapchainTexture->GetSize();
+
+		FTextureBuilder textureBuilder;
+		textureBuilder
+			.Init(vk::Format::eR16G16B16A16Sfloat, ETextureType::Texture2D, ETextureFlags::RenderTarget)
+			.SetSize(glm::vec3(mGeometryBuffer.resolution, 1))
+			.SetNumMips(1)
+			.SetName(geometryBufferColorName);
+
+		mGeometryBuffer.mColor = CreateTexture(textureBuilder);
+		TURBO_CHECK(mGeometryBuffer.mColor.IsValid())
+
+		textureBuilder
+			.Init(vk::Format::eD32SfloatS8Uint, ETextureType::Texture2D, ETextureFlags::RenderTarget)
+			.SetName(geometryBufferDepthName);
+
+		mGeometryBuffer.mDepth = CreateTexture(textureBuilder);
+		TURBO_CHECK(mGeometryBuffer.mDepth.IsValid())
+	}
+
+	void FGPUDevice::DestroyGeometryBuffer()
+	{
+		DestroyTexture(mGeometryBuffer.mColor);
+		DestroyTexture(mGeometryBuffer.mDepth);
 	}
 
 	void FGPUDevice::DestroySwapChain()
@@ -376,6 +464,8 @@ namespace Turbo
 
 		for (FBufferedFrameData& frameData : mFrameDatas)
 		{
+			frameData.mDestroyQueue.Flush(*this);
+
 			if (frameData.mCommandBufferExecutedFence)
 			{
 				mVkDevice.destroyFence(frameData.mCommandBufferExecutedFence);
@@ -401,6 +491,81 @@ namespace Turbo
 		mBufferedFrameIndex = (mBufferedFrameIndex + 1) % kMaxBufferedFrames;
 
 		++mRenderedFrames;
+	}
+
+	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, FTextureHandle handle, FTexture* texture)
+	{
+		texture->mFormat = builder.mFormat;
+
+		texture->mWidth = builder.mWidth;
+		texture->mHeight = builder.mHeight;
+		texture->mDepth = builder.mDepth;
+		texture->mNumMips = builder.mNumMips;
+
+		texture->mHandle = handle;
+		texture->mName = builder.mName;
+
+		vk::ImageCreateInfo imageCreateInfo = {};
+		imageCreateInfo.format = builder.mFormat;
+		imageCreateInfo.imageType = VkConvert::ToVkImageType(builder.mType);
+		imageCreateInfo.extent.width = builder.mWidth;
+		imageCreateInfo.extent.height = builder.mHeight;
+		imageCreateInfo.extent.depth = builder.mDepth;
+		imageCreateInfo.mipLevels = builder.mNumMips;
+		imageCreateInfo.arrayLayers = 1;
+		imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
+		imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
+
+		const bool bRenderTarget = TEST_FLAG(builder.mFlags, ETextureFlags::RenderTarget);
+		const bool bCompute = TEST_FLAG(builder.mFlags, ETextureFlags::Compute);
+
+		using EImgUsage = vk::ImageUsageFlagBits;
+
+		imageCreateInfo.usage = EImgUsage::eSampled;
+		imageCreateInfo.usage |= bCompute ? EImgUsage::eStorage : static_cast<EImgUsage>(0);
+		if (TextureFormat::HasDepthOrStencil(builder.mFormat))
+		{
+			imageCreateInfo.usage |= EImgUsage::eDepthStencilAttachment;
+		}
+		else
+		{
+			imageCreateInfo.usage |= EImgUsage::eTransferDst;
+			imageCreateInfo.usage |= bRenderTarget ? EImgUsage::eColorAttachment : static_cast<EImgUsage>(0);
+		}
+
+		imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
+		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
+
+		vma::AllocationCreateInfo imageAllocationInfo = {};
+		imageAllocationInfo.usage = vma::MemoryUsage::eAutoPreferDevice;
+		imageAllocationInfo.requiredFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
+
+		{
+			std::pair<vk::Image, vma::Allocation> allocationResult;
+			CHECK_VULKAN_RESULT(allocationResult, mVmaAllocator.createImage(imageCreateInfo, imageAllocationInfo))
+			std::tie(texture->mImage, texture->mImageAllocation) = allocationResult;
+		}
+
+		SetResourceName(texture->mImage, texture->mName);
+
+		vk::ImageViewCreateInfo viewCreateInfo = {};
+		viewCreateInfo.image = texture->mImage;
+		viewCreateInfo.viewType = VkConvert::ToVkImageViewType(builder.mType);
+		viewCreateInfo.format = builder.mFormat;
+		viewCreateInfo.subresourceRange.aspectMask =
+			TextureFormat::HasDepthOrStencil(builder.mFormat) ? vk::ImageAspectFlagBits::eDepth : vk::ImageAspectFlagBits::eColor;
+		viewCreateInfo.subresourceRange.levelCount = 1;
+		viewCreateInfo.subresourceRange.layerCount = 1;
+
+		CHECK_VULKAN_RESULT(texture->mImageView, mVkDevice.createImageView(viewCreateInfo));
+		SetResourceName(texture->mImageView, builder.mName);
+	}
+
+	void FGPUDevice::DestroyTextureImmediate(FTextureDestroyer& textureDestroyer)
+	{
+		mVmaAllocator.destroyImage(textureDestroyer.mImage, textureDestroyer.mImageAllocation);
+		mVkDevice.destroyImageView(textureDestroyer.mImageView);
+		mTexturePool->Release(textureDestroyer.mHandle);
 	}
 
 	VkBool32 FGPUDevice::ValidationLayerCallback(
@@ -431,4 +596,5 @@ namespace Turbo
 
 		return VK_FALSE;
 	}
+
 } // Turbo

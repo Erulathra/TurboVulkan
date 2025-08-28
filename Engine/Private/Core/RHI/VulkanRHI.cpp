@@ -95,7 +95,9 @@ namespace Turbo
         }
         mFrameDatas.clear();
 
+#if 0
         mMainDeletionQueue.Flush(mDevice.get());
+#endif
 
         DestroyImmediateCommands();
 
@@ -306,7 +308,9 @@ namespace Turbo
             InitDrawImage();
         }
 
+#if 0
         GetFrameDeletionQueue().Flush(mDevice.get());
+#endif
 
         if (!mSwapChain->AcquireImage(fd.mSwapChainAcquireSemaphore))
         {

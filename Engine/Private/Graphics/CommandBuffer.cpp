@@ -1,6 +1,7 @@
 #include "Graphics/CommandBuffer.h"
 
 #include "Core/Engine.h"
+#include "Core/RHI/Utils/VulkanUtils.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/Resources.h"
 
@@ -37,7 +38,8 @@ namespace Turbo
 		imageBarrier.setOldLayout(texture->mCurrentLayout);
 		imageBarrier.setNewLayout(newLayout);
 
-		imageBarrier.setSubresourceRange(VkInit::ImageSubresourceRange(texture->mAspectFlags));
+		const vk::ImageAspectFlags aspectFlags = newLayout == vk::ImageLayout::eDepthAttachmentOptimal ? vk::ImageAspectFlagBits::eDepth : vk::ImageAspectFlagBits::eColor;
+		imageBarrier.setSubresourceRange(VkInit::ImageSubresourceRange(aspectFlags));
 		imageBarrier.setImage(texture->mImage);
 
 		vk::DependencyInfo dependencyInfo{};
@@ -58,6 +60,43 @@ namespace Turbo
 		const vk::ClearColorValue clearColorValue {color.r, color.g, color.b, color.a};
 		const vk::ImageSubresourceRange subresourceRange = VkInit::ImageSubresourceRange();
 		mVkCommandBuffer.clearColorImage(texture->mImage, vk::ImageLayout::eGeneral, clearColorValue, subresourceRange);
+	}
+
+	void FCommandBuffer::BlitImage(FTextureHandle src, FRect2DInt srcRect, FTextureHandle dst, FRect2DInt dstRect, EFilter filter)
+	{
+		vk::ImageBlit2 region = {};
+		region.setPNext(nullptr);
+
+		region.srcOffsets[0] = VulkanConverters::ToOffset3D(srcRect.Position);
+		region.srcOffsets[1] = VulkanConverters::ToOffset3D(srcRect.Position + srcRect.Size);
+
+		region.dstOffsets[0] = VulkanConverters::ToOffset3D(dstRect.Position);
+		region.dstOffsets[1] = VulkanConverters::ToOffset3D(dstRect.Position + dstRect.Size);
+
+		vk::ImageSubresourceLayers layers = {};
+		layers.aspectMask = vk::ImageAspectFlagBits::eColor;
+		layers.baseArrayLayer = 0;
+		layers.layerCount = 1;
+		layers.mipLevel = 0;
+		region.setSrcSubresource(layers);
+		region.setDstSubresource(layers);
+
+		vk::BlitImageInfo2 blitInfo{};
+		blitInfo.setPNext(nullptr);
+
+		FTexture* srcTexture = mDevice->AccessTexture(src);
+		FTexture* dstTexture = mDevice->AccessTexture(dst);
+		TURBO_CHECK(srcTexture && dstTexture)
+
+		blitInfo.srcImage = srcTexture->mImage;
+		blitInfo.srcImageLayout = vk::ImageLayout::eTransferSrcOptimal;
+		blitInfo.dstImage = dstTexture->mImage;
+		blitInfo.dstImageLayout = vk::ImageLayout::eTransferDstOptimal;
+
+		blitInfo.filter = VkConvert::ToVkFilter(filter);
+		blitInfo.setRegions({region});
+
+		mVkCommandBuffer.blitImage2(blitInfo);
 	}
 
 	void FCommandBuffer::Reset()

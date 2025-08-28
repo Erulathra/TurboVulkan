@@ -60,10 +60,12 @@ if (${TURBO_BUILD_SHIPPING})
     SET(WITH_PROFILER false)
     add_compile_definitions(WITH_ASSERTIONS=0)
     add_compile_definitions(WITH_VALIDATION_LAYERS=0)
+    add_compile_definitions(WITH_DEBUG_RENDERING_FEATURES=0)
 else ()
     SET(WITH_PROFILER true)
     add_compile_definitions(WITH_ASSERTIONS=1)
     add_compile_definitions(WITH_VALIDATION_LAYERS=1)
+    add_compile_definitions(WITH_DEBUG_RENDERING_FEATURES=1)
 endif ()
 
 
