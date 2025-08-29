@@ -45,10 +45,10 @@ add_library(imgui STATIC
         ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
 )
 target_link_libraries(imgui PRIVATE Vulkan-Headers)
+target_compile_definitions(imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
+target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
 
 CPMAddPackage("gh:wolfpld/tracy@0.12.2")
 CPMAddPackage("gh:spnda/fastgltf@0.9.0")
 
-
-target_compile_definitions(imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
-target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+add_subdirectory(Slang)
