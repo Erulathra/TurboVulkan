@@ -14,7 +14,7 @@ namespace Turbo
 		virtual ~IShaderCompiler() = default;
 
 		virtual void Init() = 0;
-		virtual void Shutdown() = 0;
+		virtual void Destroy() = 0;
 
 		virtual vk::ShaderModule CompileShader(vk::Device device, const FShaderStage& shaderStage) = 0;
 	};

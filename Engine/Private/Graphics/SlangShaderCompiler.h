@@ -13,7 +13,7 @@ namespace Turbo
 	{
 	public:
 		virtual void Init() override;
-		virtual void Shutdown() override;
+		virtual void Destroy() override;
 
 		virtual vk::ShaderModule CompileShader(vk::Device device, const FShaderStage& shaderStage) override;
 

@@ -33,6 +33,8 @@ namespace Turbo
 		CreateSwapchain();
 		CreateVulkanMemoryAllocator();
 		CreateFrameDatas();
+
+		IShaderCompiler::Get().Init();
 	}
 
 	FTextureHandle FGPUDevice::CreateTexture(const FTextureBuilder& textureBuilder)
@@ -404,6 +406,8 @@ namespace Turbo
 
 		DestroyFrameDatas();
 		DestroySwapChain();
+
+		IShaderCompiler::Get().Destroy();
 
 		if (mVmaAllocator)
 		{

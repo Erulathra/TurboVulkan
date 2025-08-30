@@ -9,13 +9,17 @@ namespace Turbo
 
 	void FSlangShaderCompiler::Init()
 	{
+		TURBO_LOG(LOG_SLANG, Info, "Initializing Slang shader compiler.");
+
 		slang::createGlobalSession(mGlobalSession.writeRef());
 		CreateSession();
 		PreloadModules();
 	}
 
-	void FSlangShaderCompiler::Shutdown()
+	void FSlangShaderCompiler::Destroy()
 	{
+		TURBO_LOG(LOG_SLANG, Info, "Destroying Slang shader compiler.");
+
 		mSession = nullptr;
 		mGlobalSession = nullptr;
 		slang::shutdown();

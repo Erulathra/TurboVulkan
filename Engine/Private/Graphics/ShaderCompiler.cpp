@@ -8,7 +8,7 @@ namespace Turbo
 
 	IShaderCompiler& IShaderCompiler::Get()
 	{
-		if (gShaderCompiler)
+		if (!gShaderCompiler)
 		{
 			gShaderCompiler = std::make_unique<FSlangShaderCompiler>();
 		}
