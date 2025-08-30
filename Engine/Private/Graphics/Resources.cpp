@@ -11,4 +11,9 @@ namespace Turbo {
 	{
 		GPUDevice.DestroyShaderStateImmediate(*this);
 	}
+
+	void FDescriptorSetLayoutDestroyer::Destroy(FGPUDevice& GPUDevice)
+	{
+		GPUDevice.DestroyDescriptorSetLayoutImmediate(*this);
+	}
 } // Turbo

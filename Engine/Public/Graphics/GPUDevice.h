@@ -78,16 +78,25 @@ namespace Turbo
 		FDescriptorSet* AccessDescriptorSet(FDescriptorSetHandle handle) { return mDescriptorSetPool->Access(handle); }
 		FShaderState* AccessShaderState(FShaderStateHandle handle) { return mShaderStatePool->Access(handle); }
 
+		const FBuffer* AccessBuffer(FBufferHandle handle) const { return mBufferPool->Access(handle); }
+		const FTexture* AccessTexture(FTextureHandle handle) const { return mTexturePool->Access(handle); }
+		const FSampler* AccessSampler(FSamplerHandle handle) const { return mSamplerPool->Access(handle); }
+		const FPipeline* AccessPipeline(FPipelineHandle handle) const { return mPipelinePool->Access(handle); }
+		const FDescriptorPool* AccessDescriptorPool(FDescriptorPoolHandle handle) const { return mDescriptorPoolPool->Access(handle); }
+		const FDescriptorSetLayout* AccessDescriptorSetLayout(FDescriptorSetLayoutHandle handle) const { return mDescriptorSetLayoutPool->Access(handle); }
+		const FDescriptorSet* AccessDescriptorSet(FDescriptorSetHandle handle) const { return mDescriptorSetPool->Access(handle); }
+		const FShaderState* AccessShaderState(FShaderStateHandle handle) const { return mShaderStatePool->Access(handle); }
+
 		/** Resource accessors end */
 
 		/** Resource creation */
 	public:
 		// FBufferHandle CreateBuffer();
-		FTextureHandle CreateTexture(const FTextureBuilder& textureBuilder);
+		FTextureHandle CreateTexture(const FTextureBuilder& builder);
 		// FSamplerHandle CreateSampler();
-		FPipelineHandle CreatePipeline(const FPipelineBuilder& pipelineBuilder);
+		FPipelineHandle CreatePipeline(const FPipelineBuilder& builder);
 		// FDescriptorPoolHandle CreateDescriptorPool();
-		// FDescriptorSetLayoutHandle CreateDescriptorSetLayout();
+		FDescriptorSetLayoutHandle CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder);
 		// FDescriptorSetHandle CreateDescriptorSet();
 		FShaderStateHandle CreateShaderState(const FShaderStateBuilder& builder);
 
@@ -96,6 +105,7 @@ namespace Turbo
 		/** Resource destroy */
 	public:
 		void DestroyTexture(FTextureHandle handle);
+		void DestroyDescriptorSetLayout(FDescriptorSetLayoutHandle handle);
 		void DestroyShaderState(FShaderStateHandle handle);
 
 		/** Resource destroy end */
@@ -103,6 +113,7 @@ namespace Turbo
 		/** Destroy immediate */
 	public:
 		void DestroyTextureImmediate(const FTextureDestroyer& destroyer);
+		void DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer);
 		void DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer);
 
 		/** Destroy immediate end */

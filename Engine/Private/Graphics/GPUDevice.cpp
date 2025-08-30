@@ -37,15 +37,15 @@ namespace Turbo
 		IShaderCompiler::Get().Init();
 	}
 
-	FTextureHandle FGPUDevice::CreateTexture(const FTextureBuilder& textureBuilder)
+	FTextureHandle FGPUDevice::CreateTexture(const FTextureBuilder& builder)
 	{
 		const FTextureHandle handle = mTexturePool->Acquire();
 		TURBO_CHECK(handle.IsValid())
 
 		FTexture* texture = mTexturePool->Access(handle);
-		InitVulkanTexture(textureBuilder, handle, texture);
+		InitVulkanTexture(builder, handle, texture);
 
-		if (textureBuilder.mInitialData)
+		if (builder.mInitialData)
 		{
 			TURBO_UNINPLEMENTED_MSG("Texture loading is not implemented yet.");
 		}
@@ -53,7 +53,7 @@ namespace Turbo
 		return handle;
 	}
 
-	FPipelineHandle FGPUDevice::CreatePipeline(const FPipelineBuilder& pipelineBuilder)
+	FPipelineHandle FGPUDevice::CreatePipeline(const FPipelineBuilder& builder)
 	{
 		FPipelineHandle handle = mPipelinePool->Acquire();
 		TURBO_CHECK(handle);
@@ -61,6 +61,39 @@ namespace Turbo
 		FPipeline* pipeline = mPipelinePool->Access(handle);
 
 		TURBO_UNINPLEMENTED();
+
+		return handle;
+	}
+
+	FDescriptorSetLayoutHandle FGPUDevice::CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder)
+	{
+		FDescriptorSetLayoutHandle handle = mDescriptorSetLayoutPool->Acquire();
+		TURBO_CHECK(handle)
+
+		FDescriptorSetLayout* layout = mDescriptorSetLayoutPool->Access(handle);
+		layout->mNumBindings = builder.mNumBindings;
+		layout->mHandle = handle;
+		layout->mSetIndex = builder.mSetIndex;
+
+		for (uint32 bindingId = 0; bindingId < builder.mNumBindings; ++bindingId)
+		{
+			const FBinding& builderBinding = builder.mBindings[bindingId];
+			layout->mBindings[bindingId] = builderBinding;
+
+			vk::DescriptorSetLayoutBinding& vkBinding = layout->mVkBindings[bindingId];
+			vkBinding = vk::DescriptorSetLayoutBinding();
+			vkBinding.binding = builderBinding.mIndex;
+			vkBinding.descriptorType = builderBinding.mType;
+			vkBinding.descriptorCount = builderBinding.mCount;
+
+			vkBinding.stageFlags = vk::ShaderStageFlagBits::eAll;
+		}
+
+		vk::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+		layoutCreateInfo.pBindings = layout->mVkBindings->data();
+		layoutCreateInfo.bindingCount = builder.mNumBindings;
+
+		CHECK_VULKAN_RESULT(layout->mLayout, mVkDevice.createDescriptorSetLayout(layoutCreateInfo));
 
 		return handle;
 	}
@@ -127,6 +160,19 @@ namespace Turbo
 		destroyer.mImage = texture->mImage;
 		destroyer.mImageView = texture->mImageView;
 		destroyer.mImageAllocation = texture->mImageAllocation;
+
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		frameData.mDestroyQueue.RequestDestroy(destroyer);
+	}
+
+	void FGPUDevice::DestroyDescriptorSetLayout(FDescriptorSetLayoutHandle handle)
+	{
+		FDescriptorSetLayout* layout = AccessDescriptorSetLayout(handle);
+		TURBO_CHECK(layout)
+
+		FDescriptorSetLayoutDestroyer destroyer = {};
+		destroyer.mLayout = layout->mLayout;
+		destroyer.mHandle = layout->mHandle;
 
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
@@ -653,6 +699,12 @@ namespace Turbo
 		mVmaAllocator.destroyImage(destroyer.mImage, destroyer.mImageAllocation);
 		mVkDevice.destroyImageView(destroyer.mImageView);
 		mTexturePool->Release(destroyer.mHandle);
+	}
+
+	void FGPUDevice::DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer)
+	{
+		mVkDevice.destroyDescriptorSetLayout(destroyer.mLayout);
+		mDescriptorSetLayoutPool->Release(destroyer.mHandle);
 	}
 
 	void FGPUDevice::DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer)

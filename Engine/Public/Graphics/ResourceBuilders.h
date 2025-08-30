@@ -106,22 +106,16 @@ namespace Turbo
 		BUILDER_BODY()
 
 	public:
-		struct FBinding
-		{
-			vk::DescriptorType mType = {};
-			uint16 mStart = 0;
-			uint16 mCount = 0;
-
-			FName mName;
-		};
-
-	public:
 		FDescriptorSetLayoutBuilder& Reset() { mNumBindings = 0; mSetIndex = 0; return *this; }
 		FDescriptorSetLayoutBuilder& AddBinding(vk::DescriptorType type, uint16 start, uint16 count, FName name = FName())
 		{
 			mBindings[mNumBindings] = {type, start, count, name};
 			++mNumBindings;
 			return *this;
+		}
+		FDescriptorSetLayoutBuilder& AddBinding(vk::DescriptorType type, uint16 id, FName name = FName())
+		{
+			return AddBinding(type, id, 1, name);
 		}
 		FDescriptorSetLayoutBuilder& SetSetIndex(uint16 index) { mSetIndex = index; return *this; }
 

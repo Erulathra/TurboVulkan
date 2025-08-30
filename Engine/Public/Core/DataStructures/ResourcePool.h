@@ -59,6 +59,11 @@ namespace Turbo
 			--mFreeIndicesHead;
 			--mUsedIndices;
 
+			if constexpr (std::is_default_constructible_v<T>)
+			{
+				mData[handle.Index] = T();
+			}
+
 			mFreeIndices[mFreeIndicesHead] = handle.Index;
 		}
 
@@ -99,6 +104,7 @@ namespace Turbo
 	public:
 		TResourcePoolHeap() { mPoolPtr = std::make_unique<TPoolType>(); }
 		TPoolType* operator->() { return mPoolPtr.get(); }
+		const TPoolType* operator->() const { return mPoolPtr.get(); }
 
 	private:
 		std::unique_ptr<TPoolType> mPoolPtr;

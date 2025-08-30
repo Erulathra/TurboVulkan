@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DestoryQueue.h"
+#include "Core/DataStructures/ArrayHeap.h"
 #include "Core/DataStructures/ResourcePool.h"
 #include "Graphics/GraphicsCore.h"
 
@@ -89,7 +90,7 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FTextureDestroyer final : IDestroyer
+	class FTextureDestroyer final : public IDestroyer
 	{
 		DESTROYER_BODY()
 	public:
@@ -115,7 +116,7 @@ namespace Turbo
 		bool mbGraphicsPipeline = true;
 	};
 
-	class FShaderStateDestroyer final : IDestroyer
+	class FShaderStateDestroyer final : public IDestroyer
 	{
 		DESTROYER_BODY()
 
@@ -129,15 +130,38 @@ namespace Turbo
 		FShaderStateHandle mHandle;
 	};
 
+	struct FBinding
+	{
+		vk::DescriptorType mType = {};
+		uint16 mIndex = 0;
+		uint16 mCount = 0;
+
+		FName mName;
+	};
+
 	class FDescriptorSetLayout final
 	{
 		RESOURCE_BODY()
 
 	private:
 		vk::DescriptorSetLayout mLayout = nullptr;
-
+		TArrayHeap<vk::DescriptorSetLayoutBinding, kMaxDescriptorsPerSet> mVkBindings;
+		TArrayHeap<FBinding, kMaxDescriptorsPerSet> mBindings;
+		uint16 mNumBindings = 0;
 		uint16 mSetIndex = 0;
 
+		FDescriptorSetLayoutHandle mHandle = {};
+	};
+
+	class FDescriptorSetLayoutDestroyer final : public IDestroyer
+	{
+		DESTROYER_BODY()
+
+	public:
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	private:
+		vk::DescriptorSetLayout mLayout = nullptr;
 		FDescriptorSetLayoutHandle mHandle = {};
 	};
 
