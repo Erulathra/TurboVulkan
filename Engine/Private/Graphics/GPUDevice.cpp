@@ -5,6 +5,7 @@
 #include "Core/Engine.h"
 
 #include "Core/Window.h"
+#include "Graphics/ShaderCompiler.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -50,6 +51,70 @@ namespace Turbo
 		return handle;
 	}
 
+	FPipelineHandle FGPUDevice::CreatePipeline(const FPipelineBuilder& pipelineBuilder)
+	{
+		FPipelineHandle handle = mPipelinePool->Acquire();
+		TURBO_CHECK(handle);
+
+		FPipeline* pipeline = mPipelinePool->Access(handle);
+
+		TURBO_UNINPLEMENTED();
+
+		return handle;
+	}
+
+	FShaderStateHandle FGPUDevice::CreateShaderState(const FShaderStateBuilder& builder)
+	{
+		FShaderStateHandle handle = {};
+
+		if (builder.mStagesCount == 0)
+		{
+			TURBO_LOG(LOG_GPU_DEVICE, Warn, "Shader {} doesn't contain any shader stage.", builder.mName);
+			return handle;
+		}
+
+		handle = mShaderStatePool->Acquire();
+		TURBO_CHECK(handle)
+
+		FShaderState* shaderState = mShaderStatePool->Access(handle);
+		TURBO_CHECK(shaderState)
+
+		shaderState->mbGraphicsPipeline = true;
+		shaderState->mNumActiveShaders = 0;
+
+		if (builder.mStages[0].mStage == vk::ShaderStageFlagBits::eCompute)
+		{
+			TURBO_CHECK_MSG(builder.mStagesCount == 1, "ComputePipeline supports only 1 compute shader.")
+			shaderState->mbGraphicsPipeline = false;
+		}
+
+		std::unordered_set<vk::ShaderStageFlagBits> processedStages;
+
+		IShaderCompiler& shaderCompiler = IShaderCompiler::Get();
+		for (uint32 shaderStageId = 0; shaderStageId < builder.mStagesCount; ++shaderStageId)
+		{
+			const FShaderStage& shaderStage = builder.mStages[shaderStageId];
+
+			auto insertionResult = processedStages.insert(shaderStage.mStage);
+			TURBO_CHECK_MSG(insertionResult.second, "Only one shader per stage is supported.")
+
+			const vk::ShaderModule shaderModule = shaderCompiler.CompileShader(mVkDevice, shaderStage);
+			TURBO_CHECK(shaderModule);
+
+			SetResourceName(shaderModule, shaderStage.mShaderName);
+
+			vk::PipelineShaderStageCreateInfo& stageCreateInfo = shaderState->mShaderStageCrateInfo[shaderStageId];
+			*stageCreateInfo = {};
+			stageCreateInfo.pName = shaderStage.mEntryPoint.c_str();
+			stageCreateInfo.setStage(shaderStage.mStage);
+		}
+
+		shaderState->mNumActiveShaders = builder.mStagesCount;
+		shaderState->mName = builder.mName;
+
+		return handle;
+	}
+
 	void FGPUDevice::DestroyTexture(FTextureHandle handle)
 	{
 		FTexture* texture = AccessTexture(handle);
@@ -60,6 +125,24 @@ namespace Turbo
 		destroyer.mImage = texture->mImage;
 		destroyer.mImageView = texture->mImageView;
 		destroyer.mImageAllocation = texture->mImageAllocation;
+
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		frameData.mDestroyQueue.RequestDestroy(destroyer);
+	}
+
+	void FGPUDevice::DestroyShaderState(FShaderStateHandle handle)
+	{
+		FShaderState* shaderState = AccessShaderState(handle);
+		TURBO_CHECK(shaderState)
+
+		FShaderStateDestroyer destroyer = {};
+		destroyer.mHandle = handle;
+		destroyer.mNumActiveShaders = shaderState->mNumActiveShaders;
+
+		for (uint32 shaderId = 0; shaderId < shaderState->mNumActiveShaders; ++shaderId)
+		{
+			destroyer.mModules[shaderId] = shaderState->mShaderStageCrateInfo[shaderId].module;
+		}
 
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
@@ -561,11 +644,21 @@ namespace Turbo
 		SetResourceName(texture->mImageView, builder.mName);
 	}
 
-	void FGPUDevice::DestroyTextureImmediate(FTextureDestroyer& textureDestroyer)
+	void FGPUDevice::DestroyTextureImmediate(const FTextureDestroyer& destroyer)
 	{
-		mVmaAllocator.destroyImage(textureDestroyer.mImage, textureDestroyer.mImageAllocation);
-		mVkDevice.destroyImageView(textureDestroyer.mImageView);
-		mTexturePool->Release(textureDestroyer.mHandle);
+		mVmaAllocator.destroyImage(destroyer.mImage, destroyer.mImageAllocation);
+		mVkDevice.destroyImageView(destroyer.mImageView);
+		mTexturePool->Release(destroyer.mHandle);
+	}
+
+	void FGPUDevice::DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer)
+	{
+		for (uint32 shaderId = 0; shaderId < destroyer.mNumActiveShaders; ++shaderId)
+		{
+			mVkDevice.destroyShaderModule(destroyer.mModules[shaderId]);
+		}
+
+		mShaderStatePool->Release(destroyer.mHandle);
 	}
 
 	VkBool32 FGPUDevice::ValidationLayerCallback(

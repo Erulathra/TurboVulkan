@@ -93,7 +93,6 @@ namespace Turbo
 	{
 		DESTROYER_BODY()
 	public:
-		virtual ~FTextureDestroyer() override = default;
 		virtual void Destroy(FGPUDevice& GPUDevice) override;
 
 	private:
@@ -113,7 +112,21 @@ namespace Turbo
 		FName mName;
 
 		uint32 mNumActiveShaders = 0;
-		bool mbGraphicsPipeline = false;
+		bool mbGraphicsPipeline = true;
+	};
+
+	class FShaderStateDestroyer final : IDestroyer
+	{
+		DESTROYER_BODY()
+
+	public:
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	private:
+		std::array<vk::ShaderModule, kMaxShaderStages> mModules;
+		uint32 mNumActiveShaders = 0;
+
+		FShaderStateHandle mHandle;
 	};
 
 	class FDescriptorSetLayout final

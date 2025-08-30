@@ -31,6 +31,7 @@ namespace Turbo
 #define LOG_TEMP		Display
 #define LOG_STREAMING	Display
 #define LOG_INPUT		Display
+#define LOG_SLANG		Display
 
 #define TURBO_MIN(a,b) (((a)<(b))?(a):(b))
 #define TURBO_MAX(a,b) (((a)>(b))?(a):(b))

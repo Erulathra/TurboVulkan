@@ -13,6 +13,9 @@ namespace Turbo
 		FResourceHandle Index = kInvalidHandle;
 		[[nodiscard]] bool IsValid() const { return Index != kInvalidHandle; }
 		void Reset() { Index = kInvalidHandle; }
+
+		explicit operator bool() const { return IsValid(); }
+		bool operator!() const { return !IsValid(); }
 	};
 
 	template<typename T, typename THandle , uint32 size>

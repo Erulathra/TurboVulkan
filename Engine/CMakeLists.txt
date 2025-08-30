@@ -41,8 +41,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE slang)
 
 #target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=address)
 
-add_dependencies(${PROJECT_NAME} TurboVulcan_Shaders)
-
 add_compile_definitions(TURBO_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
 add_compile_definitions(TURBO_VERSION_MINOR=${PROJECT_VERSION_MINOR})
 add_compile_definitions(TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})

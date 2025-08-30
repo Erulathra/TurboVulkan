@@ -85,23 +85,25 @@ namespace Turbo
 		// FBufferHandle CreateBuffer();
 		FTextureHandle CreateTexture(const FTextureBuilder& textureBuilder);
 		// FSamplerHandle CreateSampler();
-		// FPipelineHandle CreatePipeline();
+		FPipelineHandle CreatePipeline(const FPipelineBuilder& pipelineBuilder);
 		// FDescriptorPoolHandle CreateDescriptorPool();
 		// FDescriptorSetLayoutHandle CreateDescriptorSetLayout();
 		// FDescriptorSetHandle CreateDescriptorSet();
-		// FShaderStateHandle CreateShaderState();
+		FShaderStateHandle CreateShaderState(const FShaderStateBuilder& builder);
 
 		/** Resource creation end */
 
 		/** Resource destroy */
 	public:
 		void DestroyTexture(FTextureHandle handle);
+		void DestroyShaderState(FShaderStateHandle handle);
 
 		/** Resource destroy end */
 
 		/** Destroy immediate */
 	public:
-		void DestroyTextureImmediate(FTextureDestroyer& textureDestroyer);
+		void DestroyTextureImmediate(const FTextureDestroyer& destroyer);
+		void DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer);
 
 		/** Destroy immediate end */
 
@@ -149,6 +151,9 @@ namespace Turbo
 
 		template<typename HandleType>
 		void SetResourceName(HandleType vkHandle, FName name) const;
+
+		template<typename HandleType>
+		void SetResourceName(HandleType vkHandle, std::string_view name) const;
 		/** Debug end */
 
 	private:
@@ -178,6 +183,7 @@ namespace Turbo
 		vk::DescriptorPool mVkDescriptorPool = nullptr;
 
 		vma::Allocator mVmaAllocator = nullptr;
+
 
 		/** Vulkan Handles end */
 
@@ -231,11 +237,17 @@ namespace Turbo
 	template <typename HandleType>
 	void FGPUDevice::SetResourceName(HandleType vkHandle, FName name) const
 	{
+		SetResourceName(vkHandle, name.ToString());
+	}
+
+	template <typename HandleType>
+	void FGPUDevice::SetResourceName(HandleType vkHandle, const std::string_view name) const
+	{
 #if WITH_DEBUG_RENDERING_FEATURES
 		vk::DebugUtilsObjectNameInfoEXT nameInfo = {};
 		nameInfo.objectType = vkHandle.objectType;
 		nameInfo.objectHandle = HandleTraits<HandleType>::CastToU64Handle(vkHandle);
-		const std::string objectName = std::string(name.ToCString()) + std::string(HandleTraits<HandleType>::GetTypePostFix());
+		const std::string objectName = std::string(name) + std::string(HandleTraits<HandleType>::GetTypePostFix());
 		nameInfo.pObjectName = objectName.c_str();
 		CHECK_VULKAN_HPP(mVkDevice.setDebugUtilsObjectNameEXT(nameInfo));
 #endif // WITH_DEBUG_RENDERING_FEATURES

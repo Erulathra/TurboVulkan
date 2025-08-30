@@ -17,6 +17,3 @@ add_subdirectory(Engine)
 
 # Game Project
 add_subdirectory(Project)
-
-# Shaders
-add_subdirectory(ShaderPrograms)

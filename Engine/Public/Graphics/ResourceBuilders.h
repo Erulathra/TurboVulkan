@@ -311,30 +311,46 @@ namespace Turbo
 		uint32 mActiveStates = 0;
 	};
 
+	struct FShaderStage final
+	{
+		std::string mShaderName;
+		vk::ShaderStageFlagBits mStage;
+		std::string mEntryPoint;
+	};
+
+	constexpr cstring GetShaderEntryPointName(vk::ShaderStageFlagBits stage)
+	{
+		switch (stage)
+		{
+		case vk::ShaderStageFlagBits::eVertex:
+			return "vsMain";
+		case vk::ShaderStageFlagBits::eFragment:
+			return "psMain";
+		default:
+			return "main";
+		}
+	}
+
 	class FShaderStateBuilder final
 	{
 		BUILDER_BODY()
-
-	public:
-		struct ShaderStage final
-		{
-			std::vector<byte> mData;
-			vk::ShaderStageFlags mStage;
-			std::string mEntryPoint;
-		};
-
 	public:
 		FShaderStateBuilder& Reset() { mStagesCount = 0; return *this; }
-		FShaderStateBuilder& AddStage(std::vector<byte>&& data, vk::ShaderStageFlags stage, std::string_view entryPoint = "main")
+		FShaderStateBuilder& AddStage(const std::string_view shaderName, vk::ShaderStageFlagBits stage, std::string_view entryPoint = "")
 		{
-			mStages[mStagesCount] = {data, stage, std::string(entryPoint)};
+			if (entryPoint.empty())
+			{
+				entryPoint = GetShaderEntryPointName(stage);
+			}
+
+			mStages[mStagesCount] = {std::string(shaderName), stage, std::string(entryPoint)};
 			++mStagesCount;
 			return *this;
 		}
 		FShaderStateBuilder& SetName(FName name) { mName = name; return *this; }
 
 	private:
-		std::array<ShaderStage, kMaxShaderStages> mStages;
+		std::array<FShaderStage, kMaxShaderStages> mStages;
 		uint32 mStagesCount = 0;
 
 		FName mName;

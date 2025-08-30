@@ -101,4 +101,19 @@ namespace Turbo
 			return "_ImageView";
 		}
 	};
+
+	template <>
+	struct HandleTraits<vk::ShaderModule>
+	{
+		static uint64 CastToU64Handle(vk::ShaderModule handle)
+		{
+			VkShaderModule nativeImageHandle = handle;
+			return reinterpret_cast<uint64>(nativeImageHandle);
+		}
+
+		static cstring GetTypePostFix()
+		{
+			return "_ShaderModule";
+		}
+	};
 }
