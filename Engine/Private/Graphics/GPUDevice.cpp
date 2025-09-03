@@ -65,6 +65,31 @@ namespace Turbo
 		return handle;
 	}
 
+	FDescriptorPoolHandle FGPUDevice::CreateDescriptorPool(const FDescriptorPoolBuilder& builder)
+	{
+		FDescriptorPoolHandle handle = mDescriptorPoolPool->Acquire();
+		TURBO_CHECK(handle)
+
+		FDescriptorPool* pool = mDescriptorPoolPool->Access(handle);
+		pool->mDescriptorSets.clear();
+		pool->mName = builder.name;
+
+		std::vector<vk::DescriptorPoolSize> poolSizes;
+		poolSizes.reserve(builder.mPoolSizes.size());
+		for (auto [type, ratio] : builder.mPoolSizes)
+		{
+			poolSizes.emplace_back(type, ratio * builder.mMaxSets);
+		}
+
+		vk::DescriptorPoolCreateInfo createInfo = {};
+		createInfo.maxSets = builder.mMaxSets;
+		createInfo.setPoolSizes(poolSizes);
+
+		CHECK_VULKAN_RESULT(pool->mDescriptorPool, mVkDevice.createDescriptorPool(createInfo));
+
+		return handle;
+	}
+
 	FDescriptorSetLayoutHandle FGPUDevice::CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder)
 	{
 		FDescriptorSetLayoutHandle handle = mDescriptorSetLayoutPool->Acquire();
@@ -94,6 +119,103 @@ namespace Turbo
 		layoutCreateInfo.bindingCount = builder.mNumBindings;
 
 		CHECK_VULKAN_RESULT(layout->mLayout, mVkDevice.createDescriptorSetLayout(layoutCreateInfo));
+
+		return handle;
+	}
+
+	FDescriptorSetHandle FGPUDevice::CreateDescriptorSet(const FDescriptorSetBuilder& builder)
+	{
+		FDescriptorSetHandle handle = mDescriptorSetPool->Acquire();
+		TURBO_CHECK(handle);
+
+		FDescriptorSet* set = mDescriptorSetPool->Access(handle);
+		const FDescriptorSetLayout* layout = mDescriptorSetLayoutPool->Access(builder.mLayout);
+		TURBO_CHECK(set && layout)
+
+		FDescriptorPool* pool = mDescriptorPoolPool->Access(builder.mDescriptorPool);
+
+		// Allocate set
+		vk::DescriptorSetAllocateInfo allocateInfo = {};
+		allocateInfo.descriptorPool = pool->mDescriptorPool;
+		allocateInfo.descriptorSetCount = 1;
+		allocateInfo.setSetLayouts({layout->mLayout});
+
+		std::vector<vk::DescriptorSet> descriptorSets;
+		CHECK_VULKAN_RESULT(descriptorSets, mVkDevice.allocateDescriptorSets(allocateInfo))
+
+		set->mVkDescriptorSet = descriptorSets.front();
+		set->mOwnerPool = builder.mDescriptorPool;
+
+		pool->mDescriptorSets.push_back(handle);
+
+		std::array<vk::WriteDescriptorSet, kMaxDescriptorsPerSet> writes;
+
+		for (uint32 bindingId = 0; bindingId < layout->mNumBindings; ++bindingId)
+		{
+			const FBinding& binding = layout->mBindings[bindingId];
+			const FResourceHandle resource = builder.mResources[bindingId];
+
+			vk::WriteDescriptorSet& write = writes[bindingId];
+			write.descriptorCount = 1;
+			write.dstSet = set->mVkDescriptorSet;
+			write.dstBinding = bindingId;
+			write.descriptorType = binding.mType;
+
+			switch (binding.mType)
+			{
+			case vk::DescriptorType::eSampledImage:
+			case vk::DescriptorType::eStorageImage:
+				{
+					const FTexture* texture = mTexturePool->Access(FTextureHandle(resource));
+
+					vk::DescriptorImageInfo imageInfo = {};
+					imageInfo.imageView = texture->mImageView;
+
+					if (binding.mType == vk::DescriptorType::eSampledImage)
+					{
+						imageInfo.imageLayout =
+							TextureFormat::HasDepthOrStencil(texture->mFormat)
+								? vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal
+								: vk::ImageLayout::eReadOnlyOptimal;
+					}
+					else
+					{
+						imageInfo.imageLayout = vk::ImageLayout::eGeneral;
+					}
+
+					write.setImageInfo(imageInfo);
+					break;
+				}
+			case vk::DescriptorType::eSampler:
+				{
+					const FSampler* sampler = mSamplerPool->Access(FSamplerHandle(resource));
+
+					vk::DescriptorImageInfo imageInfo = {};
+					imageInfo.sampler = sampler->mVkSampler;
+
+					write.setImageInfo(imageInfo);
+					break;
+				}
+			case vk::DescriptorType::eStorageBuffer:
+			case vk::DescriptorType::eUniformBuffer:
+				{
+					const FBuffer* buffer = mBufferPool->Access(FBufferHandle(resource));
+
+					vk::DescriptorBufferInfo bufferInfo = {};
+					bufferInfo.buffer = buffer->mVkBuffer;
+					bufferInfo.offset = 0;
+					bufferInfo.range = buffer->mDeviceSize;
+
+					write.setBufferInfo(bufferInfo);
+					break;
+				}
+			default:
+				TURBO_UNINPLEMENTED()
+			}
+
+		}
+
+		mVkDevice.updateDescriptorSets(layout->mNumBindings, writes.data(), 0, nullptr);
 
 		return handle;
 	}
@@ -152,8 +274,8 @@ namespace Turbo
 
 	void FGPUDevice::DestroyTexture(FTextureHandle handle)
 	{
-		FTexture* texture = AccessTexture(handle);
-		TURBO_CHECK(texture);
+		const FTexture* texture = AccessTexture(handle);
+		TURBO_CHECK(texture)
 
 		FTextureDestroyer destroyer = {};
 		destroyer.mHandle = handle;
@@ -165,9 +287,22 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
+	void FGPUDevice::DestroyDescriptorPool(FDescriptorPoolHandle handle)
+	{
+		const FDescriptorPool* descriptorPool = AccessDescriptorPool(handle);
+		TURBO_CHECK(descriptorPool)
+
+		FDescriptorPoolDestroyer destroyer = {};
+		destroyer.mDescriptorPool = descriptorPool->mDescriptorPool;
+		destroyer.mhandle = handle;
+
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		frameData.mDestroyQueue.RequestDestroy(destroyer);
+	}
+
 	void FGPUDevice::DestroyDescriptorSetLayout(FDescriptorSetLayoutHandle handle)
 	{
-		FDescriptorSetLayout* layout = AccessDescriptorSetLayout(handle);
+		const FDescriptorSetLayout* layout = AccessDescriptorSetLayout(handle);
 		TURBO_CHECK(layout)
 
 		FDescriptorSetLayoutDestroyer destroyer = {};
@@ -180,7 +315,7 @@ namespace Turbo
 
 	void FGPUDevice::DestroyShaderState(FShaderStateHandle handle)
 	{
-		FShaderState* shaderState = AccessShaderState(handle);
+		const FShaderState* shaderState = AccessShaderState(handle);
 		TURBO_CHECK(shaderState)
 
 		FShaderStateDestroyer destroyer = {};
@@ -382,6 +517,9 @@ namespace Turbo
 		const vk::FenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
 		const vk::SemaphoreCreateInfo semaphoreCreateInfo = VulkanInitializers::SemaphoreCreateInfo();
 
+		FDescriptorPoolBuilder descriptorPoolBuilder;
+		descriptorPoolBuilder.SetMaxSets(128);
+
 		for (FBufferedFrameData& frameData : mFrameDatas)
 		{
 			CHECK_VULKAN_RESULT(frameData.mCommandBufferExecutedFence, mVkDevice.createFence(fenceCreateInfo));
@@ -389,6 +527,8 @@ namespace Turbo
 
 			frameData.mCommandPool = CreateCommandPool();
 			frameData.mCommandBuffer = CreateCommandBuffer(frameData.mCommandPool);
+
+			frameData.mDescriptorPoolHandle = CreateDescriptorPool(descriptorPoolBuilder);
 		}
 	}
 
@@ -597,6 +737,11 @@ namespace Turbo
 
 		for (FBufferedFrameData& frameData : mFrameDatas)
 		{
+			if (frameData.mDescriptorPoolHandle)
+			{
+				DestroyDescriptorPool(frameData.mDescriptorPoolHandle);
+			}
+
 			frameData.mDestroyQueue.Flush(*this);
 
 			if (frameData.mCommandBufferExecutedFence)
@@ -699,6 +844,12 @@ namespace Turbo
 		mVmaAllocator.destroyImage(destroyer.mImage, destroyer.mImageAllocation);
 		mVkDevice.destroyImageView(destroyer.mImageView);
 		mTexturePool->Release(destroyer.mHandle);
+	}
+
+	void FGPUDevice::DestroyDescriptorPoolImmediate(const FDescriptorPoolDestroyer& destroyer)
+	{
+		mVkDevice.destroyDescriptorPool(destroyer.mDescriptorPool);
+		mDescriptorPoolPool->Release(destroyer.mhandle);
 	}
 
 	void FGPUDevice::DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer)

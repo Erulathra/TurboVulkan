@@ -95,9 +95,9 @@ namespace Turbo
 		FTextureHandle CreateTexture(const FTextureBuilder& builder);
 		// FSamplerHandle CreateSampler();
 		FPipelineHandle CreatePipeline(const FPipelineBuilder& builder);
-		// FDescriptorPoolHandle CreateDescriptorPool();
+		FDescriptorPoolHandle CreateDescriptorPool(const FDescriptorPoolBuilder& builder);
 		FDescriptorSetLayoutHandle CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder);
-		// FDescriptorSetHandle CreateDescriptorSet();
+		FDescriptorSetHandle CreateDescriptorSet(const FDescriptorSetBuilder& builder);
 		FShaderStateHandle CreateShaderState(const FShaderStateBuilder& builder);
 
 		/** Resource creation end */
@@ -105,6 +105,7 @@ namespace Turbo
 		/** Resource destroy */
 	public:
 		void DestroyTexture(FTextureHandle handle);
+		void DestroyDescriptorPool(FDescriptorPoolHandle handle);
 		void DestroyDescriptorSetLayout(FDescriptorSetLayoutHandle handle);
 		void DestroyShaderState(FShaderStateHandle handle);
 
@@ -113,6 +114,7 @@ namespace Turbo
 		/** Destroy immediate */
 	public:
 		void DestroyTextureImmediate(const FTextureDestroyer& destroyer);
+		void DestroyDescriptorPoolImmediate(const FDescriptorPoolDestroyer& destroyer);
 		void DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer);
 		void DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer);
 

@@ -101,6 +101,23 @@ namespace Turbo
 		FName mName;
 	};
 
+	class FDescriptorPoolBuilder final
+	{
+		BUILDER_BODY()
+	public:
+		FDescriptorPoolBuilder();
+		FDescriptorPoolBuilder& Reset();
+		FDescriptorPoolBuilder& SetPoolRatio(vk::DescriptorType type, float ratio);
+
+		FDescriptorPoolBuilder& SetMaxSets(uint32 maxSets) { mMaxSets = maxSets; return *this; }
+
+	private:
+		std::unordered_map<vk::DescriptorType, float /** Ratio **/> mPoolSizes = {};
+		uint32 mMaxSets = 0;
+
+		FName name;
+	};
+
 	class FDescriptorSetLayoutBuilder final
 	{
 		BUILDER_BODY()
@@ -136,10 +153,10 @@ namespace Turbo
 	public:
 		FDescriptorSetBuilder& Reset() { mNumResources = 0; return *this; }
 		FDescriptorSetBuilder& SetLayout(FDescriptorSetLayoutHandle layout) { mLayout = layout; return *this; }
+		FDescriptorSetBuilder& SetDescriptorPool(FDescriptorPoolHandle descriptorPool) { mDescriptorPool = descriptorPool; return *this; }
 
 		FDescriptorSetBuilder& SetTexture(FTextureHandle texture, uint16 binding)
 		{
-			mSamplers[mNumResources] = FSamplerHandle{};
 			mBindings[mNumResources] = binding;
 			mResources[mNumResources] = texture.Index;
 
@@ -150,7 +167,6 @@ namespace Turbo
 
 		FDescriptorSetBuilder& SetBuffer(FBufferHandle buffer, uint16 binding)
 		{
-			mSamplers[mNumResources] = FSamplerHandle{};
 			mBindings[mNumResources] = binding;
 			mResources[mNumResources] = buffer.Index;
 
@@ -161,9 +177,8 @@ namespace Turbo
 
 		FDescriptorSetBuilder& SetSampler(FSamplerHandle sampler, uint16 binding)
 		{
-			mSamplers[mNumResources] = sampler;
 			mBindings[mNumResources] = binding;
-			mResources[mNumResources] = kInvalidHandle;
+			mResources[mNumResources] = sampler.Index;
 
 			++mNumResources;
 
@@ -174,10 +189,10 @@ namespace Turbo
 
 	private:
 		std::array<FResourceHandle, kMaxDescriptorsPerSet> mResources;
-		std::array<FSamplerHandle, kMaxDescriptorsPerSet> mSamplers;
 		std::array<uint16, kMaxDescriptorsPerSet> mBindings;
 
 		FDescriptorSetLayoutHandle mLayout = {};
+		FDescriptorPoolHandle mDescriptorPool = {};
 		uint32 mNumResources = 0;
 
 		FName mName;

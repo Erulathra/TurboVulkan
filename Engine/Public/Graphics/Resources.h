@@ -38,7 +38,7 @@ namespace Turbo
 		RESOURCE_BODY()
 
 	private:
-		vk::Buffer mBuffer = nullptr;
+		vk::Buffer mVkBuffer = nullptr;
 		vma::Allocation mAllocation = nullptr;
 
 		vk::BufferUsageFlags2 mUsageFlags = {};
@@ -54,7 +54,7 @@ namespace Turbo
 		RESOURCE_BODY()
 
 	private:
-		vk::Sampler mSampler = nullptr;
+		vk::Sampler mVkSampler = nullptr;
 
 		vk::Filter mMinFilter = vk::Filter::eNearest;
 		vk::Filter mMagFilter = vk::Filter::eNearest;
@@ -170,7 +170,7 @@ namespace Turbo
 		RESOURCE_BODY()
 
 	private:
-		vk::DescriptorSet mDescriptorSet = nullptr;
+		vk::DescriptorSet mVkDescriptorSet = nullptr;
 
 		FDescriptorPoolHandle mOwnerPool = {};
 	};
@@ -181,7 +181,21 @@ namespace Turbo
 
 	private:
 		vk::DescriptorPool mDescriptorPool;
-		std::array<FDescriptorSetHandle, kDescriptorSetsPerPool> mDescriptorSets;
+		std::vector<FDescriptorSetHandle> mDescriptorSets;
+
+		FName mName;
+	};
+
+	class FDescriptorPoolDestroyer final : public IDestroyer
+	{
+		DESTROYER_BODY()
+
+	public:
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	private:
+		vk::DescriptorPool mDescriptorPool;
+		FDescriptorPoolHandle mhandle;
 	};
 
 	class FPipeline final

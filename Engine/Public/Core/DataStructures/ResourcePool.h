@@ -1,6 +1,12 @@
 #pragma once
 
-#define DECLARE_RESOURCE_HANDLE(RESOURCE_NAME) struct F##RESOURCE_NAME##Handle final : public FTypeSafeResourceHandleBase { };
+#define DECLARE_RESOURCE_HANDLE(RESOURCE_NAME)									\
+	struct F##RESOURCE_NAME##Handle final : public FTypeSafeResourceHandleBase	\
+	{																			\
+		F##RESOURCE_NAME##Handle() = default;									\
+		explicit F##RESOURCE_NAME##Handle(FResourceHandle index)				\
+			: FTypeSafeResourceHandleBase(index) { }							\
+	};
 
 namespace Turbo
 {
@@ -10,6 +16,9 @@ namespace Turbo
 
 	struct FTypeSafeResourceHandleBase
 	{
+		FTypeSafeResourceHandleBase() = default;
+		explicit FTypeSafeResourceHandleBase(FResourceHandle index) : Index(index) { }
+
 		FResourceHandle Index = kInvalidHandle;
 		[[nodiscard]] bool IsValid() const { return Index != kInvalidHandle; }
 		void Reset() { Index = kInvalidHandle; }
