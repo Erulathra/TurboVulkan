@@ -6,6 +6,7 @@
 
 #include "Core/Window.h"
 #include "Graphics/ShaderCompiler.h"
+#include "Graphics/VulkanInitializers.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -56,11 +57,46 @@ namespace Turbo
 	FPipelineHandle FGPUDevice::CreatePipeline(const FPipelineBuilder& builder)
 	{
 		FPipelineHandle handle = mPipelinePool->Acquire();
-		TURBO_CHECK(handle);
+		TURBO_CHECK(handle)
 
 		FPipeline* pipeline = mPipelinePool->Access(handle);
+		TURBO_CHECK(pipeline)
 
-		TURBO_UNINPLEMENTED();
+		FShaderStateHandle shaderStateHandle = CreateShaderState(builder.mShaderStateBuilder);
+		TURBO_CHECK(shaderStateHandle)
+
+		FShaderState* shaderState = AccessShaderState(shaderStateHandle);
+		TURBO_CHECK(shaderState)
+
+		pipeline->mShaderState = shaderStateHandle;
+		pipeline->mNumActiveLayouts = builder.mNumActiveLayouts;
+
+		std::array<vk::DescriptorSetLayout, kMaxDescriptorSetLayouts> vkLayouts;
+		for (uint32 layoutId = 0; layoutId < builder.mNumActiveLayouts; ++layoutId)
+		{
+			pipeline->mDescriptorLayoutsHandles[layoutId] = builder.mDescriptorSetLayouts[layoutId];
+		}
+
+		vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+		pipelineLayoutCreateInfo.pSetLayouts = vkLayouts.data();
+		pipelineLayoutCreateInfo.setLayoutCount = builder.mNumActiveLayouts;
+
+		CHECK_VULKAN_RESULT(pipeline->mLayout, mVkDevice.createPipelineLayout(pipelineLayoutCreateInfo))
+
+		if (shaderState->mbGraphicsPipeline)
+		{
+			// ło la boga
+			TURBO_UNINPLEMENTED();
+		}
+		else
+		{
+			vk::ComputePipelineCreateInfo pipelineCreateInfo = {};
+			pipelineCreateInfo.stage = shaderState->mShaderStageCrateInfo[0];
+			pipelineCreateInfo.layout = pipeline->mLayout;
+
+			CHECK_VULKAN_RESULT(pipeline->mPipeline, mVkDevice.createComputePipeline(nullptr, pipelineCreateInfo));
+			pipeline->mBindPoint = vk::PipelineBindPoint::eCompute;
+		}
 
 		return handle;
 	}
@@ -287,6 +323,20 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
+	void FGPUDevice::DestroyPipeline(FPipelineHandle handle)
+	{
+		const FPipeline* pipeline = AccessPipeline(handle);
+		TURBO_CHECK(pipeline);
+
+		FPipelineDestroyer destroyer = {};
+		destroyer.mPipeline = pipeline->mPipeline;
+		destroyer.mLayout = pipeline->mLayout;
+		destroyer.mHandle = handle;
+
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		frameData.mDestroyQueue.RequestDestroy(destroyer);
+	}
+
 	void FGPUDevice::DestroyDescriptorPool(FDescriptorPoolHandle handle)
 	{
 		const FDescriptorPool* descriptorPool = AccessDescriptorPool(handle);
@@ -461,7 +511,7 @@ namespace Turbo
 		const std::vector<VkImage> builtImages = builtSwapchain.get_images().value();
 		const std::vector<VkImageView> builtImageViews = builtSwapchain.get_image_views().value();
 
-		vk::SemaphoreCreateInfo semaphoreCreateInfo = VulkanInitializers::SemaphoreCreateInfo();
+		vk::SemaphoreCreateInfo semaphoreCreateInfo = VkInit::SemaphoreCreateInfo();
 
 		mNumSwapChainImages = builtSwapchain.image_count;
 		TURBO_CHECK(mNumSwapChainImages <= kMaxSwapChainImages);
@@ -742,8 +792,6 @@ namespace Turbo
 				DestroyDescriptorPool(frameData.mDescriptorPoolHandle);
 			}
 
-			frameData.mDestroyQueue.Flush(*this);
-
 			if (frameData.mCommandBufferExecutedFence)
 			{
 				mVkDevice.destroyFence(frameData.mCommandBufferExecutedFence);
@@ -760,6 +808,11 @@ namespace Turbo
 			{
 				mVkDevice.destroyCommandPool(frameData.mCommandPool);
 			}
+		}
+
+		for (FBufferedFrameData& frameData : mFrameDatas)
+		{
+			frameData.mDestroyQueue.Flush(*this);
 		}
 	}
 
@@ -844,6 +897,13 @@ namespace Turbo
 		mVmaAllocator.destroyImage(destroyer.mImage, destroyer.mImageAllocation);
 		mVkDevice.destroyImageView(destroyer.mImageView);
 		mTexturePool->Release(destroyer.mHandle);
+	}
+
+	void FGPUDevice::DestroyPipelineImmediate(const FPipelineDestroyer destroyer)
+	{
+		mVkDevice.destroyPipelineLayout(destroyer.mLayout);
+		mVkDevice.destroyPipeline(destroyer.mPipeline);
+		mPipelinePool->Release(destroyer.mHandle);
 	}
 
 	void FGPUDevice::DestroyDescriptorPoolImmediate(const FDescriptorPoolDestroyer& destroyer)

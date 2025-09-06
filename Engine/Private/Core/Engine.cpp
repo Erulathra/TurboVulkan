@@ -6,6 +6,7 @@
 #include "Core/Input/FSDLInputSystem.h"
 #include "Core/Input/Keys.h"
 #include "Graphics/GPUDevice.h"
+#include "Services/IService.h"
 
 namespace Turbo
 {
@@ -50,8 +51,10 @@ namespace Turbo
 		mWindow->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
 		mInputSystemInstance->Init();
-
 		SetupBasicInputBindings();
+
+		FServiceManager* ServiceManager = FServiceManager::Get();
+		ServiceManager->ForEachService([](IService* service){ service->Start(); });
 
 		mWindow->ShowWindow(true);
 
@@ -76,9 +79,17 @@ namespace Turbo
 
 	void FEngine::GameThreadTick()
 	{
+		TRACE_ZONE_SCOPED_N(GameThreadTick)
 		mCoreTimer->Tick();
+		const float deltaTime = mCoreTimer->GetDeltaTime();
 
 		TURBO_LOG(LOG_ENGINE, Display, "Engine Tick. FrameTime: {}, FPS: {}", mCoreTimer->GetDeltaTime(), 1.f / mCoreTimer->GetDeltaTime());
+
+		FServiceManager* ServiceManager = FServiceManager::Get();
+		{
+			TRACE_ZONE_SCOPED_N(Services: Tick)
+			ServiceManager->ForEachService([deltaTime](IService* service){ service->Tick_GameThread(deltaTime); });
+		}
 
 		FGPUDevice* gpu = GetGpu();
 		TURBO_CHECK(gpu);
@@ -86,6 +97,11 @@ namespace Turbo
 		gpu->BeginFrame();
 
 		FCommandBuffer* cmd = gpu->GetCommandBuffer();
+		{
+			TRACE_ZONE_SCOPED_N("Services: Render Frame")
+			ServiceManager->ForEachService([gpu, cmd](IService* service) { service->RenderFrame_RenderThread(gpu, cmd); });
+		}
+
 		const FTextureHandle image = gpu->GetPresentImage();
 
 		const glm::vec4 color = glm::mix(ELinearColor::kMagenta, ELinearColor::kBlue, glm::sin(FCoreTimer::TimeFromEngineStart()));
@@ -125,6 +141,9 @@ namespace Turbo
 	void FEngine::End()
 	{
 		TURBO_LOG(LOG_ENGINE, Info, "Begin exit sequence.");
+
+		FServiceManager* ServiceManager = FServiceManager::Get();
+		ServiceManager->ForEachService([](IService* service){ service->Shutdown(); });
 
 		mGpuDevice->DestroyGeometryBuffer();
 

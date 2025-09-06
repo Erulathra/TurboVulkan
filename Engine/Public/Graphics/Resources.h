@@ -210,11 +210,30 @@ namespace Turbo
 
 		FShaderStateHandle mShaderState = {};
 
-		std::array<FDescriptorSetLayoutHandle, kMaxDescriptorSetLayouts> mDescriptorLayouts;
+		std::array<FDescriptorSetLayoutHandle, kMaxDescriptorSetLayouts> mDescriptorLayoutsHandles;
 		uint32 mNumActiveLayouts = 0;
+
+#if 0
+		FDepthStencilBuilder mDepthStencil;
+		FBlendStateBuilder mBlendState;
+		FRasterizationBuilder mRasterization;
+#endif
 
 		FPipelineHandle mHandle = {};
 		bool mbGraphicsPipeline = true;
+	};
+
+	class FPipelineDestroyer final : IDestroyer
+	{
+		DESTROYER_BODY()
+
+	public:
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	private:
+		vk::Pipeline mPipeline = nullptr;
+		vk::PipelineLayout mLayout = nullptr;
+		FPipelineHandle mHandle = {};
 	};
 
 	/** Vulkan object abstractions end */

@@ -14,10 +14,10 @@
 #endif
 
 #define DECLARE_DELEGATE(name, ...) \
-using name = TDelegate<void, __VA_ARGS__>
+using name = TDelegate<void __VA_OPT__(,) __VA_ARGS__>
 
 #define DECLARE_DELEGATE_RET(name, retValue, ...) \
-using name = TDelegate<retValue, __VA_ARGS__>
+using name = TDelegate<retValue __VA_OPT__(,) __VA_ARGS__>
 
 #define DECLARE_MULTICAST_DELEGATE(name, ...) \
 using name = TMulticastDelegate<EDelegateExecutionOrder::Undefined __VA_OPT__(,) __VA_ARGS__>

@@ -370,19 +370,19 @@ namespace Turbo
 		BUILDER_BODY()
 
 	public:
-		FRasterizationBuilder& GetRasterization() { return mRasterization; }
-		FDepthStencilBuilder& GetDepthStencil() { return mDepthStencil; }
-		FBlendStateBuilder& GetBlendState() { return mBlendState; }
-		FShaderStateBuilder& GetShaderState() { return mShaderState; }
+		FRasterizationBuilder& GetRasterization() { return mRasterizationBuilder; }
+		FDepthStencilBuilder& GetDepthStencil() { return mDepthStencilBuilder; }
+		FBlendStateBuilder& GetBlendState() { return mBlendStateBuilder; }
+		FShaderStateBuilder& GetShaderState() { return mShaderStateBuilder; }
 
 		FPipelineBuilder& AddDescriptorSetLayout(FDescriptorSetLayoutHandle handle)
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
 
 	private:
-		FRasterizationBuilder mRasterization;
-		FDepthStencilBuilder mDepthStencil;
-		FBlendStateBuilder mBlendState;
-		FShaderStateBuilder mShaderState;
+		FRasterizationBuilder mRasterizationBuilder;
+		FDepthStencilBuilder mDepthStencilBuilder;
+		FBlendStateBuilder mBlendStateBuilder;
+		FShaderStateBuilder mShaderStateBuilder;
 
 		std::array<FDescriptorSetLayoutHandle, kMaxDescriptorSetLayouts> mDescriptorSetLayouts;
 		uint32 mNumActiveLayouts = 0;

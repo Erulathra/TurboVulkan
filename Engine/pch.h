@@ -22,12 +22,12 @@
 #include "LoggingMacros.h"
 #include "CommonTypeDefs.h"
 #include "ProfilingMacros.h"
+#include "Core/Name.h"
 
 // GLM
 #include "Core/Math/MathCommon.h"
 
 // Internal Math
 #include "Core/Math/Math.h"
-#include "Core/Name.h"
 
 #include "magic_enum/magic_enum.hpp"

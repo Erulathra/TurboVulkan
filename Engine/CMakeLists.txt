@@ -6,7 +6,7 @@ file(GLOB_RECURSE PRIVATE_FILES Private/*.cpp)
 # Add public files
 file(GLOB_RECURSE PUBLIC_FILES Public/*.h)
 
-add_library(${PROJECT_NAME} ${PUBLIC_FILES} ${PRIVATE_FILES})
+add_library(${PROJECT_NAME} SHARED ${PUBLIC_FILES} ${PRIVATE_FILES})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
 
@@ -27,14 +27,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
-target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
+target_link_libraries(${PROJECT_NAME} PUBLIC fmt)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
 target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 
 
 target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
-target_link_libraries(${PROJECT_NAME} PRIVATE VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE VulkanMemoryAllocator-Hpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE vk-bootstrap::vk-bootstrap)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE slang)

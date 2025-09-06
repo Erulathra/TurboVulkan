@@ -1,4 +1,4 @@
-#include "Core/RHI/RHICore.h"
+#include "Graphics/GraphicsCore.h"
 
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
@@ -25,4 +25,3 @@ fmt::format_context::iterator fmt::formatter<VkResult>::format(VkResult result, 
 {
 	return formatter<int32>::format(result, ctx);
 }
-

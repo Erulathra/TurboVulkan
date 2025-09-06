@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CommonMacros.h"
+
 #if WITH_PROFILER
 
 #if defined ( __clang__ ) || defined ( __GNUC__ )
@@ -10,7 +12,9 @@
 
 #include <tracy/Tracy.hpp>
 
-#define TRACE_ZONE_SCOPED() ZoneScoped
+#define TRACE_ZONE_SCOPED() ZoneScoped;
+#define TRACE_ZONE_SCOPED_N(NAME) ZoneScopedN(#NAME);
+
 #define TRACE_MARK_FRAME() FrameMark
 
 #if 0 // broken
@@ -28,9 +32,11 @@ inline void operator delete ( void * ptr ) noexcept
 }
 #endif
 
-#else
+#else // WITH_PROFILER
 
-#define TRACE_ZONE_SCOPED()
-#define TRACE_MARK_FRAME()
+#define TRACE_ZONE_SCOPED() {}
+#define TRACE_ZONE_SCOPED_N(NAME) {}
 
-#endif
+#define TRACE_MARK_FRAME() {}
+
+#endif // else WITH_PROFILER

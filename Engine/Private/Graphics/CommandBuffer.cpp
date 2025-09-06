@@ -1,9 +1,9 @@
 #include "Graphics/CommandBuffer.h"
 
 #include "Core/Engine.h"
-#include "Core/RHI/Utils/VulkanUtils.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/Resources.h"
+#include "Graphics/VulkanInitializers.h"
 
 namespace Turbo
 {

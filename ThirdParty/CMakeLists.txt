@@ -21,7 +21,11 @@ CPMAddPackage(
         OPTIONS "GLM_ENABLE_SIMD_AVX2 ON"
 )
 
-CPMAddPackage("gh:charles-lunarg/vk-bootstrap@1.4.313")
+CPMAddPackage(
+        GITHUB_REPOSITORY "charles-lunarg/vk-bootstrap"
+        GIT_TAG "v1.4.313"
+        OPTIONS "VK_BOOTSTRAP_POSITION_INDEPENDENT_CODE ON"
+)
 
 # Vulkan memory allocator
 CPMAddPackage(

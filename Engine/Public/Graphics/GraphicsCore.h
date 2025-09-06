@@ -19,13 +19,8 @@ inline constexpr uint32 kMaxDescriptorSets = 4;
 
 /** Constants end */
 
-// TODO: Replace me when new graphics backend would be ready.
-#if 1
-#include "Core/RHI/RHICore.h"
-#else
 #define VULKAN_HPP_ASSERT_ON_RESULT {}
 #include <vulkan/vulkan.hpp>
-#include "Core/RHI/Utils/VulkanInitializers.h"
 
 #include "vk_mem_alloc.hpp"
 
@@ -101,4 +96,4 @@ struct fmt::formatter<VkResult> : formatter<int32>
 #endif // else TURBO_BUILD_SHIPPING
 
 constexpr inline uint32 kDefaultTimeout = 1000000000; // 1 second
-#endif
+constexpr inline uint32 kMaxTimeout = std::numeric_limits<uint32>::max();

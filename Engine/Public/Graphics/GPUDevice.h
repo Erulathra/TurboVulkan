@@ -105,6 +105,7 @@ namespace Turbo
 		/** Resource destroy */
 	public:
 		void DestroyTexture(FTextureHandle handle);
+		void DestroyPipeline(FPipelineHandle handle);
 		void DestroyDescriptorPool(FDescriptorPoolHandle handle);
 		void DestroyDescriptorSetLayout(FDescriptorSetLayoutHandle handle);
 		void DestroyShaderState(FShaderStateHandle handle);
@@ -114,6 +115,7 @@ namespace Turbo
 		/** Destroy immediate */
 	public:
 		void DestroyTextureImmediate(const FTextureDestroyer& destroyer);
+		void DestroyPipelineImmediate(const FPipelineDestroyer destroyer);
 		void DestroyDescriptorPoolImmediate(const FDescriptorPoolDestroyer& destroyer);
 		void DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer);
 		void DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer);
