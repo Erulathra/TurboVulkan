@@ -25,7 +25,7 @@ namespace Turbo
 		virtual void Shutdown() = 0;
 
 		virtual void Tick_GameThread(float deltaTime) {};
-		virtual void RenderFrame_RenderThread(FGPUDevice* device, FCommandBuffer* cmd) {};
+		virtual void RenderFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) {};
 
 		virtual EEngineStage GetStage() { return EEngineStage::Default; }
 		virtual FName GetName() = 0;
@@ -80,6 +80,6 @@ namespace Turbo
 		}
 	};
 
-#define REGISTER_SERVICE(SERVICE_TYPE) namespace {  FServiceRegistration<SERVICE_TYPE> gRegistration; }
+#define REGISTER_SERVICE(SERVICE_TYPE) namespace {  FServiceRegistration<SERVICE_TYPE> g ##SERVICE_TYPE ##Registration; }
 
 } // Turbo

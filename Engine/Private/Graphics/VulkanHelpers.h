@@ -52,7 +52,6 @@ namespace Turbo
 		inline vk::Extent3D ToExtent3D(const glm::uvec3& size) { return {size.x, size.y, size.z}; }
 
 		inline vk::Offset2D ToOffset2D(const glm::ivec2& size) { return vk::Offset2D{size.x, size.y}; }
-		inline vk::Offset3D ToOffset3D(const glm::ivec2& size) { return vk::Offset3D{size.x, size.y, 0}; }
 		inline vk::Offset3D ToOffset3D(const glm::ivec3& size) { return vk::Offset3D{size.x, size.y, size.z}; }
 	}
 

@@ -39,7 +39,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE vk-bootstrap::vk-bootstrap)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE slang)
 
-#target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=address)
+#add_compile_options(-fsanitize=address)
+#add_link_options(-fsanitize=address)
 
 add_compile_definitions(TURBO_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
 add_compile_definitions(TURBO_VERSION_MINOR=${PROJECT_VERSION_MINOR})

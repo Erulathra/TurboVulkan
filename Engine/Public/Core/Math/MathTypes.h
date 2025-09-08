@@ -12,6 +12,11 @@ namespace Turbo
 	{
 		glm::ivec2 Position = {};
 		glm::ivec2 Size = {};
+
+		static FRect2DInt FromSize(glm::ivec2 size)
+		{
+			return {glm::ivec2(0.f), size};
+		}
 	};
 
 

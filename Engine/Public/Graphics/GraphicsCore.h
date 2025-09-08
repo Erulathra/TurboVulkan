@@ -17,6 +17,8 @@ inline constexpr uint32 kMaxBufferedFrames = 2;
 inline constexpr uint8 kMaxDescriptorSetLayouts = 4;
 inline constexpr uint32 kMaxDescriptorSets = 4;
 
+inline constexpr uint32 kMaxPushConstantSize = 256;
+
 /** Constants end */
 
 #define VULKAN_HPP_ASSERT_ON_RESULT {}
@@ -39,7 +41,7 @@ struct fmt::formatter<VkResult> : formatter<int32>
 #define CHECK_VULKAN(EXPRESSION) TURBO_CHECK_MSG((EXPRESSION) == VK_SUCCESS, "Vulkan Error: {}", EXPRESSION)
 #define CHECK_VULKAN_MSG(EXPRESSION, MESSAGE, ...) TURBO_CHECK_MSG((EXPRESSION) == VK_SUCCESS, "[Vulkan error: {}] " MESSAGE, EXPRESSION __VA_OPT__(,) __VA_ARGS__)
 
-#if DEBUG
+#if TURBO_BUILD_DEVELOPMENT
 #define CHECK_VULKAN_HPP(EXPRESSION)																					\
 {																														\
 	vk::Result _result = (EXPRESSION);																					\

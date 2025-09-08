@@ -10,6 +10,7 @@ namespace Turbo
 		const glm::vec4 kGreen {0.f, 1.f, 0.f, 1.f};
 		const glm::vec4 kBlue {0.f, 0.f, 1.f, 1.f};
 
+		const glm::vec4 kCyan {0.f, 1.f, 1.f, 1.f};
 		const glm::vec4 kMagenta {1.f, 0.f, 1.f, 1.f};
 		const glm::vec4 kYellow {1.f, 1.f, 0.f, 1.f};
 

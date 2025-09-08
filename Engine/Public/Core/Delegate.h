@@ -675,7 +675,8 @@ namespace Turbo
 		}
 
 		//Bind a member function
-		template <typename T, typename... Args2> requires (!std::is_const_v<T>)
+		template <typename T, typename... Args2>
+			requires (!std::is_const_v<T>)
 		void BindRaw(T* pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
 			*this = CreateRaw<T, Args2...>(pObject, pFunction, std::forward<Args2>(args)...);
@@ -702,7 +703,8 @@ namespace Turbo
 		}
 
 		//Bind a member function with a shared_ptr object
-		template <typename T, typename... Args2> requires (!std::is_const_v<T>)
+		template <typename T, typename... Args2>
+			requires (!std::is_const_v<T>)
 		void BindSP(std::shared_ptr<T> pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
 			*this = CreateSP<T, Args2...>(pObject, pFunction, std::forward<Args2>(args)...);

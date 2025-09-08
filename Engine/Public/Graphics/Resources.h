@@ -203,10 +203,10 @@ namespace Turbo
 		RESOURCE_BODY()
 
 	private:
-		vk::Pipeline mPipeline = nullptr;
-		vk::PipelineLayout mLayout = nullptr;
+		vk::Pipeline mVkPipeline = nullptr;
+		vk::PipelineLayout mVkLayout = nullptr;
 
-		vk::PipelineBindPoint mBindPoint = {};
+		vk::PipelineBindPoint mVkBindPoint = {};
 
 		FShaderStateHandle mShaderState = {};
 

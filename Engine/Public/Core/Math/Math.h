@@ -12,18 +12,34 @@ namespace Turbo
 	class FMath
 	{
 	public:
-		template <typename T> requires (std::is_floating_point_v<T>)
-		static bool NearlyEqual(const T& a, const T& b, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
+		template <typename T>
+			requires (std::is_floating_point_v<T>)
+		static bool NearlyEqual(const T& lhs, const T& rhs, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
 		{
-			return glm::epsilonEqual(a, b, epsilon);
+			return glm::epsilonEqual(lhs, rhs, epsilon);
 		}
 
-		template <typename T> requires (std::is_floating_point_v<T>)
-		static bool NearlyZero(const T& a, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
+		template <typename T>
+			requires (std::is_floating_point_v<T>)
+		static bool NearlyZero(const T& lhs, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
 		{
-			return glm::epsilonEqual(a, static_cast<T>(0), epsilon);
+			return glm::epsilonEqual(lhs, static_cast<T>(0), epsilon);
 		}
+
+		template <typename T>
+		static T DivideAndRoundUp(T lhs, T rhs)
+		{
+			// return glm::ceil(lhs / rhs);
+			return glm::ceil(lhs / rhs);
+		}
+
 	};
+
+	template <>
+	inline glm::ivec3 FMath::DivideAndRoundUp(glm::ivec3 lhs, glm::ivec3 rhs)
+	{
+		return glm::ivec3(glm::ceil(glm::vec3(lhs) / glm::vec3(rhs)));
+	}
 } // Turbo
 
 template <int32 L, typename T>

@@ -21,7 +21,7 @@ namespace Turbo
 
 	void FCommandBuffer::TransitionImage(FTextureHandle textureHandle, vk::ImageLayout newLayout)
 	{
-		FTexture* texture = mDevice->AccessTexture(textureHandle);
+		FTexture* texture = mGpu->AccessTexture(textureHandle);
 		TURBO_CHECK(texture)
 
 		if (texture->mCurrentLayout == newLayout)
@@ -54,7 +54,7 @@ namespace Turbo
 	{
 		TransitionImage(textureHandle, vk::ImageLayout::eGeneral);
 
-		FTexture* texture = mDevice->AccessTexture(textureHandle);
+		FTexture* texture = mGpu->AccessTexture(textureHandle);
 		TURBO_CHECK(texture)
 
 		const vk::ClearColorValue clearColorValue {color.r, color.g, color.b, color.a};
@@ -67,11 +67,11 @@ namespace Turbo
 		vk::ImageBlit2 region = {};
 		region.setPNext(nullptr);
 
-		region.srcOffsets[0] = VulkanConverters::ToOffset3D(srcRect.Position);
-		region.srcOffsets[1] = VulkanConverters::ToOffset3D(srcRect.Position + srcRect.Size);
+		region.srcOffsets[0] = VulkanConverters::ToOffset3D(glm::ivec3(srcRect.Position, 0.f));
+		region.srcOffsets[1] = VulkanConverters::ToOffset3D(glm::ivec3(srcRect.Position + srcRect.Size, 1.f));
 
-		region.dstOffsets[0] = VulkanConverters::ToOffset3D(dstRect.Position);
-		region.dstOffsets[1] = VulkanConverters::ToOffset3D(dstRect.Position + dstRect.Size);
+		region.dstOffsets[0] = VulkanConverters::ToOffset3D(glm::ivec3(dstRect.Position, 0.f));
+		region.dstOffsets[1] = VulkanConverters::ToOffset3D(glm::ivec3(dstRect.Position + dstRect.Size, 1.f));
 
 		vk::ImageSubresourceLayers layers = {};
 		layers.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -84,8 +84,8 @@ namespace Turbo
 		vk::BlitImageInfo2 blitInfo{};
 		blitInfo.setPNext(nullptr);
 
-		FTexture* srcTexture = mDevice->AccessTexture(src);
-		FTexture* dstTexture = mDevice->AccessTexture(dst);
+		FTexture* srcTexture = mGpu->AccessTexture(src);
+		FTexture* dstTexture = mGpu->AccessTexture(dst);
 		TURBO_CHECK(srcTexture && dstTexture)
 
 		blitInfo.srcImage = srcTexture->mImage;
@@ -97,6 +97,36 @@ namespace Turbo
 		blitInfo.setRegions({region});
 
 		mVkCommandBuffer.blitImage2(blitInfo);
+	}
+
+	void FCommandBuffer::BindDescriptorSet(FDescriptorSetHandle descriptorSetHandle, uint32 setIndex)
+	{
+		const FDescriptorSet* descriptorSet = mGpu->AccessDescriptorSet(descriptorSetHandle);
+		const FPipeline* currentPipeline = mGpu->AccessPipeline(mCurrentPipeline);
+
+		mVkCommandBuffer.bindDescriptorSets(
+			currentPipeline->mVkBindPoint,
+			currentPipeline->mVkLayout,
+			setIndex,
+			1,
+			&descriptorSet->mVkDescriptorSet,
+			0,
+			nullptr
+		);
+	}
+
+	void FCommandBuffer::BindPipeline(FPipelineHandle pipelineHandle)
+	{
+		const FPipeline* pipeline = mGpu->AccessPipeline(pipelineHandle);
+		TURBO_CHECK(pipeline);
+
+		mVkCommandBuffer.bindPipeline(pipeline->mVkBindPoint, pipeline->mVkPipeline);
+		mCurrentPipeline = pipelineHandle;
+	}
+
+	void FCommandBuffer::Dispatch(const glm::ivec3& groupCount)
+	{
+		mVkCommandBuffer.dispatch(groupCount.x, groupCount.y, groupCount.z);
 	}
 
 	void FCommandBuffer::Reset()
@@ -117,5 +147,18 @@ namespace Turbo
 		result.setDeviceMask(0);
 
 		return result;
+	}
+
+	void FCommandBuffer::PushConstantsImpl(void* pushConstants, uint32 size)
+	{
+		const FPipeline* currentPipeline = mGpu->AccessPipeline(mCurrentPipeline);
+
+		vk::ShaderStageFlags stageFlagBits = vk::ShaderStageFlagBits::eCompute;
+		if (currentPipeline->mbGraphicsPipeline)
+		{
+			TURBO_UNINPLEMENTED()
+		}
+
+		mVkCommandBuffer.pushConstants(currentPipeline->mVkLayout, stageFlagBits, 0, size, pushConstants);
 	}
 } // Turbo

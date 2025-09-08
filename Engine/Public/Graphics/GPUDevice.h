@@ -31,10 +31,16 @@ namespace Turbo
 
 	class FGeometryBuffer
 	{
+	public:
+		[[nodiscard]] FTextureHandle GetColor() const { return mColor; }
+		[[nodiscard]] FTextureHandle GetDepth() const { return mDepth; }
+		[[nodiscard]] const glm::ivec2& GetResolution() const { return mResolution; }
+
+	private:
 		FTextureHandle mColor = {};
 		FTextureHandle mDepth = {};
 
-		glm::ivec2 resolution;
+		glm::ivec2 mResolution;
 
 	public:
 		friend class FGPUDevice;
@@ -61,6 +67,7 @@ namespace Turbo
 		const FGeometryBuffer& GetGeometryBuffer() const { return mGeometryBuffer; }
 
 		FCommandBuffer* GetCommandBuffer() { return mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
+		FDescriptorPoolHandle GetDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
 
 		// TODO: Remove me
 		FTextureHandle GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
@@ -101,6 +108,11 @@ namespace Turbo
 		FShaderStateHandle CreateShaderState(const FShaderStateBuilder& builder);
 
 		/** Resource creation end */
+
+		/** Other resource related methods */
+	public:
+		void ResetDescriptorPool(FDescriptorPoolHandle descriptorPoolHandle);
+		/** Other resource related methods end */
 
 		/** Resource destroy */
 	public:

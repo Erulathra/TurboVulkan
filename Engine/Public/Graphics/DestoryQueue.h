@@ -28,7 +28,8 @@ namespace Turbo
 		virtual void Flush(FGPUDevice& GPUDevice) = 0;
 	};
 
-	template <typename DestroyerType> requires (std::is_base_of_v<IDestroyer, DestroyerType>)
+	template <typename DestroyerType>
+		requires (std::is_base_of_v<IDestroyer, DestroyerType>)
 	class TDestroyQueue final : public IDestroyQueue
 	{
 	public:
@@ -53,7 +54,8 @@ namespace Turbo
 		DECLARE_MULTICAST_DELEGATE_REVERSE(FOnDestroy);
 
 	public:
-		template <typename DestroyerType> requires (std::is_base_of_v<IDestroyer, DestroyerType>)
+		template <typename DestroyerType>
+			requires (std::is_base_of_v<IDestroyer, DestroyerType>)
 		void RequestDestroy(const DestroyerType& destroyer)
 		{
 			using CastedQueueType= TDestroyQueue<DestroyerType>;

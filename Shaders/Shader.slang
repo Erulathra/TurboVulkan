@@ -2,7 +2,17 @@
 
 import Math;
 
+[[vk::binding(0, 0)]]
 RWTexture2D<float4> inOutTexture;
+
+[[vk::push_constant]]
+cbuffer pushConstants
+{
+    float4 colorOne;
+    float4 colorTwo;
+
+    float time;
+};
 
 static const float2 triangleVertices[3] = {
     float2(0.5f, 0.5f),
@@ -29,7 +39,7 @@ bool PointInTriangle(float2 a, float2 b, float2 c, float2 p)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void main(uint3 threadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uniform float time)
+void main(uint3 threadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID)
 {
     uint2 imageSize;
     inOutTexture.GetDimensions(imageSize.x, imageSize.y);

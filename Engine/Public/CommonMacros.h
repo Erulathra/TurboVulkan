@@ -66,7 +66,7 @@ if (!(CONDITION))				\
 }								\
 
 #else
-#define TURBO_ENSURE(CONDITION) {}
+#define TURBO_ENSURE(CONDITION) (void)(CONDITION)
 #endif // DEBUG
 
 #if WITH_ASSERTIONS

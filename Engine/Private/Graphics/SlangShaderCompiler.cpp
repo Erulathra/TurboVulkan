@@ -27,13 +27,14 @@ namespace Turbo
 
 	vk::ShaderModule FSlangShaderCompiler::CompileShader(vk::Device device, const FShaderStage& shaderStage)
 	{
-		TURBO_LOG(LOG_SLANG, Info, "Compiling {} shader.", shaderStage.mShaderName);
+		TURBO_LOG(LOG_SLANG, Info, "Compiling `Shaders/{}.slang` shader.", shaderStage.mShaderName);
 
 		vk::ShaderModule result = nullptr;
 
 		Slang::ComPtr<slang::IBlob> diagnosticsBlob;
 		Slang::ComPtr<slang::IModule> module;
-		module = mSession->loadModule(shaderStage.mShaderName.c_str(), diagnosticsBlob.writeRef());
+		const std::string targetShaderPath = fmt::format("Shaders/{}", shaderStage.mShaderName);
+		module = mSession->loadModule(targetShaderPath.c_str(), diagnosticsBlob.writeRef());
 		PrintMessageIfNeeded(diagnosticsBlob);
 
 		if (!module)
@@ -104,8 +105,9 @@ namespace Turbo
 
 		slang::SessionDesc sessionDesc = {};
 
-		constexpr cstring kShaderSearchPaths[] = {"Shaders/Modules"};
-		sessionDesc.searchPaths = kShaderSearchPaths;
+		constexpr std::array kShaderSearchPaths = {"Shaders/Modules"};
+		sessionDesc.searchPaths = kShaderSearchPaths.data();
+		sessionDesc.searchPathCount = kShaderSearchPaths.size();
 
 		sessionDesc.targets = &targetDesc;
 		sessionDesc.targetCount = 1;
@@ -135,7 +137,7 @@ namespace Turbo
 	{
 		if (diagnosticsBlob)
 		{
-			TURBO_LOG(LOG_SLANG, Info, "There was a message compilation. Message: {}", static_cast<cstring>(diagnosticsBlob->getBufferPointer()));
+			TURBO_LOG(LOG_SLANG, Info, "There was a message compilation. Message: \n{}", static_cast<cstring>(diagnosticsBlob->getBufferPointer()));
 		}
 	}
 } // Turbo

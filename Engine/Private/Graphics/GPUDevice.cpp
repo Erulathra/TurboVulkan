@@ -70,32 +70,50 @@ namespace Turbo
 
 		pipeline->mShaderState = shaderStateHandle;
 		pipeline->mNumActiveLayouts = builder.mNumActiveLayouts;
+		pipeline->mbGraphicsPipeline = shaderState->mbGraphicsPipeline;
 
 		std::array<vk::DescriptorSetLayout, kMaxDescriptorSetLayouts> vkLayouts;
 		for (uint32 layoutId = 0; layoutId < builder.mNumActiveLayouts; ++layoutId)
 		{
-			pipeline->mDescriptorLayoutsHandles[layoutId] = builder.mDescriptorSetLayouts[layoutId];
+			const FDescriptorSetLayoutHandle setLayoutHandle = builder.mDescriptorSetLayouts[layoutId];
+			pipeline->mDescriptorLayoutsHandles[layoutId] = setLayoutHandle;
+			const FDescriptorSetLayout* setLayout = mDescriptorSetLayoutPool->Access(setLayoutHandle);
+			vkLayouts[layoutId] = setLayout->mLayout;
+		}
+
+		vk::PushConstantRange pushConstantRange = {};
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = builder.mPushConstantSize;
+
+		if (shaderState->mbGraphicsPipeline)
+		{
+			pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eAll;
+			TURBO_UNINPLEMENTED();
+		}
+		else
+		{
+			pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eCompute;
 		}
 
 		vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.pSetLayouts = vkLayouts.data();
 		pipelineLayoutCreateInfo.setLayoutCount = builder.mNumActiveLayouts;
+		pipelineLayoutCreateInfo.setPushConstantRanges({pushConstantRange});
 
-		CHECK_VULKAN_RESULT(pipeline->mLayout, mVkDevice.createPipelineLayout(pipelineLayoutCreateInfo))
+		CHECK_VULKAN_RESULT(pipeline->mVkLayout, mVkDevice.createPipelineLayout(pipelineLayoutCreateInfo))
 
 		if (shaderState->mbGraphicsPipeline)
 		{
-			// ło la boga
 			TURBO_UNINPLEMENTED();
 		}
 		else
 		{
 			vk::ComputePipelineCreateInfo pipelineCreateInfo = {};
 			pipelineCreateInfo.stage = shaderState->mShaderStageCrateInfo[0];
-			pipelineCreateInfo.layout = pipeline->mLayout;
+			pipelineCreateInfo.layout = pipeline->mVkLayout;
 
-			CHECK_VULKAN_RESULT(pipeline->mPipeline, mVkDevice.createComputePipeline(nullptr, pipelineCreateInfo));
-			pipeline->mBindPoint = vk::PipelineBindPoint::eCompute;
+			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createComputePipeline(nullptr, pipelineCreateInfo));
+			pipeline->mVkBindPoint = vk::PipelineBindPoint::eCompute;
 		}
 
 		return handle;
@@ -186,6 +204,9 @@ namespace Turbo
 
 		std::array<vk::WriteDescriptorSet, kMaxDescriptorsPerSet> writes;
 
+		std::vector<vk::DescriptorImageInfo> imageInfos;
+		std::vector<vk::DescriptorBufferInfo> bufferInfos;
+
 		for (uint32 bindingId = 0; bindingId < layout->mNumBindings; ++bindingId)
 		{
 			const FBinding& binding = layout->mBindings[bindingId];
@@ -202,9 +223,9 @@ namespace Turbo
 			case vk::DescriptorType::eSampledImage:
 			case vk::DescriptorType::eStorageImage:
 				{
-					const FTexture* texture = mTexturePool->Access(FTextureHandle(resource));
+					const FTexture* texture = AccessTexture(FTextureHandle(resource));
 
-					vk::DescriptorImageInfo imageInfo = {};
+					vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
 					imageInfo.imageView = texture->mImageView;
 
 					if (binding.mType == vk::DescriptorType::eSampledImage)
@@ -219,17 +240,17 @@ namespace Turbo
 						imageInfo.imageLayout = vk::ImageLayout::eGeneral;
 					}
 
-					write.setImageInfo(imageInfo);
+					write.setImageInfo({imageInfo});
 					break;
 				}
 			case vk::DescriptorType::eSampler:
 				{
 					const FSampler* sampler = mSamplerPool->Access(FSamplerHandle(resource));
 
-					vk::DescriptorImageInfo imageInfo = {};
+					vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
 					imageInfo.sampler = sampler->mVkSampler;
 
-					write.setImageInfo(imageInfo);
+					write.setImageInfo({imageInfo});
 					break;
 				}
 			case vk::DescriptorType::eStorageBuffer:
@@ -237,12 +258,12 @@ namespace Turbo
 				{
 					const FBuffer* buffer = mBufferPool->Access(FBufferHandle(resource));
 
-					vk::DescriptorBufferInfo bufferInfo = {};
+					vk::DescriptorBufferInfo& bufferInfo = bufferInfos.emplace_back();
 					bufferInfo.buffer = buffer->mVkBuffer;
 					bufferInfo.offset = 0;
 					bufferInfo.range = buffer->mDeviceSize;
 
-					write.setBufferInfo(bufferInfo);
+					write.setBufferInfo({bufferInfo});
 					break;
 				}
 			default:
@@ -272,6 +293,8 @@ namespace Turbo
 		FShaderState* shaderState = mShaderStatePool->Access(handle);
 		TURBO_CHECK(shaderState)
 
+		shaderState->mShaderStageCrateInfo = {};
+
 		shaderState->mbGraphicsPipeline = true;
 		shaderState->mNumActiveShaders = 0;
 
@@ -297,15 +320,31 @@ namespace Turbo
 			SetResourceName(shaderModule, shaderStage.mShaderName);
 
 			vk::PipelineShaderStageCreateInfo& stageCreateInfo = shaderState->mShaderStageCrateInfo[shaderStageId];
-			*stageCreateInfo = {};
+			*stageCreateInfo = vk::PipelineShaderStageCreateInfo();
 			stageCreateInfo.pName = shaderStage.mEntryPoint.c_str();
 			stageCreateInfo.setStage(shaderStage.mStage);
+			stageCreateInfo.module = shaderModule;
 		}
 
 		shaderState->mNumActiveShaders = builder.mStagesCount;
 		shaderState->mName = builder.mName;
 
 		return handle;
+	}
+
+	void FGPUDevice::ResetDescriptorPool(FDescriptorPoolHandle descriptorPoolHandle)
+	{
+		FDescriptorPool* descriptorPool = AccessDescriptorPool(descriptorPoolHandle);
+		TURBO_CHECK(descriptorPool)
+
+		mVkDevice.resetDescriptorPool(descriptorPool->mDescriptorPool);
+
+		for (const FDescriptorSetHandle& descriptorSet : descriptorPool->mDescriptorSets)
+		{
+			mDescriptorSetPool->Release(descriptorSet);
+		}
+
+		descriptorPool->mDescriptorSets.clear();
 	}
 
 	void FGPUDevice::DestroyTexture(FTextureHandle handle)
@@ -329,12 +368,14 @@ namespace Turbo
 		TURBO_CHECK(pipeline);
 
 		FPipelineDestroyer destroyer = {};
-		destroyer.mPipeline = pipeline->mPipeline;
-		destroyer.mLayout = pipeline->mLayout;
+		destroyer.mPipeline = pipeline->mVkPipeline;
+		destroyer.mLayout = pipeline->mVkLayout;
 		destroyer.mHandle = handle;
 
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
+
+		DestroyShaderState(pipeline->mShaderState);
 	}
 
 	void FGPUDevice::DestroyDescriptorPool(FDescriptorPoolHandle handle)
@@ -604,7 +645,7 @@ namespace Turbo
 		CHECK_VULKAN_RESULT(commandBuffers, mVkDevice.allocateCommandBuffers(allocateInfo));
 
 		std::unique_ptr<FCommandBuffer> result = std::make_unique<FCommandBuffer>();
-		result->mDevice = this;
+		result->mGpu = this;
 		result->mVkCommandBuffer = commandBuffers.front();
 		result->Reset();
 
@@ -691,13 +732,23 @@ namespace Turbo
 		CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(frameData.mCommandPool));
 		frameData.mCommandBuffer->Reset();
 		frameData.mCommandBuffer->Begin();
+
+		ResetDescriptorPool(frameData.mDescriptorPoolHandle);
 	}
 
 	void FGPUDevice::PresentFrame()
 	{
 		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
-
 		const FTextureHandle swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
+
+		// TODO: Move me to GBuffer class or something
+		{
+			const FRect2DInt rect = FRect2DInt::FromSize(mGeometryBuffer.mResolution);
+			frameData.mCommandBuffer->TransitionImage(mGeometryBuffer.mColor, vk::ImageLayout::eTransferSrcOptimal);
+			frameData.mCommandBuffer->TransitionImage(swapChainTexture, vk::ImageLayout::eTransferDstOptimal);
+			frameData.mCommandBuffer->BlitImage(mGeometryBuffer.mColor, rect, swapChainTexture, rect);
+		}
+
 		frameData.mCommandBuffer->TransitionImage(swapChainTexture, vk::ImageLayout::ePresentSrcKHR);
 
 		frameData.mCommandBuffer->End();
@@ -734,12 +785,12 @@ namespace Turbo
 		FTexture* swapchainTexture = AccessTexture(mSwapChainTextures[0]);
 		TURBO_CHECK(swapchainTexture);
 
-		mGeometryBuffer.resolution = swapchainTexture->GetSize();
+		mGeometryBuffer.mResolution = swapchainTexture->GetSize();
 
 		FTextureBuilder textureBuilder;
 		textureBuilder
-			.Init(vk::Format::eR16G16B16A16Sfloat, ETextureType::Texture2D, ETextureFlags::RenderTarget)
-			.SetSize(glm::vec3(mGeometryBuffer.resolution, 1))
+			.Init(vk::Format::eR16G16B16A16Sfloat, ETextureType::Texture2D, ETextureFlags::RenderTarget | ETextureFlags::Compute)
+			.SetSize(glm::vec3(mGeometryBuffer.mResolution, 1))
 			.SetNumMips(1)
 			.SetName(geometryBufferColorName);
 
@@ -861,6 +912,7 @@ namespace Turbo
 		else
 		{
 			imageCreateInfo.usage |= EImgUsage::eTransferDst;
+			imageCreateInfo.usage |= bRenderTarget ? EImgUsage::eTransferSrc : static_cast<EImgUsage>(0);
 			imageCreateInfo.usage |= bRenderTarget ? EImgUsage::eColorAttachment : static_cast<EImgUsage>(0);
 		}
 
@@ -889,6 +941,7 @@ namespace Turbo
 		viewCreateInfo.subresourceRange.layerCount = 1;
 
 		CHECK_VULKAN_RESULT(texture->mImageView, mVkDevice.createImageView(viewCreateInfo));
+
 		SetResourceName(texture->mImageView, builder.mName);
 	}
 
@@ -908,6 +961,7 @@ namespace Turbo
 
 	void FGPUDevice::DestroyDescriptorPoolImmediate(const FDescriptorPoolDestroyer& destroyer)
 	{
+		ResetDescriptorPool(destroyer.mhandle);
 		mVkDevice.destroyDescriptorPool(destroyer.mDescriptorPool);
 		mDescriptorPoolPool->Release(destroyer.mhandle);
 	}

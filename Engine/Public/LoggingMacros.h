@@ -5,7 +5,7 @@
 
 // Log verbosity
 
-#if DEBUG
+#if TURBO_BUILD_DEVELOPMENT
 #define LOG_VERBOSITY 0
 #else
 #define LOG_VERBOSITY 3

@@ -28,8 +28,8 @@ namespace Turbo
 	};
 
 	template<typename T, typename THandle , uint32 size>
-	requires std::is_base_of_v<FTypeSafeResourceHandleBase, THandle>
-		  && (size < kInvalidHandle)
+		requires std::is_base_of_v<FTypeSafeResourceHandleBase, THandle>
+			  && (size < kInvalidHandle)
 	class TResourcePool
 	{
 	public:
@@ -65,6 +65,8 @@ namespace Turbo
 
 		void Release(THandle handle)
 		{
+			TURBO_CHECK(mUsedIndices > 0)
+
 			--mFreeIndicesHead;
 			--mUsedIndices;
 
@@ -78,6 +80,8 @@ namespace Turbo
 
 		T* Access(THandle handle)
 		{
+			TRACE_ZONE_SCOPED_N("Access Resource by handle")
+
 			if (handle.IsValid() && handle.Index < mData.size())
 			{
 				return &mData[handle.Index];
@@ -105,8 +109,8 @@ namespace Turbo
 	};
 
 	template<typename T, typename THandle , uint32 size>
-	requires std::is_base_of_v<FTypeSafeResourceHandleBase, THandle>
-		  && (size < kInvalidHandle)
+		requires std::is_base_of_v<FTypeSafeResourceHandleBase, THandle>
+			  && (size < kInvalidHandle)
 	class TResourcePoolHeap
 	{
 		using TPoolType = TResourcePool<T, THandle, size>;

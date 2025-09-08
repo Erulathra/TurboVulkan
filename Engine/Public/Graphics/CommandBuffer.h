@@ -20,6 +20,14 @@ namespace Turbo
 		void ClearImage(FTextureHandle textureHandle, glm::vec4 color = ELinearColor::kBlack);
 		void BlitImage(FTextureHandle src, FRect2DInt srcRect, FTextureHandle dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
 
+		void BindDescriptorSet(FDescriptorSetHandle descriptorSetHandle, uint32 setIndex);
+
+		void BindPipeline(FPipelineHandle pipelineHandle);
+		void Dispatch(const glm::ivec3& groupCount);
+
+		template<typename PushConstantsType>
+		void PushConstants(PushConstantsType pushConstants) { PushConstantsImpl(&pushConstants, sizeof(PushConstantsType)); }
+
 	private:
 		void Begin();
 		void End();
@@ -28,8 +36,10 @@ namespace Turbo
 
 		vk::CommandBufferSubmitInfo CreateSubmitInfo() const;
 
+		void PushConstantsImpl(void* pushConstants, uint32 size);
+
 	private:
-		FGPUDevice* mDevice;
+		FGPUDevice* mGpu;
 		vk::CommandBuffer mVkCommandBuffer = nullptr;
 
 		std::array<FDescriptorSetHandle, kMaxDescriptorSets> mBoundDescriptorSets;

@@ -13,7 +13,7 @@
 #include <tracy/Tracy.hpp>
 
 #define TRACE_ZONE_SCOPED() ZoneScoped;
-#define TRACE_ZONE_SCOPED_N(NAME) ZoneScopedN(#NAME);
+#define TRACE_ZONE_SCOPED_N(NAME) ZoneScopedN(NAME);
 
 #define TRACE_MARK_FRAME() FrameMark
 

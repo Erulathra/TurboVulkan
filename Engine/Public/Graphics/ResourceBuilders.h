@@ -126,8 +126,11 @@ namespace Turbo
 		FDescriptorSetLayoutBuilder& Reset() { mNumBindings = 0; mSetIndex = 0; return *this; }
 		FDescriptorSetLayoutBuilder& AddBinding(vk::DescriptorType type, uint16 start, uint16 count, FName name = FName())
 		{
+			TURBO_CHECK_MSG(count > 0, "Binding count must be greater than 0.")
+
 			mBindings[mNumBindings] = {type, start, count, name};
 			++mNumBindings;
+
 			return *this;
 		}
 		FDescriptorSetLayoutBuilder& AddBinding(vk::DescriptorType type, uint16 id, FName name = FName())
@@ -378,6 +381,10 @@ namespace Turbo
 		FPipelineBuilder& AddDescriptorSetLayout(FDescriptorSetLayoutHandle handle)
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
 
+		template <typename pushConstantType>
+			requires (sizeof(pushConstantType) < kMaxPushConstantSize)
+		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(pushConstantType); return *this; }
+
 	private:
 		FRasterizationBuilder mRasterizationBuilder;
 		FDepthStencilBuilder mDepthStencilBuilder;
@@ -387,8 +394,11 @@ namespace Turbo
 		std::array<FDescriptorSetLayoutHandle, kMaxDescriptorSetLayouts> mDescriptorSetLayouts;
 		uint32 mNumActiveLayouts = 0;
 
+		uint32 mPushConstantSize = 0;
+
 		FName mName = FName();
 	};
+
 }
 
 #undef BUILDER_BODY

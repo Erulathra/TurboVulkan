@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CommonMacros.h"
+#include "Graphics/Resources.h"
 #include "IService.h"
 
 namespace Turbo
@@ -14,12 +15,14 @@ namespace Turbo
 		virtual void Start() override;
 		virtual void Shutdown() override;
 
-		virtual void RenderFrame_RenderThread(FGPUDevice* device, FCommandBuffer* cmd) override;
+		virtual void RenderFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) override;
 
 		virtual FName GetName() override;
 
 		/** IService Interface end */
 
 	private:
+		FPipelineHandle mPipeline;
+		FDescriptorSetLayoutHandle mSetLayout;
 	};
 } // Turbo
