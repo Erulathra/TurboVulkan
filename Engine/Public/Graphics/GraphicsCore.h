@@ -19,6 +19,8 @@ inline constexpr uint32 kMaxDescriptorSets = 4;
 
 inline constexpr uint32 kMaxPushConstantSize = 256;
 
+inline constexpr uint32 kVulkanVersion = MAKE_VERSION(1, 3, 0);
+
 /** Constants end */
 
 #define VULKAN_HPP_ASSERT_ON_RESULT {}

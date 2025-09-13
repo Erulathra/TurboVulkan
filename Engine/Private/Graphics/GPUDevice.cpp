@@ -126,7 +126,7 @@ namespace Turbo
 
 		FDescriptorPool* pool = mDescriptorPoolPool->Access(handle);
 		pool->mDescriptorSets.clear();
-		pool->mName = builder.name;
+		pool->mName = builder.mName;
 
 		std::vector<vk::DescriptorPoolSize> poolSizes;
 		poolSizes.reserve(builder.mPoolSizes.size());
@@ -140,6 +140,7 @@ namespace Turbo
 		createInfo.setPoolSizes(poolSizes);
 
 		CHECK_VULKAN_RESULT(pool->mDescriptorPool, mVkDevice.createDescriptorPool(createInfo));
+		SetResourceName(pool->mDescriptorPool, pool->mName);
 
 		return handle;
 	}
@@ -352,6 +353,8 @@ namespace Turbo
 		const FTexture* texture = AccessTexture(handle);
 		TURBO_CHECK(texture)
 
+		TURBO_LOG(LOG_GPU_DEVICE, Display, "Destroying {} texture.", texture->mName);
+
 		FTextureDestroyer destroyer = {};
 		destroyer.mHandle = handle;
 		destroyer.mImage = texture->mImage;
@@ -440,7 +443,8 @@ namespace Turbo
 			.set_debug_callback(&ThisClass::ValidationLayerCallback)
 			// .set_debug_messenger_severity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
 #endif // WITH_VALIDATION_LAYERS
-			.require_api_version(1, 3, 0);
+			.require_api_version(kVulkanVersion);
+
 
 		vkb::Result<vkb::Instance> buildInstanceResult = instanceBuilder.build();
 		TURBO_CHECK_MSG(buildInstanceResult, "Vulkan Instance Creation failed. Reason: {}", buildInstanceResult.error().message())
@@ -611,13 +615,15 @@ namespace Turbo
 		FDescriptorPoolBuilder descriptorPoolBuilder;
 		descriptorPoolBuilder.SetMaxSets(128);
 
-		for (FBufferedFrameData& frameData : mFrameDatas)
+		for (uint32 frameDataId = 0; frameDataId < mFrameDatas.size(); ++frameDataId)
 		{
+			FBufferedFrameData& frameData = mFrameDatas[frameDataId];
+
 			CHECK_VULKAN_RESULT(frameData.mCommandBufferExecutedFence, mVkDevice.createFence(fenceCreateInfo));
 			CHECK_VULKAN_RESULT(frameData.mImageAcquiredSemaphore, mVkDevice.createSemaphore(semaphoreCreateInfo));
 
 			frameData.mCommandPool = CreateCommandPool();
-			frameData.mCommandBuffer = CreateCommandBuffer(frameData.mCommandPool);
+			frameData.mCommandBuffer = CreateCommandBuffer(frameData.mCommandPool, FName(fmt::format("Frame{}", frameDataId)));
 
 			frameData.mDescriptorPoolHandle = CreateDescriptorPool(descriptorPoolBuilder);
 		}
@@ -634,7 +640,7 @@ namespace Turbo
 		return pool;
 	}
 
-	std::unique_ptr<FCommandBuffer> FGPUDevice::CreateCommandBuffer(vk::CommandPool commandPool)
+	std::unique_ptr<FCommandBuffer> FGPUDevice::CreateCommandBuffer(vk::CommandPool commandPool, FName name)
 	{
 		vk::CommandBufferAllocateInfo allocateInfo = {};
 		allocateInfo.setCommandPool(commandPool);
@@ -648,6 +654,11 @@ namespace Turbo
 		result->mGpu = this;
 		result->mVkCommandBuffer = commandBuffers.front();
 		result->Reset();
+
+		if (!name.IsNone())
+		{
+			SetResourceName(result->mVkCommandBuffer, name);
+		}
 
 		return result;
 	}
@@ -736,18 +747,22 @@ namespace Turbo
 		ResetDescriptorPool(frameData.mDescriptorPoolHandle);
 	}
 
-	void FGPUDevice::PresentFrame()
+
+	void FGPUDevice::BlitGBufferToPresentTexture()
 	{
 		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 		const FTextureHandle swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
 
-		// TODO: Move me to GBuffer class or something
-		{
-			const FRect2DInt rect = FRect2DInt::FromSize(mGeometryBuffer.mResolution);
-			frameData.mCommandBuffer->TransitionImage(mGeometryBuffer.mColor, vk::ImageLayout::eTransferSrcOptimal);
-			frameData.mCommandBuffer->TransitionImage(swapChainTexture, vk::ImageLayout::eTransferDstOptimal);
-			frameData.mCommandBuffer->BlitImage(mGeometryBuffer.mColor, rect, swapChainTexture, rect);
-		}
+		const FRect2DInt rect = FRect2DInt::FromSize(mGeometryBuffer.mResolution);
+		frameData.mCommandBuffer->TransitionImage(mGeometryBuffer.mColor, vk::ImageLayout::eTransferSrcOptimal);
+		frameData.mCommandBuffer->TransitionImage(swapChainTexture, vk::ImageLayout::eTransferDstOptimal);
+		frameData.mCommandBuffer->BlitImage(mGeometryBuffer.mColor, rect, swapChainTexture, rect);
+	}
+
+	void FGPUDevice::PresentFrame()
+	{
+		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		const FTextureHandle swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
 
 		frameData.mCommandBuffer->TransitionImage(swapChainTexture, vk::ImageLayout::ePresentSrcKHR);
 
@@ -857,6 +872,7 @@ namespace Turbo
 
 			if (frameData.mCommandPool)
 			{
+				CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(frameData.mCommandPool));
 				mVkDevice.destroyCommandPool(frameData.mCommandPool);
 			}
 		}

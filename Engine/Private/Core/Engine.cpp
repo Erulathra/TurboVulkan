@@ -87,8 +87,13 @@ namespace Turbo
 
 		FServiceManager* ServiceManager = FServiceManager::Get();
 		{
-			TRACE_ZONE_SCOPED_N("Services: Tick")
-			ServiceManager->ForEachService([deltaTime](IService* service){ service->Tick_GameThread(deltaTime); });
+			TRACE_ZONE_SCOPED_N("Services: Begin Tick")
+			ServiceManager->ForEachService([deltaTime](IService* service){ service->BeginTick_GameThread(deltaTime); });
+		}
+
+		{
+			TRACE_ZONE_SCOPED_N("Services: End Tick")
+			ServiceManager->ForEachServiceReverse([deltaTime](IService* service){ service->EndTick_GameThread(deltaTime); });
 		}
 
 		FGPUDevice* gpu = GetGpu();
@@ -98,8 +103,15 @@ namespace Turbo
 
 		FCommandBuffer* cmd = gpu->GetCommandBuffer();
 		{
-			TRACE_ZONE_SCOPED_N("Services: Render Frame")
-			ServiceManager->ForEachService([gpu, cmd](IService* service) { service->RenderFrame_RenderThread(gpu, cmd); });
+			TRACE_ZONE_SCOPED_N("Services: Post begin frame")
+			ServiceManager->ForEachService([gpu, cmd](IService* service) { service->PostBeginFrame_RenderThread(gpu, cmd); });
+		}
+
+		gpu->BlitGBufferToPresentTexture();
+
+		{
+			TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")
+			ServiceManager->ForEachService([gpu, cmd](IService* service) { service->BeginPresentingFrame_RenderThread(gpu, cmd); });
 		}
 
 		gpu->PresentFrame();
@@ -110,7 +122,7 @@ namespace Turbo
 	void FEngine::SetupBasicInputBindings()
 	{
 		const FName ToggleFullscreenName("ToggleFullscreen");
-		mInputSystemInstance->RegisterBinding(ToggleFullscreenName, EKeys::F12);
+		mInputSystemInstance->RegisterBinding(ToggleFullscreenName, EKeys::F11);
 		mInputSystemInstance->GetActionEvent(ToggleFullscreenName).AddLambda([this](const FActionEvent& actionEvent)
 		{
 			if (actionEvent.bDown)
@@ -137,8 +149,10 @@ namespace Turbo
 	{
 		TURBO_LOG(LOG_ENGINE, Info, "Begin exit sequence.");
 
+		mGpuDevice->WaitIdle();
+
 		FServiceManager* ServiceManager = FServiceManager::Get();
-		ServiceManager->ForEachService([](IService* service){ service->Shutdown(); });
+		ServiceManager->ForEachServiceReverse([](IService* service){ service->Shutdown(); });
 
 		mGpuDevice->DestroyGeometryBuffer();
 

@@ -28,6 +28,12 @@ namespace Turbo
 		template<typename PushConstantsType>
 		void PushConstants(PushConstantsType pushConstants) { PushConstantsImpl(&pushConstants, sizeof(PushConstantsType)); }
 
+		void BeginRendering(FTextureHandle renderTargetHandle);
+		void EndRendering();
+
+	public:
+		vk::CommandBuffer GetVkCommandBuffer() const { return mVkCommandBuffer; }
+
 	private:
 		void Begin();
 		void End();

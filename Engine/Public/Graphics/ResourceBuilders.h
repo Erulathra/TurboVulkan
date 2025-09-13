@@ -109,13 +109,17 @@ namespace Turbo
 		FDescriptorPoolBuilder& Reset();
 		FDescriptorPoolBuilder& SetPoolRatio(vk::DescriptorType type, float ratio);
 
+		FDescriptorPoolBuilder& SetFlags(vk::DescriptorPoolCreateFlags flags) {mFlags = flags; return *this;}
 		FDescriptorPoolBuilder& SetMaxSets(uint32 maxSets) { mMaxSets = maxSets; return *this; }
+		FDescriptorPoolBuilder& SetName(FName name) { mName = name; return *this; }
 
 	private:
 		std::unordered_map<vk::DescriptorType, float /** Ratio **/> mPoolSizes = {};
 		uint32 mMaxSets = 0;
 
-		FName name;
+		vk::DescriptorPoolCreateFlags mFlags;
+
+		FName mName;
 	};
 
 	class FDescriptorSetLayoutBuilder final

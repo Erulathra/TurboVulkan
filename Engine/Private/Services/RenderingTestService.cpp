@@ -40,7 +40,7 @@ namespace Turbo
 		gpu->DestroyPipeline(mPipeline);
 	}
 
-	void FRenderingTestService::RenderFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd)
+	void FRenderingTestService::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd)
 	{
 		const FDescriptorPoolHandle descriptorPool = gpu->GetDescriptorPool();
 		const FGeometryBuffer& geometryBuffer = gpu->GetGeometryBuffer();

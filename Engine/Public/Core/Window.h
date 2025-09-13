@@ -28,6 +28,7 @@ namespace Turbo
 	}
 
 	DECLARE_MULTICAST_DELEGATE(FWindowEventDelegate, EWindowEvent);
+	DECLARE_MULTICAST_DELEGATE(FSDLEventDelegate, SDL_Event*);
 	DECLARE_DELEGATE(FOnSDLKeyboardEvent, const SDL_KeyboardEvent&);
 
 	class FWindow
@@ -56,13 +57,13 @@ namespace Turbo
 		/** Events */
 	public:
 		FWindowEventDelegate OnWindowEvent;
+		FSDLEventDelegate OnSDLEvent;
 
 	public:
 		FWindowEventDelegate& GetEventTypeDelegate(EWindowEvent EventType) { return PerTypeWindowEvents[static_cast<uint32>(EventType)]; }
 
 	private:
 		std::vector<FWindowEventDelegate> PerTypeWindowEvents;
-
 
 		/** Basic Interface */
 	public:
@@ -71,6 +72,8 @@ namespace Turbo
 		void ShowWindow(bool bVisible);
 		[[nodiscard]] glm::ivec2 GetFrameBufferSize() const;
 		[[nodiscard]] SDL_Window* GetWindow() const { return mSDLWindow; }
+
+		float GetDisplayScale() const;
 
 		[[nodiscard]] bool IsFullscreenEnabled() const;
 		void SetFullscreen(bool bFullscreen);

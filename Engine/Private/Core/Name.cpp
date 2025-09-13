@@ -37,6 +37,11 @@ namespace Turbo {
 		mStringId = TryRegisterName(string);
 	}
 
+	bool FName::IsNone()
+	{
+		return *this == kNameNone;
+	}
+
 	std::string_view FName::ToString() const
 	{
 		TURBO_CHECK(gNameLookUp->size() > mStringId);

@@ -8,9 +8,11 @@ namespace Turbo
 
 	enum class EEngineStage : int8
 	{
-		PreDefault = 0,
-		Default = 1,
-		PostDefault = 2,
+		EarliestPossible = 0,
+
+		PreDefault,
+		Default,
+		PostDefault,
 
 		Num
 	};
@@ -24,8 +26,11 @@ namespace Turbo
 		virtual void Start() = 0;
 		virtual void Shutdown() = 0;
 
-		virtual void Tick_GameThread(float deltaTime) {};
-		virtual void RenderFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) {};
+		virtual void BeginTick_GameThread(float deltaTime) {};
+		virtual void EndTick_GameThread(float deltaTime) {};
+
+		virtual void PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) {};
+		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) {};
 
 		virtual EEngineStage GetStage() { return EEngineStage::Default; }
 		virtual FName GetName() = 0;
@@ -52,6 +57,9 @@ namespace Turbo
 		template <typename FunctionType>
 		void ForEachService(FunctionType function);
 
+		template <typename FunctionType>
+		void ForEachServiceReverse(FunctionType function);
+
 	private:
 		std::vector<std::vector<IServicePtr>> mServices;
 	};
@@ -64,6 +72,18 @@ namespace Turbo
 			for (const IServicePtr& service : servicesVector)
 			{
 				function(service.get());
+			}
+		}
+	}
+
+	template <typename FunctionType>
+	void FServiceManager::ForEachServiceReverse(FunctionType function)
+	{
+		for (auto GroupIt = mServices.rbegin(); GroupIt != mServices.rend(); ++GroupIt)
+		{
+			for (auto ServiceIt = GroupIt->rbegin(); ServiceIt != GroupIt->rend(); ++ServiceIt)
+			{
+				function(ServiceIt->get());
 			}
 		}
 	}

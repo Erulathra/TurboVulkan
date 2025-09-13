@@ -71,7 +71,8 @@ namespace Turbo
 	{
 		RESOURCE_BODY()
 	public:
-		glm::ivec3 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
+		[[nodiscard]] glm::ivec3 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
+		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
 
 	private:
 		vk::Image mImage = nullptr;
@@ -178,6 +179,9 @@ namespace Turbo
 	class FDescriptorPool final
 	{
 		RESOURCE_BODY()
+
+	public:
+		[[nodiscard]] vk::DescriptorPool GetDescriptorPool() const { return mDescriptorPool; }
 
 	private:
 		vk::DescriptorPool mDescriptorPool;

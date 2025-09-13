@@ -76,8 +76,8 @@ namespace Turbo
 	{
 		static uint64 CastToU64Handle(vk::Image handle)
 		{
-			VkImage nativeImageHandle = handle;
-			return reinterpret_cast<uint64>(nativeImageHandle);
+			VkImage nativeHandle = handle;
+			return reinterpret_cast<uint64>(nativeHandle);
 		}
 
 		static cstring GetTypePostFix()
@@ -91,8 +91,8 @@ namespace Turbo
 	{
 		static uint64 CastToU64Handle(vk::ImageView handle)
 		{
-			VkImageView nativeImageHandle = handle;
-			return reinterpret_cast<uint64>(nativeImageHandle);
+			VkImageView nativeHandle = handle;
+			return reinterpret_cast<uint64>(nativeHandle);
 		}
 
 		static cstring GetTypePostFix()
@@ -106,13 +106,43 @@ namespace Turbo
 	{
 		static uint64 CastToU64Handle(vk::ShaderModule handle)
 		{
-			VkShaderModule nativeImageHandle = handle;
-			return reinterpret_cast<uint64>(nativeImageHandle);
+			VkShaderModule nativeHandle = handle;
+			return reinterpret_cast<uint64>(nativeHandle);
 		}
 
 		static cstring GetTypePostFix()
 		{
 			return "_ShaderModule";
+		}
+	};
+
+	template <>
+	struct HandleTraits<vk::DescriptorPool>
+	{
+		static uint64 CastToU64Handle(vk::DescriptorPool handle)
+		{
+			VkDescriptorPool nativeHandle = handle;
+			return reinterpret_cast<uint64>(nativeHandle);
+		}
+
+		static cstring GetTypePostFix()
+		{
+			return "_DescriptorPool";
+		}
+	};
+
+	template <>
+	struct HandleTraits<vk::CommandBuffer>
+	{
+		static uint64 CastToU64Handle(vk::CommandBuffer handle)
+		{
+			VkCommandBuffer nativeHandle = handle;
+			return reinterpret_cast<uint64>(nativeHandle);
+		}
+
+		static cstring GetTypePostFix()
+		{
+			return "_CommandBuffer";
 		}
 	};
 }

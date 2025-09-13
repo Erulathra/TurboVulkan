@@ -7,6 +7,31 @@
 
 namespace Turbo
 {
+	void FCommandBuffer::BeginRendering(FTextureHandle renderTargetHandle)
+	{
+		FTexture* renderTarget = mGpu->AccessTexture(renderTargetHandle);
+		TURBO_CHECK(renderTarget)
+
+		vk::RenderingAttachmentInfo colorAttachment = {};
+		colorAttachment.imageView = renderTarget->mImageView;
+		colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+		colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
+
+		vk::RenderingInfo renderInfo = {};
+		renderInfo.layerCount = 1;
+		renderInfo.colorAttachmentCount = 1;
+		renderInfo.pColorAttachments = &colorAttachment;
+
+		renderInfo.renderArea = vk::Rect2D(vk::Offset2D(0.f, 0.f), VulkanConverters::ToExtent2D(renderTarget->GetSize()));
+
+		mVkCommandBuffer.beginRendering(renderInfo);
+	}
+
+	void FCommandBuffer::EndRendering()
+	{
+		mVkCommandBuffer.endRendering();
+	}
+
 	void FCommandBuffer::Begin()
 	{
 		mbRecording = true;

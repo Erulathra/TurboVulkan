@@ -61,16 +61,21 @@ namespace Turbo
 		void BeginFrame();
 		void PresentFrame();
 
+		/** GBuffer interface */
 		/** Find me better place */
 		void InitGeometryBuffer();
 		void DestroyGeometryBuffer();
 		const FGeometryBuffer& GetGeometryBuffer() const { return mGeometryBuffer; }
+		void BlitGBufferToPresentTexture();
+		/** GBuffer interface end */
 
 		FCommandBuffer* GetCommandBuffer() { return mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
 		FDescriptorPoolHandle GetDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
 
 		// TODO: Remove me
 		FTextureHandle GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
+
+		void WaitIdle() { CHECK_VULKAN_HPP(mVkDevice.waitIdle()); }
 
 		/** Rendering interface end */
 
@@ -134,6 +139,15 @@ namespace Turbo
 
 		/** Destroy immediate end */
 
+		/** Vulkan Getters */
+	public:
+		[[nodiscard]] vk::Instance GetVkInstance() const { return mVkInstance; }
+		[[nodiscard]] vk::PhysicalDevice GetVkPhysicalDevice() const { return mVkPhysicalDevice; }
+		[[nodiscard]] vk::Device GetVkDevice() const { return mVkDevice; }
+		[[nodiscard]] vk::Queue GetVkQueue() const { return mVkQueue; }
+
+		/** Vulkan Getters end */
+
 		/** Initialization methods */
 	private:
 		vkb::Instance CreateVkInstance(const std::vector<cstring>& requiredExtensions);
@@ -143,7 +157,7 @@ namespace Turbo
 		void CreateVulkanMemoryAllocator();
 		void CreateFrameDatas();
 		vk::CommandPool CreateCommandPool();
-		std::unique_ptr<FCommandBuffer> CreateCommandBuffer(vk::CommandPool commandPool);
+		std::unique_ptr<FCommandBuffer> CreateCommandBuffer(vk::CommandPool commandPool, FName name = FName());
 
 		vk::PresentModeKHR GetBestPresentMode();
 		/** Initialization methods end */

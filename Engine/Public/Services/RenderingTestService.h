@@ -15,7 +15,7 @@ namespace Turbo
 		virtual void Start() override;
 		virtual void Shutdown() override;
 
-		virtual void RenderFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) override;
+		virtual void PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) override;
 
 		virtual FName GetName() override;
 

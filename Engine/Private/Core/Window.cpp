@@ -1,7 +1,6 @@
 #include "Core/Window.h"
 
 #include "backends/imgui_impl_sdl3.h"
-#include "Core/Engine.h"
 #include "Input/FSDLInputSystem.h"
 
 namespace Turbo
@@ -89,6 +88,8 @@ namespace Turbo
 			}
 
 			OnWindowEvent.Broadcast(convertedEvent);
+			OnSDLEvent.Broadcast(&event);
+
 			PerTypeWindowEvents[static_cast<uint32>(convertedEvent)].Broadcast(convertedEvent);
 		}
 	}
@@ -117,6 +118,12 @@ namespace Turbo
 		}
 
 		return glm::ivec2(Result);
+	}
+
+	float FWindow::GetDisplayScale() const
+	{
+		const float displayScale = SDL_GetWindowDisplayScale(mSDLWindow);
+		return displayScale > TURBO_SMALL_NUMBER ? displayScale : 1.f;
 	}
 
 	bool FWindow::IsFullscreenEnabled() const
