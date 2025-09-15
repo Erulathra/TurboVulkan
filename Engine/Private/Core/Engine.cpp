@@ -5,7 +5,9 @@
 #include "Core/Input/Input.h"
 #include "Core/Input/FSDLInputSystem.h"
 #include "Core/Input/Keys.h"
+#include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
+#include "Graphics/GraphicsLocator.h"
 #include "Services/IService.h"
 
 namespace Turbo
@@ -46,7 +48,8 @@ namespace Turbo
 		gpuDeviceBuilder.SetWindow(mWindow);
 
 		mGpuDevice->Init(gpuDeviceBuilder);
-		mGpuDevice->InitGeometryBuffer();
+		FGraphicsLocator::InitGeometryBuffer(mGpuDevice.get());
+		FGraphicsLocator::GetGeometryBuffer().Init(mWindow->GetFrameBufferSize());
 
 		mWindow->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
@@ -99,22 +102,23 @@ namespace Turbo
 		FGPUDevice* gpu = GetGpu();
 		TURBO_CHECK(gpu);
 
-		gpu->BeginFrame();
-
-		FCommandBuffer* cmd = gpu->GetCommandBuffer();
+		if (gpu->BeginFrame())
 		{
-			TRACE_ZONE_SCOPED_N("Services: Post begin frame")
-			ServiceManager->ForEachService([gpu, cmd](IService* service) { service->PostBeginFrame_RenderThread(gpu, cmd); });
+			FCommandBuffer* cmd = gpu->GetCommandBuffer();
+			{
+				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
+				ServiceManager->ForEachService([gpu, cmd](IService* service) { service->PostBeginFrame_RenderThread(gpu, cmd); });
+			}
+
+			FGraphicsLocator::GetGeometryBuffer().BlitResultToTexture(cmd, gpu->GetPresentImage());
+
+			{
+				TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")
+				ServiceManager->ForEachService([gpu, cmd](IService* service) { service->BeginPresentingFrame_RenderThread(gpu, cmd); });
+			}
+
+			gpu->PresentFrame();
 		}
-
-		gpu->BlitGBufferToPresentTexture();
-
-		{
-			TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")
-			ServiceManager->ForEachService([gpu, cmd](IService* service) { service->BeginPresentingFrame_RenderThread(gpu, cmd); });
-		}
-
-		gpu->PresentFrame();
 
 		TRACE_MARK_FRAME();
 	}
@@ -154,7 +158,7 @@ namespace Turbo
 		FServiceManager* ServiceManager = FServiceManager::Get();
 		ServiceManager->ForEachServiceReverse([](IService* service){ service->Shutdown(); });
 
-		mGpuDevice->DestroyGeometryBuffer();
+		FGraphicsLocator::GetGeometryBuffer().Destroy();
 
 		mGpuDevice->Shutdown();
 		mInputSystemInstance->Destroy();

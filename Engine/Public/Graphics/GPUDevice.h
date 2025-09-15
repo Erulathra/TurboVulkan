@@ -29,23 +29,6 @@ namespace Turbo
 		friend class FGPUDevice;
 	};
 
-	class FGeometryBuffer
-	{
-	public:
-		[[nodiscard]] FTextureHandle GetColor() const { return mColor; }
-		[[nodiscard]] FTextureHandle GetDepth() const { return mDepth; }
-		[[nodiscard]] const glm::ivec2& GetResolution() const { return mResolution; }
-
-	private:
-		FTextureHandle mColor = {};
-		FTextureHandle mDepth = {};
-
-		glm::ivec2 mResolution;
-
-	public:
-		friend class FGPUDevice;
-	};
-
 	class FGPUDevice final
 	{
 		GENERATED_BODY(FGPUDevice)
@@ -58,21 +41,12 @@ namespace Turbo
 
 		/** Rendering interface */
 	public:
-		void BeginFrame();
-		void PresentFrame();
-
-		/** GBuffer interface */
-		/** Find me better place */
-		void InitGeometryBuffer();
-		void DestroyGeometryBuffer();
-		const FGeometryBuffer& GetGeometryBuffer() const { return mGeometryBuffer; }
-		void BlitGBufferToPresentTexture();
-		/** GBuffer interface end */
+		bool BeginFrame();
+		bool PresentFrame();
 
 		FCommandBuffer* GetCommandBuffer() { return mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
 		FDescriptorPoolHandle GetDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
 
-		// TODO: Remove me
 		FTextureHandle GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
 
 		void WaitIdle() { CHECK_VULKAN_HPP(mVkDevice.waitIdle()); }
@@ -81,23 +55,23 @@ namespace Turbo
 
 		/** Resource accessors */
 	public:
-		FBuffer* AccessBuffer(FBufferHandle handle) { return mBufferPool->Access(handle); }
-		FTexture* AccessTexture(FTextureHandle handle) { return mTexturePool->Access(handle); }
-		FSampler* AccessSampler(FSamplerHandle handle) { return mSamplerPool->Access(handle); }
-		FPipeline* AccessPipeline(FPipelineHandle handle) { return mPipelinePool->Access(handle); }
-		FDescriptorPool* AccessDescriptorPool(FDescriptorPoolHandle handle) { return mDescriptorPoolPool->Access(handle); }
-		FDescriptorSetLayout* AccessDescriptorSetLayout(FDescriptorSetLayoutHandle handle) { return mDescriptorSetLayoutPool->Access(handle); }
-		FDescriptorSet* AccessDescriptorSet(FDescriptorSetHandle handle) { return mDescriptorSetPool->Access(handle); }
-		FShaderState* AccessShaderState(FShaderStateHandle handle) { return mShaderStatePool->Access(handle); }
+		[[nodiscard]] FBuffer* AccessBuffer(FBufferHandle handle) { return mBufferPool->Access(handle); }
+		[[nodiscard]] FTexture* AccessTexture(FTextureHandle handle) { return mTexturePool->Access(handle); }
+		[[nodiscard]] FSampler* AccessSampler(FSamplerHandle handle) { return mSamplerPool->Access(handle); }
+		[[nodiscard]] FPipeline* AccessPipeline(FPipelineHandle handle) { return mPipelinePool->Access(handle); }
+		[[nodiscard]] FDescriptorPool* AccessDescriptorPool(FDescriptorPoolHandle handle) { return mDescriptorPoolPool->Access(handle); }
+		[[nodiscard]] FDescriptorSetLayout* AccessDescriptorSetLayout(FDescriptorSetLayoutHandle handle) { return mDescriptorSetLayoutPool->Access(handle); }
+		[[nodiscard]] FDescriptorSet* AccessDescriptorSet(FDescriptorSetHandle handle) { return mDescriptorSetPool->Access(handle); }
+		[[nodiscard]] FShaderState* AccessShaderState(FShaderStateHandle handle) { return mShaderStatePool->Access(handle); }
 
-		const FBuffer* AccessBuffer(FBufferHandle handle) const { return mBufferPool->Access(handle); }
-		const FTexture* AccessTexture(FTextureHandle handle) const { return mTexturePool->Access(handle); }
-		const FSampler* AccessSampler(FSamplerHandle handle) const { return mSamplerPool->Access(handle); }
-		const FPipeline* AccessPipeline(FPipelineHandle handle) const { return mPipelinePool->Access(handle); }
-		const FDescriptorPool* AccessDescriptorPool(FDescriptorPoolHandle handle) const { return mDescriptorPoolPool->Access(handle); }
-		const FDescriptorSetLayout* AccessDescriptorSetLayout(FDescriptorSetLayoutHandle handle) const { return mDescriptorSetLayoutPool->Access(handle); }
-		const FDescriptorSet* AccessDescriptorSet(FDescriptorSetHandle handle) const { return mDescriptorSetPool->Access(handle); }
-		const FShaderState* AccessShaderState(FShaderStateHandle handle) const { return mShaderStatePool->Access(handle); }
+		[[nodiscard]] const FBuffer* AccessBuffer(FBufferHandle handle) const { return mBufferPool->Access(handle); }
+		[[nodiscard]] const FTexture* AccessTexture(FTextureHandle handle) const { return mTexturePool->Access(handle); }
+		[[nodiscard]] const FSampler* AccessSampler(FSamplerHandle handle) const { return mSamplerPool->Access(handle); }
+		[[nodiscard]] const FPipeline* AccessPipeline(FPipelineHandle handle) const { return mPipelinePool->Access(handle); }
+		[[nodiscard]] const FDescriptorPool* AccessDescriptorPool(FDescriptorPoolHandle handle) const { return mDescriptorPoolPool->Access(handle); }
+		[[nodiscard]] const FDescriptorSetLayout* AccessDescriptorSetLayout(FDescriptorSetLayoutHandle handle) const { return mDescriptorSetLayoutPool->Access(handle); }
+		[[nodiscard]] const FDescriptorSet* AccessDescriptorSet(FDescriptorSetHandle handle) const { return mDescriptorSetPool->Access(handle); }
+		[[nodiscard]] const FShaderState* AccessShaderState(FShaderStateHandle handle) const { return mShaderStatePool->Access(handle); }
 
 		/** Resource accessors end */
 
@@ -161,6 +135,9 @@ namespace Turbo
 
 		vk::PresentModeKHR GetBestPresentMode();
 		/** Initialization methods end */
+
+	private:
+		void ResizeSwapChain();
 
 		/** Destroy methods */
 	private:
@@ -242,13 +219,12 @@ namespace Turbo
 		/** Note that this is an index of swap chain image */
 		uint32 mCurrentSwapchainImageIndex = 0;
 
+		bool mbRequestedSwapchainResize = false;
+
 		/** Swapchain end */
 
 		/** Frame handing */
 		std::array<FBufferedFrameData, kMaxBufferedFrames> mFrameDatas;
-
-		/** For now, I would leave it here, but in the future I need proper GBuffer class */
-		FGeometryBuffer mGeometryBuffer;
 
 		/** Note that this is an index of buffered frame */
 		uint32 mBufferedFrameIndex = 0;

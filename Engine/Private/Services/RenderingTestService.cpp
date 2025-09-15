@@ -2,7 +2,9 @@
 
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
+#include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
+#include "Graphics/GraphicsLocator.h"
 #include "Graphics/ResourceBuilders.h"
 
 namespace Turbo
@@ -43,7 +45,7 @@ namespace Turbo
 	void FRenderingTestService::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd)
 	{
 		const FDescriptorPoolHandle descriptorPool = gpu->GetDescriptorPool();
-		const FGeometryBuffer& geometryBuffer = gpu->GetGeometryBuffer();
+		const FGeometryBuffer& geometryBuffer = FGraphicsLocator::GetGeometryBuffer();
 
 		const FTextureHandle drawImage = geometryBuffer.GetColor();
 

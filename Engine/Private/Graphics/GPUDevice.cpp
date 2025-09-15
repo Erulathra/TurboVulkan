@@ -5,6 +5,8 @@
 #include "Core/Engine.h"
 
 #include "Core/Window.h"
+#include "Graphics/GeometryBuffer.h"
+#include "Graphics/GraphicsLocator.h"
 #include "Graphics/ShaderCompiler.h"
 #include "Graphics/VulkanInitializers.h"
 
@@ -427,6 +429,7 @@ namespace Turbo
 
 	vkb::Instance FGPUDevice::CreateVkInstance(const std::vector<cstring>& requiredExtensions)
 	{
+		// Copy by design
 		std::vector<cstring> enableExtensions = requiredExtensions;
 
 #if WITH_DEBUG_RENDERING
@@ -686,6 +689,19 @@ namespace Turbo
 		return vk::PresentModeKHR::eFifo;
 	}
 
+	void FGPUDevice::ResizeSwapChain()
+	{
+		WaitIdle();
+
+		DestroySwapChain();
+		CreateSwapchain();
+
+		const glm::ivec2& frameBufferSize = gEngine->GetWindow()->GetFrameBufferSize();
+		FGraphicsLocator::GetGeometryBuffer().Resize(frameBufferSize);
+
+		mbRequestedSwapchainResize = false;
+	}
+
 	void FGPUDevice::Shutdown()
 	{
 		CHECK_VULKAN_HPP(mVkDevice.waitIdle())
@@ -716,14 +732,18 @@ namespace Turbo
 		}
 	}
 
-	void FGPUDevice::BeginFrame()
+	bool FGPUDevice::BeginFrame()
 	{
+		if (mbRequestedSwapchainResize)
+		{
+			ResizeSwapChain();
+		}
+
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 
 		// Wait for previous frame fence, and reset it
 		const vk::Fence renderCompleteFence = frameData.mCommandBufferExecutedFence;
 		CHECK_VULKAN_HPP(mVkDevice.waitForFences({renderCompleteFence}, vk::True, kMaxTimeout));
-		CHECK_VULKAN_HPP(mVkDevice.resetFences({renderCompleteFence}));
 
 		frameData.mDestroyQueue.Flush(*this);
 
@@ -736,30 +756,23 @@ namespace Turbo
 
 		if (acquireImageResult == vk::Result::eErrorOutOfDateKHR)
 		{
-			// TODO: resize swapchain
-			TURBO_UNINPLEMENTED_MSG("resize swapchain");
+			mbRequestedSwapchainResize = true;
+			return false;
 		}
+
+		CHECK_VULKAN_HPP(mVkDevice.resetFences({renderCompleteFence}));
 
 		CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(frameData.mCommandPool));
 		frameData.mCommandBuffer->Reset();
 		frameData.mCommandBuffer->Begin();
 
 		ResetDescriptorPool(frameData.mDescriptorPoolHandle);
+
+		return true;
 	}
 
 
-	void FGPUDevice::BlitGBufferToPresentTexture()
-	{
-		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
-		const FTextureHandle swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
-
-		const FRect2DInt rect = FRect2DInt::FromSize(mGeometryBuffer.mResolution);
-		frameData.mCommandBuffer->TransitionImage(mGeometryBuffer.mColor, vk::ImageLayout::eTransferSrcOptimal);
-		frameData.mCommandBuffer->TransitionImage(swapChainTexture, vk::ImageLayout::eTransferDstOptimal);
-		frameData.mCommandBuffer->BlitImage(mGeometryBuffer.mColor, rect, swapChainTexture, rect);
-	}
-
-	void FGPUDevice::PresentFrame()
+	bool FGPUDevice::PresentFrame()
 	{
 		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 		const FTextureHandle swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
@@ -783,47 +796,14 @@ namespace Turbo
 
 		if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
 		{
-			// TODO: resize swapchain
-			TURBO_UNINPLEMENTED_MSG("resize swapchain");
-			return;
+			mbRequestedSwapchainResize = true;
+			return false;
 		}
 
 		CHECK_VULKAN_HPP_MSG(presentResult, "Cannot present swapchain image.");
 		AdvanceFrameCounters();
-	}
 
-	void FGPUDevice::InitGeometryBuffer()
-	{
-		const static FName geometryBufferColorName = FName{"GBuffer_Color"};
-		const static FName geometryBufferDepthName = FName{"GBuffer_Depth"};
-
-		FTexture* swapchainTexture = AccessTexture(mSwapChainTextures[0]);
-		TURBO_CHECK(swapchainTexture);
-
-		mGeometryBuffer.mResolution = swapchainTexture->GetSize();
-
-		FTextureBuilder textureBuilder;
-		textureBuilder
-			.Init(vk::Format::eR16G16B16A16Sfloat, ETextureType::Texture2D, ETextureFlags::RenderTarget | ETextureFlags::Compute)
-			.SetSize(glm::vec3(mGeometryBuffer.mResolution, 1))
-			.SetNumMips(1)
-			.SetName(geometryBufferColorName);
-
-		mGeometryBuffer.mColor = CreateTexture(textureBuilder);
-		TURBO_CHECK(mGeometryBuffer.mColor.IsValid())
-
-		textureBuilder
-			.Init(vk::Format::eD32SfloatS8Uint, ETextureType::Texture2D, ETextureFlags::RenderTarget)
-			.SetName(geometryBufferDepthName);
-
-		mGeometryBuffer.mDepth = CreateTexture(textureBuilder);
-		TURBO_CHECK(mGeometryBuffer.mDepth.IsValid())
-	}
-
-	void FGPUDevice::DestroyGeometryBuffer()
-	{
-		DestroyTexture(mGeometryBuffer.mColor);
-		DestroyTexture(mGeometryBuffer.mDepth);
+		return true;
 	}
 
 	void FGPUDevice::DestroySwapChain()
