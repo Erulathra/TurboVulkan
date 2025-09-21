@@ -32,10 +32,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
 target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 
-
-target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
-target_link_libraries(${PROJECT_NAME} PRIVATE VulkanMemoryAllocator-Hpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE vk-bootstrap::vk-bootstrap)
+# TODO: Create GPU Interface and make those private
+target_link_libraries(${PROJECT_NAME} PUBLIC GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(${PROJECT_NAME} PUBLIC VulkanMemoryAllocator-Hpp)
+target_link_libraries(${PROJECT_NAME} PUBLIC vk-bootstrap::vk-bootstrap)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE slang)
 

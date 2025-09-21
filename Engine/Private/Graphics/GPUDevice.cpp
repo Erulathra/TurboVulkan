@@ -1,7 +1,7 @@
 #include "Graphics/GPUDevice.h"
 
 #include "VkBootstrap.h"
-#include "VulkanHelpers.h"
+#include "../../Public/Graphics/VulkanHelpers.h"
 #include "Core/Engine.h"
 
 #include "Core/Window.h"
@@ -40,12 +40,42 @@ namespace Turbo
 		IShaderCompiler::Get().Init();
 	}
 
+	FBufferHandle FGPUDevice::CreateBuffer(const FBufferBuilder& builder)
+	{
+		const FBufferHandle handle = mBufferPool->Acquire();
+		TURBO_CHECK(handle)
+
+		FBuffer* buffer = AccessBuffer(handle);
+		buffer->mName = builder.mName;
+		buffer->mDeviceSize = builder.mSize;
+		buffer->mUsageFlags = builder.mUsageFlags;
+
+		vk::BufferCreateInfo createInfo = {};
+		createInfo.usage = vk::BufferUsageFlagBits::eTransferDst | buffer->mUsageFlags;
+		createInfo.size = buffer->mDeviceSize;
+
+		vma::AllocationCreateInfo allocationCreateInfo = {};
+		allocationCreateInfo.usage = vma::MemoryUsage::eAutoPreferDevice;
+
+		vma::AllocationInfo allocationInfo;
+		std::pair<vk::Buffer, vma::Allocation> allocationResult;
+		CHECK_VULKAN_RESULT(allocationResult, mVmaAllocator.createBuffer(createInfo, allocationCreateInfo, allocationInfo));
+
+		buffer->mVkBuffer = allocationResult.first;
+		buffer->mAllocation = allocationResult.second;
+
+		SetResourceName(buffer->mVkBuffer, buffer->mName);
+
+		// todo: Load initial data
+		return handle;
+	}
+
 	FTextureHandle FGPUDevice::CreateTexture(const FTextureBuilder& builder)
 	{
 		const FTextureHandle handle = mTexturePool->Acquire();
-		TURBO_CHECK(handle.IsValid())
+		TURBO_CHECK(handle)
 
-		FTexture* texture = mTexturePool->Access(handle);
+		FTexture* texture = AccessTexture(handle);
 		InitVulkanTexture(builder, handle, texture);
 
 		if (builder.mInitialData)
@@ -804,6 +834,11 @@ namespace Turbo
 		AdvanceFrameCounters();
 
 		return true;
+	}
+
+	void FGPUDevice::WaitIdle() const
+	{
+		CHECK_VULKAN_HPP(mVkDevice.waitIdle());
 	}
 
 	void FGPUDevice::DestroySwapChain()

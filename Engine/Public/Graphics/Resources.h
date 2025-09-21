@@ -41,7 +41,7 @@ namespace Turbo
 		vk::Buffer mVkBuffer = nullptr;
 		vma::Allocation mAllocation = nullptr;
 
-		vk::BufferUsageFlags2 mUsageFlags = {};
+		vk::BufferUsageFlags mUsageFlags = {};
 		vk::DeviceSize mDeviceSize = {};
 
 		FBufferHandle mHandle = {};

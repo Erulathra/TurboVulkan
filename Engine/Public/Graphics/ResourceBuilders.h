@@ -31,14 +31,14 @@ namespace Turbo
 
 	public:
 		FBufferBuilder& Reset() { mSize = 0; mInitialData = nullptr; return *this; }
-		FBufferBuilder& Init(vk::BufferUsageFlags2 flags, EResourceUsageType usage, uint32 size)
+		FBufferBuilder& Init(vk::BufferUsageFlags flags, EResourceUsageType usage, uint32 size)
 			{ mUsageFlags = flags; mUsageType = usage; mSize = size; return *this; }
 		FBufferBuilder& SetData(void* data) { mInitialData = data; return *this; }
 
 		FBufferBuilder& SetName(FName name) { mName = name; return *this; }
 
 	private:
-		vk::BufferUsageFlags2 mUsageFlags = {};
+		vk::BufferUsageFlags mUsageFlags = {};
 		EResourceUsageType mUsageType = EResourceUsageType::Immutable;
 		uint32 mSize = 0;
 		void* mInitialData = nullptr;

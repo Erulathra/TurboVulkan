@@ -1,6 +1,6 @@
 #include "../../Public/Graphics/VulkanInitializers.h"
 
-#include "VulkanHelpers.h"
+#include "../../Public/Graphics/VulkanHelpers.h"
 #include "Core/Math/Vector.h"
 
 namespace Turbo {

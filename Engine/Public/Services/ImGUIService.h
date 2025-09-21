@@ -6,9 +6,9 @@
 
 namespace Turbo
 {
-	class FImGuiService final : public IService
+	class FImGuiLayer final : public ILayer
 	{
-		GENERATED_BODY(FImGuiService, IService)
+		GENERATED_BODY(FImGuiLayer, ILayer)
 
 	public:
 
@@ -19,7 +19,10 @@ namespace Turbo
 
 		virtual void BeginTick_GameThread(float deltaTime) override;
 		virtual void EndTick_GameThread(float deltaTime) override;
-		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) override;
+		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, FTextureHandle PresentImage) override;
+
+		virtual bool ShouldTick() override { return true; }
+		virtual bool ShouldRender() override { return true; }
 		/** Service Api end */
 
 	private:
@@ -27,6 +30,5 @@ namespace Turbo
 
 	public:
 		virtual FName GetName() override;
-		virtual EEngineStage GetStage() override;
 	};
 } // Turbo

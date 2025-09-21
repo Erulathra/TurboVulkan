@@ -72,6 +72,8 @@ namespace Turbo
 		void GameThreadLoop();
 		void GameThreadTick();
 
+		void RegisterEngineLayers();
+
 		// TODO: Move me somewhere else
 		void SetupBasicInputBindings();
 

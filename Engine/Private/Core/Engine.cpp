@@ -8,6 +8,7 @@
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/GraphicsLocator.h"
+#include "Services/ImGUIService.h"
 #include "Services/IService.h"
 
 namespace Turbo
@@ -26,6 +27,8 @@ namespace Turbo
 
 		// TODO: Move thread configuration to separate class
 		pthread_setname_np(pthread_self(), "Turbo Engine");
+
+		gEngine->RegisterEngineLayers();
 	}
 
 	int32_t FEngine::Start(int32 argc, char* argv[])
@@ -56,8 +59,10 @@ namespace Turbo
 		mInputSystemInstance->Init();
 		SetupBasicInputBindings();
 
-		FServiceManager* ServiceManager = FServiceManager::Get();
-		ServiceManager->ForEachService([](IService* service){ service->Start(); });
+		for (const ILayerPtr& layer : *FLayersStack::Get())
+		{
+			layer->Start();
+		}
 
 		mWindow->ShowWindow(true);
 
@@ -88,15 +93,28 @@ namespace Turbo
 
 		TURBO_LOG(LOG_ENGINE, Display, "Engine Tick. FrameTime: {}, FPS: {}", mCoreTimer->GetDeltaTime(), 1.f / mCoreTimer->GetDeltaTime());
 
-		FServiceManager* ServiceManager = FServiceManager::Get();
+		FLayersStack* layerStack = FLayersStack::Get();
 		{
 			TRACE_ZONE_SCOPED_N("Services: Begin Tick")
-			ServiceManager->ForEachService([deltaTime](IService* service){ service->BeginTick_GameThread(deltaTime); });
+			for (const ILayerPtr& layer : *layerStack)
+			{
+				if (layer->ShouldTick())
+				{
+					layer->BeginTick_GameThread(deltaTime);
+				}
+			}
 		}
 
 		{
 			TRACE_ZONE_SCOPED_N("Services: End Tick")
-			ServiceManager->ForEachServiceReverse([deltaTime](IService* service){ service->EndTick_GameThread(deltaTime); });
+			for (auto layerIt = layerStack->rbegin(); layerIt != layerStack->rend(); ++layerIt)
+			{
+				if (ILayer* layer = layerIt->get();
+					layer->ShouldTick())
+				{
+					layer->EndTick_GameThread(deltaTime);
+				}
+			}
 		}
 
 		FGPUDevice* gpu = GetGpu();
@@ -107,20 +125,40 @@ namespace Turbo
 			FCommandBuffer* cmd = gpu->GetCommandBuffer();
 			{
 				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
-				ServiceManager->ForEachService([gpu, cmd](IService* service) { service->PostBeginFrame_RenderThread(gpu, cmd); });
+				for (const ILayerPtr& layer : *layerStack)
+				{
+					if (layer->ShouldRender())
+					{
+						layer->PostBeginFrame_RenderThread(gpu, cmd);
+					}
+				}
 			}
 
 			FGraphicsLocator::GetGeometryBuffer().BlitResultToTexture(cmd, gpu->GetPresentImage());
+			FTextureHandle presentImage = gpu->GetPresentImage();
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")
-				ServiceManager->ForEachService([gpu, cmd](IService* service) { service->BeginPresentingFrame_RenderThread(gpu, cmd); });
+				for (auto layerIt = layerStack->rbegin(); layerIt != layerStack->rend(); ++layerIt)
+				{
+					if (ILayer* layer = layerIt->get();
+						layer->ShouldRender())
+					{
+						layer->BeginPresentingFrame_RenderThread(gpu, cmd, presentImage);
+					}
+				}
 			}
 
 			gpu->PresentFrame();
 		}
 
 		TRACE_MARK_FRAME();
+	}
+
+	void FEngine::RegisterEngineLayers()
+	{
+		FLayersStack* layerStack = FLayersStack::Get();
+		layerStack->PushLayer<FImGuiLayer>();
 	}
 
 	void FEngine::SetupBasicInputBindings()
@@ -155,8 +193,11 @@ namespace Turbo
 
 		mGpuDevice->WaitIdle();
 
-		FServiceManager* ServiceManager = FServiceManager::Get();
-		ServiceManager->ForEachServiceReverse([](IService* service){ service->Shutdown(); });
+		FLayersStack* layerStack = FLayersStack::Get();
+		for (auto layerIt = layerStack->rbegin(); layerIt != layerStack->rend(); ++layerIt)
+		{
+			layerIt->get()->Shutdown();
+		}
 
 		FGraphicsLocator::GetGeometryBuffer().Destroy();
 

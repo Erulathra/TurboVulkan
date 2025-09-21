@@ -1,27 +1,17 @@
 #pragma once
 #include "Core/Delegate.h"
+#include "Graphics/Resources.h"
 
 namespace Turbo
 {
 	class FCommandBuffer;
 	class FGPUDevice;
 
-	enum class EEngineStage : int8
-	{
-		EarliestPossible = 0,
-
-		PreDefault,
-		Default,
-		PostDefault,
-
-		Num
-	};
-
-	class IService
+	class ILayer
 	{
 		/** Interface */
 	public:
-		virtual ~IService() = default;
+		virtual ~ILayer() = default;
 
 		virtual void Start() = 0;
 		virtual void Shutdown() = 0;
@@ -30,76 +20,52 @@ namespace Turbo
 		virtual void EndTick_GameThread(float deltaTime) {};
 
 		virtual void PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) {};
-		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) {};
+		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, FTextureHandle presentImage) {};
 
-		virtual EEngineStage GetStage() { return EEngineStage::Default; }
+		virtual bool ShouldTick() { return false; };
+		virtual bool ShouldRender() { return false; };
+
 		virtual FName GetName() = 0;
 
 		/** Interface end */
 	};
 
-	using IServicePtr = std::shared_ptr<IService>;
+	using ILayerPtr = std::shared_ptr<ILayer>;
+	using FLayersCollection = std::vector<ILayerPtr>;
 
-	class FServiceManager final
+	class FLayersStack final
 	{
 	public:
-		FServiceManager();
+		FLayersStack();
 
 	public:
-		static FServiceManager* Get();
+		static FLayersStack* Get();
 
 	public:
-		void AddService(const IServicePtr& servicePtr);
-		void RemoveService(FName serviceName);
+		template <typename ServiceType> requires std::is_base_of_v<ILayer, ServiceType>
+		void PushLayer();
 
-		IServicePtr GetService(FName serviceName);
+		void PopLayer();
+		void RemoveLayer(FName layerName);
 
-		template <typename FunctionType>
-		void ForEachService(FunctionType function);
+		ILayerPtr GetLayer(FName layerName);
 
-		template <typename FunctionType>
-		void ForEachServiceReverse(FunctionType function);
+		FLayersCollection::iterator begin() { return mLayers.begin(); };
+		FLayersCollection::iterator end() { return mLayers.end(); };
+
+		FLayersCollection::reverse_iterator rbegin() { return mLayers.rbegin(); };
+		FLayersCollection::reverse_iterator rend() { return mLayers.rend(); };
 
 	private:
-		std::vector<std::vector<IServicePtr>> mServices;
+		void PushLayer_Impl(const ILayerPtr& newLayer);
+
+	private:
+		FLayersCollection mLayers;
 	};
 
-	template <typename FunctionType>
-	void FServiceManager::ForEachService(FunctionType function)
+	template <typename ServiceType> requires std::is_base_of_v<ILayer, ServiceType>
+	void FLayersStack::PushLayer()
 	{
-		for (std::vector<IServicePtr>& servicesVector : mServices)
-		{
-			for (const IServicePtr& service : servicesVector)
-			{
-				function(service.get());
-			}
-		}
+		PushLayer_Impl(std::make_shared<ServiceType>());
 	}
-
-	template <typename FunctionType>
-	void FServiceManager::ForEachServiceReverse(FunctionType function)
-	{
-		for (auto GroupIt = mServices.rbegin(); GroupIt != mServices.rend(); ++GroupIt)
-		{
-			for (auto ServiceIt = GroupIt->rbegin(); ServiceIt != GroupIt->rend(); ++ServiceIt)
-			{
-				function(ServiceIt->get());
-			}
-		}
-	}
-
-	template<typename ServiceType>
-	requires std::is_base_of_v<IService, ServiceType>
-	class FServiceRegistration
-	{
-	public:
-		FServiceRegistration()
-		{
-			FServiceManager* serviceManager = FServiceManager::Get();
-			serviceManager->AddService(std::make_shared<ServiceType>());
-		}
-	};
-
-#define REGISTER_SERVICE(SERVICE_TYPE) namespace {  FServiceRegistration<SERVICE_TYPE> g ##SERVICE_TYPE ##Registration; }
-
 } // Turbo

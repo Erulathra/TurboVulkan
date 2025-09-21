@@ -145,4 +145,19 @@ namespace Turbo
 			return "_CommandBuffer";
 		}
 	};
+
+	template <>
+	struct HandleTraits<vk::Buffer>
+	{
+		static uint64 CastToU64Handle(vk::Buffer handle)
+		{
+			VkBuffer nativeHandle = handle;
+			return reinterpret_cast<uint64>(nativeHandle);
+		}
+
+		static cstring GetTypePostFix()
+		{
+			return "_Buffer";
+		}
+	};
 }

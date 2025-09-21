@@ -8,7 +8,7 @@
 
 namespace Turbo
 {
-	void FImGuiService::OnSDLEvent(SDL_Event* sdlEvent)
+	void FImGuiLayer::OnSDLEvent(SDL_Event* sdlEvent)
 	{
 		if (sdlEvent->type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED)
 		{
@@ -19,17 +19,12 @@ namespace Turbo
 		ImGui_ImplSDL3_ProcessEvent(sdlEvent);
 	}
 
-	FName FImGuiService::GetName()
+	FName FImGuiLayer::GetName()
 	{
 		return mClassName;
 	}
 
-	EEngineStage FImGuiService::GetStage()
-	{
-		return EEngineStage::EarliestPossible;
-	}
-
-	void FImGuiService::Start()
+	void FImGuiLayer::Start()
 	{
 		FGPUDevice* gpu = gEngine->GetGpu();
 		FWindow* window = gEngine->GetWindow();
@@ -72,14 +67,14 @@ namespace Turbo
 		ImGui_ImplVulkan_LoadFunctions(kVulkanVersion, LoaderFunction, gpu);
 		ImGui_ImplVulkan_Init(&initInfo);
 
-		gEngine->GetWindow()->OnSDLEvent.AddRaw(this, &FImGuiService::OnSDLEvent);
+		gEngine->GetWindow()->OnSDLEvent.AddRaw(this, &FImGuiLayer::OnSDLEvent);
 
 		ImFont* firaCodeImFont = io.Fonts->AddFontFromFileTTF("Content/Fonts/FiraCode/FiraCode-Regular.ttf", 13);
 		ImGui::PushFont(firaCodeImFont, 13);
 		ImGui::GetStyle().ScaleAllSizes(window->GetDisplayScale());
 	}
 
-	void FImGuiService::Shutdown()
+	void FImGuiLayer::Shutdown()
 	{
 		gEngine->GetWindow()->OnSDLEvent.RemoveObject(this);
 
@@ -90,7 +85,7 @@ namespace Turbo
 		ImGui_ImplVulkan_Shutdown();
 	}
 
-	void FImGuiService::BeginTick_GameThread(float deltaTime)
+	void FImGuiLayer::BeginTick_GameThread(float deltaTime)
 	{
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
@@ -102,17 +97,15 @@ namespace Turbo
 		ImGui::End();
 	}
 
-	void FImGuiService::EndTick_GameThread(float deltaTime)
+	void FImGuiLayer::EndTick_GameThread(float deltaTime)
 	{
 		ImGui::Render();
 	}
 
-	void FImGuiService::BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd)
+	void FImGuiLayer::BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, FTextureHandle PresentImage)
 	{
-		cmd->BeginRendering(gpu->GetPresentImage());
+		cmd->BeginRendering(PresentImage);
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd->GetVkCommandBuffer());
 		cmd->EndRendering();
 	}
-
-	REGISTER_SERVICE(FImGuiService);
 } // Turbo

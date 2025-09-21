@@ -7,7 +7,7 @@
 #include "DestoryQueue.h"
 #include "Core/DataStructures/ResourcePool.h"
 #include "Graphics/Resources.h"
-#include "Graphics/VulkanHelpers.h"
+#include "VulkanHelpers.h"
 
 namespace Turbo
 {
@@ -49,7 +49,7 @@ namespace Turbo
 
 		FTextureHandle GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
 
-		void WaitIdle() { CHECK_VULKAN_HPP(mVkDevice.waitIdle()); }
+		void WaitIdle() const;
 
 		/** Rendering interface end */
 
@@ -77,7 +77,7 @@ namespace Turbo
 
 		/** Resource creation */
 	public:
-		// FBufferHandle CreateBuffer();
+		FBufferHandle CreateBuffer(const FBufferBuilder& builder);
 		FTextureHandle CreateTexture(const FTextureBuilder& builder);
 		// FSamplerHandle CreateSampler();
 		FPipelineHandle CreatePipeline(const FPipelineBuilder& builder);

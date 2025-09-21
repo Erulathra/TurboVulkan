@@ -31,3 +31,7 @@
 #include "Core/Math/Math.h"
 
 #include "magic_enum/magic_enum.hpp"
+
+// VMA
+#define VULKAN_HPP_ASSERT_ON_RESULT {}
+#include "vk_mem_alloc.hpp"
