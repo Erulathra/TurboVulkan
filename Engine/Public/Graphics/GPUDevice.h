@@ -9,9 +9,12 @@
 #include "Graphics/Resources.h"
 #include "VulkanHelpers.h"
 
+
 namespace Turbo
 {
 	class FWindow;
+
+	DECLARE_DELEGATE(FOnImmediateSubmit, FCommandBuffer&);
 
 	class FBufferedFrameData final
 	{
@@ -50,6 +53,8 @@ namespace Turbo
 		FTextureHandle GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
 
 		void WaitIdle() const;
+
+		void ImmediateSubmit(const FOnImmediateSubmit& immediateSubmitDelegate);
 
 		/** Rendering interface end */
 
@@ -133,6 +138,8 @@ namespace Turbo
 		vk::CommandPool CreateCommandPool();
 		std::unique_ptr<FCommandBuffer> CreateCommandBuffer(vk::CommandPool commandPool, FName name = FName());
 
+		void InitializeImmediateCommands();
+
 		vk::PresentModeKHR GetBestPresentMode();
 		/** Initialization methods end */
 
@@ -143,6 +150,7 @@ namespace Turbo
 	private:
 		void DestroySwapChain();
 		void DestroyFrameDatas();
+		void DestroyImmediateCommands();
 
 		/** Destroy methods end */
 
@@ -202,7 +210,6 @@ namespace Turbo
 
 		vma::Allocator mVmaAllocator = nullptr;
 
-
 		/** Vulkan Handles end */
 
 		/** Swapchain */
@@ -235,6 +242,14 @@ namespace Turbo
 		bool mbVSync = false;
 
 		/** Frame handing */
+
+		/** Immediate commands */
+	private:
+		vk::Fence mImmediateCommandsFence;
+		vk::CommandPool mImmediateCommandsPool;
+		std::unique_ptr<FCommandBuffer> mImmediateCommandsBuffer;
+
+		/** Immediate commands end */
 
 		/** Other */
 	private:

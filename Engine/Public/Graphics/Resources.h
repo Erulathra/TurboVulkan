@@ -44,6 +44,8 @@ namespace Turbo
 		vk::BufferUsageFlags mUsageFlags = {};
 		vk::DeviceSize mDeviceSize = {};
 
+		void* mMappedAddress = nullptr;
+
 		FBufferHandle mHandle = {};
 
 		FName mName;

@@ -37,7 +37,19 @@ namespace Turbo
 		CreateVulkanMemoryAllocator();
 		CreateFrameDatas();
 
+		InitializeImmediateCommands();
+
 		IShaderCompiler::Get().Init();
+	}
+
+	void FGPUDevice::InitializeImmediateCommands()
+	{
+		const vk::FenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
+		CHECK_VULKAN_RESULT(mImmediateCommandsFence, mVkDevice.createFence(fenceCreateInfo));
+
+		mImmediateCommandsPool = CreateCommandPool();
+		const static FName immediateCommandBuffer = FName("ImmediateGPUCommands");
+		mImmediateCommandsBuffer = CreateCommandBuffer(mImmediateCommandsPool, immediateCommandBuffer);
 	}
 
 	FBufferHandle FGPUDevice::CreateBuffer(const FBufferBuilder& builder)
@@ -55,7 +67,13 @@ namespace Turbo
 		createInfo.size = buffer->mDeviceSize;
 
 		vma::AllocationCreateInfo allocationCreateInfo = {};
-		allocationCreateInfo.usage = vma::MemoryUsage::eAutoPreferDevice;
+		allocationCreateInfo.usage = vma::MemoryUsage::eAuto;
+
+		if (any(builder.mBufferFlags & EBufferFlags::CreateMapped))
+		{
+			allocationCreateInfo.flags |= vma::AllocationCreateFlagBits::eHostAccessSequentialWrite;
+			allocationCreateInfo.flags |= vma::AllocationCreateFlagBits::eMapped;
+		}
 
 		vma::AllocationInfo allocationInfo;
 		std::pair<vk::Buffer, vma::Allocation> allocationResult;
@@ -65,6 +83,23 @@ namespace Turbo
 		buffer->mAllocation = allocationResult.second;
 
 		SetResourceName(buffer->mVkBuffer, buffer->mName);
+
+		if (any(builder.mBufferFlags & EBufferFlags::CreateMapped))
+		{
+			buffer->mMappedAddress = allocationInfo.pMappedData;
+		}
+
+		if (builder.mInitialData)
+		{
+			if (buffer->mMappedAddress)
+			{
+				mVmaAllocator.copyMemoryToAllocation(builder.mInitialData, buffer->mAllocation, )
+			}
+			else
+			{
+
+			}
+		}
 
 		// todo: Load initial data
 		return handle;
@@ -738,6 +773,7 @@ namespace Turbo
 
 		TURBO_LOG(LOG_GPU_DEVICE, Info, "Starting Gpu Device shutdown.")
 
+		DestroyImmediateCommands();
 		DestroyFrameDatas();
 		DestroySwapChain();
 
@@ -841,6 +877,27 @@ namespace Turbo
 		CHECK_VULKAN_HPP(mVkDevice.waitIdle());
 	}
 
+	void FGPUDevice::ImmediateSubmit(const FOnImmediateSubmit& immediateSubmitDelegate)
+	{
+		if (immediateSubmitDelegate.IsBound())
+		{
+			TRACE_ZONE_SCOPED_N("Immediate submit")
+
+			CHECK_VULKAN_HPP(mVkDevice.resetFences({mImmediateCommandsFence}));
+			CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(mImmediateCommandsPool));
+
+			mImmediateCommandsBuffer->Begin();
+			immediateSubmitDelegate.Execute(*mImmediateCommandsBuffer);
+			mImmediateCommandsBuffer->Reset();
+
+			const vk::CommandBufferSubmitInfo bufferSubmitInfo = mImmediateCommandsBuffer->CreateSubmitInfo();
+			const vk::SubmitInfo2 submitInfo = VkInit::SubmitInfo(bufferSubmitInfo, nullptr, nullptr);
+			CHECK_VULKAN_HPP(mVkQueue.submit2(1, &submitInfo, mImmediateCommandsFence));
+
+			CHECK_VULKAN_HPP(mVkDevice.waitForFences({mImmediateCommandsFence}, vk::True, kDefaultTimeout));
+		}
+	}
+
 	void FGPUDevice::DestroySwapChain()
 	{
 		mVkDevice.destroySwapchainKHR(mVkSwapchain);
@@ -895,6 +952,21 @@ namespace Turbo
 		for (FBufferedFrameData& frameData : mFrameDatas)
 		{
 			frameData.mDestroyQueue.Flush(*this);
+		}
+	}
+
+	void FGPUDevice::DestroyImmediateCommands()
+	{
+		if (mImmediateCommandsFence)
+		{
+			mVkDevice.destroyFence(mImmediateCommandsFence);
+		}
+
+		if (mImmediateCommandsPool)
+		{
+			CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(mImmediateCommandsPool));
+			mVkDevice.destroyCommandPool(mImmediateCommandsPool);
+			mImmediateCommandsBuffer = nullptr;
 		}
 	}
 

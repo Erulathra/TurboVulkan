@@ -5,14 +5,12 @@
 
 namespace Turbo
 {
-	enum class EResourceUsageType : uint8
+	enum class EBufferFlags : uint8
 	{
-		Immutable,
-		Dynamic,
-		Stream,
-
-		Num
+		None = 0,
+		CreateMapped = 1 << 0,
 	};
+	DEFINE_ENUM_OPERATORS(EBufferFlags, uint8)
 
 	enum class ETextureType : uint8
 	{
