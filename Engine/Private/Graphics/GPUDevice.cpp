@@ -54,6 +54,8 @@ namespace Turbo
 
 	FBufferHandle FGPUDevice::CreateBuffer(const FBufferBuilder& builder)
 	{
+		TRACE_ZONE_SCOPED()
+
 		const FBufferHandle handle = mBufferPool->Acquire();
 		TURBO_CHECK(handle)
 
@@ -89,15 +91,40 @@ namespace Turbo
 			buffer->mMappedAddress = allocationInfo.pMappedData;
 		}
 
+		const vk::MemoryPropertyFlags& allocationMemoryProperties = mVmaAllocator.getAllocationMemoryProperties(buffer->mAllocation);
+
 		if (builder.mInitialData)
 		{
-			if (buffer->mMappedAddress)
+			if (allocationMemoryProperties & vk::MemoryPropertyFlagBits::eHostVisible)
 			{
-				mVmaAllocator.copyMemoryToAllocation(builder.mInitialData, buffer->mAllocation, )
-			}
-			else
-			{
+				TRACE_ZONE_SCOPED_N("Copy mapped")
 
+				mVmaAllocator.copyMemoryToAllocation(builder.mInitialData, buffer->mAllocation, 0, builder.mSize);
+
+				GetCommandBuffer()->BufferBarrier(
+					handle,
+					vk::AccessFlagBits2::eHostWrite,
+					vk::PipelineStageFlagBits2::eHost,
+					vk::AccessFlagBits2::eMemoryRead,
+					vk::PipelineStageFlagBits2::eVertexInput
+					);
+			}
+			else // Use staging buffer
+			{
+				TRACE_ZONE_SCOPED_N("Copy staging buffer")
+
+				const static FName kStagingBufferName = FName("Staging");
+
+				FBufferBuilder stagingBufferBuilder = {};
+				stagingBufferBuilder.Init(vk::BufferUsageFlagBits::eTransferSrc, EBufferFlags::CreateMapped, builder.mSize);
+				stagingBufferBuilder.SetName(kStagingBufferName);
+				stagingBufferBuilder.SetData(builder.mInitialData);
+
+				const FBufferHandle stagingBuffer = CreateBuffer(stagingBufferBuilder);
+				ImmediateSubmit(FOnImmediateSubmit::CreateLambda([&](FCommandBuffer& cmd)
+				{
+					cmd.CopyBuffer(stagingBuffer, handle, builder.mSize);
+				}));
 			}
 		}
 
@@ -107,6 +134,8 @@ namespace Turbo
 
 	FTextureHandle FGPUDevice::CreateTexture(const FTextureBuilder& builder)
 	{
+		TRACE_ZONE_SCOPED()
+
 		const FTextureHandle handle = mTexturePool->Acquire();
 		TURBO_CHECK(handle)
 
@@ -123,6 +152,8 @@ namespace Turbo
 
 	FPipelineHandle FGPUDevice::CreatePipeline(const FPipelineBuilder& builder)
 	{
+		TRACE_ZONE_SCOPED()
+
 		FPipelineHandle handle = mPipelinePool->Acquire();
 		TURBO_CHECK(handle)
 
@@ -188,6 +219,8 @@ namespace Turbo
 
 	FDescriptorPoolHandle FGPUDevice::CreateDescriptorPool(const FDescriptorPoolBuilder& builder)
 	{
+		TRACE_ZONE_SCOPED()
+
 		FDescriptorPoolHandle handle = mDescriptorPoolPool->Acquire();
 		TURBO_CHECK(handle)
 
@@ -214,6 +247,8 @@ namespace Turbo
 
 	FDescriptorSetLayoutHandle FGPUDevice::CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder)
 	{
+		TRACE_ZONE_SCOPED()
+
 		FDescriptorSetLayoutHandle handle = mDescriptorSetLayoutPool->Acquire();
 		TURBO_CHECK(handle)
 
@@ -245,108 +280,10 @@ namespace Turbo
 		return handle;
 	}
 
-	FDescriptorSetHandle FGPUDevice::CreateDescriptorSet(const FDescriptorSetBuilder& builder)
-	{
-		FDescriptorSetHandle handle = mDescriptorSetPool->Acquire();
-		TURBO_CHECK(handle);
-
-		FDescriptorSet* set = mDescriptorSetPool->Access(handle);
-		const FDescriptorSetLayout* layout = mDescriptorSetLayoutPool->Access(builder.mLayout);
-		TURBO_CHECK(set && layout)
-
-		FDescriptorPool* pool = mDescriptorPoolPool->Access(builder.mDescriptorPool);
-
-		// Allocate set
-		vk::DescriptorSetAllocateInfo allocateInfo = {};
-		allocateInfo.descriptorPool = pool->mDescriptorPool;
-		allocateInfo.descriptorSetCount = 1;
-		allocateInfo.setSetLayouts({layout->mLayout});
-
-		std::vector<vk::DescriptorSet> descriptorSets;
-		CHECK_VULKAN_RESULT(descriptorSets, mVkDevice.allocateDescriptorSets(allocateInfo))
-
-		set->mVkDescriptorSet = descriptorSets.front();
-		set->mOwnerPool = builder.mDescriptorPool;
-
-		pool->mDescriptorSets.push_back(handle);
-
-		std::array<vk::WriteDescriptorSet, kMaxDescriptorsPerSet> writes;
-
-		std::vector<vk::DescriptorImageInfo> imageInfos;
-		std::vector<vk::DescriptorBufferInfo> bufferInfos;
-
-		for (uint32 bindingId = 0; bindingId < layout->mNumBindings; ++bindingId)
-		{
-			const FBinding& binding = layout->mBindings[bindingId];
-			const FResourceHandle resource = builder.mResources[bindingId];
-
-			vk::WriteDescriptorSet& write = writes[bindingId];
-			write.descriptorCount = 1;
-			write.dstSet = set->mVkDescriptorSet;
-			write.dstBinding = bindingId;
-			write.descriptorType = binding.mType;
-
-			switch (binding.mType)
-			{
-			case vk::DescriptorType::eSampledImage:
-			case vk::DescriptorType::eStorageImage:
-				{
-					const FTexture* texture = AccessTexture(FTextureHandle(resource));
-
-					vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
-					imageInfo.imageView = texture->mImageView;
-
-					if (binding.mType == vk::DescriptorType::eSampledImage)
-					{
-						imageInfo.imageLayout =
-							TextureFormat::HasDepthOrStencil(texture->mFormat)
-								? vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal
-								: vk::ImageLayout::eReadOnlyOptimal;
-					}
-					else
-					{
-						imageInfo.imageLayout = vk::ImageLayout::eGeneral;
-					}
-
-					write.setImageInfo({imageInfo});
-					break;
-				}
-			case vk::DescriptorType::eSampler:
-				{
-					const FSampler* sampler = mSamplerPool->Access(FSamplerHandle(resource));
-
-					vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
-					imageInfo.sampler = sampler->mVkSampler;
-
-					write.setImageInfo({imageInfo});
-					break;
-				}
-			case vk::DescriptorType::eStorageBuffer:
-			case vk::DescriptorType::eUniformBuffer:
-				{
-					const FBuffer* buffer = mBufferPool->Access(FBufferHandle(resource));
-
-					vk::DescriptorBufferInfo& bufferInfo = bufferInfos.emplace_back();
-					bufferInfo.buffer = buffer->mVkBuffer;
-					bufferInfo.offset = 0;
-					bufferInfo.range = buffer->mDeviceSize;
-
-					write.setBufferInfo({bufferInfo});
-					break;
-				}
-			default:
-				TURBO_UNINPLEMENTED()
-			}
-
-		}
-
-		mVkDevice.updateDescriptorSets(layout->mNumBindings, writes.data(), 0, nullptr);
-
-		return handle;
-	}
-
 	FShaderStateHandle FGPUDevice::CreateShaderState(const FShaderStateBuilder& builder)
 	{
+		TRACE_ZONE_SCOPED()
+
 		FShaderStateHandle handle = {};
 
 		if (builder.mStagesCount == 0)
@@ -402,6 +339,8 @@ namespace Turbo
 
 	void FGPUDevice::ResetDescriptorPool(FDescriptorPoolHandle descriptorPoolHandle)
 	{
+		TRACE_ZONE_SCOPED()
+
 		FDescriptorPool* descriptorPool = AccessDescriptorPool(descriptorPoolHandle);
 		TURBO_CHECK(descriptorPool)
 
@@ -581,9 +520,19 @@ namespace Turbo
 		TURBO_CHECK_MSG(
 			buildDeviceResult->get_queue_index(vkb::QueueType::graphics).value() == buildDeviceResult->get_queue_index(vkb::QueueType::present).value(),
 			"Kurevsko nie dobre novinky."
-			)
+		)
 
 		return buildDeviceResult.value();
+	}
+
+	void FGPUDevice::InitializeImmediateCommands()
+	{
+		const vk::FenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
+		CHECK_VULKAN_RESULT(mImmediateCommandsFence, mVkDevice.createFence(fenceCreateInfo));
+
+		mImmediateCommandsPool = CreateCommandPool();
+		const static FName immediateCommandBuffer = FName("ImmediateGPUCommands");
+		mImmediateCommandsBuffer = CreateCommandBuffer(mImmediateCommandsPool, immediateCommandBuffer);
 	}
 
 	std::array<FName, kMaxSwapChainImages> CreateSwapChainTexturesNames()
@@ -800,6 +749,8 @@ namespace Turbo
 
 	bool FGPUDevice::BeginFrame()
 	{
+		TRACE_ZONE_SCOPED()
+
 		if (mbRequestedSwapchainResize)
 		{
 			ResizeSwapChain();
@@ -840,6 +791,8 @@ namespace Turbo
 
 	bool FGPUDevice::PresentFrame()
 	{
+		TRACE_ZONE_SCOPED()
+
 		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 		const FTextureHandle swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
 
@@ -874,6 +827,8 @@ namespace Turbo
 
 	void FGPUDevice::WaitIdle() const
 	{
+		TRACE_ZONE_SCOPED()
+
 		CHECK_VULKAN_HPP(mVkDevice.waitIdle());
 	}
 

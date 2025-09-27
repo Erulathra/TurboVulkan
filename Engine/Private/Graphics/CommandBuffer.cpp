@@ -75,6 +75,26 @@ namespace Turbo
 		texture->mCurrentLayout = newLayout;
 	}
 
+	void FCommandBuffer::BufferBarrier(FBufferHandle bufferHandle, vk::AccessFlags2 srcAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 dstStageMask)
+	{
+		const FBuffer* buffer = mGpu->AccessBuffer(bufferHandle);
+
+		vk::BufferMemoryBarrier2 memoryBarrier = {};
+		memoryBarrier.srcAccessMask = srcAccessMask;
+		memoryBarrier.srcStageMask = srcStageMask;
+		memoryBarrier.dstAccessMask = dstAccessMask;
+		memoryBarrier.dstStageMask = dstStageMask;
+		memoryBarrier.buffer = buffer->mVkBuffer;
+		memoryBarrier.offset = 0;
+		memoryBarrier.size = vk::WholeSize;
+
+		vk::DependencyInfo dependencyInfo = {};
+		dependencyInfo.setBufferMemoryBarriers({memoryBarrier});
+
+		// It's important to insert a buffer memory barrier here to ensure writing to the buffer has finished.
+		mVkCommandBuffer.pipelineBarrier2(dependencyInfo);
+	}
+
 	void FCommandBuffer::ClearImage(FTextureHandle textureHandle, glm::vec4 color)
 	{
 		TransitionImage(textureHandle, vk::ImageLayout::eGeneral);
@@ -122,6 +142,24 @@ namespace Turbo
 		blitInfo.setRegions({region});
 
 		mVkCommandBuffer.blitImage2(blitInfo);
+	}
+
+	void FCommandBuffer::CopyBuffer(FBufferHandle src, FBufferHandle dst, vk::DeviceSize size)
+	{
+		vk::BufferCopy2 bufferCopy;
+		bufferCopy.srcOffset = 0;
+		bufferCopy.dstOffset = 0;
+		bufferCopy.size = size;
+
+		const FBuffer* srcBuffer = mGpu->AccessBuffer(src);
+		const FBuffer* dstBuffer = mGpu->AccessBuffer(dst);
+
+		vk::CopyBufferInfo2 copyBufferInfo;
+		copyBufferInfo.srcBuffer = srcBuffer->mVkBuffer;
+		copyBufferInfo.dstBuffer = dstBuffer->mVkBuffer;
+		copyBufferInfo.setRegions(bufferCopy);
+
+		mVkCommandBuffer.copyBuffer2(copyBufferInfo);
 	}
 
 	void FCommandBuffer::BindDescriptorSet(FDescriptorSetHandle descriptorSetHandle, uint32 setIndex)

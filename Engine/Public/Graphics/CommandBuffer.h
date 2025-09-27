@@ -17,8 +17,12 @@ namespace Turbo
 	{
 	public:
 		void TransitionImage(FTextureHandle textureHandle, vk::ImageLayout newLayout);
+		void BufferBarrier(FBufferHandle bufferHandle, vk::AccessFlags2 srcAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 dstStageMask);
+
 		void ClearImage(FTextureHandle textureHandle, glm::vec4 color = ELinearColor::kBlack);
 		void BlitImage(FTextureHandle src, FRect2DInt srcRect, FTextureHandle dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
+
+		void CopyBuffer(FBufferHandle src, FBufferHandle dst, vk::DeviceSize size);
 
 		void BindDescriptorSet(FDescriptorSetHandle descriptorSetHandle, uint32 setIndex);
 
