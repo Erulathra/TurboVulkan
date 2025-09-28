@@ -82,7 +82,7 @@ namespace Turbo
 
 		/** Resource creation */
 	public:
-		FBufferHandle CreateBuffer(const FBufferBuilder& builder);
+		FBufferHandle CreateBuffer(const FBufferBuilder& builder, FCommandBuffer* commandBuffer = nullptr);
 		FTextureHandle CreateTexture(const FTextureBuilder& builder);
 		// FSamplerHandle CreateSampler();
 		FPipelineHandle CreatePipeline(const FPipelineBuilder& builder);
@@ -100,6 +100,7 @@ namespace Turbo
 
 		/** Resource destroy */
 	public:
+		void DestroyBuffer(FBufferHandle handle);
 		void DestroyTexture(FTextureHandle handle);
 		void DestroyPipeline(FPipelineHandle handle);
 		void DestroyDescriptorPool(FDescriptorPoolHandle handle);
@@ -110,8 +111,9 @@ namespace Turbo
 
 		/** Destroy immediate */
 	public:
+		void DestroyBufferImmediate(const FBufferDestroyer& destroyer);
 		void DestroyTextureImmediate(const FTextureDestroyer& destroyer);
-		void DestroyPipelineImmediate(const FPipelineDestroyer destroyer);
+		void DestroyPipelineImmediate(const FPipelineDestroyer& destroyer);
 		void DestroyDescriptorPoolImmediate(const FDescriptorPoolDestroyer& destroyer);
 		void DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer);
 		void DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer);

@@ -2,6 +2,11 @@
 #include "Graphics/GPUDevice.h"
 
 namespace Turbo {
+	void FBufferDestroyer::Destroy(FGPUDevice& GPUDevice)
+	{
+		GPUDevice.DestroyBufferImmediate(*this);
+	}
+
 	void FTextureDestroyer::Destroy(FGPUDevice& GPUDevice)
 	{
 		GPUDevice.DestroyTextureImmediate(*this);

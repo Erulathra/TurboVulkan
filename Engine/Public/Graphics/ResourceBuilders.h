@@ -41,6 +41,7 @@ namespace Turbo
 		vk::BufferUsageFlags mUsageFlags = {};
 		EBufferFlags mBufferFlags = EBufferFlags::None;
 		uint32 mSize = 0;
+
 		void* mInitialData = nullptr;
 
 		FName mName;

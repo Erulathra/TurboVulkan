@@ -90,11 +90,6 @@ namespace Turbo
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
-
-		ImGui::Begin("Test window");
-			ImGui::Text("Hello World");
-			ImGui::Button("Click ME!!!!!!");
-		ImGui::End();
 	}
 
 	void FImGuiLayer::EndTick_GameThread(float deltaTime)

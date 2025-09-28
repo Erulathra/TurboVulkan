@@ -5,19 +5,18 @@ import Math;
 [[vk::binding(0, 0)]]
 RWTexture2D<float4> inOutTexture;
 
+struct Data 
+{
+    float4 vertices[3];
+};
+
+[[vk::binding(1, 0)]]
+ConstantBuffer<Data> data;
+
 [[vk::push_constant]]
 cbuffer pushConstants
 {
-    float4 colorOne;
-    float4 colorTwo;
-
     float time;
-};
-
-static const float2 triangleVertices[3] = {
-    float2(0.5f, 0.5f),
-    float2(0.2f, 0.8f),
-    float2(0.8f, 0.8f)
 };
 
 bool OnRightSide(float2 a, float2 b, float2 p)
@@ -53,9 +52,9 @@ void main(uint3 threadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupTh
     float angle = time * M_PI;
 
     outColor *= lerp(0.1f, 1.f, PointInTriangle(
-        RotateUV(triangleVertices[0], angle),
-        RotateUV(triangleVertices[1], angle),
-        RotateUV(triangleVertices[2], angle),
+        RotateUV(data.vertices[0].xy, angle),
+        RotateUV(data.vertices[1].xy, angle),
+        RotateUV(data.vertices[2].xy, angle),
         uv
     ) ? 1.0f : 0.0f);
 

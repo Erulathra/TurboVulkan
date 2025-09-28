@@ -36,7 +36,7 @@ CPMAddPackage(
 
 CPMAddPackage( "gh:YaaZ/VulkanMemoryAllocator-Hpp@3.2.1")
 
-CPMAddPackage("gh:ocornut/imgui@1.92.0-docking")
+CPMAddPackage("gh:ocornut/imgui@1.92.3-docking")
 add_library(imgui STATIC
         ${imgui_SOURCE_DIR}/imgui.cpp
         ${imgui_SOURCE_DIR}/imgui_draw.cpp

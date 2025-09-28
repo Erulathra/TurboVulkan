@@ -59,5 +59,6 @@ namespace Turbo
 		cmd->TransitionImage(mColor, vk::ImageLayout::eTransferSrcOptimal);
 		cmd->TransitionImage(presentTextureHandle, vk::ImageLayout::eTransferDstOptimal);
 		cmd->BlitImage(mColor, srcRect, presentTextureHandle, dstRect);
+		cmd->TransitionImage(presentTextureHandle, vk::ImageLayout::eGeneral);
 	}
 } // Turbo

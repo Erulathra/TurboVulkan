@@ -37,6 +37,10 @@ namespace Turbo
 	{
 		RESOURCE_BODY()
 
+	public:
+		[[nodiscard]] void* GetMappedAddress() const { return mMappedAddress; }
+		[[nodiscard]] FName GetName() const { return mName; }
+
 	private:
 		vk::Buffer mVkBuffer = nullptr;
 		vma::Allocation mAllocation = nullptr;
@@ -49,6 +53,18 @@ namespace Turbo
 		FBufferHandle mHandle = {};
 
 		FName mName;
+	};
+
+	class FBufferDestroyer final : IDestroyer
+	{
+		RESOURCE_BODY()
+	public:
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	private:
+		vk::Buffer mVkBuffer = nullptr;
+		vma::Allocation mAllocation = nullptr;
+		FBufferHandle mHandle;
 	};
 
 	class FSampler final
