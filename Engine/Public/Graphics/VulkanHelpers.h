@@ -55,6 +55,14 @@ namespace Turbo
 		inline vk::Offset3D ToOffset3D(const glm::ivec3& size) { return vk::Offset3D{size.x, size.y, size.z}; }
 	}
 
+	constexpr vk::ColorComponentFlags kRGBABits =
+		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
+		| vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+
+	constexpr vk::ColorComponentFlags kRGBBits =
+		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
+		| vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+
 	template <typename HandleType>
 	struct HandleTraits
 	{

@@ -214,7 +214,104 @@ namespace Turbo
 
 		if (shaderState->mbGraphicsPipeline)
 		{
-			TURBO_UNINPLEMENTED();
+			vk::GraphicsPipelineCreateInfo pipelineCreateInfo = {};
+			pipelineCreateInfo.pStages = shaderState->mShaderStageCrateInfo.data();
+			pipelineCreateInfo.stageCount = shaderState->mNumActiveShaders;
+			pipelineCreateInfo.layout = pipeline->mVkLayout;
+
+			// Vertex input
+			constexpr vk::PipelineVertexInputStateCreateInfo vertexInputState = {};
+			pipelineCreateInfo.pVertexInputState = &vertexInputState;
+
+			// Input Assembly
+			vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
+			inputAssemblyState.topology = builder.mTopology;
+			inputAssemblyState.primitiveRestartEnable = vk::False;
+			pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
+
+			// Color blending
+			std::array<vk::PipelineColorBlendAttachmentState, 8> colorBlendAttachments;
+			if (builder.mBlendStateBuilder.mActiveStates > 0)
+			{
+				for (uint32 stateId = 0; stateId < builder.mBlendStateBuilder.mActiveStates; ++stateId)
+				{
+					const FBlendState& blendState = builder.mBlendStateBuilder.mBlendStates[stateId];
+					vk::PipelineColorBlendAttachmentState& attachment = colorBlendAttachments[stateId];
+
+					attachment.colorWriteMask = kRGBABits;
+					attachment.blendEnable = blendState.mbBlendEnabled ? vk::True : vk::False;
+
+					attachment.srcColorBlendFactor = blendState.mSourceColorBlendFactor;
+					attachment.dstColorBlendFactor = blendState.mDestinationColorBlendFactor;
+					attachment.colorBlendOp = blendState.mColorBlendOperator;
+
+					attachment.srcColorBlendFactor = blendState.mSourceAlphaBlendFactor;
+					attachment.dstColorBlendFactor = blendState.mDestinationAlphaBlendFactor;
+					attachment.colorBlendOp = blendState.mAlphaBlendOperator;
+				}
+			}
+			else
+			{
+				colorBlendAttachments[0] = vk::PipelineColorBlendAttachmentState();
+				colorBlendAttachments[0].blendEnable = vk::False;
+				colorBlendAttachments[0].colorWriteMask = kRGBABits;
+			}
+
+			vk::PipelineColorBlendStateCreateInfo colorBlending = {};
+			colorBlending.logicOpEnable = vk::False;
+			colorBlending.attachmentCount = glm::max(1u, builder.mBlendStateBuilder.mActiveStates);
+			colorBlending.pAttachments = colorBlendAttachments.data();
+
+			pipelineCreateInfo.pColorBlendState = &colorBlending;
+
+			// Depth Stencil
+			vk::PipelineDepthStencilStateCreateInfo depthStencil = {};
+			depthStencil.depthWriteEnable = builder.mDepthStencilBuilder.mbEnableWriteDepth ? vk::True : vk::False;
+			depthStencil.depthTestEnable = builder.mDepthStencilBuilder.mbEnableStencil ? vk::True : vk::False;
+			depthStencil.stencilTestEnable = builder.mDepthStencilBuilder.mbEnableStencil ? vk::True : vk::False;
+			depthStencil.depthCompareOp = builder.mDepthStencilBuilder.mDepthCompareOperator;
+
+			if (builder.mDepthStencilBuilder.mbEnableStencil)
+			{
+				TURBO_UNINPLEMENTED()
+			}
+
+			pipelineCreateInfo.pDepthStencilState = &depthStencil;
+
+			// Multi sample (unimplemented)
+			vk::PipelineMultisampleStateCreateInfo multisampleState = {};
+			multisampleState.sampleShadingEnable = vk::False;
+			multisampleState.rasterizationSamples = vk::SampleCountFlagBits::e1;
+
+			pipelineCreateInfo.pMultisampleState = &multisampleState;
+
+			// Rasterizer state
+			vk::PipelineRasterizationStateCreateInfo rasterizationState = {};
+			rasterizationState.depthClampEnable = vk::False;
+			rasterizationState.rasterizerDiscardEnable = vk::False;
+			rasterizationState.polygonMode = vk::PolygonMode::eFill;
+			rasterizationState.lineWidth = 1.f;
+			rasterizationState.cullMode = builder.mRasterizationBuilder.mCullMode;
+			rasterizationState.frontFace = builder.mRasterizationBuilder.mFrontFace;
+			rasterizationState.depthBiasEnable = vk::False;
+			pipelineCreateInfo.pRasterizationState = &rasterizationState;
+
+			// Tesselation (unimplemented)
+			pipelineCreateInfo.pTessellationState = nullptr;
+
+			// Viewport state (default, overridden by dynamic state)
+			vk::PipelineViewportStateCreateInfo viewportState = {};
+			pipelineCreateInfo.pViewportState = &viewportState;
+
+			// Dynamic states
+			std::array dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+			vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
+			dynamicStateCreateInfo.setDynamicStates(dynamicStates);
+
+			pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+
+			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createGraphicsPipeline(nullptr, pipelineCreateInfo));
+			pipeline->mVkBindPoint = vk::PipelineBindPoint::eGraphics;
 		}
 		else
 		{

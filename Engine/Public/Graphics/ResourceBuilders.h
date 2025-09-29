@@ -213,10 +213,12 @@ namespace Turbo
 	public:
 		FRasterizationBuilder& SetCullMode(vk::CullModeFlags cullMode) { mCullMode = cullMode; return *this; }
 		FRasterizationBuilder& SetPolygonMode(vk::CullModeFlags polygonMode) { mCullMode = polygonMode; return *this; }
+		FRasterizationBuilder& SetFrontFace(vk::FrontFace frontFace) { mFrontFace = frontFace; return *this; }
 
 	private:
 		vk::CullModeFlags mCullMode = vk::CullModeFlagBits::eBack;
 		vk::PolygonMode mPolygonMode = vk::PolygonMode::eFill;
+		vk::FrontFace mFrontFace = vk::FrontFace::eCounterClockwise;
 	};
 
 	class FDepthStencilBuilder final
@@ -386,9 +388,10 @@ namespace Turbo
 		FPipelineBuilder& AddDescriptorSetLayout(FDescriptorSetLayoutHandle handle)
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
 
-		template <typename pushConstantType>
-			requires (sizeof(pushConstantType) < kMaxPushConstantSize)
+		template <typename pushConstantType> requires (sizeof(pushConstantType) < kMaxPushConstantSize)
 		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(pushConstantType); return *this; }
+
+		FPipelineBuilder& SetPrimitiveTopology(vk::PrimitiveTopology primitiveTopology) { mTopology = primitiveTopology; return *this; }
 
 	private:
 		FRasterizationBuilder mRasterizationBuilder;
@@ -400,6 +403,8 @@ namespace Turbo
 		uint32 mNumActiveLayouts = 0;
 
 		uint32 mPushConstantSize = 0;
+
+		vk::PrimitiveTopology mTopology = vk::PrimitiveTopology::eTriangleList;
 
 		FName mName = FName();
 	};
