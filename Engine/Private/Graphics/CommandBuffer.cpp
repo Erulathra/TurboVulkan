@@ -7,31 +7,6 @@
 
 namespace Turbo
 {
-	void FCommandBuffer::BeginRendering(FTextureHandle renderTargetHandle)
-	{
-		FTexture* renderTarget = mGpu->AccessTexture(renderTargetHandle);
-		TURBO_CHECK(renderTarget)
-
-		vk::RenderingAttachmentInfo colorAttachment = {};
-		colorAttachment.imageView = renderTarget->mImageView;
-		colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
-		colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
-
-		vk::RenderingInfo renderInfo = {};
-		renderInfo.layerCount = 1;
-		renderInfo.colorAttachmentCount = 1;
-		renderInfo.pColorAttachments = &colorAttachment;
-
-		renderInfo.renderArea = vk::Rect2D(vk::Offset2D(0.f, 0.f), VulkanConverters::ToExtent2D(renderTarget->GetSize()));
-
-		mVkCommandBuffer.beginRendering(renderInfo);
-	}
-
-	void FCommandBuffer::EndRendering()
-	{
-		mVkCommandBuffer.endRendering();
-	}
-
 	void FCommandBuffer::Begin()
 	{
 		mbRecording = true;
@@ -42,6 +17,29 @@ namespace Turbo
 	void FCommandBuffer::End()
 	{
 		CHECK_VULKAN_HPP(mVkCommandBuffer.end())
+	}
+
+	FRenderingAttachments& FRenderingAttachments::Reset()
+	{
+		mNumColorAttachments = 0;
+		mDepthAttachment = {};
+
+		return *this;
+	}
+
+	FRenderingAttachments& FRenderingAttachments::AddColorAttachment(FTextureHandle textureHandle)
+	{
+		mColorAttachments[mNumColorAttachments] = textureHandle;
+		++mNumColorAttachments;
+
+		return *this;
+	}
+
+	FRenderingAttachments& FRenderingAttachments::SetDepthAttachment(FTextureHandle textureHandle)
+	{
+		mDepthAttachment = textureHandle;
+
+		return *this;
 	}
 
 	void FCommandBuffer::TransitionImage(FTextureHandle textureHandle, vk::ImageLayout newLayout)
@@ -192,6 +190,88 @@ namespace Turbo
 		mVkCommandBuffer.dispatch(groupCount.x, groupCount.y, groupCount.z);
 	}
 
+	void FCommandBuffer::BeginRendering(const FRenderingAttachments& renderingAttachments)
+	{
+		TURBO_CHECK(renderingAttachments.mNumColorAttachments > 0)
+
+		vk::RenderingInfo renderingInfo = {};
+		renderingInfo.layerCount = 1;
+
+		std::array<vk::RenderingAttachmentInfo, 8> colorAttachments;
+		vk::RenderingAttachmentInfo depthAttachmentInfo;
+
+		glm::ivec2 attachmentSize;
+
+		for (uint32 attachmentIndex = 0; attachmentIndex < renderingAttachments.mNumColorAttachments; ++attachmentIndex)
+		{
+			const FTexture* attachmentTexture = mGpu->AccessTexture(renderingAttachments.mColorAttachments[attachmentIndex]);
+			TURBO_CHECK(attachmentTexture)
+
+			TURBO_CHECK(attachmentIndex == 0 || attachmentSize == attachmentTexture->GetSize2D())
+			attachmentSize = attachmentTexture->GetSize2D();
+
+			vk::RenderingAttachmentInfo& attachmentInfo = colorAttachments[attachmentIndex];
+			attachmentInfo = vk::RenderingAttachmentInfo();
+			attachmentInfo.imageView = attachmentTexture->mImageView;
+			attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+			attachmentInfo.loadOp = vk::AttachmentLoadOp::eLoad;
+			attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
+		}
+
+		renderingInfo.renderArea.extent = VulkanConverters::ToExtent2D(attachmentSize);
+		renderingInfo.pColorAttachments = colorAttachments.data();
+		renderingInfo.colorAttachmentCount = renderingAttachments.mNumColorAttachments;
+
+		if (renderingAttachments.mDepthAttachment.IsValid())
+		{
+			const FTexture* depthTexture = mGpu->AccessTexture(renderingAttachments.mDepthAttachment);
+			TURBO_CHECK(depthTexture)
+
+			TURBO_CHECK(attachmentSize == depthTexture->GetSize2D())
+			depthAttachmentInfo.imageView = depthTexture->mImageView;
+			depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+			depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
+			depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
+			depthAttachmentInfo.clearValue.depthStencil.depth = 0.f;
+
+			renderingInfo.pDepthAttachment = &depthAttachmentInfo;
+		}
+
+		mVkCommandBuffer.beginRendering(renderingInfo);
+	}
+
+	void FCommandBuffer::EndRendering()
+	{
+		mVkCommandBuffer.endRendering();
+	}
+
+	void FCommandBuffer::SetViewport(const FViewport& viewport)
+	{
+		vk::Viewport vkViewport = {};
+		vkViewport.x = viewport.Rect.Position.x;
+		vkViewport.y = viewport.Rect.Position.y;
+		vkViewport.width = viewport.Rect.Size.x;
+		vkViewport.height = viewport.Rect.Size.y;
+		vkViewport.minDepth = viewport.MinDepth;
+		vkViewport.maxDepth = viewport.MaxDepth;
+
+		mVkCommandBuffer.setViewport(0, 1, &vkViewport);
+	}
+
+	void FCommandBuffer::SetScissor(const FRect2DInt& rect)
+	{
+		vk::Rect2D vkScissor = {};
+		vkScissor.offset = VulkanConverters::ToOffset2D(rect.Position);
+		vkScissor.extent = VulkanConverters::ToExtent2D(rect.Size);
+
+		mVkCommandBuffer.setScissor(0, 1, &vkScissor);
+	}
+
+	void FCommandBuffer::Draw(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance)
+	{
+		mVkCommandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
+	}
+
 	void FCommandBuffer::Reset()
 	{
 		for (int setId = 0; setId < kMaxDescriptorSets; ++setId)
@@ -219,7 +299,7 @@ namespace Turbo
 		vk::ShaderStageFlags stageFlagBits = vk::ShaderStageFlagBits::eCompute;
 		if (currentPipeline->mbGraphicsPipeline)
 		{
-			TURBO_UNINPLEMENTED()
+			stageFlagBits = vk::ShaderStageFlagBits::eAllGraphics;
 		}
 
 		mVkCommandBuffer.pushConstants(currentPipeline->mVkLayout, stageFlagBits, 0, size, pushConstants);

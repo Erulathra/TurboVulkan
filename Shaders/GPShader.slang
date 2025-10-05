@@ -1,25 +1,25 @@
+import Math;
 
-static const float3 positions[3] = {
-    float3(1.f, 1.f, 0.f),
-    float3(-1.f, 1.f, 0.f),
-    float3(0.f, -1.f, 0.f)
-};
+[[vk::binding(0, 0)]]
+StructuredBuffer<float3, ScalarDataLayout> positions;
 
-static const float3 colors[3] = {
-    float3(1.f, 0.f, 0.f),
-    float3(0.f, 1.f, 0.f),
-    float3(0.f, 0.f, 1.f)
+[[vk::binding(1, 0)]]
+StructuredBuffer<uint> indices;
+
+[[vk::push_constant]]
+cbuffer pushConstants
+{
+    float time;
 };
 
 struct VSIn
 {
-    uint position : SV_VertexID;
+    uint vertexId : SV_VertexID;
 }
 
 struct VSOut
 {
     float4 position : SV_Position;
-    float3 color;
 }
 
 struct PSOut
@@ -30,12 +30,13 @@ struct PSOut
 [shader("vertex")]
 void vsMain(in VSIn vsIn, out VSOut vsOut)
 {
-    vsOut.position = float4(positions[vsIn.position] * 0.5, 1.f);
-    vsOut.color = colors[vsIn.position];
+    // const float size = lerp(0.2f, 1.f, Sin0To1(time * 3));
+    const uint indice = indices[vsIn.vertexId];
+    vsOut.position = float4(positions[indice], 1.f);
 }
 
 [shader("pixel")]
 void psMain(in VSOut vsOut, out PSOut psOut)
 {
-    psOut.color = float4(vsOut.color, 1.f);
+    psOut.color = float4(0.f, 0.f, 1.f, 1.f);
 }

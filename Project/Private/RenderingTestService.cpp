@@ -10,7 +10,7 @@
 
 using namespace Turbo;
 
-struct FComputePushConstants
+struct FPushConstants
 {
 	float time;
 };
@@ -29,14 +29,15 @@ void FRenderingTestLayer::Start()
 		.AddBinding(vk::DescriptorType::eStorageImage, 0)
 		.AddBinding(vk::DescriptorType::eUniformBuffer, 1);
 
-	mSetLayout = gpu->CreateDescriptorSetLayout(descriptorSetLayoutBuilder);
+	mComputeSetLayout = gpu->CreateDescriptorSetLayout(descriptorSetLayoutBuilder);
 
-	FPipelineBuilder pipelineBuilder;
-	pipelineBuilder.AddDescriptorSetLayout(mSetLayout);
-	pipelineBuilder.SetPushConstantType<FComputePushConstants>();
-	pipelineBuilder.GetShaderState().AddStage("Shader", vk::ShaderStageFlagBits::eCompute);
+	FPipelineBuilder computePipelineBuilder;
+	computePipelineBuilder.AddDescriptorSetLayout(mComputeSetLayout);
+	computePipelineBuilder.SetPushConstantType<FPushConstants>();
+	computePipelineBuilder.GetShaderState().AddStage("Shader", vk::ShaderStageFlagBits::eCompute);
+	computePipelineBuilder.SetName(FName("TestComputePipeline"));
 
-	mPipeline = gpu->CreatePipeline(pipelineBuilder);
+	mComputePipeline = gpu->CreatePipeline(computePipelineBuilder);
 
 	uniformBufferData.vertices[0] = glm::vec4(0.5f, 0.5f, 0.f, 0.f);
 	uniformBufferData.vertices[1] = glm::vec4(0.2f, 0.8f, 0.f, 0.f);
@@ -49,16 +50,75 @@ void FRenderingTestLayer::Start()
 		.SetData(&uniformBufferData)
 		.SetName(kBufferName);
 
-	mUniformBufferHandle = gpu->CreateBuffer(bufferBuilder);
+	mComputeUniformBufferHandle = gpu->CreateBuffer(bufferBuilder);
+
+	// Graphics pipeline
+	static const FName kRectVertName = FName("RectVertices");
+	static const FName kRectIndicesName = FName("RectIndices");
+
+	const static std::array kRectVertices = {
+		glm::vec3(0.5f,-0.5f, 0.0f),
+		glm::vec3(0.5f,0.5f, 0.0f),
+		glm::vec3(-0.5f,-0.5f, 0.0f),
+		glm::vec3(-0.5f,0.5f, 0.0f),
+	};
+
+	const static std::array kRectIndices = {
+		0, 1, 2, 2, 1, 3
+	};
+
+	// Graphics pipeline
+
+	bufferBuilder
+		.Init(vk::BufferUsageFlagBits::eStorageBuffer, EBufferFlags::None, sizeof(kRectVertices))
+		.SetData(kRectVertices.data())
+		.SetName(kRectVertName);
+	mMeshVertices = gpu->CreateBuffer(bufferBuilder);
+
+	bufferBuilder
+		.Init(vk::BufferUsageFlagBits::eStorageBuffer, EBufferFlags::None, sizeof(kRectIndices))
+		.SetData(kRectIndices.data())
+		.SetName(kRectIndicesName);
+	mMeshIndices = gpu->CreateBuffer(bufferBuilder);
+
+	FDescriptorSetLayoutBuilder descriptorSetBuilder;
+	descriptorSetBuilder
+		.AddBinding(vk::DescriptorType::eStorageBuffer, 0, FName("Vertices"))
+		.AddBinding(vk::DescriptorType::eStorageBuffer, 1, FName("Colors"))
+		.SetName(FName("GraphicsTest"));
+
+	mGraphicsPipelineSetLayout = gpu->CreateDescriptorSetLayout(descriptorSetBuilder);
+
+	FPipelineBuilder graphicsPipelineBuilder;
+	graphicsPipelineBuilder.AddDescriptorSetLayout(mGraphicsPipelineSetLayout);
+	graphicsPipelineBuilder.SetPushConstantType<FPushConstants>();
+	graphicsPipelineBuilder.SetName(FName("TestGraphicsPipeline"));
+
+	graphicsPipelineBuilder.GetShaderState()
+		.AddStage("GPShader", vk::ShaderStageFlagBits::eVertex)
+		.AddStage("GPShader", vk::ShaderStageFlagBits::eFragment);
+
+	graphicsPipelineBuilder.GetBlendState()
+		.AddNoBlendingState();
+
+	graphicsPipelineBuilder.GetPipelineRendering()
+		.AddColorAttachment(FGeometryBuffer::kColorFormat);
+
+	mGraphicsPipeline = gpu->CreatePipeline(graphicsPipelineBuilder);
 }
 
 void FRenderingTestLayer::Shutdown()
 {
 	FGPUDevice* gpu = gEngine->GetGpu();
 
-	gpu->DestroyBuffer(mUniformBufferHandle);
-	gpu->DestroyDescriptorSetLayout(mSetLayout);
-	gpu->DestroyPipeline(mPipeline);
+	gpu->DestroyPipeline(mComputePipeline);
+	gpu->DestroyDescriptorSetLayout(mComputeSetLayout);
+	gpu->DestroyBuffer(mComputeUniformBufferHandle);
+
+	gpu->DestroyPipeline(mGraphicsPipeline);
+	gpu->DestroyDescriptorSetLayout(mGraphicsPipelineSetLayout);
+	gpu->DestroyBuffer(mMeshVertices);
+	gpu->DestroyBuffer(mMeshIndices);
 }
 
 void FRenderingTestLayer::BeginTick_GameThread(float deltaTime)
@@ -78,36 +138,64 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	const FDescriptorPoolHandle descriptorPool = gpu->GetDescriptorPool();
 	const FGeometryBuffer& geometryBuffer = FGraphicsLocator::GetGeometryBuffer();
 
-	FBuffer* uniformBuffer = gpu->AccessBuffer(mUniformBufferHandle);
+	FBuffer* uniformBuffer = gpu->AccessBuffer(mComputeUniformBufferHandle);
 	void* mappedAddress = uniformBuffer->GetMappedAddress();
 	TURBO_CHECK(mappedAddress);
 
 	std::memcpy(mappedAddress, &uniformBufferData, sizeof(FParametersBuffer));
 
-	const FTextureHandle drawImage = geometryBuffer.GetColor();
+	const FTextureHandle drawImageHandle = geometryBuffer.GetColor();
 
 	const static FName descriptorSetName("ComputeSet");
-	FDescriptorSetBuilder descriptorSetBuilder;
-	descriptorSetBuilder
+	FDescriptorSetBuilder computeDescriptorSetBuilder;
+	computeDescriptorSetBuilder
 		.SetDescriptorPool(descriptorPool)
-		.SetLayout(mSetLayout)
-		.SetTexture(drawImage, 0)
-		.SetBuffer(mUniformBufferHandle, 1)
+		.SetLayout(mComputeSetLayout)
+		.SetTexture(drawImageHandle, 0)
+		.SetBuffer(mComputeUniformBufferHandle, 1)
 		.SetName(descriptorSetName);
 
-	const FDescriptorSetHandle descriptorSet = gpu->CreateDescriptorSet(descriptorSetBuilder);
+	const FDescriptorSetHandle computeDescriptorSet = gpu->CreateDescriptorSet(computeDescriptorSetBuilder);
 
-	cmd->TransitionImage(drawImage, vk::ImageLayout::eGeneral);
-	cmd->BindPipeline(mPipeline);
-	cmd->BindDescriptorSet(descriptorSet, 0);
+	cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eGeneral);
+	cmd->BindPipeline(mComputePipeline);
+	cmd->BindDescriptorSet(computeDescriptorSet, 0);
 
-	FComputePushConstants pushConstants = {};
+	FPushConstants pushConstants = {};
 	pushConstants.time = static_cast<float>(FCoreTimer::TimeFromEngineStart());
 
 	cmd->PushConstants(pushConstants);
 
 	const glm::ivec2& resolution = geometryBuffer.GetResolution();
-	cmd->Dispatch(FMath::DivideAndRoundUp(glm::ivec3(resolution, 1), glm::ivec3(8, 8, 1)));
+	// cmd->Dispatch(FMath::DivideAndRoundUp(glm::ivec3(resolution, 1), glm::ivec3(8, 8, 1)));
+
+	cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eColorAttachmentOptimal);
+
+	// Graphics pipeline
+	const static FName graphicsDescriptorSetName("GraphicsSet");
+	FDescriptorSetBuilder graphicsDescriptorSetBuilder;
+	graphicsDescriptorSetBuilder
+		.SetDescriptorPool(descriptorPool)
+		.SetLayout(mGraphicsPipelineSetLayout)
+		.SetBuffer(mMeshVertices, 0)
+		.SetBuffer(mMeshIndices, 1)
+		.SetName(graphicsDescriptorSetName);
+
+	const FDescriptorSetHandle graphicsDescriptorSet = gpu->CreateDescriptorSet(graphicsDescriptorSetBuilder);
+
+	FRenderingAttachments renderingAttachments;
+	renderingAttachments.AddColorAttachment(drawImageHandle);
+
+	cmd->BeginRendering(renderingAttachments);
+	cmd->SetViewport(FViewport::FromSize(geometryBuffer.GetResolution()));
+	cmd->SetScissor(FRect2DInt::FromSize(geometryBuffer.GetResolution()));
+
+	cmd->BindPipeline(mGraphicsPipeline);
+	cmd->BindDescriptorSet(graphicsDescriptorSet, 0);
+	cmd->PushConstants(pushConstants);
+	cmd->Draw(6);
+
+	cmd->EndRendering();
 }
 
 FName FRenderingTestLayer::GetName()

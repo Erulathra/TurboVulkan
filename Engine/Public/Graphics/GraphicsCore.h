@@ -7,7 +7,7 @@
 
 inline constexpr uint16 kInvalidSetIndex = std::numeric_limits<uint16>::max();
 
-inline constexpr uint8 kMaxImageOutputs = 8;
+inline constexpr uint8 kMaxColorAttachments = 8;
 inline constexpr uint8 kMaxShaderStages = 5;
 inline constexpr uint8 kMaxDescriptorsPerSet = 8;
 inline constexpr uint32 kMaxSwapChainImages = 5;

@@ -89,6 +89,7 @@ namespace Turbo
 	{
 		RESOURCE_BODY()
 	public:
+		[[nodiscard]] glm::ivec2 GetSize2D() const { return glm::ivec2{mWidth, mHeight}; }
 		[[nodiscard]] glm::ivec3 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
 

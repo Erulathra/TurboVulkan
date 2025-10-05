@@ -9,6 +9,10 @@ namespace Turbo
 	class FGeometryBuffer
 	{
 		GENERATED_BODY(FGeometryBuffer)
+
+	public:
+		static constexpr vk::Format kColorFormat = vk::Format::eR16G16B16A16Sfloat;
+
 	public:
 		explicit FGeometryBuffer(FGPUDevice* gpu);
 

@@ -19,11 +19,21 @@ namespace Turbo
 		}
 	};
 
-
 	struct FViewport final
 	{
 		FRect2DInt Rect;
 		float MinDepth = 0.f;
 		float MaxDepth = 0.f;
+
+		static FViewport FromSize(glm::ivec2 size)
+		{
+			FViewport result;
+			result.Rect = FRect2DInt::FromSize(size);
+			result.MinDepth = 0.f;
+			result.MaxDepth = 1.f;
+
+			return result;
+		}
 	};
+
 } // Turbo

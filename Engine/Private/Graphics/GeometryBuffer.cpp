@@ -21,7 +21,7 @@ namespace Turbo
 
 		FTextureBuilder textureBuilder;
 		textureBuilder
-			.Init(vk::Format::eR16G16B16A16Sfloat, ETextureType::Texture2D, ETextureFlags::RenderTarget | ETextureFlags::Compute)
+			.Init(kColorFormat, ETextureType::Texture2D, ETextureFlags::RenderTarget | ETextureFlags::Compute)
 			.SetSize(glm::vec3(mResolution, 1))
 			.SetNumMips(1)
 			.SetName(geometryBufferColorName);

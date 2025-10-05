@@ -99,7 +99,10 @@ namespace Turbo
 
 	void FImGuiLayer::BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, FTextureHandle PresentImage)
 	{
-		cmd->BeginRendering(PresentImage);
+		FRenderingAttachments renderingAttachments;
+		renderingAttachments.AddColorAttachment(PresentImage);
+
+		cmd->BeginRendering(renderingAttachments);
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd->GetVkCommandBuffer());
 		cmd->EndRendering();
 	}

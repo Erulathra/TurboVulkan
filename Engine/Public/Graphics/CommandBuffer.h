@@ -13,6 +13,24 @@ namespace Turbo
 
 	DECLARE_RESOURCE_HANDLE(CommandBuffer)
 
+
+	struct FRenderingAttachments final
+	{
+	public:
+		FRenderingAttachments& Reset();
+
+		FRenderingAttachments& AddColorAttachment(FTextureHandle textureHandle);
+		FRenderingAttachments& SetDepthAttachment(FTextureHandle textureHandle);
+
+	private:
+		uint32 mNumColorAttachments = 0;
+		std::array<FTextureHandle, 8> mColorAttachments = {};
+		FTextureHandle mDepthAttachment = {};
+
+	public:
+		friend class FCommandBuffer;
+	};
+
 	class FCommandBuffer
 	{
 	public:
@@ -29,11 +47,16 @@ namespace Turbo
 		void BindPipeline(FPipelineHandle pipelineHandle);
 		void Dispatch(const glm::ivec3& groupCount);
 
+		void BeginRendering(const FRenderingAttachments& renderingAttachments);
+		void EndRendering();
+
+		void SetViewport(const FViewport& viewport);
+		void SetScissor(const FRect2DInt& rect);
+
+		void Draw(uint32 vertexCount, uint32 instanceCount = 1, uint32 firstVertex = 0, uint32 firstInstance = 0);
+
 		template<typename PushConstantsType>
 		void PushConstants(PushConstantsType pushConstants) { PushConstantsImpl(&pushConstants, sizeof(PushConstantsType)); }
-
-		void BeginRendering(FTextureHandle renderTargetHandle);
-		void EndRendering();
 
 	public:
 		vk::CommandBuffer GetVkCommandBuffer() const { return mVkCommandBuffer; }

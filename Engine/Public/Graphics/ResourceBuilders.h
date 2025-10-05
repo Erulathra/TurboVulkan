@@ -33,7 +33,7 @@ namespace Turbo
 		FBufferBuilder& Reset() { mSize = 0; mInitialData = nullptr; return *this; }
 		FBufferBuilder& Init(vk::BufferUsageFlags usageFlags, EBufferFlags bufferFlags, uint32 size)
 			{ mUsageFlags = usageFlags; mBufferFlags = bufferFlags; mSize = size; return *this; }
-		FBufferBuilder& SetData(void* data) { mInitialData = data; return *this; }
+		FBufferBuilder& SetData(const void* data) { mInitialData = data; return *this; }
 
 		FBufferBuilder& SetName(FName name) { mName = name; return *this; }
 
@@ -42,7 +42,7 @@ namespace Turbo
 		EBufferFlags mBufferFlags = EBufferFlags::None;
 		uint32 mSize = 0;
 
-		void* mInitialData = nullptr;
+		const void* mInitialData = nullptr;
 
 		FName mName;
 	};
@@ -218,7 +218,7 @@ namespace Turbo
 	private:
 		vk::CullModeFlags mCullMode = vk::CullModeFlagBits::eBack;
 		vk::PolygonMode mPolygonMode = vk::PolygonMode::eFill;
-		vk::FrontFace mFrontFace = vk::FrontFace::eCounterClockwise;
+		vk::FrontFace mFrontFace = vk::FrontFace::eClockwise;
 	};
 
 	class FDepthStencilBuilder final
@@ -325,8 +325,14 @@ namespace Turbo
 			return mBlendStates[mActiveStates - 1];
 		}
 
+		FBlendStateBuilder& AddNoBlendingState()
+		{
+			AddBlendState();
+			return *this;
+		}
+
 	private:
-		std::array<FBlendState, kMaxImageOutputs> mBlendStates;
+		std::array<FBlendState, kMaxColorAttachments> mBlendStates;
 		uint32 mActiveStates = 0;
 	};
 
@@ -335,6 +341,28 @@ namespace Turbo
 		std::string mShaderName;
 		vk::ShaderStageFlagBits mStage;
 		std::string mEntryPoint;
+	};
+
+	class FPipelineRenderingBuilder final
+	{
+		BUILDER_BODY()
+
+	public:
+		FPipelineRenderingBuilder& Reset() {mNumColorAttachments = 0; return *this; }
+		FPipelineRenderingBuilder& SetDepthAttachment(vk::Format format) { mDepthAttachmentFormat = format; return *this;}
+		FPipelineRenderingBuilder& AddColorAttachment(vk::Format format)
+		{
+			mColorAttachmentFormats[mNumColorAttachments] = format;
+			++mNumColorAttachments;
+
+			return *this;
+		}
+
+	private:
+		std::array<vk::Format, kMaxColorAttachments> mColorAttachmentFormats = {};
+		uint32 mNumColorAttachments = 0;
+
+		vk::Format mDepthAttachmentFormat = vk::Format::eUndefined;
 	};
 
 	constexpr cstring GetShaderEntryPointName(vk::ShaderStageFlagBits stage)
@@ -384,6 +412,7 @@ namespace Turbo
 		FDepthStencilBuilder& GetDepthStencil() { return mDepthStencilBuilder; }
 		FBlendStateBuilder& GetBlendState() { return mBlendStateBuilder; }
 		FShaderStateBuilder& GetShaderState() { return mShaderStateBuilder; }
+		FPipelineRenderingBuilder& GetPipelineRendering() { return mPipelineRenderingBuilder; }
 
 		FPipelineBuilder& AddDescriptorSetLayout(FDescriptorSetLayoutHandle handle)
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
@@ -392,12 +421,14 @@ namespace Turbo
 		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(pushConstantType); return *this; }
 
 		FPipelineBuilder& SetPrimitiveTopology(vk::PrimitiveTopology primitiveTopology) { mTopology = primitiveTopology; return *this; }
+		FPipelineBuilder& SetName(FName name) { mName = name; return *this; }
 
 	private:
 		FRasterizationBuilder mRasterizationBuilder;
 		FDepthStencilBuilder mDepthStencilBuilder;
 		FBlendStateBuilder mBlendStateBuilder;
 		FShaderStateBuilder mShaderStateBuilder;
+		FPipelineRenderingBuilder mPipelineRenderingBuilder;
 
 		std::array<FDescriptorSetLayoutHandle, kMaxDescriptorSetLayouts> mDescriptorSetLayouts;
 		uint32 mNumActiveLayouts = 0;

@@ -168,4 +168,19 @@ namespace Turbo
 			return "_Buffer";
 		}
 	};
+
+	template <>
+	struct HandleTraits<vk::Pipeline>
+	{
+		static uint64 CastToU64Handle(vk::Pipeline handle)
+		{
+			VkPipeline nativeHandle = handle;
+			return reinterpret_cast<uint64>(nativeHandle);
+		}
+
+		static cstring GetTypePostFix()
+		{
+			return "_Pipeline";
+		}
+	};
 }

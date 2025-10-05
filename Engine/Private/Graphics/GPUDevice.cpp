@@ -133,13 +133,13 @@ namespace Turbo
 					const FBufferHandle stagingBuffer = CreateBuffer(stagingBufferBuilder, &cmd);
 
 					cmd.CopyBuffer(stagingBuffer, handle, builder.mSize);
+					DestroyBuffer(stagingBuffer);
 
 					// No need for synchronization as we would submit this command buffer just after that lambda.
 				}));
+
 			}
 		}
-
-
 
 		return handle;
 	}
@@ -197,8 +197,7 @@ namespace Turbo
 
 		if (shaderState->mbGraphicsPipeline)
 		{
-			pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eAll;
-			TURBO_UNINPLEMENTED();
+			pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
 		}
 		else
 		{
@@ -214,7 +213,8 @@ namespace Turbo
 
 		if (shaderState->mbGraphicsPipeline)
 		{
-			vk::GraphicsPipelineCreateInfo pipelineCreateInfo = {};
+			vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> chain;
+			vk::GraphicsPipelineCreateInfo& pipelineCreateInfo = chain.get<vk::GraphicsPipelineCreateInfo>();
 			pipelineCreateInfo.pStages = shaderState->mShaderStageCrateInfo.data();
 			pipelineCreateInfo.stageCount = shaderState->mNumActiveShaders;
 			pipelineCreateInfo.layout = pipeline->mVkLayout;
@@ -259,8 +259,10 @@ namespace Turbo
 
 			vk::PipelineColorBlendStateCreateInfo colorBlending = {};
 			colorBlending.logicOpEnable = vk::False;
-			colorBlending.attachmentCount = glm::max(1u, builder.mBlendStateBuilder.mActiveStates);
+			colorBlending.attachmentCount = builder.mBlendStateBuilder.mActiveStates;
 			colorBlending.pAttachments = colorBlendAttachments.data();
+
+			TURBO_CHECK_MSG(builder.mBlendStateBuilder.mActiveStates > 0, "It must be at least 1 color attachment.")
 
 			pipelineCreateInfo.pColorBlendState = &colorBlending;
 
@@ -270,6 +272,7 @@ namespace Turbo
 			depthStencil.depthTestEnable = builder.mDepthStencilBuilder.mbEnableStencil ? vk::True : vk::False;
 			depthStencil.stencilTestEnable = builder.mDepthStencilBuilder.mbEnableStencil ? vk::True : vk::False;
 			depthStencil.depthCompareOp = builder.mDepthStencilBuilder.mDepthCompareOperator;
+			// TODO: better depht handling
 
 			if (builder.mDepthStencilBuilder.mbEnableStencil)
 			{
@@ -301,6 +304,8 @@ namespace Turbo
 
 			// Viewport state (default, overridden by dynamic state)
 			vk::PipelineViewportStateCreateInfo viewportState = {};
+			viewportState.viewportCount = 1;
+			viewportState.scissorCount = 1;
 			pipelineCreateInfo.pViewportState = &viewportState;
 
 			// Dynamic states
@@ -309,6 +314,15 @@ namespace Turbo
 			dynamicStateCreateInfo.setDynamicStates(dynamicStates);
 
 			pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+
+			VkPipelineRenderingCreateInfo pipelineRendering3;
+			vk::PipelineRenderingCreateInfo& pipelineRendering = chain.get<vk::PipelineRenderingCreateInfo>();
+			pipelineRendering.colorAttachmentCount = builder.mPipelineRenderingBuilder.mNumColorAttachments;
+			pipelineRendering.pColorAttachmentFormats = builder.mPipelineRenderingBuilder.mColorAttachmentFormats.data();
+			pipelineRendering.depthAttachmentFormat = builder.mPipelineRenderingBuilder.mDepthAttachmentFormat;
+
+			TURBO_CHECK_MSG(builder.mBlendStateBuilder.mActiveStates == builder.mPipelineRenderingBuilder.mNumColorAttachments, "Blend states number must be the same as num color attachments.")
+			TURBO_CHECK(builder.mPipelineRenderingBuilder.mNumColorAttachments > 0)
 
 			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createGraphicsPipeline(nullptr, pipelineCreateInfo));
 			pipeline->mVkBindPoint = vk::PipelineBindPoint::eGraphics;
@@ -322,6 +336,8 @@ namespace Turbo
 			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createComputePipeline(nullptr, pipelineCreateInfo));
 			pipeline->mVkBindPoint = vk::PipelineBindPoint::eCompute;
 		}
+
+		SetResourceName(pipeline->mVkPipeline, builder.mName);
 
 		return handle;
 	}
@@ -417,7 +433,9 @@ namespace Turbo
 		std::array<vk::WriteDescriptorSet, kMaxDescriptorsPerSet> writes;
 
 		std::vector<vk::DescriptorImageInfo> imageInfos;
+		imageInfos.reserve(kMaxDescriptorsPerSet);
 		std::vector<vk::DescriptorBufferInfo> bufferInfos;
+		bufferInfos.reserve(kMaxDescriptorsPerSet);
 
 		for (uint32 bindingId = 0; bindingId < layout->mNumBindings; ++bindingId)
 		{
@@ -475,7 +493,7 @@ namespace Turbo
 					bufferInfo.offset = 0;
 					bufferInfo.range = buffer->mDeviceSize;
 
-					write.setBufferInfo({bufferInfo});
+					write.pBufferInfo = &bufferInfo;
 					break;
 				}
 			default:
@@ -535,7 +553,7 @@ namespace Turbo
 
 			vk::PipelineShaderStageCreateInfo& stageCreateInfo = shaderState->mShaderStageCrateInfo[shaderStageId];
 			*stageCreateInfo = vk::PipelineShaderStageCreateInfo();
-			stageCreateInfo.pName = shaderStage.mEntryPoint.c_str();
+			stageCreateInfo.pName = "main";
 			stageCreateInfo.setStage(shaderStage.mStage);
 			stageCreateInfo.module = shaderModule;
 		}
@@ -694,11 +712,15 @@ namespace Turbo
 		vk::PhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.setTextureCompressionBC(true);
 
+		vk::PhysicalDeviceVulkan11Features device11Features = {};
+		device11Features.setShaderDrawParameters(true);
+
 		vk::PhysicalDeviceVulkan12Features device12Features = {};
 		device12Features.setBufferDeviceAddress(true);
 		device12Features.setDescriptorIndexing(true);
 		device12Features.setDescriptorBindingPartiallyBound(true);
 		device12Features.setRuntimeDescriptorArray(true);
+		device12Features.setScalarBlockLayout(true);
 
 		vk::PhysicalDeviceVulkan13Features device13Features = {};
 		device13Features.setDynamicRendering(true);
@@ -709,6 +731,7 @@ namespace Turbo
 			.set_surface(mVkWindowSurface)
 			.require_present(true)
 			.set_required_features(deviceFeatures)
+			.set_required_features_11(device11Features)
 			.set_required_features_12(device12Features)
 			.set_required_features_13(device13Features)
 			.set_minimum_version(1, 3)
@@ -1056,9 +1079,10 @@ namespace Turbo
 			CHECK_VULKAN_HPP(mVkDevice.resetFences({mImmediateCommandsFence}));
 			CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(mImmediateCommandsPool));
 
+			mImmediateCommandsBuffer->Reset();
 			mImmediateCommandsBuffer->Begin();
 			immediateSubmitDelegate.Execute(*mImmediateCommandsBuffer);
-			mImmediateCommandsBuffer->Reset();
+			mImmediateCommandsBuffer->End();
 
 			const vk::CommandBufferSubmitInfo bufferSubmitInfo = mImmediateCommandsBuffer->CreateSubmitInfo();
 			const vk::SubmitInfo2 submitInfo = VkInit::SubmitInfo(bufferSubmitInfo, nullptr, nullptr);
