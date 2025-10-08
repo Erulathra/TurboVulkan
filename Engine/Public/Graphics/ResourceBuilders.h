@@ -166,7 +166,7 @@ namespace Turbo
 		FDescriptorSetBuilder& SetTexture(THandle<FTexture> texture, uint16 binding)
 		{
 			mBindings[mNumResources] = binding;
-			mResources[mNumResources] = texture.Index;
+			mResources[mNumResources] = texture;
 
 			++mNumResources;
 
@@ -176,7 +176,7 @@ namespace Turbo
 		FDescriptorSetBuilder& SetBuffer(THandle<FBuffer> buffer, uint16 binding)
 		{
 			mBindings[mNumResources] = binding;
-			mResources[mNumResources] = buffer.Index;
+			mResources[mNumResources] = buffer;
 
 			++mNumResources;
 
@@ -186,7 +186,7 @@ namespace Turbo
 		FDescriptorSetBuilder& SetSampler(THandle<FSampler> sampler, uint16 binding)
 		{
 			mBindings[mNumResources] = binding;
-			mResources[mNumResources] = sampler.Index;
+			mResources[mNumResources] = sampler;
 
 			++mNumResources;
 
@@ -196,7 +196,7 @@ namespace Turbo
 		FDescriptorSetBuilder& SetName(FName name) { mName = name; return *this; }
 
 	private:
-		std::array<FResourceHandle, kMaxDescriptorsPerSet> mResources;
+		std::array<FHandle, kMaxDescriptorsPerSet> mResources;
 		std::array<uint16, kMaxDescriptorsPerSet> mBindings;
 
 		THandle<FDescriptorSetLayout> mLayout = {};

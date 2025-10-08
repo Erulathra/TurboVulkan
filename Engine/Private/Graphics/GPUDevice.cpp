@@ -440,7 +440,7 @@ namespace Turbo
 		for (uint32 bindingId = 0; bindingId < layout->mNumBindings; ++bindingId)
 		{
 			const FBinding& binding = layout->mBindings[bindingId];
-			const FResourceHandle resource = builder.mResources[bindingId];
+			const FHandle resource = builder.mResources[bindingId];
 
 			vk::WriteDescriptorSet& write = writes[bindingId];
 			write.descriptorCount = 1;

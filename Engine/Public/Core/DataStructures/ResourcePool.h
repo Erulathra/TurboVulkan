@@ -3,16 +3,23 @@
 namespace Turbo
 {
 	using FPoolIndexType = uint32;
-	using FResourceHandle = FPoolIndexType;
-	inline constexpr FResourceHandle kInvalidHandle = std::numeric_limits<uint32>::max();
+	inline constexpr FPoolIndexType kInvalidHandle = std::numeric_limits<uint32>::max();
+
+	using FPoolGenerationType = uint32;
+	inline constexpr FPoolGenerationType kInvalidGeneration = std::numeric_limits<uint32>::max();
+
+	struct FHandle
+	{
+		FPoolIndexType mIndex = kInvalidHandle;
+		FPoolGenerationType mGeneration = kInvalidGeneration;
+	};
 
 	template <typename ObjectType>
-	struct THandle final
+	struct THandle final : public FHandle
 	{
-		FResourceHandle Index = kInvalidHandle;
-
-		[[nodiscard]] bool IsValid() const { return Index != kInvalidHandle; }
-		void Reset() { Index = kInvalidHandle; }
+	public:
+		[[nodiscard]] bool IsValid() const { return mIndex != kInvalidHandle; }
+		void Reset() { mIndex = kInvalidHandle; }
 
 		explicit operator bool() const { return IsValid(); }
 		bool operator!() const { return !IsValid(); }
@@ -26,8 +33,8 @@ namespace Turbo
 		TResourcePool() { Clear(); }
 
 	public:
-		[[nodiscard]] static constexpr FResourceHandle GetCapacity() { return size; }
-		[[nodiscard]] FResourceHandle GetNumAcquiredResources() const { return mUsedIndices; }
+		[[nodiscard]] static constexpr FPoolIndexType GetCapacity() { return size; }
+		[[nodiscard]] FPoolIndexType GetNumAcquiredResources() const { return mUsedIndices; }
 
 		void Clear()
 		{
@@ -38,6 +45,11 @@ namespace Turbo
 			{
 				mFreeIndices[i] = i;
 			}
+
+			for (FPoolIndexType i = 0; i < size; ++i)
+			{
+				mGenerations[i] = 0;
+			}
 		}
 
 		THandle<T> Acquire()
@@ -45,7 +57,9 @@ namespace Turbo
 			TURBO_CHECK_MSG(mFreeIndicesHead < size, "No more resources left!")
 
 			THandle<T> NewHandle {};
-			NewHandle.Index = mFreeIndices[mFreeIndicesHead];
+			NewHandle.mIndex = mFreeIndices[mFreeIndicesHead];
+			NewHandle.mGeneration = mGenerations[NewHandle.mIndex];
+			TURBO_CHECK_MSG(NewHandle.mGeneration < kInvalidGeneration, "No more resource generations left!")
 
 			++mFreeIndicesHead;
 			++mUsedIndices;
@@ -60,21 +74,18 @@ namespace Turbo
 			--mFreeIndicesHead;
 			--mUsedIndices;
 
-			if constexpr (std::is_default_constructible_v<T>)
-			{
-				mData[handle.Index] = T();
-			}
-
-			mFreeIndices[mFreeIndicesHead] = handle.Index;
+			mFreeIndices[mFreeIndicesHead] = handle.mIndex;
+			++mGenerations[handle.mIndex];
 		}
 
 		T* Access(THandle<T> handle)
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
-			if (handle.IsValid() && handle.Index < mData.size())
+			const FPoolGenerationType currentGeneration = mGenerations[handle.mIndex];
+			if (handle.IsValid() && handle.mIndex < mData.size() && handle.mGeneration == currentGeneration)
 			{
-				return &mData[handle.Index];
+				return &mData[handle.mIndex];
 			}
 
 			return nullptr;
@@ -82,16 +93,18 @@ namespace Turbo
 
 		const T* Access(THandle<T> handle) const
 		{
-			if (handle.IsValid() && handle.Index < mData.size())
+			if (handle.IsValid() && handle.mIndex < mData.size())
 			{
-				return &mData[handle.Index];
+				return &mData[handle.mIndex];
 			}
 
 			return nullptr;
 		}
 
 	private:
+
 		std::array<T, size> mData;
+		std::array<FPoolGenerationType, size> mGenerations;
 		std::array<FPoolIndexType, size> mFreeIndices;
 
 		FPoolIndexType mFreeIndicesHead = 0;
