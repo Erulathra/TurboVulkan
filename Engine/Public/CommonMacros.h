@@ -1,4 +1,5 @@
 #pragma once
+#include "CommonTypeDefs.h"
 
 // Code assumes 64bit platform
 #if !defined(WITH_TURBO_64) || !WITH_TURBO_64
@@ -107,27 +108,27 @@ namespace Turbo
 	}
 
 	template <typename T>
-	bool IsValid(const std::shared_ptr<T>& object)
+	bool IsValid(const TSharedPtr<T>& object)
 	{
 		return object && object->IsValid();
 	}
 
 	template <typename T>
-	bool IsValid(const std::unique_ptr<T>& object)
+	bool IsValid(const TUniquePtr<T>& object)
 	{
 		return object && object->IsValid();
 	}
 
 	template <typename T>
-	bool IsValidAndUnique(const std::shared_ptr<T>& object)
+	bool IsValidAndUnique(const TSharedPtr<T>& object)
 	{
 		return object && object->IsValid() && object.unique();
 	}
 
 	template <typename T>
-	bool IsValid(const std::weak_ptr<T>& object)
+	bool IsValid(const TWeakPtr<T>& object)
 	{
-		const std::shared_ptr<const T> LockedObject = object.lock();
+		const TSharedPtr<const T> LockedObject = object.lock();
 		return LockedObject && LockedObject->IsValid();
 	}
 }

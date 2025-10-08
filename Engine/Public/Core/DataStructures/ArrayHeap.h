@@ -16,6 +16,6 @@ namespace Turbo
 		const T& operator[](uint32 index) const { return mArrayPtr->at(index); }
 
 	private:
-		std::unique_ptr<ArrayType> mArrayPtr;
+		TUniquePtr<ArrayType> mArrayPtr;
 	};
 } // Turbo

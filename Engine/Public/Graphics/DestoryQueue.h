@@ -85,7 +85,7 @@ namespace Turbo
 
 		/* Delegates */
 	private:
-		std::unordered_map<size_t /* typeID */, std::unique_ptr<IDestroyQueue>> mDestroyQueues;
+		std::unordered_map<size_t /* typeID */, TUniquePtr<IDestroyQueue>> mDestroyQueues;
 
 		FOnDestroy mOnDestroy;
 	};

@@ -45,12 +45,12 @@ namespace Turbo
 
 	private:
 		// Replace us with GenericRHI
-		std::shared_ptr<FGPUDevice> mGpuDevice;
-		std::shared_ptr<FWindow> mWindow;
+		TSharedPtr<FGPUDevice> mGpuDevice;
+		TSharedPtr<FWindow> mWindow;
 
-		std::unique_ptr<IInputSystem> mInputSystemInstance;
+		TSharedPtr<IInputSystem> mInputSystemInstance;
 
-		std::unique_ptr<FCoreTimer> mCoreTimer;
+		TSharedPtr<FCoreTimer> mCoreTimer;
 
 		/** Services end */
 
@@ -86,5 +86,5 @@ namespace Turbo
 		EEngineState mEngineState = EEngineState::Undefined;
 	};
 
-	inline std::unique_ptr<FEngine> gEngine(nullptr);
+	inline TUniquePtr<FEngine> gEngine(nullptr);
 } // Turbo

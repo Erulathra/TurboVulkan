@@ -4,7 +4,7 @@
 
 namespace Turbo
 {
-	std::unique_ptr<IShaderCompiler> gShaderCompiler;
+	TUniquePtr<IShaderCompiler> gShaderCompiler;
 
 	IShaderCompiler& IShaderCompiler::Get()
 	{

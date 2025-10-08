@@ -6,7 +6,7 @@ namespace Turbo
 {
 	void FDestroyQueue::Flush(FGPUDevice& GPUDevice)
 	{
-		for (std::unique_ptr<IDestroyQueue>& destroyQueue : mDestroyQueues | std::views::values)
+		for (TUniquePtr<IDestroyQueue>& destroyQueue : mDestroyQueues | std::views::values)
 		{
 			destroyQueue->Flush(GPUDevice);
 		}

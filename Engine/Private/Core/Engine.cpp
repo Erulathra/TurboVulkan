@@ -9,7 +9,7 @@
 #include "Graphics/GPUDevice.h"
 #include "Graphics/GraphicsLocator.h"
 #include "Services/ImGUIService.h"
-#include "Services/IService.h"
+#include "Services/ILayer.h"
 
 namespace Turbo
 {
@@ -23,7 +23,7 @@ namespace Turbo
 	void FEngine::Init()
 	{
 		TURBO_LOG(LOG_ENGINE, Info, "Creating engine instance.");
-		gEngine = std::unique_ptr<FEngine>(new FEngine());
+		gEngine = TUniquePtr<FEngine>(new FEngine());
 
 		// TODO: Move thread configuration to separate class
 		pthread_setname_np(pthread_self(), "Turbo Engine");
@@ -38,12 +38,12 @@ namespace Turbo
 
 		mEngineState = EEngineState::Initializing;
 
-		mCoreTimer = std::unique_ptr<FCoreTimer>(new FCoreTimer());
+		mCoreTimer = TSharedPtr<FCoreTimer>(new FCoreTimer());
 		mCoreTimer->Init();
 
-		mGpuDevice = std::shared_ptr<FGPUDevice>(new FGPUDevice());
-		mWindow = std::shared_ptr<FWindow>(new FWindow());
-		mInputSystemInstance = std::unique_ptr<FSDLInputSystem>(new FSDLInputSystem());
+		mGpuDevice = TSharedPtr<FGPUDevice>(new FGPUDevice());
+		mWindow = TSharedPtr<FWindow>(new FWindow());
+		mInputSystemInstance = TUniquePtr<FSDLInputSystem>(new FSDLInputSystem());
 
 		mWindow->InitBackend();
 
@@ -59,7 +59,7 @@ namespace Turbo
 		mInputSystemInstance->Init();
 		SetupBasicInputBindings();
 
-		for (const ILayerPtr& layer : *FLayersStack::Get())
+		for (const TSharedPtr<ILayer>& layer : *FLayersStack::Get())
 		{
 			layer->Start();
 		}
@@ -96,7 +96,7 @@ namespace Turbo
 		FLayersStack* layerStack = FLayersStack::Get();
 		{
 			TRACE_ZONE_SCOPED_N("Services: Begin Tick")
-			for (const ILayerPtr& layer : *layerStack)
+			for (const TSharedPtr<ILayer>& layer : *layerStack)
 			{
 				if (layer->ShouldTick())
 				{
@@ -125,7 +125,7 @@ namespace Turbo
 			FCommandBuffer* cmd = gpu->GetCommandBuffer();
 			{
 				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
-				for (const ILayerPtr& layer : *layerStack)
+				for (const TSharedPtr<ILayer>& layer : *layerStack)
 				{
 					if (layer->ShouldRender())
 					{

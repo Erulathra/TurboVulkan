@@ -120,6 +120,6 @@ namespace Turbo
 		const TPoolType* operator->() const { return mPoolPtr.get(); }
 
 	private:
-		std::unique_ptr<TPoolType> mPoolPtr;
+		TUniquePtr<TPoolType> mPoolPtr;
 	};
 } // turbo

@@ -23,7 +23,7 @@ namespace Turbo
 
 		vk::CommandPool mCommandPool = nullptr;
 
-		std::unique_ptr<FCommandBuffer> mCommandBuffer;
+		TUniquePtr<FCommandBuffer> mCommandBuffer;
 		FDescriptorPoolHandle mDescriptorPoolHandle;
 
 		FDestroyQueue mDestroyQueue;
@@ -138,7 +138,7 @@ namespace Turbo
 		void CreateVulkanMemoryAllocator();
 		void CreateFrameDatas();
 		vk::CommandPool CreateCommandPool();
-		std::unique_ptr<FCommandBuffer> CreateCommandBuffer(vk::CommandPool commandPool, FName name = FName());
+		TUniquePtr<FCommandBuffer> CreateCommandBuffer(vk::CommandPool commandPool, FName name = FName());
 
 		void InitializeImmediateCommands();
 
@@ -249,7 +249,7 @@ namespace Turbo
 	private:
 		vk::Fence mImmediateCommandsFence;
 		vk::CommandPool mImmediateCommandsPool;
-		std::unique_ptr<FCommandBuffer> mImmediateCommandsBuffer;
+		TUniquePtr<FCommandBuffer> mImmediateCommandsBuffer;
 
 		/** Immediate commands end */
 

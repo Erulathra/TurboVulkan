@@ -19,10 +19,10 @@ namespace Turbo
 		BUILDER_BODY()
 
 	public:
-		FGPUDeviceBuilder& SetWindow(const std::shared_ptr<FWindow>& window) { mWindow = window; return *this; }
+		FGPUDeviceBuilder& SetWindow(const TSharedPtr<FWindow>& window) { mWindow = window; return *this; }
 
 	private:
-		std::shared_ptr<FWindow> mWindow = nullptr;
+		TSharedPtr<FWindow> mWindow = nullptr;
 	};
 
 	class FBufferBuilder final

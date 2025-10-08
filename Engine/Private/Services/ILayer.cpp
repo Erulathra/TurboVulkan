@@ -1,4 +1,4 @@
-#include "Services/IService.h"
+#include "Services/ILayer.h"
 
 #include "Core/Engine.h"
 
@@ -14,7 +14,7 @@ namespace Turbo
 		return serviceManagerInstance;
 	}
 
-	void FLayersStack::PushLayer_Impl(const ILayerPtr& newLayer)
+	void FLayersStack::PushLayer_Impl(const TSharedPtr<ILayer>& newLayer)
 	{
 		TURBO_CHECK(gEngine->GetEngineState() <= EEngineState::Initializing)
 		TURBO_CHECK(newLayer)
@@ -31,15 +31,15 @@ namespace Turbo
 
 	void FLayersStack::RemoveLayer(FName layerName)
 	{
-		std::erase_if(mLayers, [layerName](const ILayerPtr& layer)
+		std::erase_if(mLayers, [layerName](const TSharedPtr<ILayer>& layer)
 		{
 			return layer->GetName() == layerName;
 		});
 	}
 
-	ILayerPtr FLayersStack::GetLayer(FName layerName)
+	TSharedPtr<ILayer> FLayersStack::GetLayer(FName layerName)
 	{
-		for (const ILayerPtr& layer : mLayers)
+		for (const TSharedPtr<ILayer>& layer : mLayers)
 		{
 			if (layer->GetName() == layerName)
 			{

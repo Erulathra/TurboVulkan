@@ -6,8 +6,8 @@ namespace Turbo {
 	using FNameHashMapType = std::unordered_map<std::string /** name */, FNameId /* id */>;
 	using FNameLookUpTableType = std::vector<std::string>;
 
-	std::unique_ptr<FNameHashMapType> gNameHashMap;
-	std::unique_ptr<FNameLookUpTableType> gNameLookUp;
+	TUniquePtr<FNameHashMapType> gNameHashMap;
+	TUniquePtr<FNameLookUpTableType> gNameLookUp;
 
 	uint32 TryRegisterName(std::string_view name)
 	{

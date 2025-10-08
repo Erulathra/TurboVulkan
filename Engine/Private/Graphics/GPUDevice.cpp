@@ -895,7 +895,7 @@ namespace Turbo
 		return pool;
 	}
 
-	std::unique_ptr<FCommandBuffer> FGPUDevice::CreateCommandBuffer(vk::CommandPool commandPool, FName name)
+	TUniquePtr<FCommandBuffer> FGPUDevice::CreateCommandBuffer(vk::CommandPool commandPool, FName name)
 	{
 		vk::CommandBufferAllocateInfo allocateInfo = {};
 		allocateInfo.setCommandPool(commandPool);
@@ -905,7 +905,7 @@ namespace Turbo
 		std::vector<vk::CommandBuffer> commandBuffers;
 		CHECK_VULKAN_RESULT(commandBuffers, mVkDevice.allocateCommandBuffers(allocateInfo));
 
-		std::unique_ptr<FCommandBuffer> result = std::make_unique<FCommandBuffer>();
+		TUniquePtr<FCommandBuffer> result = std::make_unique<FCommandBuffer>();
 		result->mGpu = this;
 		result->mVkCommandBuffer = commandBuffers.front();
 		result->Reset();

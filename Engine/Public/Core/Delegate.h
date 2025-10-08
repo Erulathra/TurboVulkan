@@ -223,14 +223,14 @@ namespace Turbo
 	public:
 		using DelegateFunction = typename _DelegatesInternal::TMemberFunction<IsConst, T, RetVal, Args..., Args2...>::Type;
 
-		TSPDelegate(std::shared_ptr<T> objectPtr, DelegateFunction functionPtr, Args2&&... payload)
+		TSPDelegate(TSharedPtr<T> objectPtr, DelegateFunction functionPtr, Args2&&... payload)
 			: mObjectPtr(objectPtr),
 			  mFunctionPtr(functionPtr),
 			  mPayload(std::forward<Args2>(payload)...)
 		{
 		}
 
-		TSPDelegate(std::weak_ptr<T> objectPtr, DelegateFunction functionPtr, const std::tuple<Args2...>& payload)
+		TSPDelegate(TWeakPtr<T> objectPtr, DelegateFunction functionPtr, const std::tuple<Args2...>& payload)
 			: mObjectPtr(objectPtr),
 			  mFunctionPtr(functionPtr),
 			  mPayload(payload)
@@ -262,12 +262,12 @@ namespace Turbo
 			}
 			else
 			{
-				std::shared_ptr<T> pPinned = mObjectPtr.lock();
+				TSharedPtr<T> pPinned = mObjectPtr.lock();
 				return (pPinned.get()->*mFunctionPtr)(std::forward<Args>(args)..., std::get<Is>(mPayload)...);
 			}
 		}
 
-		std::weak_ptr<T> mObjectPtr;
+		TWeakPtr<T> mObjectPtr;
 		DelegateFunction mFunctionPtr;
 		std::tuple<Args2...> mPayload;
 	};
@@ -649,7 +649,7 @@ namespace Turbo
 
 		//Create delegate using std::shared_ptr
 		template <typename T, typename... Args2>
-		[[nodiscard]] static TDelegate CreateSP(const std::shared_ptr<T>& pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2... args)
+		[[nodiscard]] static TDelegate CreateSP(const TSharedPtr<T>& pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2... args)
 		{
 			TDelegate handler;
 			handler.Bind<TSPDelegate<false, T, RetVal(Args...), Args2...>>(pObject, pFunction, std::forward<Args2>(args)...);
@@ -657,7 +657,7 @@ namespace Turbo
 		}
 
 		template <typename T, typename... Args2>
-		[[nodiscard]] static TDelegate CreateSP(const std::shared_ptr<T>& pObject, ConstMemberFunction<T, Args2...> pFunction, Args2... args)
+		[[nodiscard]] static TDelegate CreateSP(const TSharedPtr<T>& pObject, ConstMemberFunction<T, Args2...> pFunction, Args2... args)
 		{
 			TDelegate handler;
 			handler.Bind<TSPDelegate<true, T, RetVal(Args...), Args2...>>(pObject, pFunction, std::forward<Args2>(args)...);
@@ -705,13 +705,13 @@ namespace Turbo
 		//Bind a member function with a shared_ptr object
 		template <typename T, typename... Args2>
 			requires (!std::is_const_v<T>)
-		void BindSP(std::shared_ptr<T> pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
+		void BindSP(TSharedPtr<T> pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
 			*this = CreateSP<T, Args2...>(pObject, pFunction, std::forward<Args2>(args)...);
 		}
 
 		template <typename T, typename... Args2>
-		void BindSP(std::shared_ptr<T> pObject, ConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
+		void BindSP(TSharedPtr<T> pObject, ConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
 			*this = CreateSP<T, Args2...>(pObject, pFunction, std::forward<Args2>(args)...);
 		}
@@ -864,13 +864,13 @@ namespace Turbo
 
 		//Bind a member function with a shared_ptr object
 		template <typename T, typename... Args2>
-		FDelegateHandle AddSP(std::shared_ptr<T> pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
+		FDelegateHandle AddSP(TSharedPtr<T> pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
 			return Add(DelegateT::CreateSP(pObject, pFunction, std::forward<Args2>(args)...));
 		}
 
 		template <typename T, typename... Args2>
-		FDelegateHandle AddSP(std::shared_ptr<T> pObject, ConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
+		FDelegateHandle AddSP(TSharedPtr<T> pObject, ConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
 			return Add(DelegateT::CreateSP(pObject, pFunction, std::forward<Args2>(args)...));
 		}

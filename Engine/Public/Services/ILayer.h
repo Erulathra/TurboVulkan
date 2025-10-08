@@ -30,8 +30,7 @@ namespace Turbo
 		/** Interface end */
 	};
 
-	using ILayerPtr = std::shared_ptr<ILayer>;
-	using FLayersCollection = std::vector<ILayerPtr>;
+	using FLayersCollection = std::vector<TSharedPtr<ILayer>>;
 
 	class FLayersStack final
 	{
@@ -48,7 +47,7 @@ namespace Turbo
 		void PopLayer();
 		void RemoveLayer(FName layerName);
 
-		ILayerPtr GetLayer(FName layerName);
+		TSharedPtr<ILayer> GetLayer(FName layerName);
 
 		FLayersCollection::iterator begin() { return mLayers.begin(); };
 		FLayersCollection::iterator end() { return mLayers.end(); };
@@ -57,7 +56,7 @@ namespace Turbo
 		FLayersCollection::reverse_iterator rend() { return mLayers.rend(); };
 
 	private:
-		void PushLayer_Impl(const ILayerPtr& newLayer);
+		void PushLayer_Impl(const TSharedPtr<ILayer>& newLayer);
 
 	private:
 		FLayersCollection mLayers;
