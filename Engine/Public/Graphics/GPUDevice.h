@@ -24,7 +24,7 @@ namespace Turbo
 		vk::CommandPool mCommandPool = nullptr;
 
 		TUniquePtr<FCommandBuffer> mCommandBuffer;
-		FDescriptorPoolHandle mDescriptorPoolHandle;
+		THandle<FDescriptorPool> mDescriptorPoolHandle;
 
 		FDestroyQueue mDestroyQueue;
 
@@ -48,9 +48,9 @@ namespace Turbo
 		bool PresentFrame();
 
 		FCommandBuffer* GetCommandBuffer() { return mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
-		FDescriptorPoolHandle GetDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
+		THandle<FDescriptorPool> GetDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
 
-		FTextureHandle GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
+		THandle<FTexture> GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
 
 		void WaitIdle() const;
 
@@ -60,52 +60,51 @@ namespace Turbo
 
 		/** Resource accessors */
 	public:
-		[[nodiscard]] FBuffer* AccessBuffer(FBufferHandle handle) { return mBufferPool->Access(handle); }
-		[[nodiscard]] FTexture* AccessTexture(FTextureHandle handle) { return mTexturePool->Access(handle); }
-		[[nodiscard]] FSampler* AccessSampler(FSamplerHandle handle) { return mSamplerPool->Access(handle); }
-		[[nodiscard]] FPipeline* AccessPipeline(FPipelineHandle handle) { return mPipelinePool->Access(handle); }
-		[[nodiscard]] FDescriptorPool* AccessDescriptorPool(FDescriptorPoolHandle handle) { return mDescriptorPoolPool->Access(handle); }
-		[[nodiscard]] FDescriptorSetLayout* AccessDescriptorSetLayout(FDescriptorSetLayoutHandle handle) { return mDescriptorSetLayoutPool->Access(handle); }
-		[[nodiscard]] FDescriptorSet* AccessDescriptorSet(FDescriptorSetHandle handle) { return mDescriptorSetPool->Access(handle); }
-		[[nodiscard]] FShaderState* AccessShaderState(FShaderStateHandle handle) { return mShaderStatePool->Access(handle); }
+		[[nodiscard]] FBuffer* AccessBuffer(THandle<FBuffer> handle) { return mBufferPool->Access(handle); }
+		[[nodiscard]] FTexture* AccessTexture(THandle<FTexture> handle) { return mTexturePool->Access(handle); }
+		[[nodiscard]] FSampler* AccessSampler(THandle<FSampler> handle) { return mSamplerPool->Access(handle); }
+		[[nodiscard]] FPipeline* AccessPipeline(THandle<FPipeline> handle) { return mPipelinePool->Access(handle); }
+		[[nodiscard]] FDescriptorPool* AccessDescriptorPool(THandle<FDescriptorPool> handle) { return mDescriptorPoolPool->Access(handle); }
+		[[nodiscard]] FDescriptorSetLayout* AccessDescriptorSetLayout(THandle<FDescriptorSetLayout> handle) { return mDescriptorSetLayoutPool->Access(handle); }
+		[[nodiscard]] FDescriptorSet* AccessDescriptorSet(THandle<FDescriptorSet> handle) { return mDescriptorSetPool->Access(handle); }
+		[[nodiscard]] FShaderState* AccessShaderState(THandle<FShaderState> handle) { return mShaderStatePool->Access(handle); }
 
-		[[nodiscard]] const FBuffer* AccessBuffer(FBufferHandle handle) const { return mBufferPool->Access(handle); }
-		[[nodiscard]] const FTexture* AccessTexture(FTextureHandle handle) const { return mTexturePool->Access(handle); }
-		[[nodiscard]] const FSampler* AccessSampler(FSamplerHandle handle) const { return mSamplerPool->Access(handle); }
-		[[nodiscard]] const FPipeline* AccessPipeline(FPipelineHandle handle) const { return mPipelinePool->Access(handle); }
-		[[nodiscard]] const FDescriptorPool* AccessDescriptorPool(FDescriptorPoolHandle handle) const { return mDescriptorPoolPool->Access(handle); }
-		[[nodiscard]] const FDescriptorSetLayout* AccessDescriptorSetLayout(FDescriptorSetLayoutHandle handle) const { return mDescriptorSetLayoutPool->Access(handle); }
-		[[nodiscard]] const FDescriptorSet* AccessDescriptorSet(FDescriptorSetHandle handle) const { return mDescriptorSetPool->Access(handle); }
-		[[nodiscard]] const FShaderState* AccessShaderState(FShaderStateHandle handle) const { return mShaderStatePool->Access(handle); }
+		[[nodiscard]] const FBuffer* AccessBuffer(THandle<FBuffer> handle) const { return mBufferPool->Access(handle); }
+		[[nodiscard]] const FTexture* AccessTexture(THandle<FTexture> handle) const { return mTexturePool->Access(handle); }
+		[[nodiscard]] const FSampler* AccessSampler(THandle<FSampler> handle) const { return mSamplerPool->Access(handle); }
+		[[nodiscard]] const FPipeline* AccessPipeline(THandle<FPipeline> handle) const { return mPipelinePool->Access(handle); }
+		[[nodiscard]] const FDescriptorPool* AccessDescriptorPool(THandle<FDescriptorPool> handle) const { return mDescriptorPoolPool->Access(handle); }
+		[[nodiscard]] const FDescriptorSetLayout* AccessDescriptorSetLayout(THandle<FDescriptorSetLayout> handle) const { return mDescriptorSetLayoutPool->Access(handle); }
+		[[nodiscard]] const FDescriptorSet* AccessDescriptorSet(THandle<FDescriptorSet> handle) const { return mDescriptorSetPool->Access(handle); }
+		[[nodiscard]] const FShaderState* AccessShaderState(THandle<FShaderState> handle) const { return mShaderStatePool->Access(handle); }
 
 		/** Resource accessors end */
 
 		/** Resource creation */
 	public:
-		FBufferHandle CreateBuffer(const FBufferBuilder& builder, FCommandBuffer* commandBuffer = nullptr);
-		FTextureHandle CreateTexture(const FTextureBuilder& builder);
-		// FSamplerHandle CreateSampler();
-		FPipelineHandle CreatePipeline(const FPipelineBuilder& builder);
-		FDescriptorPoolHandle CreateDescriptorPool(const FDescriptorPoolBuilder& builder);
-		FDescriptorSetLayoutHandle CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder);
-		FDescriptorSetHandle CreateDescriptorSet(const FDescriptorSetBuilder& builder);
-		FShaderStateHandle CreateShaderState(const FShaderStateBuilder& builder);
+		THandle<FBuffer> CreateBuffer(const FBufferBuilder& builder, FCommandBuffer* commandBuffer = nullptr);
+		THandle<FTexture> CreateTexture(const FTextureBuilder& builder);
+		THandle<FPipeline> CreatePipeline(const FPipelineBuilder& builder);
+		THandle<FDescriptorPool> CreateDescriptorPool(const FDescriptorPoolBuilder& builder);
+		THandle<FDescriptorSetLayout> CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder);
+		THandle<FDescriptorSet> CreateDescriptorSet(const FDescriptorSetBuilder& builder);
+		THandle<FShaderState> CreateShaderState(const FShaderStateBuilder& builder);
 
 		/** Resource creation end */
 
 		/** Other resource related methods */
 	public:
-		void ResetDescriptorPool(FDescriptorPoolHandle descriptorPoolHandle);
+		void ResetDescriptorPool(THandle<FDescriptorPool> descriptorPoolHandle);
 		/** Other resource related methods end */
 
 		/** Resource destroy */
 	public:
-		void DestroyBuffer(FBufferHandle handle);
-		void DestroyTexture(FTextureHandle handle);
-		void DestroyPipeline(FPipelineHandle handle);
-		void DestroyDescriptorPool(FDescriptorPoolHandle handle);
-		void DestroyDescriptorSetLayout(FDescriptorSetLayoutHandle handle);
-		void DestroyShaderState(FShaderStateHandle handle);
+		void DestroyBuffer(THandle<FBuffer> handle);
+		void DestroyTexture(THandle<FTexture> handle);
+		void DestroyPipeline(THandle<FPipeline> handle);
+		void DestroyDescriptorPool(THandle<FDescriptorPool> handle);
+		void DestroyDescriptorSetLayout(THandle<FDescriptorSetLayout> handle);
+		void DestroyShaderState(THandle<FShaderState> handle);
 
 		/** Resource destroy end */
 
@@ -164,7 +163,7 @@ namespace Turbo
 
 		/** Creation helpers */
 	private:
-		void InitVulkanTexture(const FTextureBuilder& builder, FTextureHandle handle, FTexture* texture);
+		void InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture);
 
 		/** Creation helpers end */
 
@@ -186,14 +185,14 @@ namespace Turbo
 
 	private:
 		/** Resource pools */
-		TResourcePoolHeap<FBuffer, FBufferHandle, 4096> mBufferPool;
-		TResourcePoolHeap<FTexture, FTextureHandle, 512> mTexturePool;
-		TResourcePoolHeap<FSampler, FSamplerHandle, 32> mSamplerPool;
-		TResourcePoolHeap<FPipeline, FPipelineHandle, 128> mPipelinePool;
-		TResourcePoolHeap<FDescriptorSetLayout, FDescriptorSetLayoutHandle, 128> mDescriptorSetLayoutPool;
-		TResourcePoolHeap<FDescriptorPool, FDescriptorPoolHandle, 16> mDescriptorPoolPool;
-		TResourcePoolHeap<FDescriptorSet, FDescriptorSetHandle, 256> mDescriptorSetPool;
-		TResourcePoolHeap<FShaderState, FShaderStateHandle, 128> mShaderStatePool;
+		TResourcePoolHeap<FBuffer, 4096> mBufferPool;
+		TResourcePoolHeap<FTexture, 512> mTexturePool;
+		TResourcePoolHeap<FSampler, 32> mSamplerPool;
+		TResourcePoolHeap<FPipeline, 128> mPipelinePool;
+		TResourcePoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
+		TResourcePoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;
+		TResourcePoolHeap<FDescriptorSet, 256> mDescriptorSetPool;
+		TResourcePoolHeap<FShaderState, 128> mShaderStatePool;
 
 		/** Resource pools end */
 
@@ -221,7 +220,7 @@ namespace Turbo
 		vk::SurfaceFormatKHR mVkSurfaceFormat = {};
 		vk::PresentModeKHR mPresentMode = {};
 
-		std::array<FTextureHandle, kMaxSwapChainImages> mSwapChainTextures;
+		std::array<THandle<FTexture>, kMaxSwapChainImages> mSwapChainTextures;
 		std::array<vk::Semaphore, kMaxSwapChainImages> mSubmitSemaphores;
 
 		uint32 mNumSwapChainImages = 0;

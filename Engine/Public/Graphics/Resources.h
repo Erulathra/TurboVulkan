@@ -18,19 +18,6 @@
 namespace Turbo
 {
 
-	/** Handles */
-
-	DECLARE_RESOURCE_HANDLE(Buffer)
-	DECLARE_RESOURCE_HANDLE(Texture)
-	DECLARE_RESOURCE_HANDLE(ShaderState)
-	DECLARE_RESOURCE_HANDLE(Sampler)
-	DECLARE_RESOURCE_HANDLE(DescriptorSetLayout)
-	DECLARE_RESOURCE_HANDLE(DescriptorPool)
-	DECLARE_RESOURCE_HANDLE(DescriptorSet)
-	DECLARE_RESOURCE_HANDLE(Pipeline)
-
-	/** Handles end */
-
 	/** Vulkan object abstractions */
 
 	class FBuffer final
@@ -50,7 +37,7 @@ namespace Turbo
 
 		void* mMappedAddress = nullptr;
 
-		FBufferHandle mHandle = {};
+		THandle<FBuffer> mHandle = {};
 
 		FName mName;
 	};
@@ -64,7 +51,7 @@ namespace Turbo
 	private:
 		vk::Buffer mVkBuffer = nullptr;
 		vma::Allocation mAllocation = nullptr;
-		FBufferHandle mHandle;
+		THandle<FBuffer> mHandle;
 	};
 
 	class FSampler final
@@ -105,7 +92,7 @@ namespace Turbo
 		uint16 mDepth = 1;
 		uint8 mNumMips = 1;
 
-		FTextureHandle mHandle = {};
+		THandle<FTexture> mHandle = {};
 
 		FName mName;
 	};
@@ -120,7 +107,7 @@ namespace Turbo
 		vk::Image mImage = nullptr;
 		vk::ImageView mImageView = nullptr;
 		vma::Allocation mImageAllocation = nullptr;
-		FTextureHandle mHandle = {};
+		THandle<FTexture> mHandle = {};
 	};
 
 	class FShaderState final
@@ -147,7 +134,7 @@ namespace Turbo
 		std::array<vk::ShaderModule, kMaxShaderStages> mModules;
 		uint32 mNumActiveShaders = 0;
 
-		FShaderStateHandle mHandle;
+		THandle<FShaderState> mHandle;
 	};
 
 	struct FBinding
@@ -170,20 +157,10 @@ namespace Turbo
 		uint16 mNumBindings = 0;
 		uint16 mSetIndex = 0;
 
-		FDescriptorSetLayoutHandle mHandle = {};
+		THandle<FDescriptorSetLayout> mHandle = {};
 	};
 
-	class FDescriptorSetLayoutDestroyer final : public IDestroyer
-	{
-		DESTROYER_BODY()
-
-	public:
-		virtual void Destroy(FGPUDevice& GPUDevice) override;
-
-	private:
-		vk::DescriptorSetLayout mLayout = nullptr;
-		FDescriptorSetLayoutHandle mHandle = {};
-	};
+	class FDescriptorPool;
 
 	class FDescriptorSet final
 	{
@@ -192,7 +169,7 @@ namespace Turbo
 	private:
 		vk::DescriptorSet mVkDescriptorSet = nullptr;
 
-		FDescriptorPoolHandle mOwnerPool = {};
+		THandle<FDescriptorPool> mOwnerPool = {};
 	};
 
 	class FDescriptorPool final
@@ -204,9 +181,21 @@ namespace Turbo
 
 	private:
 		vk::DescriptorPool mDescriptorPool;
-		std::vector<FDescriptorSetHandle> mDescriptorSets;
+		std::vector<THandle<FDescriptorSet>> mDescriptorSets;
 
 		FName mName;
+	};
+
+	class FDescriptorSetLayoutDestroyer final : public IDestroyer
+	{
+		DESTROYER_BODY()
+
+	public:
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	private:
+		vk::DescriptorSetLayout mLayout = nullptr;
+		THandle<FDescriptorSetLayout> mHandle = {};
 	};
 
 	class FDescriptorPoolDestroyer final : public IDestroyer
@@ -218,7 +207,7 @@ namespace Turbo
 
 	private:
 		vk::DescriptorPool mDescriptorPool;
-		FDescriptorPoolHandle mhandle;
+		THandle<FDescriptorPool> mhandle;
 	};
 
 	class FPipeline final
@@ -231,9 +220,9 @@ namespace Turbo
 
 		vk::PipelineBindPoint mVkBindPoint = {};
 
-		FShaderStateHandle mShaderState = {};
+		THandle<FShaderState> mShaderState = {};
 
-		std::array<FDescriptorSetLayoutHandle, kMaxDescriptorSetLayouts> mDescriptorLayoutsHandles;
+		std::array<THandle<FDescriptorSetLayout>, kMaxDescriptorSetLayouts> mDescriptorLayoutsHandles;
 		uint32 mNumActiveLayouts = 0;
 
 #if 0
@@ -242,7 +231,7 @@ namespace Turbo
 		FRasterizationBuilder mRasterization;
 #endif
 
-		FPipelineHandle mHandle = {};
+		THandle<FPipeline> mHandle = {};
 		bool mbGraphicsPipeline = true;
 	};
 
@@ -256,7 +245,7 @@ namespace Turbo
 	private:
 		vk::Pipeline mPipeline = nullptr;
 		vk::PipelineLayout mLayout = nullptr;
-		FPipelineHandle mHandle = {};
+		THandle<FPipeline> mHandle = {};
 	};
 
 	/** Vulkan object abstractions end */

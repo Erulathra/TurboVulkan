@@ -22,18 +22,18 @@ namespace Turbo
 
 		void Resize(const glm::ivec2& newResolution);
 
-		void BlitResultToTexture(FCommandBuffer* cmd, FTextureHandle swapChainTexture);
+		void BlitResultToTexture(FCommandBuffer* cmd, THandle<FTexture> swapChainTexture);
 
 	public:
-		[[nodiscard]] FTextureHandle GetColor() const { return mColor; }
-		[[nodiscard]] FTextureHandle GetDepth() const { return mDepth; }
+		[[nodiscard]] THandle<FTexture> GetColor() const { return mColor; }
+		[[nodiscard]] THandle<FTexture> GetDepth() const { return mDepth; }
 		[[nodiscard]] const glm::ivec2& GetResolution() const { return mResolution; }
 
 	private:
 		FGPUDevice* mGpu = nullptr;
 
-		FTextureHandle mColor = {};
-		FTextureHandle mDepth = {};
+		THandle<FTexture> mColor = {};
+		THandle<FTexture> mDepth = {};
 
 		glm::ivec2 mResolution = {};
 	};

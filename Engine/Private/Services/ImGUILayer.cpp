@@ -97,7 +97,7 @@ namespace Turbo
 		ImGui::Render();
 	}
 
-	void FImGuiLayer::BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, FTextureHandle PresentImage)
+	void FImGuiLayer::BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> PresentImage)
 	{
 		FRenderingAttachments renderingAttachments;
 		renderingAttachments.AddColorAttachment(PresentImage);

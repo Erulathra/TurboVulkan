@@ -20,7 +20,7 @@ namespace Turbo
 		virtual void EndTick_GameThread(float deltaTime) {};
 
 		virtual void PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) {};
-		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, FTextureHandle presentImage) {};
+		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> presentImage) {};
 
 		virtual bool ShouldTick() { return false; };
 		virtual bool ShouldRender() { return false; };

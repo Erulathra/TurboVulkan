@@ -49,7 +49,7 @@ namespace Turbo
 		Init(newResolution);
 	}
 
-	void FGeometryBuffer::BlitResultToTexture(FCommandBuffer* cmd, FTextureHandle presentTextureHandle)
+	void FGeometryBuffer::BlitResultToTexture(FCommandBuffer* cmd, THandle<FTexture> presentTextureHandle)
 	{
 		FTexture* presentTexture = mGpu->AccessTexture(presentTextureHandle);
 		TURBO_CHECK(presentTexture)

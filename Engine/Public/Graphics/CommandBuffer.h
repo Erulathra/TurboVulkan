@@ -11,21 +11,18 @@ namespace Turbo
 {
 	class FGPUDevice;
 
-	DECLARE_RESOURCE_HANDLE(CommandBuffer)
-
-
 	struct FRenderingAttachments final
 	{
 	public:
 		FRenderingAttachments& Reset();
 
-		FRenderingAttachments& AddColorAttachment(FTextureHandle textureHandle);
-		FRenderingAttachments& SetDepthAttachment(FTextureHandle textureHandle);
+		FRenderingAttachments& AddColorAttachment(THandle<FTexture> textureHandle);
+		FRenderingAttachments& SetDepthAttachment(THandle<FTexture> textureHandle);
 
 	private:
 		uint32 mNumColorAttachments = 0;
-		std::array<FTextureHandle, 8> mColorAttachments = {};
-		FTextureHandle mDepthAttachment = {};
+		std::array<THandle<FTexture>, 8> mColorAttachments = {};
+		THandle<FTexture> mDepthAttachment = {};
 
 	public:
 		friend class FCommandBuffer;
@@ -34,17 +31,17 @@ namespace Turbo
 	class FCommandBuffer
 	{
 	public:
-		void TransitionImage(FTextureHandle textureHandle, vk::ImageLayout newLayout);
-		void BufferBarrier(FBufferHandle bufferHandle, vk::AccessFlags2 srcAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 dstStageMask);
+		void TransitionImage(THandle<FTexture> textureHandle, vk::ImageLayout newLayout);
+		void BufferBarrier(THandle<FBuffer> bufferHandle, vk::AccessFlags2 srcAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 dstStageMask);
 
-		void ClearImage(FTextureHandle textureHandle, glm::vec4 color = ELinearColor::kBlack);
-		void BlitImage(FTextureHandle src, FRect2DInt srcRect, FTextureHandle dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
+		void ClearImage(THandle<FTexture> textureHandle, glm::vec4 color = ELinearColor::kBlack);
+		void BlitImage(THandle<FTexture> src, FRect2DInt srcRect, THandle<FTexture> dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
 
-		void CopyBuffer(FBufferHandle src, FBufferHandle dst, vk::DeviceSize size);
+		void CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, vk::DeviceSize size);
 
-		void BindDescriptorSet(FDescriptorSetHandle descriptorSetHandle, uint32 setIndex);
+		void BindDescriptorSet(THandle<FDescriptorSet> descriptorSetHandle, uint32 setIndex);
 
-		void BindPipeline(FPipelineHandle pipelineHandle);
+		void BindPipeline(THandle<FPipeline> pipelineHandle);
 		void Dispatch(const glm::ivec3& groupCount);
 
 		void BeginRendering(const FRenderingAttachments& renderingAttachments);
@@ -75,8 +72,8 @@ namespace Turbo
 		FGPUDevice* mGpu;
 		vk::CommandBuffer mVkCommandBuffer = nullptr;
 
-		std::array<FDescriptorSetHandle, kMaxDescriptorSets> mBoundDescriptorSets;
-		FPipelineHandle mCurrentPipeline = {};
+		std::array<THandle<FDescriptorSet>, kMaxDescriptorSets> mBoundDescriptorSets;
+		THandle<FPipeline> mCurrentPipeline = {};
 
 		bool mbRecording = false;
 

@@ -19,7 +19,7 @@ namespace Turbo
 
 		virtual void BeginTick_GameThread(float deltaTime) override;
 		virtual void EndTick_GameThread(float deltaTime) override;
-		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, FTextureHandle PresentImage) override;
+		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> PresentImage) override;
 
 		virtual bool ShouldTick() override { return true; }
 		virtual bool ShouldRender() override { return true; }

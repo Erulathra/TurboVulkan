@@ -22,12 +22,12 @@ public:
 	/** IService Interface end */
 
 private:
-	Turbo::FPipelineHandle mComputePipeline;
-	Turbo::FDescriptorSetLayoutHandle mComputeSetLayout;
-	Turbo::FBufferHandle mComputeUniformBufferHandle;
+	Turbo::THandle<Turbo::FPipeline> mComputePipeline;
+	Turbo::THandle<Turbo::FDescriptorSetLayout> mComputeSetLayout;
+	Turbo::THandle<Turbo::FBuffer> mComputeUniformBufferHandle;
 
-	Turbo::FPipelineHandle mGraphicsPipeline;
-	Turbo::FDescriptorSetLayoutHandle mGraphicsPipelineSetLayout;
-	Turbo::FBufferHandle mMeshVertices;
-	Turbo::FBufferHandle mMeshIndices;
+	Turbo::THandle<Turbo::FPipeline> mGraphicsPipeline;
+	Turbo::THandle<Turbo::FDescriptorSetLayout> mGraphicsPipelineSetLayout;
+	Turbo::THandle<Turbo::FBuffer> mMeshVertices;
+	Turbo::THandle<Turbo::FBuffer> mMeshIndices;
 };

@@ -160,10 +160,10 @@ namespace Turbo
 
 	public:
 		FDescriptorSetBuilder& Reset() { mNumResources = 0; return *this; }
-		FDescriptorSetBuilder& SetLayout(FDescriptorSetLayoutHandle layout) { mLayout = layout; return *this; }
-		FDescriptorSetBuilder& SetDescriptorPool(FDescriptorPoolHandle descriptorPool) { mDescriptorPool = descriptorPool; return *this; }
+		FDescriptorSetBuilder& SetLayout(THandle<FDescriptorSetLayout> layout) { mLayout = layout; return *this; }
+		FDescriptorSetBuilder& SetDescriptorPool(THandle<FDescriptorPool> descriptorPool) { mDescriptorPool = descriptorPool; return *this; }
 
-		FDescriptorSetBuilder& SetTexture(FTextureHandle texture, uint16 binding)
+		FDescriptorSetBuilder& SetTexture(THandle<FTexture> texture, uint16 binding)
 		{
 			mBindings[mNumResources] = binding;
 			mResources[mNumResources] = texture.Index;
@@ -173,7 +173,7 @@ namespace Turbo
 			return *this;
 		}
 
-		FDescriptorSetBuilder& SetBuffer(FBufferHandle buffer, uint16 binding)
+		FDescriptorSetBuilder& SetBuffer(THandle<FBuffer> buffer, uint16 binding)
 		{
 			mBindings[mNumResources] = binding;
 			mResources[mNumResources] = buffer.Index;
@@ -183,7 +183,7 @@ namespace Turbo
 			return *this;
 		}
 
-		FDescriptorSetBuilder& SetSampler(FSamplerHandle sampler, uint16 binding)
+		FDescriptorSetBuilder& SetSampler(THandle<FSampler> sampler, uint16 binding)
 		{
 			mBindings[mNumResources] = binding;
 			mResources[mNumResources] = sampler.Index;
@@ -199,8 +199,8 @@ namespace Turbo
 		std::array<FResourceHandle, kMaxDescriptorsPerSet> mResources;
 		std::array<uint16, kMaxDescriptorsPerSet> mBindings;
 
-		FDescriptorSetLayoutHandle mLayout = {};
-		FDescriptorPoolHandle mDescriptorPool = {};
+		THandle<FDescriptorSetLayout> mLayout = {};
+		THandle<FDescriptorPool> mDescriptorPool = {};
 		uint32 mNumResources = 0;
 
 		FName mName;
@@ -414,7 +414,7 @@ namespace Turbo
 		FShaderStateBuilder& GetShaderState() { return mShaderStateBuilder; }
 		FPipelineRenderingBuilder& GetPipelineRendering() { return mPipelineRenderingBuilder; }
 
-		FPipelineBuilder& AddDescriptorSetLayout(FDescriptorSetLayoutHandle handle)
+		FPipelineBuilder& AddDescriptorSetLayout(THandle<FDescriptorSetLayout> handle)
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
 
 		template <typename pushConstantType> requires (sizeof(pushConstantType) < kMaxPushConstantSize)
@@ -430,7 +430,7 @@ namespace Turbo
 		FShaderStateBuilder mShaderStateBuilder;
 		FPipelineRenderingBuilder mPipelineRenderingBuilder;
 
-		std::array<FDescriptorSetLayoutHandle, kMaxDescriptorSetLayouts> mDescriptorSetLayouts;
+		std::array<THandle<FDescriptorSetLayout>, kMaxDescriptorSetLayouts> mDescriptorSetLayouts;
 		uint32 mNumActiveLayouts = 0;
 
 		uint32 mPushConstantSize = 0;

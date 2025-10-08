@@ -1,25 +1,16 @@
 #pragma once
 
-#define DECLARE_RESOURCE_HANDLE(RESOURCE_NAME)									\
-	struct F##RESOURCE_NAME##Handle final : public FTypeSafeResourceHandleBase	\
-	{																			\
-		F##RESOURCE_NAME##Handle() = default;									\
-		explicit F##RESOURCE_NAME##Handle(FResourceHandle index)				\
-			: FTypeSafeResourceHandleBase(index) { }							\
-	};
-
 namespace Turbo
 {
 	using FPoolIndexType = uint32;
 	using FResourceHandle = FPoolIndexType;
 	inline constexpr FResourceHandle kInvalidHandle = std::numeric_limits<uint32>::max();
 
-	struct FTypeSafeResourceHandleBase
+	template <typename ObjectType>
+	struct THandle final
 	{
-		FTypeSafeResourceHandleBase() = default;
-		explicit FTypeSafeResourceHandleBase(FResourceHandle index) : Index(index) { }
-
 		FResourceHandle Index = kInvalidHandle;
+
 		[[nodiscard]] bool IsValid() const { return Index != kInvalidHandle; }
 		void Reset() { Index = kInvalidHandle; }
 
@@ -27,9 +18,8 @@ namespace Turbo
 		bool operator!() const { return !IsValid(); }
 	};
 
-	template<typename T, typename THandle , uint32 size>
-		requires std::is_base_of_v<FTypeSafeResourceHandleBase, THandle>
-			  && (size < kInvalidHandle)
+	template<typename T, uint32 size>
+		requires (size < kInvalidHandle)
 	class TResourcePool
 	{
 	public:
@@ -50,11 +40,11 @@ namespace Turbo
 			}
 		}
 
-		THandle Acquire()
+		THandle<T> Acquire()
 		{
 			TURBO_CHECK_MSG(mFreeIndicesHead < size, "No more resources left!")
 
-			THandle NewHandle {};
+			THandle<T> NewHandle {};
 			NewHandle.Index = mFreeIndices[mFreeIndicesHead];
 
 			++mFreeIndicesHead;
@@ -63,7 +53,7 @@ namespace Turbo
 			return NewHandle;
 		}
 
-		void Release(THandle handle)
+		void Release(THandle<T> handle)
 		{
 			TURBO_CHECK(mUsedIndices > 0)
 
@@ -78,7 +68,7 @@ namespace Turbo
 			mFreeIndices[mFreeIndicesHead] = handle.Index;
 		}
 
-		T* Access(THandle handle)
+		T* Access(THandle<T> handle)
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
@@ -90,7 +80,7 @@ namespace Turbo
 			return nullptr;
 		}
 
-		const T* Access(THandle handle) const
+		const T* Access(THandle<T> handle) const
 		{
 			if (handle.IsValid() && handle.Index < mData.size())
 			{
@@ -108,14 +98,13 @@ namespace Turbo
 		FPoolIndexType mUsedIndices = 0;
 	};
 
-	template<typename T, typename THandle , uint32 size>
-		requires std::is_base_of_v<FTypeSafeResourceHandleBase, THandle>
-			  && (size < kInvalidHandle)
+	template<typename T, uint32 size>
+		requires (size < kInvalidHandle)
 	class TResourcePoolHeap
 	{
-		using TPoolType = TResourcePool<T, THandle, size>;
+		using TPoolType = TResourcePool<T, size>;
 	public:
-		TResourcePoolHeap() { mPoolPtr = std::make_unique<TPoolType>(); }
+		TResourcePoolHeap() { mPoolPtr = MakeUnique<TPoolType>(); }
 		TPoolType* operator->() { return mPoolPtr.get(); }
 		const TPoolType* operator->() const { return mPoolPtr.get(); }
 

@@ -135,7 +135,7 @@ void FRenderingTestLayer::BeginTick_GameThread(float deltaTime)
 
 void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd)
 {
-	const FDescriptorPoolHandle descriptorPool = gpu->GetDescriptorPool();
+	const THandle<FDescriptorPool> descriptorPool = gpu->GetDescriptorPool();
 	const FGeometryBuffer& geometryBuffer = FGraphicsLocator::GetGeometryBuffer();
 
 	FBuffer* uniformBuffer = gpu->AccessBuffer(mComputeUniformBufferHandle);
@@ -144,7 +144,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 
 	std::memcpy(mappedAddress, &uniformBufferData, sizeof(FParametersBuffer));
 
-	const FTextureHandle drawImageHandle = geometryBuffer.GetColor();
+	const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
 
 	const static FName descriptorSetName("ComputeSet");
 	FDescriptorSetBuilder computeDescriptorSetBuilder;
@@ -155,7 +155,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 		.SetBuffer(mComputeUniformBufferHandle, 1)
 		.SetName(descriptorSetName);
 
-	const FDescriptorSetHandle computeDescriptorSet = gpu->CreateDescriptorSet(computeDescriptorSetBuilder);
+	const THandle<FDescriptorSet> computeDescriptorSet = gpu->CreateDescriptorSet(computeDescriptorSetBuilder);
 
 	cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eGeneral);
 	cmd->BindPipeline(mComputePipeline);
@@ -181,7 +181,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 		.SetBuffer(mMeshIndices, 1)
 		.SetName(graphicsDescriptorSetName);
 
-	const FDescriptorSetHandle graphicsDescriptorSet = gpu->CreateDescriptorSet(graphicsDescriptorSetBuilder);
+	const THandle<FDescriptorSet> graphicsDescriptorSet = gpu->CreateDescriptorSet(graphicsDescriptorSetBuilder);
 
 	FRenderingAttachments renderingAttachments;
 	renderingAttachments.AddColorAttachment(drawImageHandle);

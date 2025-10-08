@@ -52,11 +52,11 @@ namespace Turbo
 		mImmediateCommandsBuffer = CreateCommandBuffer(mImmediateCommandsPool, immediateCommandBuffer);
 	}
 
-	FBufferHandle FGPUDevice::CreateBuffer(const FBufferBuilder& builder, FCommandBuffer* commandBuffer)
+	THandle<FBuffer> FGPUDevice::CreateBuffer(const FBufferBuilder& builder, FCommandBuffer* commandBuffer)
 	{
 		TRACE_ZONE_SCOPED()
 
-		const FBufferHandle handle = mBufferPool->Acquire();
+		const THandle<FBuffer> handle = mBufferPool->Acquire();
 		TURBO_CHECK(handle)
 
 		FBuffer* buffer = AccessBuffer(handle);
@@ -130,7 +130,7 @@ namespace Turbo
 					stagingBufferBuilder.Init(vk::BufferUsageFlagBits::eTransferSrc, EBufferFlags::CreateMapped, builder.mSize);
 					stagingBufferBuilder.SetName(kStagingBufferName);
 					stagingBufferBuilder.SetData(builder.mInitialData);
-					const FBufferHandle stagingBuffer = CreateBuffer(stagingBufferBuilder, &cmd);
+					const THandle<FBuffer> stagingBuffer = CreateBuffer(stagingBufferBuilder, &cmd);
 
 					cmd.CopyBuffer(stagingBuffer, handle, builder.mSize);
 					DestroyBuffer(stagingBuffer);
@@ -144,11 +144,11 @@ namespace Turbo
 		return handle;
 	}
 
-	FTextureHandle FGPUDevice::CreateTexture(const FTextureBuilder& builder)
+	THandle<FTexture> FGPUDevice::CreateTexture(const FTextureBuilder& builder)
 	{
 		TRACE_ZONE_SCOPED()
 
-		const FTextureHandle handle = mTexturePool->Acquire();
+		const THandle<FTexture> handle = mTexturePool->Acquire();
 		TURBO_CHECK(handle)
 
 		FTexture* texture = AccessTexture(handle);
@@ -162,17 +162,17 @@ namespace Turbo
 		return handle;
 	}
 
-	FPipelineHandle FGPUDevice::CreatePipeline(const FPipelineBuilder& builder)
+	THandle<FPipeline> FGPUDevice::CreatePipeline(const FPipelineBuilder& builder)
 	{
 		TRACE_ZONE_SCOPED()
 
-		FPipelineHandle handle = mPipelinePool->Acquire();
+		THandle<FPipeline> handle = mPipelinePool->Acquire();
 		TURBO_CHECK(handle)
 
 		FPipeline* pipeline = mPipelinePool->Access(handle);
 		TURBO_CHECK(pipeline)
 
-		FShaderStateHandle shaderStateHandle = CreateShaderState(builder.mShaderStateBuilder);
+		THandle<FShaderState> shaderStateHandle = CreateShaderState(builder.mShaderStateBuilder);
 		TURBO_CHECK(shaderStateHandle)
 
 		FShaderState* shaderState = AccessShaderState(shaderStateHandle);
@@ -185,7 +185,7 @@ namespace Turbo
 		std::array<vk::DescriptorSetLayout, kMaxDescriptorSetLayouts> vkLayouts;
 		for (uint32 layoutId = 0; layoutId < builder.mNumActiveLayouts; ++layoutId)
 		{
-			const FDescriptorSetLayoutHandle setLayoutHandle = builder.mDescriptorSetLayouts[layoutId];
+			const THandle<FDescriptorSetLayout> setLayoutHandle = builder.mDescriptorSetLayouts[layoutId];
 			pipeline->mDescriptorLayoutsHandles[layoutId] = setLayoutHandle;
 			const FDescriptorSetLayout* setLayout = mDescriptorSetLayoutPool->Access(setLayoutHandle);
 			vkLayouts[layoutId] = setLayout->mLayout;
@@ -342,11 +342,11 @@ namespace Turbo
 		return handle;
 	}
 
-	FDescriptorPoolHandle FGPUDevice::CreateDescriptorPool(const FDescriptorPoolBuilder& builder)
+	THandle<FDescriptorPool> FGPUDevice::CreateDescriptorPool(const FDescriptorPoolBuilder& builder)
 	{
 		TRACE_ZONE_SCOPED()
 
-		FDescriptorPoolHandle handle = mDescriptorPoolPool->Acquire();
+		THandle<FDescriptorPool> handle = mDescriptorPoolPool->Acquire();
 		TURBO_CHECK(handle)
 
 		FDescriptorPool* pool = mDescriptorPoolPool->Access(handle);
@@ -370,11 +370,11 @@ namespace Turbo
 		return handle;
 	}
 
-	FDescriptorSetLayoutHandle FGPUDevice::CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder)
+	THandle<FDescriptorSetLayout> FGPUDevice::CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder)
 	{
 		TRACE_ZONE_SCOPED()
 
-		FDescriptorSetLayoutHandle handle = mDescriptorSetLayoutPool->Acquire();
+		THandle<FDescriptorSetLayout> handle = mDescriptorSetLayoutPool->Acquire();
 		TURBO_CHECK(handle)
 
 		FDescriptorSetLayout* layout = mDescriptorSetLayoutPool->Access(handle);
@@ -405,9 +405,9 @@ namespace Turbo
 		return handle;
 	}
 
-	FDescriptorSetHandle FGPUDevice::CreateDescriptorSet(const FDescriptorSetBuilder& builder)
+	THandle<FDescriptorSet> FGPUDevice::CreateDescriptorSet(const FDescriptorSetBuilder& builder)
 	{
-		FDescriptorSetHandle handle = mDescriptorSetPool->Acquire();
+		THandle<FDescriptorSet> handle = mDescriptorSetPool->Acquire();
 		TURBO_CHECK(handle);
 
 		FDescriptorSet* set = mDescriptorSetPool->Access(handle);
@@ -453,7 +453,7 @@ namespace Turbo
 			case vk::DescriptorType::eSampledImage:
 			case vk::DescriptorType::eStorageImage:
 				{
-					const FTexture* texture = AccessTexture(FTextureHandle(resource));
+					const FTexture* texture = AccessTexture(THandle<FTexture>(resource));
 
 					vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
 					imageInfo.imageView = texture->mImageView;
@@ -475,7 +475,7 @@ namespace Turbo
 				}
 			case vk::DescriptorType::eSampler:
 				{
-					const FSampler* sampler = mSamplerPool->Access(FSamplerHandle(resource));
+					const FSampler* sampler = mSamplerPool->Access(THandle<FSampler>(resource));
 
 					vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
 					imageInfo.sampler = sampler->mVkSampler;
@@ -486,7 +486,7 @@ namespace Turbo
 			case vk::DescriptorType::eStorageBuffer:
 			case vk::DescriptorType::eUniformBuffer:
 				{
-					const FBuffer* buffer = mBufferPool->Access(FBufferHandle(resource));
+					const FBuffer* buffer = mBufferPool->Access(THandle<FBuffer>(resource));
 
 					vk::DescriptorBufferInfo& bufferInfo = bufferInfos.emplace_back();
 					bufferInfo.buffer = buffer->mVkBuffer;
@@ -507,11 +507,11 @@ namespace Turbo
 		return handle;
 	}
 
-	FShaderStateHandle FGPUDevice::CreateShaderState(const FShaderStateBuilder& builder)
+	THandle<FShaderState> FGPUDevice::CreateShaderState(const FShaderStateBuilder& builder)
 	{
 		TRACE_ZONE_SCOPED()
 
-		FShaderStateHandle handle = {};
+		THandle<FShaderState> handle = {};
 
 		if (builder.mStagesCount == 0)
 		{
@@ -564,7 +564,7 @@ namespace Turbo
 		return handle;
 	}
 
-	void FGPUDevice::ResetDescriptorPool(FDescriptorPoolHandle descriptorPoolHandle)
+	void FGPUDevice::ResetDescriptorPool(THandle<FDescriptorPool> descriptorPoolHandle)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -573,7 +573,7 @@ namespace Turbo
 
 		mVkDevice.resetDescriptorPool(descriptorPool->mDescriptorPool);
 
-		for (const FDescriptorSetHandle& descriptorSet : descriptorPool->mDescriptorSets)
+		for (const THandle<FDescriptorSet>& descriptorSet : descriptorPool->mDescriptorSets)
 		{
 			mDescriptorSetPool->Release(descriptorSet);
 		}
@@ -581,7 +581,7 @@ namespace Turbo
 		descriptorPool->mDescriptorSets.clear();
 	}
 
-	void FGPUDevice::DestroyBuffer(FBufferHandle handle)
+	void FGPUDevice::DestroyBuffer(THandle<FBuffer> handle)
 	{
 		const FBuffer* buffer = AccessBuffer(handle);
 		TURBO_CHECK(buffer);
@@ -597,7 +597,7 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
-	void FGPUDevice::DestroyTexture(FTextureHandle handle)
+	void FGPUDevice::DestroyTexture(THandle<FTexture> handle)
 	{
 		const FTexture* texture = AccessTexture(handle);
 		TURBO_CHECK(texture)
@@ -614,7 +614,7 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
-	void FGPUDevice::DestroyPipeline(FPipelineHandle handle)
+	void FGPUDevice::DestroyPipeline(THandle<FPipeline> handle)
 	{
 		const FPipeline* pipeline = AccessPipeline(handle);
 		TURBO_CHECK(pipeline);
@@ -630,7 +630,7 @@ namespace Turbo
 		DestroyShaderState(pipeline->mShaderState);
 	}
 
-	void FGPUDevice::DestroyDescriptorPool(FDescriptorPoolHandle handle)
+	void FGPUDevice::DestroyDescriptorPool(THandle<FDescriptorPool> handle)
 	{
 		const FDescriptorPool* descriptorPool = AccessDescriptorPool(handle);
 		TURBO_CHECK(descriptorPool)
@@ -643,7 +643,7 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
-	void FGPUDevice::DestroyDescriptorSetLayout(FDescriptorSetLayoutHandle handle)
+	void FGPUDevice::DestroyDescriptorSetLayout(THandle<FDescriptorSetLayout> handle)
 	{
 		const FDescriptorSetLayout* layout = AccessDescriptorSetLayout(handle);
 		TURBO_CHECK(layout)
@@ -656,7 +656,7 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
-	void FGPUDevice::DestroyShaderState(FShaderStateHandle handle)
+	void FGPUDevice::DestroyShaderState(THandle<FShaderState> handle)
 	{
 		const FShaderState* shaderState = AccessShaderState(handle);
 		TURBO_CHECK(shaderState)
@@ -818,7 +818,7 @@ namespace Turbo
 
 		for (uint32 imageId = 0; imageId < mNumSwapChainImages; ++imageId)
 		{
-			FTextureHandle handle = mTexturePool->Acquire();
+			THandle<FTexture> handle = mTexturePool->Acquire();
 			FTexture* texture = mTexturePool->Access(handle);
 			texture->mImage = builtImages[imageId];
 			texture->mImageView = builtImageViews[imageId];
@@ -1032,7 +1032,7 @@ namespace Turbo
 		TRACE_ZONE_SCOPED()
 
 		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
-		const FTextureHandle swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
+		const THandle<FTexture> swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
 
 		frameData.mCommandBuffer->TransitionImage(swapChainTexture, vk::ImageLayout::ePresentSrcKHR);
 
@@ -1172,7 +1172,7 @@ namespace Turbo
 		++mRenderedFrames;
 	}
 
-	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, FTextureHandle handle, FTexture* texture)
+	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture)
 	{
 		texture->mFormat = builder.mFormat;
 

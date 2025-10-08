@@ -135,7 +135,7 @@ namespace Turbo
 			}
 
 			FGraphicsLocator::GetGeometryBuffer().BlitResultToTexture(cmd, gpu->GetPresentImage());
-			FTextureHandle presentImage = gpu->GetPresentImage();
+			THandle<FTexture> presentImage = gpu->GetPresentImage();
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")

@@ -27,7 +27,7 @@ namespace Turbo
 		return *this;
 	}
 
-	FRenderingAttachments& FRenderingAttachments::AddColorAttachment(FTextureHandle textureHandle)
+	FRenderingAttachments& FRenderingAttachments::AddColorAttachment(THandle<FTexture> textureHandle)
 	{
 		mColorAttachments[mNumColorAttachments] = textureHandle;
 		++mNumColorAttachments;
@@ -35,14 +35,14 @@ namespace Turbo
 		return *this;
 	}
 
-	FRenderingAttachments& FRenderingAttachments::SetDepthAttachment(FTextureHandle textureHandle)
+	FRenderingAttachments& FRenderingAttachments::SetDepthAttachment(THandle<FTexture> textureHandle)
 	{
 		mDepthAttachment = textureHandle;
 
 		return *this;
 	}
 
-	void FCommandBuffer::TransitionImage(FTextureHandle textureHandle, vk::ImageLayout newLayout)
+	void FCommandBuffer::TransitionImage(THandle<FTexture> textureHandle, vk::ImageLayout newLayout)
 	{
 		FTexture* texture = mGpu->AccessTexture(textureHandle);
 		TURBO_CHECK(texture)
@@ -73,7 +73,7 @@ namespace Turbo
 		texture->mCurrentLayout = newLayout;
 	}
 
-	void FCommandBuffer::BufferBarrier(FBufferHandle bufferHandle, vk::AccessFlags2 srcAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 dstStageMask)
+	void FCommandBuffer::BufferBarrier(THandle<FBuffer> bufferHandle, vk::AccessFlags2 srcAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 dstStageMask)
 	{
 		const FBuffer* buffer = mGpu->AccessBuffer(bufferHandle);
 
@@ -93,7 +93,7 @@ namespace Turbo
 		mVkCommandBuffer.pipelineBarrier2(dependencyInfo);
 	}
 
-	void FCommandBuffer::ClearImage(FTextureHandle textureHandle, glm::vec4 color)
+	void FCommandBuffer::ClearImage(THandle<FTexture> textureHandle, glm::vec4 color)
 	{
 		TransitionImage(textureHandle, vk::ImageLayout::eGeneral);
 
@@ -105,7 +105,7 @@ namespace Turbo
 		mVkCommandBuffer.clearColorImage(texture->mImage, vk::ImageLayout::eGeneral, clearColorValue, subresourceRange);
 	}
 
-	void FCommandBuffer::BlitImage(FTextureHandle src, FRect2DInt srcRect, FTextureHandle dst, FRect2DInt dstRect, EFilter filter)
+	void FCommandBuffer::BlitImage(THandle<FTexture> src, FRect2DInt srcRect, THandle<FTexture> dst, FRect2DInt dstRect, EFilter filter)
 	{
 		vk::ImageBlit2 region = {};
 		region.setPNext(nullptr);
@@ -142,7 +142,7 @@ namespace Turbo
 		mVkCommandBuffer.blitImage2(blitInfo);
 	}
 
-	void FCommandBuffer::CopyBuffer(FBufferHandle src, FBufferHandle dst, vk::DeviceSize size)
+	void FCommandBuffer::CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, vk::DeviceSize size)
 	{
 		vk::BufferCopy2 bufferCopy;
 		bufferCopy.srcOffset = 0;
@@ -160,7 +160,7 @@ namespace Turbo
 		mVkCommandBuffer.copyBuffer2(copyBufferInfo);
 	}
 
-	void FCommandBuffer::BindDescriptorSet(FDescriptorSetHandle descriptorSetHandle, uint32 setIndex)
+	void FCommandBuffer::BindDescriptorSet(THandle<FDescriptorSet> descriptorSetHandle, uint32 setIndex)
 	{
 		const FDescriptorSet* descriptorSet = mGpu->AccessDescriptorSet(descriptorSetHandle);
 		const FPipeline* currentPipeline = mGpu->AccessPipeline(mCurrentPipeline);
@@ -176,7 +176,7 @@ namespace Turbo
 		);
 	}
 
-	void FCommandBuffer::BindPipeline(FPipelineHandle pipelineHandle)
+	void FCommandBuffer::BindPipeline(THandle<FPipeline> pipelineHandle)
 	{
 		const FPipeline* pipeline = mGpu->AccessPipeline(pipelineHandle);
 		TURBO_CHECK(pipeline);
