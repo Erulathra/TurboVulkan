@@ -24,6 +24,8 @@
 #include "ProfilingMacros.h"
 #include "Core/Name.h"
 
+#include "Core/DataStructures/ResourcePool.h"
+
 // GLM
 #include "Core/Math/MathCommon.h"
 

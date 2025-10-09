@@ -105,6 +105,25 @@ void FRenderingTestLayer::Start()
 		.AddColorAttachment(FGeometryBuffer::kColorFormat);
 
 	mGraphicsPipeline = gpu->CreatePipeline(graphicsPipelineBuilder);
+
+	TPoolGrowable<uint32> TestPool(2);
+
+	THandle<uint32> First = TestPool.Acquire();
+	THandle<uint32> Second = TestPool.Acquire();
+	THandle<uint32> Third = TestPool.Acquire();
+
+	*TestPool.Access(First) = 1;
+	*TestPool.Access(Second) = 2;
+	*TestPool.Access(Third) = 3;
+
+	TestPool.Release(Second);
+
+	THandle<uint32> SecondV2 = TestPool.Acquire();
+	THandle<uint32> Fourth = TestPool.Acquire();
+	THandle<uint32> Fiveth = TestPool.Acquire();
+
+	TURBO_CHECK(TestPool.Access(Second) == nullptr)
+	TURBO_CHECK(TestPool.Access(SecondV2) != nullptr)
 }
 
 void FRenderingTestLayer::Shutdown()

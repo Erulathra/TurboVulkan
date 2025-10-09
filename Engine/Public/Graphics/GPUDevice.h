@@ -185,14 +185,14 @@ namespace Turbo
 
 	private:
 		/** Resource pools */
-		TResourcePoolHeap<FBuffer, 4096> mBufferPool;
-		TResourcePoolHeap<FTexture, 512> mTexturePool;
-		TResourcePoolHeap<FSampler, 32> mSamplerPool;
-		TResourcePoolHeap<FPipeline, 128> mPipelinePool;
-		TResourcePoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
-		TResourcePoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;
-		TResourcePoolHeap<FDescriptorSet, 256> mDescriptorSetPool;
-		TResourcePoolHeap<FShaderState, 128> mShaderStatePool;
+		TPoolHeap<FBuffer, 4096> mBufferPool;
+		TPoolHeap<FTexture, 512> mTexturePool;
+		TPoolHeap<FSampler, 32> mSamplerPool;
+		TPoolHeap<FPipeline, 128> mPipelinePool;
+		TPoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
+		TPoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;
+		TPoolHeap<FDescriptorSet, 256> mDescriptorSetPool;
+		TPoolHeap<FShaderState, 128> mShaderStatePool;
 
 		/** Resource pools end */
 
