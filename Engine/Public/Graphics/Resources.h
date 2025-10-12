@@ -2,7 +2,6 @@
 
 #include "DestoryQueue.h"
 #include "Core/DataStructures/ArrayHeap.h"
-#include "Core/DataStructures/ResourcePool.h"
 #include "Graphics/GraphicsCore.h"
 
 #define RESOURCE_BODY()					\
@@ -35,6 +34,7 @@ namespace Turbo
 		vk::BufferUsageFlags mUsageFlags = {};
 		vk::DeviceSize mDeviceSize = {};
 
+		vk::DeviceAddress mDeviceAddress = {};
 		void* mMappedAddress = nullptr;
 
 		THandle<FBuffer> mHandle = {};

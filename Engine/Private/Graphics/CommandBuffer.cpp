@@ -179,10 +179,18 @@ namespace Turbo
 	void FCommandBuffer::BindPipeline(THandle<FPipeline> pipelineHandle)
 	{
 		const FPipeline* pipeline = mGpu->AccessPipeline(pipelineHandle);
-		TURBO_CHECK(pipeline);
+		TURBO_CHECK(pipeline)
 
 		mVkCommandBuffer.bindPipeline(pipeline->mVkBindPoint, pipeline->mVkPipeline);
 		mCurrentPipeline = pipelineHandle;
+	}
+
+	void FCommandBuffer::BindIndexBuffer(THandle<FBuffer> indexBuffer)
+	{
+		const FBuffer* buffer = mGpu->AccessBuffer(indexBuffer);
+		TURBO_CHECK(buffer)
+
+		mVkCommandBuffer.bindIndexBuffer(buffer->mVkBuffer, 0, vk::IndexType::eUint32);
 	}
 
 	void FCommandBuffer::Dispatch(const glm::ivec3& groupCount)
@@ -270,6 +278,11 @@ namespace Turbo
 	void FCommandBuffer::Draw(uint32 vertexCount, uint32 instanceCount, uint32 firstVertex, uint32 firstInstance)
 	{
 		mVkCommandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
+	}
+
+	void FCommandBuffer::DrawIndexed(uint32 indexCount, uint32 instanceCount, uint32 firstIndex, int32 vertexOffset, uint32 firstInstance)
+	{
+		mVkCommandBuffer.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
 	void FCommandBuffer::Reset()

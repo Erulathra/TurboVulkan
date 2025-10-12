@@ -442,6 +442,8 @@ namespace Turbo
 			const FBinding& binding = layout->mBindings[bindingId];
 			const FHandle resource = builder.mResources[bindingId];
 
+			TURBO_CHECK(resource.IsValid())
+
 			vk::WriteDescriptorSet& write = writes[bindingId];
 			write.descriptorCount = 1;
 			write.dstSet = set->mVkDescriptorSet;

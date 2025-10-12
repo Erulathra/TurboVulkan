@@ -3,27 +3,27 @@
 
 namespace Turbo
 {
-	using FPoolIndexType = uint16;
+	using FPoolIndexType = uint32;
 	inline constexpr FPoolIndexType kInvalidHandle = std::numeric_limits<FPoolIndexType>::max();
 
-	using FPoolGenerationType = uint16;
+	using FPoolGenerationType = uint32;
 	inline constexpr FPoolGenerationType kInvalidGeneration = std::numeric_limits<FPoolGenerationType>::max();
 
 	struct FHandle
 	{
 		FPoolIndexType mIndex = kInvalidHandle;
 		FPoolGenerationType mGeneration = kInvalidGeneration;
+
+		[[nodiscard]] constexpr bool IsValid() const { return mIndex != kInvalidHandle && mGeneration != kInvalidGeneration; }
+		constexpr void Reset() { mIndex = kInvalidHandle; mGeneration = kInvalidGeneration; }
+
+		explicit constexpr operator bool() const { return IsValid(); }
+		constexpr bool operator!() const { return !IsValid(); }
 	};
 
 	template <typename ObjectType>
-	struct THandle final : public FHandle
+	struct THandle final : FHandle
 	{
-	public:
-		[[nodiscard]] bool IsValid() const { return mIndex != kInvalidHandle; }
-		void Reset() { mIndex = kInvalidHandle; }
-
-		explicit operator bool() const { return IsValid(); }
-		bool operator!() const { return !IsValid(); }
 	};
 
 	template<typename T, FPoolIndexType size>
@@ -130,7 +130,7 @@ namespace Turbo
 	};
 
 	template<typename T>
-	class TPoolGrowable
+	class TPoolGrowable final
 	{
 		static constexpr FPoolIndexType kInitialSize = 32;
 

@@ -13,9 +13,6 @@ namespace Turbo
 	class IDestroyer
 	{
 	public:
-		virtual ~IDestroyer() = default;
-
-	public:
 		virtual void Destroy(FGPUDevice& GPUDevice) = 0;
 	};
 

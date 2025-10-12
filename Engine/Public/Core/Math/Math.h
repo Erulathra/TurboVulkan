@@ -9,9 +9,8 @@
 
 namespace Turbo
 {
-	class FMath
+	namespace FMath
 	{
-	public:
 		template <typename T>
 			requires (std::is_floating_point_v<T>)
 		static bool NearlyEqual(const T& lhs, const T& rhs, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
@@ -33,6 +32,11 @@ namespace Turbo
 			return glm::ceil(lhs / rhs);
 		}
 
+		inline void ConvertTurboToVulkanCoordinates(glm::mat4& transform)
+		{
+			transform[1][1] = -transform[1][1];
+		}
+
 	};
 
 	template <>
@@ -40,6 +44,7 @@ namespace Turbo
 	{
 		return glm::ivec3(glm::ceil(glm::vec3(lhs) / glm::vec3(rhs)));
 	}
+
 } // Turbo
 
 template <int32 L, typename T>

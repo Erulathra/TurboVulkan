@@ -1,5 +1,6 @@
 #include "Core/Engine.h"
 
+#include "Assets/AssetManager.h"
 #include "Core/CoreTimer.h"
 #include "Core/Window.h"
 #include "Core/Input/Input.h"
@@ -10,6 +11,7 @@
 #include "Graphics/GraphicsLocator.h"
 #include "Services/ImGUIService.h"
 #include "Services/ILayer.h"
+#include "Assets/AssetManager.h"
 
 namespace Turbo
 {
@@ -50,9 +52,12 @@ namespace Turbo
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpuDeviceBuilder.SetWindow(mWindow);
 
+		mAssetManager = TSharedPtr<FAssetManager>(new FAssetManager());
+
 		mGpuDevice->Init(gpuDeviceBuilder);
 		FGraphicsLocator::InitGeometryBuffer(mGpuDevice.get());
 		FGraphicsLocator::GetGeometryBuffer().Init(mWindow->GetFrameBufferSize());
+
 
 		mWindow->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
@@ -122,7 +127,11 @@ namespace Turbo
 
 		if (gpu->BeginFrame())
 		{
+			const FGeometryBuffer& geometryBuffer = FGraphicsLocator::GetGeometryBuffer();
+
 			FCommandBuffer* cmd = gpu->GetCommandBuffer();
+			cmd->ClearImage(geometryBuffer.GetColor());
+
 			{
 				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
 				for (const TSharedPtr<ILayer>& layer : *layerStack)

@@ -3,13 +3,11 @@ import Math;
 [[vk::binding(0, 0)]]
 StructuredBuffer<float3, ScalarDataLayout> positions;
 
-[[vk::binding(1, 0)]]
-StructuredBuffer<uint> indices;
-
 [[vk::push_constant]]
 cbuffer pushConstants
 {
-    float time;
+    float4x4 modelToProj;
+    float4x4 modelToView;
 };
 
 struct VSIn
@@ -20,6 +18,7 @@ struct VSIn
 struct VSOut
 {
     float4 position : SV_Position;
+    float3 color;
 }
 
 struct PSOut
@@ -30,13 +29,13 @@ struct PSOut
 [shader("vertex")]
 void vsMain(in VSIn vsIn, out VSOut vsOut)
 {
-    // const float size = lerp(0.2f, 1.f, Sin0To1(time * 3));
-    const uint indice = indices[vsIn.vertexId];
-    vsOut.position = float4(positions[indice], 1.f);
+    vsOut.position = mul(float4(positions[vsIn.vertexId], 1.f), modelToProj);
+    // vsOut.color = normalize(mul(float4(positions[vsIn.vertexId], 1.f), modelToView)).xyz;
+    vsOut.color = float3(1.f, 0.f, 1.f);
 }
 
 [shader("pixel")]
 void psMain(in VSOut vsOut, out PSOut psOut)
 {
-    psOut.color = float4(0.f, 0.f, 1.f, 1.f);
+    psOut.color = float4(vsOut.color, 1.f);
 }

@@ -5,7 +5,6 @@
 
 #include "ResourceBuilders.h"
 #include "DestoryQueue.h"
-#include "Core/DataStructures/ResourcePool.h"
 #include "Graphics/Resources.h"
 #include "VulkanHelpers.h"
 

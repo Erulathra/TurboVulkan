@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Enums.h"
-#include "Core/DataStructures/ResourcePool.h"
 #include "Core/Math/Color.h"
 #include "Core/Math/MathTypes.h"
 #include "Graphics/GraphicsCore.h"
@@ -40,8 +39,9 @@ namespace Turbo
 		void CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, vk::DeviceSize size);
 
 		void BindDescriptorSet(THandle<FDescriptorSet> descriptorSetHandle, uint32 setIndex);
-
 		void BindPipeline(THandle<FPipeline> pipelineHandle);
+		void BindIndexBuffer(THandle<FBuffer> indexBuffer);
+
 		void Dispatch(const glm::ivec3& groupCount);
 
 		void BeginRendering(const FRenderingAttachments& renderingAttachments);
@@ -51,6 +51,7 @@ namespace Turbo
 		void SetScissor(const FRect2DInt& rect);
 
 		void Draw(uint32 vertexCount, uint32 instanceCount = 1, uint32 firstVertex = 0, uint32 firstInstance = 0);
+		void DrawIndexed(uint32 indexCount, uint32 instanceCount = 1, uint32 firstIndex = 0, int32 vertexOffset = 0, uint32 firstInstance = 0);
 
 		template<typename PushConstantsType>
 		void PushConstants(PushConstantsType pushConstants) { PushConstantsImpl(&pushConstants, sizeof(PushConstantsType)); }

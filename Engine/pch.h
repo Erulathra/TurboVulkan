@@ -9,6 +9,7 @@
 #include <chrono>
 #include <functional>
 #include <type_traits>
+#include <filesystem>
 
 // stl collections
 #include <vector>
@@ -24,7 +25,7 @@
 #include "ProfilingMacros.h"
 #include "Core/Name.h"
 
-#include "Core/DataStructures/ResourcePool.h"
+#include "Core/DataStructures/Pool.h"
 
 // GLM
 #include "Core/Math/MathCommon.h"

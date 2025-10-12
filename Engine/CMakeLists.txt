@@ -51,11 +51,7 @@ add_compile_definitions(VULKAN_HPP_NO_EXCEPTIONS)
 add_compile_definitions(VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 
 # GLM definitions
-add_compile_definitions(GLM_FORCE_LEFT_HANDED)
-add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
-add_compile_definitions(GLM_FORCE_AVX2)
-
-add_definitions(-DGLM_FORCE_LEFT_HANDED -DGLM_FORCE_DEPTH_ZERO_TO_ONE)
+target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 if (${TURBO_BUILD_SHIPPING})
     SET(WITH_PROFILER false)

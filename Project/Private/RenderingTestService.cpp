@@ -1,8 +1,10 @@
 #include "imgui.h"
 #include "RenderingTestLayer.h"
+#include "Assets/AssetManager.h"
 
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
+#include "Core/Math/Vector.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/GraphicsLocator.h"
@@ -12,79 +14,27 @@ using namespace Turbo;
 
 struct FPushConstants
 {
-	float time;
+	glm::mat4 objToProj;
+	glm::mat4 objToView;
 };
 
-struct FParametersBuffer
+FRenderingTestLayer::~FRenderingTestLayer()
 {
-	glm::vec4 vertices[3];
-} uniformBufferData;
+}
+
+FRenderingTestLayer::FRenderingTestLayer()
+{
+}
 
 void FRenderingTestLayer::Start()
 {
 	FGPUDevice* gpu = gEngine->GetGpu();
 
-	FDescriptorSetLayoutBuilder descriptorSetLayoutBuilder;
-	descriptorSetLayoutBuilder
-		.AddBinding(vk::DescriptorType::eStorageImage, 0)
-		.AddBinding(vk::DescriptorType::eUniformBuffer, 1);
-
-	mComputeSetLayout = gpu->CreateDescriptorSetLayout(descriptorSetLayoutBuilder);
-
-	FPipelineBuilder computePipelineBuilder;
-	computePipelineBuilder.AddDescriptorSetLayout(mComputeSetLayout);
-	computePipelineBuilder.SetPushConstantType<FPushConstants>();
-	computePipelineBuilder.GetShaderState().AddStage("Shader", vk::ShaderStageFlagBits::eCompute);
-	computePipelineBuilder.SetName(FName("TestComputePipeline"));
-
-	mComputePipeline = gpu->CreatePipeline(computePipelineBuilder);
-
-	uniformBufferData.vertices[0] = glm::vec4(0.5f, 0.5f, 0.f, 0.f);
-	uniformBufferData.vertices[1] = glm::vec4(0.2f, 0.8f, 0.f, 0.f);
-	uniformBufferData.vertices[2] = glm::vec4(0.8f, 0.8f, 0.f, 0.f);
-
-	static const FName kBufferName = FName("RenderingTestUniformBuffer");
-	FBufferBuilder bufferBuilder;
-	bufferBuilder
-		.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::CreateMapped, sizeof(FParametersBuffer))
-		.SetData(&uniformBufferData)
-		.SetName(kBufferName);
-
-	mComputeUniformBufferHandle = gpu->CreateBuffer(bufferBuilder);
-
-	// Graphics pipeline
-	static const FName kRectVertName = FName("RectVertices");
-	static const FName kRectIndicesName = FName("RectIndices");
-
-	const static std::array kRectVertices = {
-		glm::vec3(0.5f,-0.5f, 0.0f),
-		glm::vec3(0.5f,0.5f, 0.0f),
-		glm::vec3(-0.5f,-0.5f, 0.0f),
-		glm::vec3(-0.5f,0.5f, 0.0f),
-	};
-
-	const static std::array kRectIndices = {
-		0, 1, 2, 2, 1, 3
-	};
-
-	// Graphics pipeline
-
-	bufferBuilder
-		.Init(vk::BufferUsageFlagBits::eStorageBuffer, EBufferFlags::None, sizeof(kRectVertices))
-		.SetData(kRectVertices.data())
-		.SetName(kRectVertName);
-	mMeshVertices = gpu->CreateBuffer(bufferBuilder);
-
-	bufferBuilder
-		.Init(vk::BufferUsageFlagBits::eStorageBuffer, EBufferFlags::None, sizeof(kRectIndices))
-		.SetData(kRectIndices.data())
-		.SetName(kRectIndicesName);
-	mMeshIndices = gpu->CreateBuffer(bufferBuilder);
+	mMeshHandle = gEngine->GetAssetManager()->LoadMesh("Content/Meshes/BlenderMonkey.glb");
 
 	FDescriptorSetLayoutBuilder descriptorSetBuilder;
 	descriptorSetBuilder
-		.AddBinding(vk::DescriptorType::eStorageBuffer, 0, FName("Vertices"))
-		.AddBinding(vk::DescriptorType::eStorageBuffer, 1, FName("Colors"))
+		.AddBinding(vk::DescriptorType::eStorageBuffer, 0, FName("positions"))
 		.SetName(FName("GraphicsTest"));
 
 	mGraphicsPipelineSetLayout = gpu->CreateDescriptorSetLayout(descriptorSetBuilder);
@@ -93,6 +43,7 @@ void FRenderingTestLayer::Start()
 	graphicsPipelineBuilder.AddDescriptorSetLayout(mGraphicsPipelineSetLayout);
 	graphicsPipelineBuilder.SetPushConstantType<FPushConstants>();
 	graphicsPipelineBuilder.SetName(FName("TestGraphicsPipeline"));
+	graphicsPipelineBuilder.GetRasterization().SetCullMode(vk::CullModeFlagBits::eNone);
 
 	graphicsPipelineBuilder.GetShaderState()
 		.AddStage("GPShader", vk::ShaderStageFlagBits::eVertex)
@@ -105,50 +56,27 @@ void FRenderingTestLayer::Start()
 		.AddColorAttachment(FGeometryBuffer::kColorFormat);
 
 	mGraphicsPipeline = gpu->CreatePipeline(graphicsPipelineBuilder);
-
-	TPoolGrowable<uint32> TestPool(2);
-
-	THandle<uint32> First = TestPool.Acquire();
-	THandle<uint32> Second = TestPool.Acquire();
-	THandle<uint32> Third = TestPool.Acquire();
-
-	*TestPool.Access(First) = 1;
-	*TestPool.Access(Second) = 2;
-	*TestPool.Access(Third) = 3;
-
-	TestPool.Release(Second);
-
-	THandle<uint32> SecondV2 = TestPool.Acquire();
-	THandle<uint32> Fourth = TestPool.Acquire();
-	THandle<uint32> Fiveth = TestPool.Acquire();
-
-	TURBO_CHECK(TestPool.Access(Second) == nullptr)
-	TURBO_CHECK(TestPool.Access(SecondV2) != nullptr)
 }
 
 void FRenderingTestLayer::Shutdown()
 {
 	FGPUDevice* gpu = gEngine->GetGpu();
 
-	gpu->DestroyPipeline(mComputePipeline);
-	gpu->DestroyDescriptorSetLayout(mComputeSetLayout);
-	gpu->DestroyBuffer(mComputeUniformBufferHandle);
-
 	gpu->DestroyPipeline(mGraphicsPipeline);
 	gpu->DestroyDescriptorSetLayout(mGraphicsPipelineSetLayout);
-	gpu->DestroyBuffer(mMeshVertices);
-	gpu->DestroyBuffer(mMeshIndices);
+
+	gEngine->GetAssetManager()->UnloadMesh(mMeshHandle);
 }
 
 void FRenderingTestLayer::BeginTick_GameThread(float deltaTime)
 {
 	ImGui::Begin("Rendering test");
-	for (uint32 i = 0; i < 3; ++i)
-	{
-		ImGui::PushID(i);
-		ImGui::DragFloat2("vert", glm::value_ptr(uniformBufferData.vertices[i]), 0.01f, 0.f, 1.f);
-		ImGui::PopID();
-	}
+	ImGui::DragFloat3("Model Location", glm::value_ptr(mModelLocation), 0.01f);
+	ImGui::Separator();
+	ImGui::DragFloat3("Camera Location", glm::value_ptr(mCameraLocation), 0.01f);
+	ImGui::DragFloat2("Camera Rotation", glm::value_ptr(mCameraRotation), 1.f);
+	ImGui::DragFloat("Camera FoV", &mCameraFov, 0.5f, 1.f);
+	ImGui::DragFloat2("Camera Near Far", glm::value_ptr(mCameraNearFar), 0.5f );
 	ImGui::End();
 }
 
@@ -157,38 +85,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	const THandle<FDescriptorPool> descriptorPool = gpu->GetDescriptorPool();
 	const FGeometryBuffer& geometryBuffer = FGraphicsLocator::GetGeometryBuffer();
 
-	FBuffer* uniformBuffer = gpu->AccessBuffer(mComputeUniformBufferHandle);
-	void* mappedAddress = uniformBuffer->GetMappedAddress();
-	TURBO_CHECK(mappedAddress);
-
-	std::memcpy(mappedAddress, &uniformBufferData, sizeof(FParametersBuffer));
-
-	const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
-
-	const static FName descriptorSetName("ComputeSet");
-	FDescriptorSetBuilder computeDescriptorSetBuilder;
-	computeDescriptorSetBuilder
-		.SetDescriptorPool(descriptorPool)
-		.SetLayout(mComputeSetLayout)
-		.SetTexture(drawImageHandle, 0)
-		.SetBuffer(mComputeUniformBufferHandle, 1)
-		.SetName(descriptorSetName);
-
-	const THandle<FDescriptorSet> computeDescriptorSet = gpu->CreateDescriptorSet(computeDescriptorSetBuilder);
-
-	cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eGeneral);
-	cmd->BindPipeline(mComputePipeline);
-	cmd->BindDescriptorSet(computeDescriptorSet, 0);
-
-	FPushConstants pushConstants = {};
-	pushConstants.time = static_cast<float>(FCoreTimer::TimeFromEngineStart());
-
-	cmd->PushConstants(pushConstants);
-
-	const glm::ivec2& resolution = geometryBuffer.GetResolution();
-	// cmd->Dispatch(FMath::DivideAndRoundUp(glm::ivec3(resolution, 1), glm::ivec3(8, 8, 1)));
-
-	cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eColorAttachmentOptimal);
+	const FSubMesh* mesh = gEngine->GetAssetManager()->AccessMesh(mMeshHandle);
 
 	// Graphics pipeline
 	const static FName graphicsDescriptorSetName("GraphicsSet");
@@ -196,11 +93,14 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	graphicsDescriptorSetBuilder
 		.SetDescriptorPool(descriptorPool)
 		.SetLayout(mGraphicsPipelineSetLayout)
-		.SetBuffer(mMeshVertices, 0)
-		.SetBuffer(mMeshIndices, 1)
+		.SetBuffer(mesh->mPositionBuffer, 0)
 		.SetName(graphicsDescriptorSetName);
 
 	const THandle<FDescriptorSet> graphicsDescriptorSet = gpu->CreateDescriptorSet(graphicsDescriptorSetBuilder);
+
+	const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
+
+	cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eColorAttachmentOptimal);
 
 	FRenderingAttachments renderingAttachments;
 	renderingAttachments.AddColorAttachment(drawImageHandle);
@@ -209,10 +109,29 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	cmd->SetViewport(FViewport::FromSize(geometryBuffer.GetResolution()));
 	cmd->SetScissor(FRect2DInt::FromSize(geometryBuffer.GetResolution()));
 
+	const glm::mat4 modelMat = glm::translate(glm::mat4(1.f), mModelLocation);
+
+	glm::mat4 viewMat =
+		glm::rotate(glm::mat4(1.f), glm::radians(mCameraRotation.x), EVec3::Right)
+		* glm::rotate(glm::mat4(1.f), glm::radians(mCameraRotation.y), EVec3::Up)
+		* glm::translate(glm::mat4(1.f), -mCameraLocation);
+
+	// glm::mat4 viewMat = glm::lookAt(mCameraLocation, glm::vec3(0.f), EVec3::Up);
+
+
+	const glm::vec2 resolution = geometryBuffer.GetResolution();
+	glm::mat4 projMat = glm::perspectiveFov(glm::radians(mCameraFov), resolution.x, resolution.y, mCameraNearFar.x, mCameraNearFar.y);
+	FMath::ConvertTurboToVulkanCoordinates(projMat);
+
+	FPushConstants pushConstants = {};
+	pushConstants.objToProj = projMat * viewMat * modelMat;
+	pushConstants.objToView = modelMat;
+
 	cmd->BindPipeline(mGraphicsPipeline);
 	cmd->BindDescriptorSet(graphicsDescriptorSet, 0);
 	cmd->PushConstants(pushConstants);
-	cmd->Draw(6);
+	cmd->BindIndexBuffer(mesh->mIndicesBuffer);
+	cmd->DrawIndexed(mesh->mVertexCount);
 
 	cmd->EndRendering();
 }
