@@ -23,17 +23,3 @@ if (MSVC)
     add_definitions(-DWITH_MSVC)
 endif ()
 
-set(BuildType false CACHE STRING "Build type")
-
-set(BuildType_Development "Development")
-set(BuildType_Shipping "Shipping")
-
-if (${BuildType} STREQUAL BuildType_Shipping)
-    add_compile_definitions(TURBO_BUILD_DEVELOPMENT=0)
-    add_compile_definitions(TURBO_BUILD_SHIPPING=1)
-    set(TURBO_BUILD_SHIPPING true)
-else ()
-    add_compile_definitions(TURBO_BUILD_DEVELOPMENT=1)
-    add_compile_definitions(TURBO_BUILD_SHIPPING=0)
-    set(TURBO_BUILD_DEVELOPMENT true)
-endif ()

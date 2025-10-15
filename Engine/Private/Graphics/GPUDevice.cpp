@@ -1,7 +1,6 @@
 #include "Graphics/GPUDevice.h"
 
 #include "VkBootstrap.h"
-#include "../../Public/Graphics/VulkanHelpers.h"
 #include "Core/Engine.h"
 
 #include "Core/Window.h"
@@ -39,6 +38,20 @@ namespace Turbo
 
 		InitializeImmediateCommands();
 
+#if WITH_PROFILER
+		CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(mImmediateCommandsPool));
+		mImmediateCommandsBuffer->Reset();
+		mTraceGpuCtx = TRACE_CREATE_GPU_CTX(
+			mVkInstance,
+			mVkPhysicalDevice,
+			mVkDevice,
+			mVkQueue,
+			mImmediateCommandsBuffer.get(),
+			VULKAN_HPP_DEFAULT_DISPATCHER.vkGetInstanceProcAddr,
+			VULKAN_HPP_DEFAULT_DISPATCHER.vkGetDeviceProcAddr
+		);
+#endif // WITH_PROFILER
+
 		IShaderCompiler::Get().Init();
 	}
 
@@ -47,7 +60,7 @@ namespace Turbo
 		const vk::FenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
 		CHECK_VULKAN_RESULT(mImmediateCommandsFence, mVkDevice.createFence(fenceCreateInfo));
 
-		mImmediateCommandsPool = CreateCommandPool();
+		mImmediateCommandsPool = CreateCommandPool(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 		const static FName immediateCommandBuffer = FName("ImmediateGPUCommands");
 		mImmediateCommandsBuffer = CreateCommandBuffer(mImmediateCommandsPool, immediateCommandBuffer);
 	}
@@ -65,7 +78,7 @@ namespace Turbo
 		buffer->mUsageFlags = builder.mUsageFlags;
 
 		vk::BufferCreateInfo createInfo = {};
-		createInfo.usage = vk::BufferUsageFlagBits::eTransferDst | buffer->mUsageFlags;
+		createInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress | buffer->mUsageFlags;
 		createInfo.size = buffer->mDeviceSize;
 
 		vma::AllocationCreateInfo allocationCreateInfo = {};
@@ -83,6 +96,11 @@ namespace Turbo
 
 		buffer->mVkBuffer = allocationResult.first;
 		buffer->mAllocation = allocationResult.second;
+
+		vk::BufferDeviceAddressInfo deviceAddressInfo = {};
+		deviceAddressInfo.buffer = buffer->mVkBuffer;
+		buffer->mDeviceAddress = mVkDevice.getBufferAddress(deviceAddressInfo);
+		TURBO_CHECK(buffer->mDeviceAddress != 0)
 
 		SetResourceName(buffer->mVkBuffer, buffer->mName);
 
@@ -886,10 +904,11 @@ namespace Turbo
 		}
 	}
 
-	vk::CommandPool FGPUDevice::CreateCommandPool()
+	vk::CommandPool FGPUDevice::CreateCommandPool(vk::CommandPoolCreateFlags createFlags)
 	{
 		vk::CommandPoolCreateInfo createInfo = {};
 		createInfo.setQueueFamilyIndex(mVkQueueFamilyIndex);
+		createInfo.setFlags(createFlags);
 
 		vk::CommandPool pool;
 		CHECK_VULKAN_RESULT(pool, mVkDevice.createCommandPool(createInfo));
@@ -968,6 +987,13 @@ namespace Turbo
 
 		IShaderCompiler::Get().Destroy();
 
+#if WITH_PROFILER
+		if (mTraceGpuCtx)
+		{
+			TRACE_DESTROY_GPU_CTX(mTraceGpuCtx);
+		}
+#endif // WITH_PROFILER
+
 		if (mVmaAllocator)
 		{
 			mVmaAllocator.destroy();
@@ -1037,6 +1063,8 @@ namespace Turbo
 		const THandle<FTexture> swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
 
 		frameData.mCommandBuffer->TransitionImage(swapChainTexture, vk::ImageLayout::ePresentSrcKHR);
+
+		TRACE_GPU_COLLECT(mTraceGpuCtx, frameData.mCommandBuffer);
 
 		frameData.mCommandBuffer->End();
 

@@ -15,7 +15,7 @@ using namespace Turbo;
 struct FPushConstants
 {
 	glm::mat4 objToProj;
-	glm::mat4 objToView;
+	vk::DeviceAddress positionBuffer;
 };
 
 FRenderingTestLayer::~FRenderingTestLayer()
@@ -28,6 +28,8 @@ FRenderingTestLayer::FRenderingTestLayer()
 
 void FRenderingTestLayer::Start()
 {
+	TRACE_ZONE_SCOPED()
+
 	FGPUDevice* gpu = gEngine->GetGpu();
 
 	mMeshHandle = gEngine->GetAssetManager()->LoadMesh("Content/Meshes/BlenderMonkey.glb");
@@ -71,6 +73,8 @@ void FRenderingTestLayer::Shutdown()
 void FRenderingTestLayer::BeginTick_GameThread(float deltaTime)
 {
 	ImGui::Begin("Rendering test");
+	ImGui::Text("Frame time: %f, FPS: %f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
+	ImGui::Separator();
 	ImGui::DragFloat3("Model Location", glm::value_ptr(mModelLocation), 0.01f);
 	ImGui::Separator();
 	ImGui::DragFloat3("Camera Location", glm::value_ptr(mCameraLocation), 0.01f);
@@ -82,10 +86,14 @@ void FRenderingTestLayer::BeginTick_GameThread(float deltaTime)
 
 void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd)
 {
+	TRACE_ZONE_SCOPED()
+	TRACE_GPU_SCOPED(gpu, cmd, "RenderingTestLayer");
+
 	const THandle<FDescriptorPool> descriptorPool = gpu->GetDescriptorPool();
 	const FGeometryBuffer& geometryBuffer = FGraphicsLocator::GetGeometryBuffer();
 
 	const FSubMesh* mesh = gEngine->GetAssetManager()->AccessMesh(mMeshHandle);
+	const FBuffer* positionBuffer = gpu->AccessBuffer(mesh->mPositionBuffer);
 
 	// Graphics pipeline
 	const static FName graphicsDescriptorSetName("GraphicsSet");
@@ -116,16 +124,13 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 		* glm::rotate(glm::mat4(1.f), glm::radians(mCameraRotation.y), EVec3::Up)
 		* glm::translate(glm::mat4(1.f), -mCameraLocation);
 
-	// glm::mat4 viewMat = glm::lookAt(mCameraLocation, glm::vec3(0.f), EVec3::Up);
-
-
 	const glm::vec2 resolution = geometryBuffer.GetResolution();
 	glm::mat4 projMat = glm::perspectiveFov(glm::radians(mCameraFov), resolution.x, resolution.y, mCameraNearFar.x, mCameraNearFar.y);
 	FMath::ConvertTurboToVulkanCoordinates(projMat);
 
 	FPushConstants pushConstants = {};
 	pushConstants.objToProj = projMat * viewMat * modelMat;
-	pushConstants.objToView = modelMat;
+	pushConstants.positionBuffer = positionBuffer->GetDeviceAddress();
 
 	cmd->BindPipeline(mGraphicsPipeline);
 	cmd->BindDescriptorSet(graphicsDescriptorSet, 0);

@@ -42,27 +42,42 @@ target_link_libraries(${PROJECT_NAME} PRIVATE slang)
 #add_compile_options(-fsanitize=address)
 #add_link_options(-fsanitize=address)
 
-add_compile_definitions(TURBO_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
-add_compile_definitions(TURBO_VERSION_MINOR=${PROJECT_VERSION_MINOR})
-add_compile_definitions(TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
+set(BuildType false CACHE STRING "Build type")
+
+set(BuildType_Development "Development")
+set(BuildType_Shipping "Shipping")
+
+if (${BuildType} STREQUAL BuildType_Shipping)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_BUILD_DEVELOPMENT=0)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_BUILD_SHIPPING=1)
+    set(TURBO_BUILD_SHIPPING true)
+else ()
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_BUILD_DEVELOPMENT=1)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_BUILD_SHIPPING=0)
+    set(TURBO_BUILD_DEVELOPMENT true)
+endif ()
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
+target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_VERSION_MINOR=${PROJECT_VERSION_MINOR})
+target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 
 # Vulkan HPP definitions
-add_compile_definitions(VULKAN_HPP_NO_EXCEPTIONS)
-add_compile_definitions(VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
+target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_NO_EXCEPTIONS)
+target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 
 # GLM definitions
 target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 if (${TURBO_BUILD_SHIPPING})
     SET(WITH_PROFILER false)
-    add_compile_definitions(WITH_ASSERTIONS=0)
-    add_compile_definitions(WITH_VALIDATION_LAYERS=0)
-    add_compile_definitions(WITH_DEBUG_RENDERING_FEATURES=0)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_ASSERTIONS=0)
+    target_compile_definitions(&{PROJECT_NAME} PUBLIC WITH_VALIDATION_LAYERS=0)
+    target_compile_definitions(&{PROJECT_NAME} PUBLIC WITH_DEBUG_RENDERING_FEATURES=0)
 else ()
     SET(WITH_PROFILER true)
-    add_compile_definitions(WITH_ASSERTIONS=1)
-    add_compile_definitions(WITH_VALIDATION_LAYERS=1)
-    add_compile_definitions(WITH_DEBUG_RENDERING_FEATURES=1)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_ASSERTIONS=1)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_VALIDATION_LAYERS=1)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_DEBUG_RENDERING_FEATURES=1)
 endif ()
 
 
@@ -72,14 +87,15 @@ if (${WITH_PROFILER})
 
     target_link_libraries(${PROJECT_NAME} PUBLIC Tracy::TracyClient)
 
-    option(TRACY_ENABLE "" ON)
-    option(TRACY_ON_DEMAND "" ON)
-    add_compile_definitions(WITH_PROFILER=1)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TRACY_ENABLE)
+#    target_compile_definitions(${PROJECT_NAME} PUBLIC TRACY_ON_DEMAND)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TRACY_VK_USE_SYMBOL_TABLE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_PROFILER=1)
 
 else ()
     message("[TURBO] Disabling profiling support")
 
-    add_compile_definitions(WITH_PROFILER=0)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_PROFILER=0)
 endif ()
 
 

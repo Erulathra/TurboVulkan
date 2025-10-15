@@ -7,7 +7,7 @@ StructuredBuffer<float3, ScalarDataLayout> positions;
 cbuffer pushConstants
 {
     float4x4 modelToProj;
-    float4x4 modelToView;
+    float3* positionBuffer;
 };
 
 struct VSIn
@@ -30,7 +30,7 @@ struct PSOut
 void vsMain(in VSIn vsIn, out VSOut vsOut)
 {
     vsOut.position = mul(float4(positions[vsIn.vertexId], 1.f), modelToProj);
-    // vsOut.color = normalize(mul(float4(positions[vsIn.vertexId], 1.f), modelToView)).xyz;
+    // vsOut.position = mul(float4(positionBuffer[vsIn.vertexId], 1.f), modelToProj);
     vsOut.color = float3(1.f, 0.f, 1.f);
 }
 

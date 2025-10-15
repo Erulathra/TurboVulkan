@@ -25,6 +25,7 @@ namespace Turbo
 
 	public:
 		[[nodiscard]] void* GetMappedAddress() const { return mMappedAddress; }
+		[[nodiscard]] vk::DeviceAddress GetDeviceAddress() const { return mDeviceAddress; }
 		[[nodiscard]] FName GetName() const { return mName; }
 
 	private:

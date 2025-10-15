@@ -28,7 +28,7 @@ public:
 
 private:
 	glm::vec3 mModelLocation = {0.f, 0.f, 0.f};
-	glm::vec3 mCameraLocation = {0.f, 0.f, -3.f};
+	glm::vec3 mCameraLocation = {0.f, 0.f, 3.f};
 	glm::vec2 mCameraRotation = {0.f, 0.f};
 	float mCameraFov = 60.f;
 	glm::vec2 mCameraNearFar = {0.1f, 1000.f};

@@ -8,7 +8,6 @@
 #include "Graphics/Resources.h"
 #include "VulkanHelpers.h"
 
-
 namespace Turbo
 {
 	class FWindow;
@@ -118,6 +117,7 @@ namespace Turbo
 
 		/** Destroy immediate end */
 
+
 		/** Vulkan Getters */
 	public:
 		[[nodiscard]] vk::Instance GetVkInstance() const { return mVkInstance; }
@@ -127,6 +127,11 @@ namespace Turbo
 
 		/** Vulkan Getters end */
 
+#if WITH_PROFILER
+		/** Profiling */
+		[[nodiscard]] FTraceGPUCtx GetTraceGpuCtx() const { return mTraceGpuCtx; }
+#endif
+
 		/** Initialization methods */
 	private:
 		vkb::Instance CreateVkInstance(const std::vector<cstring>& requiredExtensions);
@@ -135,7 +140,7 @@ namespace Turbo
 		vkb::Swapchain CreateSwapchain();
 		void CreateVulkanMemoryAllocator();
 		void CreateFrameDatas();
-		vk::CommandPool CreateCommandPool();
+		vk::CommandPool CreateCommandPool(vk::CommandPoolCreateFlags createFlags = {});
 		TUniquePtr<FCommandBuffer> CreateCommandBuffer(vk::CommandPool commandPool, FName name = FName());
 
 		void InitializeImmediateCommands();
@@ -250,6 +255,11 @@ namespace Turbo
 		TUniquePtr<FCommandBuffer> mImmediateCommandsBuffer;
 
 		/** Immediate commands end */
+
+		/** Profiling */
+	private:
+		FTraceGPUCtx mTraceGpuCtx;
+		/** Profiling end */
 
 		/** Other */
 	private:
