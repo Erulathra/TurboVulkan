@@ -32,7 +32,7 @@ namespace Turbo {
 			return;
 		}
 
-		std::chrono::time_point<std::chrono::system_clock> newTickStartTime = std::chrono::high_resolution_clock::now();
+		const FChronoTimePoint newTickStartTime = std::chrono::high_resolution_clock::now();
 
 		mDeltaTime = std::chrono::duration<double>(newTickStartTime - mTickStartTime).count();
 		mTimeFromEngineStart = std::chrono::duration<double>(newTickStartTime - mEngineStartTime).count();

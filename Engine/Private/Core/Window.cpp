@@ -32,7 +32,7 @@ namespace Turbo
 	bool FWindow::Init()
 	{
 		TURBO_LOG(LOG_WINDOW, Info, "Initializing Window.");
-		mSDLWindow = SDL_CreateWindow(WindowDefaultValues::kName.c_str(), WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY,
+		mSDLWindow = SDL_CreateWindow(WindowDefaultValues::kName.data(), WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY,
 		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN);
 		if (!mSDLWindow)
 		{

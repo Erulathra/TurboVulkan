@@ -375,7 +375,7 @@ namespace Turbo
 		poolSizes.reserve(builder.mPoolSizes.size());
 		for (auto [type, ratio] : builder.mPoolSizes)
 		{
-			poolSizes.emplace_back(type, ratio * builder.mMaxSets);
+			poolSizes.emplace_back(type, static_cast<uint32>(ratio * builder.mMaxSets));
 		}
 
 		vk::DescriptorPoolCreateInfo createInfo = {};

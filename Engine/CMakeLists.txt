@@ -6,7 +6,7 @@ file(GLOB_RECURSE PRIVATE_FILES Private/*.cpp)
 # Add public files
 file(GLOB_RECURSE PUBLIC_FILES Public/*.h)
 
-add_library(${PROJECT_NAME} SHARED ${PUBLIC_FILES} ${PRIVATE_FILES})
+add_library(${PROJECT_NAME} STATIC ${PUBLIC_FILES} ${PRIVATE_FILES})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
 
@@ -18,12 +18,13 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC pch.h)
 target_include_directories(${PROJECT_NAME} PRIVATE Private)
 target_include_directories(${PROJECT_NAME} PUBLIC Public)
 
-target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
+if (UNIX)
+    target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
+    target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
+endif ()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan-Headers)
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
-
-target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
+target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3-shared)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)

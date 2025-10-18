@@ -24,7 +24,7 @@ namespace Turbo
 	{
 		static constexpr int32 kSizeX = 1280;
 		static constexpr int32 kSizeY = 720;
-		static constexpr std::string kName = "Turbo Vulkan";
+		static constexpr std::string_view kName = "Turbo Vulkan";
 	}
 
 	DECLARE_MULTICAST_DELEGATE(FWindowEventDelegate, EWindowEvent);

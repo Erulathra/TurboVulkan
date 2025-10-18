@@ -27,8 +27,10 @@ namespace Turbo
 		TURBO_LOG(LOG_ENGINE, Info, "Creating engine instance.");
 		gEngine = TUniquePtr<FEngine>(new FEngine());
 
+#if 0
 		// TODO: Move thread configuration to separate class
 		pthread_setname_np(pthread_self(), "Turbo Engine");
+#endif
 
 		gEngine->RegisterEngineLayers();
 	}
