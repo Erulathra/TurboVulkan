@@ -56,7 +56,7 @@ set(URL "${SLANG_MIRROR}/releases/download/v${SLANG_VERSION}/${URL_NAME}.zip")
 FetchContent_Declare(${FC_NAME} URL ${URL})
 turbo_message(STATUS "Using Slang binaries from '${URL}'")
 FetchContent_MakeAvailable(${FC_NAME})
-set(Slang_ROOT "${${FC_NAME}_SOURCE_DIR}")
+set(Slang_ROOT "${${FC_NAME}_SOURCE_DIR}" CACHE INTERNAL "Root directory of fetched Slang binaries")
 
 ############################################################################################
 # Import targets (ideally slang would provide a SlangConfig.cmake)
@@ -71,7 +71,6 @@ if (MSVC)
 			IMPORTED_IMPLIB "${Slang_ROOT}/lib/slang.lib"
 			IMPORTED_LOCATION "${Slang_ROOT}/bin/slang.dll"
 	)
-	file(GLOB_RECURSE SLANG_BINARIES "${Slang_ROOT}/bin/*.dll")
 elseif (UNIX)
 	set_target_properties(
 			slang
@@ -79,7 +78,6 @@ elseif (UNIX)
 			IMPORTED_LOCATION "${Slang_ROOT}/lib/libslang.so"
 			IMPORTED_NO_SONAME TRUE
 	)
-	file(GLOB_RECURSE SLANG_BINARIES "${Slang_ROOT}/bin/*.so")
 else()
 	message(FATAL_ERROR "Sorry, Slang does not provide precompiled binaries for MSYS/MinGW")
 endif()
@@ -93,12 +91,18 @@ target_include_directories(slang INTERFACE
 ############################################################################################
 
 function(target_copy_slang_binaries TargetName)
+	if (MSVC)
+		file(GLOB_RECURSE SLANG_BINARIES "${Slang_ROOT}/bin/*.dll")
+	elseif (UNIX)
+		file(GLOB_RECURSE SLANG_BINARIES "${Slang_ROOT}/bin/*.so")
+	endif ()
+
 	foreach (SLANG_BINARY ${SLANG_BINARIES})
 		add_custom_command(
 				TARGET ${TargetName} POST_BUILD
 				COMMAND
 				${CMAKE_COMMAND} -E copy_if_different
-				${SSLANG_BINARY}
+				${SLANG_BINARY}
 				$<TARGET_FILE_DIR:${TargetName}>
 				COMMENT
 				"Copying '${SLANG_BINARY}' to '$<TARGET_FILE_DIR:${TargetName}>'..."
