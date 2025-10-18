@@ -12,6 +12,8 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
 
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_Engine)
 
+target_copy_slang_binaries(${PROJECT_NAME})
+
 add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink
@@ -45,4 +47,5 @@ if (WIN32)
             COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:${PROJECT_NAME}> $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>
             COMMAND_EXPAND_LISTS
     )
+
 endif ()

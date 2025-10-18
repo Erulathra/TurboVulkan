@@ -1,11 +1,6 @@
 #pragma once
 #include "CommonTypeDefs.h"
 
-// Code assumes 64bit platform
-#if !defined(WITH_TURBO_64) || !WITH_TURBO_64
-#error 64 bit C++ compiler required.
-#endif // !WITH_TURBO_64
-
 // Version macros
 #define MAKE_VERSION(Major, Minor, Patch) \
     ((((uint32_t)(Major)) << 22U) | (((uint32_t)(Minor)) << 12U) | ((uint32_t)(Patch)))
@@ -18,7 +13,7 @@
 
 // Debug break
 #if DEBUG
-#if WITH_MSVC
+#if PLATFORM_MSVC
 #include <intrin.h>
 #define TURBO_DEBUG_BREAK() __debugbreak()
 #else

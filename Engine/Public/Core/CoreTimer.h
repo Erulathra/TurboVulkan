@@ -2,7 +2,7 @@
 
 namespace Turbo
 {
-#if WITH_MSVC
+#if PLATFORM_MSVC
 	using FChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock>;
 #elif
 	using FChronoTimePoint = std::chrono::time_point<std::chrono::system_clock>;
