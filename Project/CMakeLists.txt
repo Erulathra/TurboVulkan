@@ -1,3 +1,5 @@
+project(TurboVulkan_Sample VERSION 0.1.0)
+
 # Add private files
 file(GLOB_RECURSE PRIVATE_FILES Private/*.cpp)
 
@@ -10,7 +12,7 @@ add_executable(${PROJECT_NAME} ${PUBLIC_FILES} ${PRIVATE_FILES})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
 
-target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_Engine)
+target_link_libraries(${PROJECT_NAME} TurboVulkan)
 
 target_copy_slang_binaries(${PROJECT_NAME})
 

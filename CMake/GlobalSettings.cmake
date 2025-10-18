@@ -54,8 +54,6 @@ endif ()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 ############################################################################################
 # MSVC
 ############################################################################################
