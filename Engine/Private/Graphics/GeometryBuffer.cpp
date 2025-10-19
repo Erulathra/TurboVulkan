@@ -30,7 +30,7 @@ namespace Turbo
 		TURBO_CHECK(mColor.IsValid())
 
 		textureBuilder
-			.Init(vk::Format::eD32SfloatS8Uint, ETextureType::Texture2D, ETextureFlags::RenderTarget)
+			.Init(kDepthFormat, ETextureType::Texture2D, ETextureFlags::RenderTarget)
 			.SetName(geometryBufferDepthName);
 
 		mDepth = mGpu->CreateTexture(textureBuilder);

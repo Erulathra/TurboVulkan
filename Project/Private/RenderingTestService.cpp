@@ -16,6 +16,8 @@ struct FPushConstants
 {
 	glm::mat4 objToProj;
 	vk::DeviceAddress positionBuffer;
+	vk::DeviceAddress normalBuffer;
+	vk::DeviceAddress colorBuffer;
 };
 
 FRenderingTestLayer::~FRenderingTestLayer()
@@ -39,13 +41,9 @@ void FRenderingTestLayer::Start()
 		.AddBinding(vk::DescriptorType::eStorageBuffer, 0, FName("positions"))
 		.SetName(FName("GraphicsTest"));
 
-	mGraphicsPipelineSetLayout = gpu->CreateDescriptorSetLayout(descriptorSetBuilder);
-
 	FPipelineBuilder graphicsPipelineBuilder;
-	graphicsPipelineBuilder.AddDescriptorSetLayout(mGraphicsPipelineSetLayout);
 	graphicsPipelineBuilder.SetPushConstantType<FPushConstants>();
 	graphicsPipelineBuilder.SetName(FName("TestGraphicsPipeline"));
-	graphicsPipelineBuilder.GetRasterization().SetCullMode(vk::CullModeFlagBits::eNone);
 
 	graphicsPipelineBuilder.GetShaderState()
 		.AddStage("GPShader", vk::ShaderStageFlagBits::eVertex)
@@ -54,8 +52,12 @@ void FRenderingTestLayer::Start()
 	graphicsPipelineBuilder.GetBlendState()
 		.AddNoBlendingState();
 
+	graphicsPipelineBuilder.GetDepthStencil()
+		.SetDepth(true, true, vk::CompareOp::eGreaterOrEqual);
+
 	graphicsPipelineBuilder.GetPipelineRendering()
-		.AddColorAttachment(FGeometryBuffer::kColorFormat);
+		.AddColorAttachment(FGeometryBuffer::kColorFormat)
+		.SetDepthAttachment(FGeometryBuffer::kDepthFormat);
 
 	mGraphicsPipeline = gpu->CreatePipeline(graphicsPipelineBuilder);
 }
@@ -65,7 +67,6 @@ void FRenderingTestLayer::Shutdown()
 	FGPUDevice* gpu = gEngine->GetGpu();
 
 	gpu->DestroyPipeline(mGraphicsPipeline);
-	gpu->DestroyDescriptorSetLayout(mGraphicsPipelineSetLayout);
 
 	gEngine->GetAssetManager()->UnloadMesh(mMeshHandle);
 }
@@ -94,24 +95,19 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 
 	const FSubMesh* mesh = gEngine->GetAssetManager()->AccessMesh(mMeshHandle);
 	const FBuffer* positionBuffer = gpu->AccessBuffer(mesh->mPositionBuffer);
+	const FBuffer* normalBuffer = gpu->AccessBuffer(mesh->mNormalBuffer);
+	const FBuffer* colorBuffer = gpu->AccessBuffer(mesh->mColorBuffer);
 
 	// Graphics pipeline
-	const static FName graphicsDescriptorSetName("GraphicsSet");
-	FDescriptorSetBuilder graphicsDescriptorSetBuilder;
-	graphicsDescriptorSetBuilder
-		.SetDescriptorPool(descriptorPool)
-		.SetLayout(mGraphicsPipelineSetLayout)
-		.SetBuffer(mesh->mPositionBuffer, 0)
-		.SetName(graphicsDescriptorSetName);
-
-	const THandle<FDescriptorSet> graphicsDescriptorSet = gpu->CreateDescriptorSet(graphicsDescriptorSetBuilder);
-
 	const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
+	const THandle<FTexture> dephtImageHandle = geometryBuffer.GetDepth();
 
 	cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eColorAttachmentOptimal);
+	cmd->TransitionImage(dephtImageHandle, vk::ImageLayout::eDepthAttachmentOptimal);
 
 	FRenderingAttachments renderingAttachments;
 	renderingAttachments.AddColorAttachment(drawImageHandle);
+	renderingAttachments.SetDepthAttachment(dephtImageHandle);
 
 	cmd->BeginRendering(renderingAttachments);
 	cmd->SetViewport(FViewport::FromSize(geometryBuffer.GetResolution()));
@@ -125,15 +121,16 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 		* glm::translate(glm::mat4(1.f), -mCameraLocation);
 
 	const glm::vec2 resolution = geometryBuffer.GetResolution();
-	glm::mat4 projMat = glm::perspectiveFov(glm::radians(mCameraFov), resolution.x, resolution.y, mCameraNearFar.x, mCameraNearFar.y);
+	glm::mat4 projMat = glm::perspectiveFov(glm::radians(mCameraFov), resolution.x, resolution.y, mCameraNearFar.y, mCameraNearFar.x);
 	FMath::ConvertTurboToVulkanCoordinates(projMat);
 
 	FPushConstants pushConstants = {};
 	pushConstants.objToProj = projMat * viewMat * modelMat;
 	pushConstants.positionBuffer = positionBuffer->GetDeviceAddress();
+	pushConstants.normalBuffer = normalBuffer->GetDeviceAddress();
+	pushConstants.colorBuffer = colorBuffer->GetDeviceAddress();
 
 	cmd->BindPipeline(mGraphicsPipeline);
-	cmd->BindDescriptorSet(graphicsDescriptorSet, 0);
 	cmd->PushConstants(pushConstants);
 	cmd->BindIndexBuffer(mesh->mIndicesBuffer);
 	cmd->DrawIndexed(mesh->mVertexCount);

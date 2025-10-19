@@ -285,12 +285,14 @@ namespace Turbo
 			pipelineCreateInfo.pColorBlendState = &colorBlending;
 
 			// Depth Stencil
+			// TODO: better depht handling
 			vk::PipelineDepthStencilStateCreateInfo depthStencil = {};
 			depthStencil.depthWriteEnable = builder.mDepthStencilBuilder.mbEnableWriteDepth ? vk::True : vk::False;
-			depthStencil.depthTestEnable = builder.mDepthStencilBuilder.mbEnableStencil ? vk::True : vk::False;
+			depthStencil.depthTestEnable = builder.mDepthStencilBuilder.mbEnableDepthTest ? vk::True : vk::False;
 			depthStencil.stencilTestEnable = builder.mDepthStencilBuilder.mbEnableStencil ? vk::True : vk::False;
 			depthStencil.depthCompareOp = builder.mDepthStencilBuilder.mDepthCompareOperator;
-			// TODO: better depht handling
+			depthStencil.minDepthBounds = 0.f;
+			depthStencil.maxDepthBounds = 1.f;
 
 			if (builder.mDepthStencilBuilder.mbEnableStencil)
 			{

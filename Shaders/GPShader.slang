@@ -1,23 +1,18 @@
 import Math;
 
-[[vk::binding(0, 0)]]
-StructuredBuffer<float3, ScalarDataLayout> positions;
-
 [[vk::push_constant]]
 cbuffer pushConstants
 {
     float4x4 modelToProj;
     float3* positionBuffer;
+    float3* normalBuffer;
+    float4* colorBuffer;
 };
-
-struct VSIn
-{
-    uint vertexId : SV_VertexID;
-}
 
 struct VSOut
 {
     float4 position : SV_Position;
+    float3 normal;
     float3 color;
 }
 
@@ -27,15 +22,24 @@ struct PSOut
 }
 
 [shader("vertex")]
-void vsMain(in VSIn vsIn, out VSOut vsOut)
+void vsMain(in uint vertexId : SV_VertexID, out VSOut vsOut)
 {
-    vsOut.position = mul(float4(positions[vsIn.vertexId], 1.f), modelToProj);
-    // vsOut.position = mul(float4(positionBuffer[vsIn.vertexId], 1.f), modelToProj);
-    vsOut.color = float3(1.f, 0.f, 1.f);
+    vsOut.position = mul(float4(positionBuffer[vertexId], 1.f), modelToProj);
+    vsOut.normal = normalBuffer[vertexId];
+    vsOut.color = colorBuffer[vertexId].xyz;
 }
 
 [shader("pixel")]
 void psMain(in VSOut vsOut, out PSOut psOut)
 {
-    psOut.color = float4(vsOut.color, 1.f);
+    const float3 sunDir = normalize(float3(-1.f, -1.f, -1.f));
+    const float ambientLight = 0.1f;
+
+    float lightIntensity = ambientLight + max(0.f, dot(vsOut.normal, -sunDir));
+    lightIntensity = clamp(lightIntensity, 0.f, 1.f);
+
+    const float3 baseColor = vsOut.color;
+    const float3 colorLightPass = baseColor * lightIntensity;
+
+    psOut.color = float4(colorLightPass, 1.f);
 }

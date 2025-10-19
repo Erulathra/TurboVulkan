@@ -34,7 +34,6 @@ private:
 	glm::vec2 mCameraNearFar = {0.1f, 1000.f};
 
 	Turbo::THandle<Turbo::FPipeline> mGraphicsPipeline;
-	Turbo::THandle<Turbo::FDescriptorSetLayout> mGraphicsPipelineSetLayout;
 
 	Turbo::THandle<Turbo::FSubMesh> mMeshHandle;
 };

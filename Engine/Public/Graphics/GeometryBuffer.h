@@ -12,6 +12,7 @@ namespace Turbo
 
 	public:
 		static constexpr vk::Format kColorFormat = vk::Format::eR16G16B16A16Sfloat;
+		static constexpr vk::Format kDepthFormat = vk::Format::eD32Sfloat;
 
 	public:
 		explicit FGeometryBuffer(FGPUDevice* gpu);

@@ -159,6 +159,11 @@ namespace Turbo
 
 		/** Destroy methods end */
 
+		/** Utils */
+	private:
+		// void CreateStagingBuffer
+		/** Utils end */
+
 		/** Rendering interface */
 	private:
 		void AdvanceFrameCounters();

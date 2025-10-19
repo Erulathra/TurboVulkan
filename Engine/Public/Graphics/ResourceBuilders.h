@@ -218,7 +218,7 @@ namespace Turbo
 	private:
 		vk::CullModeFlags mCullMode = vk::CullModeFlagBits::eBack;
 		vk::PolygonMode mPolygonMode = vk::PolygonMode::eFill;
-		vk::FrontFace mFrontFace = vk::FrontFace::eClockwise;
+		vk::FrontFace mFrontFace = vk::FrontFace::eCounterClockwise;
 	};
 
 	class FDepthStencilBuilder final
@@ -226,9 +226,9 @@ namespace Turbo
 		BUILDER_BODY()
 
 	public:
-		FDepthStencilBuilder& SetDepth(bool bWrite, vk::CompareOp compareOperator)
+		FDepthStencilBuilder& SetDepth(bool bTest, bool bWrite, vk::CompareOp compareOperator)
 		{
-			mbEnableDepth = true;
+			mbEnableDepthTest = bTest;
 			mbEnableWriteDepth = bWrite;
 			mDepthCompareOperator = compareOperator;
 
@@ -238,7 +238,7 @@ namespace Turbo
 	private:
 		vk::CompareOp mDepthCompareOperator = vk::CompareOp::eGreater;
 
-		bool mbEnableDepth : 1 = false;
+		bool mbEnableDepthTest : 1 = false;
 		bool mbEnableWriteDepth : 1 = false;
 		bool mbEnableStencil : 1 = false;
 		uint8 mPadding : 5 = 0;
@@ -418,7 +418,7 @@ namespace Turbo
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
 
 		template <typename pushConstantType> requires (sizeof(pushConstantType) < kMaxPushConstantSize)
-		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(pushConstantType); return *this; }
+		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(pushConstantType); TURBO_CHECK(mPushConstantSize < 128); return *this; }
 
 		FPipelineBuilder& SetPrimitiveTopology(vk::PrimitiveTopology primitiveTopology) { mTopology = primitiveTopology; return *this; }
 		FPipelineBuilder& SetName(FName name) { mName = name; return *this; }
