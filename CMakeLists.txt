@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.30 FATAL_ERROR)
-project(TurboVulcan VERSION 0.0.1)
+project(TurboVulkan VERSION 0.0.1)
 
 message("Build type: ${CMAKE_BUILD_TYPE}")
 

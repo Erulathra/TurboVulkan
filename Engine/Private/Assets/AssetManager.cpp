@@ -10,10 +10,10 @@
 
 namespace Turbo
 {
-	constexpr std::string kPositionName = "POSITION";
-	constexpr std::string kNormalName = "NORMAL";
-	constexpr std::string kUVName = "TEXCOORD_0";
-	constexpr std::string kColorName = "COLOR_0";
+	constexpr std::string_view kPositionName = "POSITION";
+	constexpr std::string_view kNormalName = "NORMAL";
+	constexpr std::string_view kUVName = "TEXCOORD_0";
+	constexpr std::string_view kColorName = "COLOR_0";
 
 	FAssetManager::FAssetManager() = default;
 
@@ -57,7 +57,7 @@ namespace Turbo
 	THandle<FSubMesh> FAssetManager::LoadMesh(const std::filesystem::path& path)
 	{
 		// This method is as much naive as it can be, but for now it should last.
-		TURBO_LOG(LOG_MESH_LOADING, Info, "Loading GLTF mesh. ({})", path.c_str())
+		TURBO_LOG(LOG_MESH_LOADING, Info, "Loading GLTF mesh. ({})", path.string())
 		THandle<FSubMesh> Result = {};
 
 		fastgltf::Expected<fastgltf::GltfDataBuffer> data = fastgltf::GltfDataBuffer::FromPath(path);

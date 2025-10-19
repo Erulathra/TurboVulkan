@@ -375,7 +375,7 @@ namespace Turbo
 		poolSizes.reserve(builder.mPoolSizes.size());
 		for (auto [type, ratio] : builder.mPoolSizes)
 		{
-			poolSizes.emplace_back(type, ratio * builder.mMaxSets);
+			poolSizes.emplace_back(type, static_cast<uint32>(ratio * builder.mMaxSets));
 		}
 
 		vk::DescriptorPoolCreateInfo createInfo = {};
@@ -840,6 +840,7 @@ namespace Turbo
 		{
 			THandle<FTexture> handle = mTexturePool->Acquire();
 			FTexture* texture = mTexturePool->Access(handle);
+			*texture = {};
 			texture->mImage = builtImages[imageId];
 			texture->mImageView = builtImageViews[imageId];
 			texture->mFormat = mVkSurfaceFormat.format;
@@ -1204,6 +1205,8 @@ namespace Turbo
 
 	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture)
 	{
+		*texture = {};
+
 		texture->mFormat = builder.mFormat;
 
 		texture->mWidth = builder.mWidth;
@@ -1266,6 +1269,7 @@ namespace Turbo
 			TextureFormat::HasDepthOrStencil(builder.mFormat) ? vk::ImageAspectFlagBits::eDepth : vk::ImageAspectFlagBits::eColor;
 		viewCreateInfo.subresourceRange.levelCount = 1;
 		viewCreateInfo.subresourceRange.layerCount = 1;
+
 
 		CHECK_VULKAN_RESULT(texture->mImageView, mVkDevice.createImageView(viewCreateInfo));
 

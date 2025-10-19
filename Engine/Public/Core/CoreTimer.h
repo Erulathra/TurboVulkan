@@ -2,6 +2,12 @@
 
 namespace Turbo
 {
+#if PLATFORM_MSVC
+	using FChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock>;
+#else
+	using FChronoTimePoint = std::chrono::time_point<std::chrono::system_clock>;
+#endif
+
 	class FCoreTimer
 	{
 	private:
@@ -23,8 +29,8 @@ namespace Turbo
 		[[nodiscard]] double GetTimeFromEngineStart() const { return mTimeFromEngineStart; };
 
 	private:
-		std::chrono::time_point<std::chrono::system_clock> mEngineStartTime {};
-		std::chrono::time_point<std::chrono::system_clock> mTickStartTime {};
+		FChronoTimePoint mEngineStartTime {};
+		FChronoTimePoint mTickStartTime {};
 
 		bool bFirstTick = true;
 
