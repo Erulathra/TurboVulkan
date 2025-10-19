@@ -26,3 +26,4 @@ Runtime/*
 
 # Python enviro
 .venv
+**/__pycache__
