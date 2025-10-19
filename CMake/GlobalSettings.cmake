@@ -64,6 +64,8 @@ if (MSVC)
     add_compile_options(/Zc:preprocessor)
 
     turbo_message(STATUS "Platform MSVC")
+else ()
+    set(MSVC 0)
 endif ()
 
 add_compile_definitions(PLATFORM_MSVC=${MSVC})
@@ -74,6 +76,8 @@ add_compile_definitions(PLATFORM_MSVC=${MSVC})
 
 if (UNIX)
     turbo_message(STATUS "Platform Linux")
+else ()
+    set(UNIX 0)
 endif ()
 
 add_compile_definitions(PLATFORM_LINUX=${UNIX})

@@ -4,7 +4,7 @@ namespace Turbo
 {
 #if PLATFORM_MSVC
 	using FChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock>;
-#elif
+#else
 	using FChronoTimePoint = std::chrono::time_point<std::chrono::system_clock>;
 #endif
 

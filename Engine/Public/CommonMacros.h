@@ -17,7 +17,6 @@
 #include <intrin.h>
 #define TURBO_DEBUG_BREAK() __debugbreak()
 #else
-#include <csignal>
 #define TURBO_DEBUG_BREAK() __builtin_debugtrap();
 #endif
 #else // DEBUG
