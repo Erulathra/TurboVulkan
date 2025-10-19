@@ -49,5 +49,4 @@ if (WIN32)
             COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:${PROJECT_NAME}> $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>
             COMMAND_EXPAND_LISTS
     )
-
 endif ()

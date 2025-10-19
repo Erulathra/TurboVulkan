@@ -1,6 +1,6 @@
 project(slang VERSION 2025.16)
 
-set(SLANG_ROOT "${CMAKE_SOURCE_DIR}/ThirdParty/Slang")
+set(SLANG_ROOT "${CMAKE_SOURCE_DIR}/ThirdParty/Slang" CACHE STRING "Root directory of Slang binaries")
 add_library(slang SHARED IMPORTED GLOBAL)
 
 if (NOT MSVC AND NOT UNIX)
@@ -29,9 +29,9 @@ function(target_copy_slang_binaries TargetName)
 	turbo_message(STATUS "Coping slang binaries to target ${TargetName} directory.")
 
 	if (MSVC)
-		file(GLOB_RECURSE SLANG_BINARIES "${SLANG_ROOT}/Windows/bin/*.dll")
+		file(GLOB SLANG_BINARIES "${SLANG_ROOT}/Windows/bin/*.dll")
 	elseif (UNIX)
-		file(GLOB_RECURSE SLANG_BINARIES "${SLANG_ROOT}/Linux/lib/*.so")
+		file(GLOB SLANG_BINARIES "${SLANG_ROOT}/Linux/lib/*.so")
 	endif ()
 
 	foreach (SLANG_BINARY ${SLANG_BINARIES})
