@@ -28,10 +28,14 @@ if (UNIX)
 endif ()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan-Headers)
-target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3-shared)
+target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_NO_EXCEPTIONS)
+target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
+target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3-shared)
+target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
@@ -43,17 +47,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC VulkanMemoryAllocator-Hpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC vk-bootstrap::vk-bootstrap)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE slang)
-
-target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
-target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_VERSION_MINOR=${PROJECT_VERSION_MINOR})
-target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
-
-# Vulkan HPP definitions
-target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_NO_EXCEPTIONS)
-target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
-
-# GLM definitions
-target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 ############################################################################################
 # Tracy configuration
@@ -72,6 +65,10 @@ endif ()
 ############################################################################################
 # Project defines
 ############################################################################################
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
+target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_VERSION_MINOR=${PROJECT_VERSION_MINOR})
+target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_BUILD_DEVELOPMENT=${TURBO_BUILD_DEVELOPMENT})
 target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_BUILD_SHIPPING=${TURBO_BUILD_SHIPPING})

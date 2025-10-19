@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ############################################################################################
-# LOG COMMAND
+# CMAKE LOG FUNCTION
 ############################################################################################
 
 function(turbo_message VERBOSITY MESSAGE)
@@ -25,7 +25,7 @@ string(COMPARE EQUAL "${BUILD_TYPE}" "Shipping" TURBO_BUILD_SHIPPING)
 # In case when BUILD_TYPE is missing set build type to development
 if (NOT ${TURBO_BUILD_SHIPPING} AND NOT ${TURBO_BUILD_DEVELOPMENT})
     turbo_message(STATUS "BUILD_TYPE argument is missing. Setting build type to DEVELOPMENT")
-    set(${TURBO_BUILD_DEVELOPMENT} 1)
+    set(TURBO_BUILD_DEVELOPMENT 1)
 else ()
     turbo_message(STATUS "Set BUILD_TYPE to ${BUILD_TYPE}")
 endif()
