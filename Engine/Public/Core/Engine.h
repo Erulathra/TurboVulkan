@@ -4,11 +4,8 @@
 
 namespace Turbo
 {
+	class FWorld;
 	class FAssetManager;
-}
-
-namespace Turbo
-{
 	class FGPUDevice;
 	class FCoreTimer;
 	class FVulkanRHI;
@@ -50,6 +47,8 @@ namespace Turbo
 
 		[[nodiscard]] FAssetManager* GetAssetManager() const { return mAssetManager.get(); }
 
+		[[nodiscard]] FWorld* GetWorld() const { return mWorld.get(); }
+
 	private:
 		// Replace us with GenericRHI
 		TSharedPtr<FGPUDevice> mGpuDevice;
@@ -59,6 +58,8 @@ namespace Turbo
 
 		TSharedPtr<FCoreTimer> mCoreTimer;
 		TSharedPtr<FAssetManager> mAssetManager;
+
+		TSharedPtr<FWorld> mWorld;
 
 		/** Services end */
 

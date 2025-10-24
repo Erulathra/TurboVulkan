@@ -38,3 +38,6 @@
 // VMA
 #define VULKAN_HPP_ASSERT_ON_RESULT {}
 #include "vk_mem_alloc.hpp"
+
+// EnTT
+#include "entt/entt.hpp"

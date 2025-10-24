@@ -60,6 +60,6 @@ CPMAddPackage(
 )
 
 CPMAddPackage("gh:spnda/fastgltf@0.9.0")
+CPMAddPackage("gh:skypjack/entt@3.15.0")
 
 add_subdirectory(Slang)
-#include(FetchSlang.cmake)
