@@ -8,10 +8,8 @@
 #include "Core/Input/Keys.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
-#include "Graphics/GraphicsLocator.h"
 #include "Services/ImGUIService.h"
 #include "Services/ILayer.h"
-#include "Assets/AssetManager.h"
 
 namespace Turbo
 {
@@ -32,6 +30,7 @@ namespace Turbo
 		pthread_setname_np(pthread_self(), "Turbo Engine");
 #endif
 
+		entt::locator<FLayersStack>::emplace();
 		gEngine->RegisterEngineLayers();
 	}
 
@@ -42,36 +41,40 @@ namespace Turbo
 
 		mEngineState = EEngineState::Initializing;
 
-		mCoreTimer = TSharedPtr<FCoreTimer>(new FCoreTimer());
-		mCoreTimer->Init();
+		entt::locator<FCoreTimer>::reset(new FCoreTimer());
+		FCoreTimer& coreTimer = entt::locator<FCoreTimer>::value();
+		coreTimer.Init();
 
-		mGpuDevice = TSharedPtr<FGPUDevice>(new FGPUDevice());
-		mWindow = TSharedPtr<FWindow>(new FWindow());
-		mInputSystemInstance = TUniquePtr<FSDLInputSystem>(new FSDLInputSystem());
+		entt::locator<FGPUDevice>::reset(new FGPUDevice());
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 
-		mWindow->InitBackend();
+		entt::locator<FWindow>::reset(new FWindow());
+		FWindow& window = entt::locator<FWindow>::value();
+
+		entt::locator<IInputSystem>::reset<FSDLInputSystem>(new FSDLInputSystem());
+
+		window.InitBackend();
 
 		FGPUDeviceBuilder gpuDeviceBuilder;
-		gpuDeviceBuilder.SetWindow(mWindow);
+		gpu.Init(gpuDeviceBuilder);
 
-		mAssetManager = TSharedPtr<FAssetManager>(new FAssetManager());
+		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::emplace(&gpu);
+		geometryBuffer.Init(window.GetFrameBufferSize());
 
-		mGpuDevice->Init(gpuDeviceBuilder);
-		FGraphicsLocator::InitGeometryBuffer(mGpuDevice.get());
-		FGraphicsLocator::GetGeometryBuffer().Init(mWindow->GetFrameBufferSize());
+		window.OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
 
-
-		mWindow->OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
-
-		mInputSystemInstance->Init();
+		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
+		inputSystem.Init();
 		SetupBasicInputBindings();
 
-		for (const TSharedPtr<ILayer>& layer : *FLayersStack::Get())
+		entt::locator<FAssetManager>::emplace<FAssetManager>();
+
+		for (const TSharedPtr<ILayer>& layer : entt::locator<FLayersStack>::value())
 		{
 			layer->Start();
 		}
 
-		mWindow->ShowWindow(true);
+		window.ShowWindow(true);
 
 		mEngineState = EEngineState::Running;
 
@@ -85,25 +88,26 @@ namespace Turbo
 
 	void FEngine::GameThreadLoop()
 	{
+		FWindow& window = entt::locator<FWindow>::value();
 		while (!mbExitRequested)
 		{
 			GameThreadTick();
-			mWindow->PollWindowEventsAndErrors();
+			window.PollWindowEventsAndErrors();
 		}
 	}
 
 	void FEngine::GameThreadTick()
 	{
 		TRACE_ZONE_SCOPED_N("GameThreadTick")
-		mCoreTimer->Tick();
-		const float deltaTime = mCoreTimer->GetDeltaTime();
 
-		TURBO_LOG(LOG_ENGINE, Display, "Engine Tick. FrameTime: {}, FPS: {}", mCoreTimer->GetDeltaTime(), 1.f / mCoreTimer->GetDeltaTime());
+		FCoreTimer& coreTimer = entt::locator<FCoreTimer>::value();
+		coreTimer.Tick();
+		const double deltaTime = coreTimer.GetDeltaTime();
 
-		FLayersStack* layerStack = FLayersStack::Get();
+		FLayersStack& layerStack = entt::locator<FLayersStack>::value();
 		{
 			TRACE_ZONE_SCOPED_N("Services: Begin Tick")
-			for (const TSharedPtr<ILayer>& layer : *layerStack)
+			for (const TSharedPtr<ILayer>& layer : layerStack)
 			{
 				if (layer->ShouldTick())
 				{
@@ -114,7 +118,7 @@ namespace Turbo
 
 		{
 			TRACE_ZONE_SCOPED_N("Services: End Tick")
-			for (auto layerIt = layerStack->rbegin(); layerIt != layerStack->rend(); ++layerIt)
+			for (auto layerIt = layerStack.rbegin(); layerIt != layerStack.rend(); ++layerIt)
 			{
 				if (ILayer* layer = layerIt->get();
 					layer->ShouldTick())
@@ -124,43 +128,42 @@ namespace Turbo
 			}
 		}
 
-		FGPUDevice* gpu = GetGpu();
-		TURBO_CHECK(gpu);
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 
-		if (gpu->BeginFrame())
+		if (gpu.BeginFrame())
 		{
-			const FGeometryBuffer& geometryBuffer = FGraphicsLocator::GetGeometryBuffer();
+			FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 
-			FCommandBuffer* cmd = gpu->GetCommandBuffer();
+			FCommandBuffer* cmd = gpu.GetCommandBuffer();
 			cmd->ClearImage(geometryBuffer.GetColor());
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
-				for (const TSharedPtr<ILayer>& layer : *layerStack)
+				for (const TSharedPtr<ILayer>& layer : layerStack)
 				{
 					if (layer->ShouldRender())
 					{
-						layer->PostBeginFrame_RenderThread(gpu, cmd);
+						layer->PostBeginFrame_RenderThread(&gpu, cmd);
 					}
 				}
 			}
 
-			FGraphicsLocator::GetGeometryBuffer().BlitResultToTexture(cmd, gpu->GetPresentImage());
-			THandle<FTexture> presentImage = gpu->GetPresentImage();
+			geometryBuffer.BlitResultToTexture(cmd, gpu.GetPresentImage());
+			THandle<FTexture> presentImage = gpu.GetPresentImage();
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")
-				for (auto layerIt = layerStack->rbegin(); layerIt != layerStack->rend(); ++layerIt)
+				for (auto layerIt = layerStack.rbegin(); layerIt != layerStack.rend(); ++layerIt)
 				{
 					if (ILayer* layer = layerIt->get();
 						layer->ShouldRender())
 					{
-						layer->BeginPresentingFrame_RenderThread(gpu, cmd, presentImage);
+						layer->BeginPresentingFrame_RenderThread(&gpu, cmd, presentImage);
 					}
 				}
 			}
 
-			gpu->PresentFrame();
+			gpu.PresentFrame();
 		}
 
 		TRACE_MARK_FRAME();
@@ -168,32 +171,37 @@ namespace Turbo
 
 	void FEngine::RegisterEngineLayers()
 	{
-		FLayersStack* layerStack = FLayersStack::Get();
-		layerStack->PushLayer<FImGuiLayer>();
+		FLayersStack& layerStack = entt::locator<FLayersStack>::value();
+		layerStack.PushLayer<FImGuiLayer>();
 	}
 
 	void FEngine::SetupBasicInputBindings()
 	{
 		const FName ToggleFullscreenName("ToggleFullscreen");
-		mInputSystemInstance->RegisterBinding(ToggleFullscreenName, EKeys::F11);
-		mInputSystemInstance->GetActionEvent(ToggleFullscreenName).AddLambda([this](const FActionEvent& actionEvent)
-		{
-			if (actionEvent.bDown)
+		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
+		inputSystem.RegisterBinding(ToggleFullscreenName, EKeys::F11);
+		inputSystem.GetActionEvent(ToggleFullscreenName).AddLambda(
+			[](const FActionEvent& actionEvent)
 			{
-				mWindow->SetFullscreen(!mWindow->IsFullscreenEnabled());
-			}
-		});
+				if (actionEvent.bDown)
+				{
+					FWindow& window = entt::locator<FWindow>::value();
+					window.SetFullscreen(!window.IsFullscreenEnabled());
+				}
+			});
 	}
 
 	void FEngine::HandleMainWindowEvents(EWindowEvent event)
 	{
+		FWindow& window = entt::locator<FWindow>::value();
+
 		if (event == EWindowEvent::WindowCloseRequest)
 		{
 			RequestExit(EExitCode::Success);
 		}
 		else if (event == EWindowEvent::WindowResized)
 		{
-			const glm::vec2 windowSize = GetWindow()->GetFrameBufferSize();
+			const glm::vec2 windowSize = window.GetFrameBufferSize();
 			TURBO_LOG(LOG_ENGINE, Info, "Window resized. New size {}", windowSize)
 		}
 	}
@@ -202,23 +210,28 @@ namespace Turbo
 	{
 		TURBO_LOG(LOG_ENGINE, Info, "Begin exit sequence.");
 
-		mGpuDevice->WaitIdle();
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+		gpu.WaitIdle();
 
-		FLayersStack* layerStack = FLayersStack::Get();
-		for (auto layerIt = layerStack->rbegin(); layerIt != layerStack->rend(); ++layerIt)
+		FLayersStack& layerStack = entt::locator<FLayersStack>::value();
+		for (auto layerIt = layerStack.rbegin(); layerIt != layerStack.rend(); ++layerIt)
 		{
 			layerIt->get()->Shutdown();
 		}
 
-		FGraphicsLocator::GetGeometryBuffer().Destroy();
+		entt::locator<FGeometryBuffer>::value().Destroy();
+		gpu.Shutdown();
+		entt::locator<FGeometryBuffer>::reset();
 
-		mGpuDevice->Shutdown();
-		mInputSystemInstance->Destroy();
-		mWindow->Destroy();
-		mWindow->StopBackend();
+		entt::locator<IInputSystem>::value().Destroy();
+		entt::locator<IInputSystem>::reset();
 
-		mGpuDevice = nullptr;
-		mWindow = nullptr;
+		FWindow& window = entt::locator<FWindow>::value();
+		window.Destroy();
+		window.StopBackend();
+
+		entt::locator<FWindow>::reset();
+		entt::locator<FGPUDevice>::reset();
 	}
 
 	void FEngine::RequestExit(EExitCode InExitCode)

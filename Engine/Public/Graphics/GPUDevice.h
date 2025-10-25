@@ -32,8 +32,6 @@ namespace Turbo
 
 	class FGPUDevice final
 	{
-		GENERATED_BODY(FGPUDevice)
-
 		/** Initialization interface */
 	public:
 		void Init(const FGPUDeviceBuilder& gpuDeviceBuilder);
@@ -275,6 +273,9 @@ namespace Turbo
 
 	private:
 		FGPUDevice() = default;
+
+	public:
+		DELETE_COPY(FGPUDevice);
 
 	public:
 		friend class FEngine;

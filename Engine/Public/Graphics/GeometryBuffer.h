@@ -16,6 +16,7 @@ namespace Turbo
 
 	public:
 		explicit FGeometryBuffer(FGPUDevice* gpu);
+		DELETE_COPY(FGeometryBuffer);
 
 	public:
 		void Init(const glm::ivec2& newResolution);

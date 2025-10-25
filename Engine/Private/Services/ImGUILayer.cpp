@@ -12,8 +12,8 @@ namespace Turbo
 	{
 		if (sdlEvent->type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED)
 		{
-			const FWindow* window = gEngine->GetWindow();
-			ImGui::GetStyle().ScaleAllSizes(window->GetDisplayScale());
+			const FWindow& window = entt::locator<FWindow>::value();
+			ImGui::GetStyle().ScaleAllSizes(window.GetDisplayScale());
 		}
 
 		ImGui_ImplSDL3_ProcessEvent(sdlEvent);
@@ -26,8 +26,8 @@ namespace Turbo
 
 	void FImGuiLayer::Start()
 	{
-		FGPUDevice* gpu = gEngine->GetGpu();
-		FWindow* window = gEngine->GetWindow();
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+		FWindow& window = entt::locator<FWindow>::value();
 
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
@@ -35,13 +35,13 @@ namespace Turbo
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-		ImGui_ImplSDL3_InitForVulkan(window->GetWindow());
+		ImGui_ImplSDL3_InitForVulkan(window.GetWindow());
 
 		ImGui_ImplVulkan_InitInfo initInfo = {};
-		initInfo.Instance = gpu->GetVkInstance();
-		initInfo.PhysicalDevice = gpu->GetVkPhysicalDevice();
-		initInfo.Device = gpu->GetVkDevice();
-		initInfo.Queue = gpu->GetVkQueue();
+		initInfo.Instance = gpu.GetVkInstance();
+		initInfo.PhysicalDevice = gpu.GetVkPhysicalDevice();
+		initInfo.Device = gpu.GetVkDevice();
+		initInfo.Queue = gpu.GetVkQueue();
 		initInfo.DescriptorPoolSize = 128;
 		initInfo.MinImageCount = 2;
 		initInfo.ImageCount = 2;
@@ -52,7 +52,7 @@ namespace Turbo
 		initInfo.PipelineRenderingCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
 		initInfo.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
 
-		const FTexture* presentTexture = gpu->AccessTexture(gpu->GetPresentImage());
+		const FTexture* presentTexture = gpu.AccessTexture(gpu.GetPresentImage());
 		VkFormat presentTextureFormat = static_cast<VkFormat>(presentTexture->GetFormat());
 		initInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats = &presentTextureFormat;
 
@@ -64,35 +64,36 @@ namespace Turbo
 			return gpuDevice->GetVkInstance().getProcAddr(functionName);
 		};
 
-		ImGui_ImplVulkan_LoadFunctions(kVulkanVersion, LoaderFunction, gpu);
+		ImGui_ImplVulkan_LoadFunctions(kVulkanVersion, LoaderFunction, &gpu);
 		ImGui_ImplVulkan_Init(&initInfo);
 
-		gEngine->GetWindow()->OnSDLEvent.AddRaw(this, &FImGuiLayer::OnSDLEvent);
+		window.OnSDLEvent.AddRaw(this, &FImGuiLayer::OnSDLEvent);
 
 		ImFont* firaCodeImFont = io.Fonts->AddFontFromFileTTF("Content/Fonts/FiraCode/FiraCode-Regular.ttf", 13);
 		ImGui::PushFont(firaCodeImFont, 13);
-		ImGui::GetStyle().ScaleAllSizes(window->GetDisplayScale());
+		ImGui::GetStyle().ScaleAllSizes(window.GetDisplayScale());
 	}
 
 	void FImGuiLayer::Shutdown()
 	{
-		gEngine->GetWindow()->OnSDLEvent.RemoveObject(this);
+		FWindow& window = entt::locator<FWindow>::value();
+		window.OnSDLEvent.RemoveObject(this);
 
-		FGPUDevice* gpu = gEngine->GetGpu();
-		gpu->WaitIdle();
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+		gpu.WaitIdle();
 
 		ImGui_ImplSDL3_Shutdown();
 		ImGui_ImplVulkan_Shutdown();
 	}
 
-	void FImGuiLayer::BeginTick_GameThread(float deltaTime)
+	void FImGuiLayer::BeginTick_GameThread(double deltaTime)
 	{
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 	}
 
-	void FImGuiLayer::EndTick_GameThread(float deltaTime)
+	void FImGuiLayer::EndTick_GameThread(double deltaTime)
 	{
 		ImGui::Render();
 	}

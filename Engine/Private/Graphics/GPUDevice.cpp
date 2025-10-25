@@ -5,7 +5,6 @@
 
 #include "Core/Window.h"
 #include "Graphics/GeometryBuffer.h"
-#include "Graphics/GraphicsLocator.h"
 #include "Graphics/ShaderCompiler.h"
 #include "Graphics/VulkanInitializers.h"
 
@@ -17,17 +16,18 @@ namespace Turbo
 	{
 		TURBO_LOG(LOG_GPU_DEVICE, Info, "Initializing GPU Device.");
 
-		gpuDeviceBuilder.mWindow->InitForVulkan();
-		gpuDeviceBuilder.mWindow->Init();
+		FWindow& window = entt::locator<FWindow>::value();
+		window.InitForVulkan();
+		window.Init();
 
-		std::vector<cstring> instanceRequiredExtensions = gpuDeviceBuilder.mWindow->GetVulkanRequiredExtensions();
+		std::vector<cstring> instanceRequiredExtensions = window.GetVulkanRequiredExtensions();
 
 		VULKAN_HPP_DEFAULT_DISPATCHER.init();
 		const vkb::Instance builtInstance = CreateVkInstance(instanceRequiredExtensions);
 		VULKAN_HPP_DEFAULT_DISPATCHER.init(mVkInstance);
 
-		TURBO_CHECK(gpuDeviceBuilder.mWindow->CreateVulkanSurface(mVkInstance));
-		mVkWindowSurface = gpuDeviceBuilder.mWindow->GetVulkanSurface();
+		TURBO_CHECK(window.CreateVulkanSurface(mVkInstance));
+		mVkWindowSurface = window.GetVulkanSurface();
 
 		const vkb::PhysicalDevice selectedPhysicalDevice = SelectPhysicalDevice(builtInstance);
 		const vkb::Device device = CreateDevice(selectedPhysicalDevice);
@@ -712,7 +712,7 @@ namespace Turbo
 			.enable_extensions(enableExtensions)
 #if WITH_VALIDATION_LAYERS
 			.request_validation_layers(true)
-			.set_debug_callback(&ThisClass::ValidationLayerCallback)
+			.set_debug_callback(&FGPUDevice::ValidationLayerCallback)
 			// .set_debug_messenger_severity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
 #endif // WITH_VALIDATION_LAYERS
 			.require_api_version(kVulkanVersion);
@@ -810,7 +810,8 @@ namespace Turbo
 	{
 		TURBO_CHECK(mVkWindowSurface)
 
-		const glm::ivec2& frameBufferSize = gEngine->GetWindow()->GetFrameBufferSize();
+		const FWindow& window = entt::locator<FWindow>::value();
+		const glm::ivec2& frameBufferSize = window.GetFrameBufferSize();
 		TURBO_LOG(LOG_GPU_DEVICE, Info, "Creating swapchain of size: {}", frameBufferSize);
 
 		vkb::SwapchainBuilder swapchainBuilder {mVkPhysicalDevice, mVkDevice, mVkWindowSurface};
@@ -972,8 +973,9 @@ namespace Turbo
 		DestroySwapChain();
 		CreateSwapchain();
 
-		const glm::ivec2& frameBufferSize = gEngine->GetWindow()->GetFrameBufferSize();
-		FGraphicsLocator::GetGeometryBuffer().Resize(frameBufferSize);
+		const FWindow& window = entt::locator<FWindow>::value();
+		const glm::ivec2& frameBufferSize = window.GetFrameBufferSize();
+		entt::locator<FGeometryBuffer>::value().Resize(frameBufferSize);
 
 		mbRequestedSwapchainResize = false;
 	}
@@ -1007,7 +1009,7 @@ namespace Turbo
 			mVkDevice.destroy();
 		}
 
-		gEngine->GetWindow()->DestroyVulkanSurface(mVkInstance);
+		entt::locator<FWindow>::value().DestroyVulkanSurface(mVkInstance);
 
 		if (mVkInstance)
 		{

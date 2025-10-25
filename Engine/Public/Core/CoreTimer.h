@@ -2,11 +2,7 @@
 
 namespace Turbo
 {
-#if PLATFORM_MSVC
 	using FChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock>;
-#else
-	using FChronoTimePoint = std::chrono::time_point<std::chrono::system_clock>;
-#endif
 
 	class FCoreTimer
 	{
@@ -20,6 +16,8 @@ namespace Turbo
 		static FCoreTimer* Get();
 		[[nodiscard]] static double DeltaTime() { return Get()->GetDeltaTime(); }
 		[[nodiscard]] static double TimeFromEngineStart() { return Get()->GetTimeFromEngineStart(); }
+
+		DELETE_COPY(FCoreTimer)
 
 	protected:
 		void Tick();

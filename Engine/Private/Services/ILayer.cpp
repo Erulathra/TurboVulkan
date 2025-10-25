@@ -8,12 +8,6 @@ namespace Turbo
 	{
 	}
 
-	FLayersStack* FLayersStack::Get()
-	{
-		static FLayersStack* serviceManagerInstance = new FLayersStack();
-		return serviceManagerInstance;
-	}
-
 	void FLayersStack::PushLayer_Impl(const TSharedPtr<ILayer>& newLayer)
 	{
 		TURBO_CHECK(gEngine->GetEngineState() <= EEngineState::Initializing)

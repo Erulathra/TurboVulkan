@@ -5,7 +5,7 @@
 namespace Turbo {
 	void FCoreTimer::Init()
 	{
-		mEngineStartTime = std::chrono::high_resolution_clock::now();
+		mEngineStartTime = std::chrono::steady_clock::now();
 	}
 
 	void FCoreTimer::Destroy()
@@ -15,7 +15,12 @@ namespace Turbo {
 
 	FCoreTimer* FCoreTimer::Get()
 	{
-		return gEngine->GetTimer();
+		if (entt::locator<FCoreTimer>::has_value())
+		{
+			return &entt::locator<FCoreTimer>::value();
+		}
+
+		return nullptr;
 	}
 
 	void FCoreTimer::Tick()
@@ -25,14 +30,14 @@ namespace Turbo {
 			mDeltaTime = 0;
 			mTimeFromEngineStart = 0;
 
-			mTickStartTime = std::chrono::high_resolution_clock::now();
+			mTickStartTime = std::chrono::steady_clock::now();
 
 			bFirstTick = false;
 
 			return;
 		}
 
-		const FChronoTimePoint newTickStartTime = std::chrono::high_resolution_clock::now();
+		const FChronoTimePoint newTickStartTime = std::chrono::steady_clock::now();
 
 		mDeltaTime = std::chrono::duration<double>(newTickStartTime - mTickStartTime).count();
 		mTimeFromEngineStart = std::chrono::duration<double>(newTickStartTime - mEngineStartTime).count();

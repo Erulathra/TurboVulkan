@@ -16,8 +16,8 @@ namespace Turbo
 		virtual void Start() = 0;
 		virtual void Shutdown() = 0;
 
-		virtual void BeginTick_GameThread(float deltaTime) {};
-		virtual void EndTick_GameThread(float deltaTime) {};
+		virtual void BeginTick_GameThread(double deltaTime) {};
+		virtual void EndTick_GameThread(double deltaTime) {};
 
 		virtual void PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) {};
 		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> presentImage) {};
@@ -36,9 +36,7 @@ namespace Turbo
 	{
 	public:
 		FLayersStack();
-
-	public:
-		static FLayersStack* Get();
+		DELETE_COPY(FLayersStack)
 
 	public:
 		template <typename ServiceType> requires std::is_base_of_v<ILayer, ServiceType>

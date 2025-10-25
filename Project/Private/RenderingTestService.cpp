@@ -7,7 +7,6 @@
 #include "Core/Math/Vector.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
-#include "Graphics/GraphicsLocator.h"
 #include "Graphics/ResourceBuilders.h"
 
 using namespace Turbo;
@@ -32,9 +31,7 @@ void FRenderingTestLayer::Start()
 {
 	TRACE_ZONE_SCOPED()
 
-	FGPUDevice* gpu = gEngine->GetGpu();
-
-	mMeshHandle = gEngine->GetAssetManager()->LoadMesh("Content/Meshes/BlenderMonkey.glb");
+	mMeshHandle = entt::locator<FAssetManager>::value().LoadMesh("Content/Meshes/BlenderMonkey.glb");
 
 	FDescriptorSetLayoutBuilder descriptorSetBuilder;
 	descriptorSetBuilder
@@ -59,19 +56,19 @@ void FRenderingTestLayer::Start()
 		.AddColorAttachment(FGeometryBuffer::kColorFormat)
 		.SetDepthAttachment(FGeometryBuffer::kDepthFormat);
 
-	mGraphicsPipeline = gpu->CreatePipeline(graphicsPipelineBuilder);
+	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+	mGraphicsPipeline = gpu.CreatePipeline(graphicsPipelineBuilder);
 }
 
 void FRenderingTestLayer::Shutdown()
 {
-	FGPUDevice* gpu = gEngine->GetGpu();
+	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+	gpu.DestroyPipeline(mGraphicsPipeline);
 
-	gpu->DestroyPipeline(mGraphicsPipeline);
-
-	gEngine->GetAssetManager()->UnloadMesh(mMeshHandle);
+	entt::locator<FAssetManager>::value().UnloadMesh(mMeshHandle);
 }
 
-void FRenderingTestLayer::BeginTick_GameThread(float deltaTime)
+void FRenderingTestLayer::BeginTick_GameThread(double deltaTime)
 {
 	ImGui::Begin("Rendering test");
 	ImGui::Text("Frame time: %f, FPS: %f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
@@ -90,10 +87,9 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	TRACE_ZONE_SCOPED()
 	TRACE_GPU_SCOPED(gpu, cmd, "RenderingTestLayer");
 
-	const THandle<FDescriptorPool> descriptorPool = gpu->GetDescriptorPool();
-	const FGeometryBuffer& geometryBuffer = FGraphicsLocator::GetGeometryBuffer();
+	const FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 
-	const FSubMesh* mesh = gEngine->GetAssetManager()->AccessMesh(mMeshHandle);
+	const FSubMesh* mesh = entt::locator<FAssetManager>::value().AccessMesh(mMeshHandle);
 	const FBuffer* positionBuffer = gpu->AccessBuffer(mesh->mPositionBuffer);
 	const FBuffer* normalBuffer = gpu->AccessBuffer(mesh->mNormalBuffer);
 	const FBuffer* colorBuffer = gpu->AccessBuffer(mesh->mColorBuffer);

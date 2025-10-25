@@ -16,7 +16,7 @@ public:
 	virtual void Start() override;
 	virtual void Shutdown() override;
 
-	virtual void BeginTick_GameThread(float deltaTime) override;
+	virtual void BeginTick_GameThread(double deltaTime) override;
 	virtual void PostBeginFrame_RenderThread(Turbo::FGPUDevice* gpu, Turbo::FCommandBuffer* cmd) override;
 
 	virtual bool ShouldTick() override { return true; }

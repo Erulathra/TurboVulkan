@@ -38,27 +38,9 @@ namespace Turbo
 
 		/** Services */
 	public:
-		[[nodiscard]] FGPUDevice* GetGpu() const { return mGpuDevice.get(); }
-
-		[[nodiscard]] FWindow* GetWindow() const { return mWindow.get(); }
-		[[nodiscard]] IInputSystem* GetInputSystem() const { return mInputSystemInstance.get(); }
-
-		[[nodiscard]] FCoreTimer* GetTimer() const { return mCoreTimer.get(); }
-
-		[[nodiscard]] FAssetManager* GetAssetManager() const { return mAssetManager.get(); }
-
 		[[nodiscard]] FWorld* GetWorld() const { return mWorld.get(); }
 
 	private:
-		// Replace us with GenericRHI
-		TSharedPtr<FGPUDevice> mGpuDevice;
-		TSharedPtr<FWindow> mWindow;
-
-		TSharedPtr<IInputSystem> mInputSystemInstance;
-
-		TSharedPtr<FCoreTimer> mCoreTimer;
-		TSharedPtr<FAssetManager> mAssetManager;
-
 		TSharedPtr<FWorld> mWorld;
 
 		/** Services end */
@@ -95,5 +77,5 @@ namespace Turbo
 		EEngineState mEngineState = EEngineState::Undefined;
 	};
 
-	inline TUniquePtr<FEngine> gEngine(nullptr);
+	inline TUniquePtr<FEngine> gEngine;
 } // Turbo

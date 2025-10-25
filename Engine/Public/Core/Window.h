@@ -33,8 +33,6 @@ namespace Turbo
 
 	class FWindow
 	{
-		GENERATED_BODY(FWindow)
-
 		/** Constexpr */
 	public:
 		/** Statics */
@@ -44,6 +42,7 @@ namespace Turbo
 		explicit FWindow();
 
 	public:
+		DELETE_COPY(FWindow);
 		~FWindow();
 
 		/** Static Interface */

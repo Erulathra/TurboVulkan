@@ -15,8 +15,6 @@ namespace Turbo
 	constexpr std::string_view kUVName = "TEXCOORD_0";
 	constexpr std::string_view kColorName = "COLOR_0";
 
-	FAssetManager::FAssetManager() = default;
-
 	void LogGLTFError(std::string_view message, fastgltf::Error error)
 	{
 		TURBO_LOG(LOG_MESH_LOADING, Error, "{} Error: {} Message: {}", message, fastgltf::getErrorName(error), fastgltf::getErrorMessage(error));
@@ -50,7 +48,8 @@ namespace Turbo
 			bufferBuilder.SetData(componentData.data());
 			bufferBuilder.SetName(FName(fmt::format("{}_{}", gltfMesh.name, attributeName)));
 
-			buffer = gEngine->GetGpu()->CreateBuffer(bufferBuilder);
+			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+			buffer = gpu.CreateBuffer(bufferBuilder);
 		}
 	}
 
@@ -106,7 +105,8 @@ namespace Turbo
 			bufferBuilder.SetData(indices.data());
 			bufferBuilder.SetName(FName(fmt::format("{}_INDICES", meshAsset->meshes.front().name)));
 
-			loadedSubMesh->mIndicesBuffer = gEngine->GetGpu()->CreateBuffer(bufferBuilder);
+			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+			loadedSubMesh->mIndicesBuffer = gpu.CreateBuffer(bufferBuilder);
 		}
 
 		LoadComponentBuffer<glm::vec3>(meshAsset.get(), loadedSubMesh->mPositionBuffer, kPositionName);
@@ -120,7 +120,6 @@ namespace Turbo
 	void FAssetManager::UnloadMesh(THandle<FSubMesh> meshToUnload)
 	{
 		const FSubMesh* staticMesh = mSubMeshPool.Access(meshToUnload);
-		FGPUDevice* gpu = gEngine.get()->GetGpu();
 
 		const std::array buffersToDestroy = {
 			staticMesh->mIndicesBuffer,
@@ -130,11 +129,12 @@ namespace Turbo
 			staticMesh->mColorBuffer,
 		};
 
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		for (const THandle<FBuffer>& handle : buffersToDestroy)
 		{
 			if (handle.IsValid())
 			{
-				gpu->DestroyBuffer(handle);
+				gpu.DestroyBuffer(handle);
 			}
 		}
 	}

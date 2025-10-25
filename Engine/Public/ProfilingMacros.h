@@ -12,7 +12,7 @@
 
 #include <tracy/Tracy.hpp>
 
-#include <vulkan/vulkan.hpp>
+#include "Graphics/GraphicsCore.h"
 #include <tracy/TracyVulkan.hpp>
 
 #define TRACE_ZONE_SCOPED() ZoneScoped;

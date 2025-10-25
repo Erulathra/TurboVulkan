@@ -6,8 +6,10 @@ namespace Turbo
 {
 	class FAssetManager final
 	{
-	private:
-		FAssetManager();
+		DELETE_COPY(FAssetManager);
+
+	public:
+		FAssetManager() = default;
 
 	public:
 		THandle<FSubMesh> LoadMesh(const std::filesystem::path& path);

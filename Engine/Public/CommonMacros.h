@@ -137,6 +137,10 @@ constexpr ENUM_TYPE& operator&=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return
 constexpr ENUM_TYPE& operator^=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs ^ rhs); }	\
 constexpr bool any (ENUM_TYPE lhs) noexcept { return static_cast<INTEGER_TYPE>(lhs) != 0; }
 
+#define DELETE_COPY(CLASS_NAME)							\
+	CLASS_NAME(CLASS_NAME const&) = delete;				\
+	CLASS_NAME& operator=(CLASS_NAME const&) = delete;	\
+
 #define EXPAND(X) X
 #define GET_MACRO_TWO_VARIANTS(_1, _2, NAME, ...) NAME
 #define GENERATED_BODY(...) EXPAND( GET_MACRO_TWO_VARIANTS(__VA_ARGS__, GENERATED_BODY_2, GENERATED_BODY_1)(__VA_ARGS__) )
