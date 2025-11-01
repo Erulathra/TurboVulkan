@@ -10,6 +10,7 @@
 #include "Graphics/GPUDevice.h"
 #include "Services/ImGUIService.h"
 #include "Services/ILayer.h"
+#include "World/World.h"
 
 namespace Turbo
 {
@@ -68,6 +69,10 @@ namespace Turbo
 		SetupBasicInputBindings();
 
 		entt::locator<FAssetManager>::emplace<FAssetManager>();
+
+		// TODO: this is a bad place to initialize the world.
+		mWorld = std::make_unique<FWorld>();
+		mWorld->InitSceneGraph();
 
 		for (const TSharedPtr<ILayer>& layer : entt::locator<FLayersStack>::value())
 		{

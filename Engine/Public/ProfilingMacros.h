@@ -30,6 +30,7 @@ using FTraceGPUCtx = TracyVkCtx;
 
 #define TRACE_MARK_FRAME() tracy::Profiler::SendFrameMark( nullptr )
 
+#define TRACE_PLOT_VALUE(NAME, VALUE) TracyPlot(NAME, VALUE);
 
 #if 0 // broken
 inline void * operator new ( std :: size_t count )
@@ -59,5 +60,7 @@ using FTraceGPUCtx = void*;
 #define TRACE_GPU_SCOPED(GPU_CTX, COMMAND_BUFFER, NAME) {}
 
 #define TRACE_MARK_FRAME() {}
+
+#define TRACE_PLOT_VALUE(NAME, VALUE) {}
 
 #endif // else WITH_PROFILER

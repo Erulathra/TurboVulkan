@@ -1,6 +1,4 @@
 #include "Core/Name.h"
-#include <algorithm>
-#include <cctype>
 
 namespace Turbo {
 	using FNameHashMapType = std::unordered_map<std::string /** name */, FNameId /* id */>;

@@ -2,6 +2,7 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtc/epsilon.hpp"
+#include "glm/gtx/quaternion.hpp"
 
 // MATH
 #define TURBO_SMALL_NUMBER 1e-5
@@ -13,28 +14,36 @@ namespace Turbo
 	{
 		template <typename T>
 			requires (std::is_floating_point_v<T>)
-		static bool NearlyEqual(const T& lhs, const T& rhs, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
+		bool NearlyEqual(const T& lhs, const T& rhs, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
 		{
 			return glm::epsilonEqual(lhs, rhs, epsilon);
 		}
 
 		template <typename T>
 			requires (std::is_floating_point_v<T>)
-		static bool NearlyZero(const T& lhs, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
+		bool NearlyZero(const T& lhs, const T& epsilon = static_cast<T>(TURBO_VERY_SMALL_NUMBER))
 		{
 			return glm::epsilonEqual(lhs, static_cast<T>(0), epsilon);
 		}
 
 		template <typename T>
-		static T DivideAndRoundUp(T lhs, T rhs)
+		T DivideAndRoundUp(T lhs, T rhs)
 		{
-			// return glm::ceil(lhs / rhs);
 			return glm::ceil(lhs / rhs);
 		}
 
 		inline void ConvertTurboToVulkanCoordinates(glm::mat4& transform)
 		{
 			transform[1][1] = -transform[1][1];
+		}
+
+		inline glm::mat4 CreateTransform(const glm::vec3& position, const glm::quat& rotation, const glm::vec3 scale)
+		{
+			const glm::mat4 translationMat = glm::translate(glm::mat4(1.f), position);
+			const glm::mat4 rotationMat = glm::toMat4(rotation);
+			const glm::mat4 scaleMat = glm::scale(glm::mat4(1.f), scale);
+
+			return translationMat * rotationMat * scaleMat;
 		}
 
 	};

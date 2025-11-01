@@ -5,19 +5,66 @@
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
 #include "Core/Math/Vector.h"
+#include "glm/gtx/compatibility.hpp"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/ResourceBuilders.h"
+#include "World/World.h"
 
 using namespace Turbo;
 
 struct FPushConstants
 {
-	glm::mat4 objToProj;
+	glm::float4x4 objToProj;
+
 	vk::DeviceAddress positionBuffer;
 	vk::DeviceAddress normalBuffer;
 	vk::DeviceAddress colorBuffer;
+	uint64 _PADDING;
+
+	glm::float4 color = ELinearColor::kYellow;
 };
+
+struct FRotateComponent
+{
+	float speed;
+};
+
+struct FCelestialBodyComponent
+{
+	glm::float3 color = ELinearColor::kWhite;
+};
+
+entt::entity CreatePivot(FWorld& world, entt::entity parent, float offset, float rotationSpeed)
+{
+	entt::registry& registry = world.mRegistry;
+
+	// create entity
+	const entt::entity entity = registry.create();
+	registry.emplace<FRelationship>(entity);
+	if (parent != entt::null)
+	{
+		world.AddChild(parent, entity);
+	}
+
+	// initialize components
+	FTransform& transform = registry.emplace<FTransform>(entity);
+	transform.mPosition.x = offset;
+	FRotateComponent& rotateComponent = registry.emplace<FRotateComponent>(entity);
+	rotateComponent.speed = rotationSpeed;
+
+	return entity;
+}
+
+entt::entity CreateCelestialBody(FWorld& world, entt::entity parent, float offset, float rotationSpeed, glm::float3 color = ELinearColor::kWhite)
+{
+	entt::entity entity = CreatePivot(world, parent, offset, rotationSpeed);
+
+	FCelestialBodyComponent& celestialBody = world.mRegistry.emplace<FCelestialBodyComponent>(entity);
+	celestialBody.color = color;
+
+    return entity;
+}
 
 FRenderingTestLayer::~FRenderingTestLayer()
 {
@@ -31,7 +78,7 @@ void FRenderingTestLayer::Start()
 {
 	TRACE_ZONE_SCOPED()
 
-	mMeshHandle = entt::locator<FAssetManager>::value().LoadMesh("Content/Meshes/BlenderMonkey.glb");
+	mMeshHandle = entt::locator<FAssetManager>::value().LoadMesh("Content/Meshes/IcoPlanet.glb");
 
 	FDescriptorSetLayoutBuilder descriptorSetBuilder;
 	descriptorSetBuilder
@@ -43,8 +90,8 @@ void FRenderingTestLayer::Start()
 	graphicsPipelineBuilder.SetName(FName("TestGraphicsPipeline"));
 
 	graphicsPipelineBuilder.GetShaderState()
-		.AddStage("GPShader", vk::ShaderStageFlagBits::eVertex)
-		.AddStage("GPShader", vk::ShaderStageFlagBits::eFragment);
+		.AddStage("PlanetShader", vk::ShaderStageFlagBits::eVertex)
+		.AddStage("PlanetShader", vk::ShaderStageFlagBits::eFragment);
 
 	graphicsPipelineBuilder.GetBlendState()
 		.AddNoBlendingState();
@@ -58,6 +105,17 @@ void FRenderingTestLayer::Start()
 
 	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 	mGraphicsPipeline = gpu.CreatePipeline(graphicsPipelineBuilder);
+
+	FWorld& world = *gEngine->GetWorld();
+
+	const entt::entity sun = CreateCelestialBody(world, entt::null, 0.f, 0.f, ELinearColor::kYellow);
+
+	for (uint32 planetId = 1; planetId < 3; ++planetId)
+	{
+		constexpr float offset = 4.f;
+		const entt::entity pivot = CreatePivot(world, sun, 0.f, 45.f / static_cast<float>(planetId));
+		CreateCelestialBody(world, pivot, offset * static_cast<float>(planetId), 90.f, ELinearColor::kWhite);
+	}
 }
 
 void FRenderingTestLayer::Shutdown()
@@ -68,18 +126,35 @@ void FRenderingTestLayer::Shutdown()
 	entt::locator<FAssetManager>::value().UnloadMesh(mMeshHandle);
 }
 
-void FRenderingTestLayer::BeginTick_GameThread(double deltaTime)
+void FRenderingTestLayer::ShowImGuiWindow()
 {
 	ImGui::Begin("Rendering test");
 	ImGui::Text("Frame time: %f, FPS: %f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
-	ImGui::Separator();
-	ImGui::DragFloat3("Model Location", glm::value_ptr(mModelLocation), 0.01f);
 	ImGui::Separator();
 	ImGui::DragFloat3("Camera Location", glm::value_ptr(mCameraLocation), 0.01f);
 	ImGui::DragFloat2("Camera Rotation", glm::value_ptr(mCameraRotation), 1.f);
 	ImGui::DragFloat("Camera FoV", &mCameraFov, 0.5f, 1.f);
 	ImGui::DragFloat2("Camera Near Far", glm::value_ptr(mCameraNearFar), 0.5f );
 	ImGui::End();
+}
+
+void FRenderingTestLayer::BeginTick_GameThread(double deltaTime)
+{
+	FWorld& world = *gEngine->GetWorld();
+	entt::registry& registry = world.mRegistry;
+	auto rotationView = registry.view<FTransform, FRotateComponent>();
+
+	for (const entt::entity entity : rotationView)
+	{
+		FTransform newTransform = rotationView.get<FTransform>(entity);
+		const FRotateComponent& rotateComponent = rotationView.get<FRotateComponent>(entity);
+
+		newTransform.mRotation = glm::quat(EVec3::Up * glm::radians(rotateComponent.speed)) * newTransform.mRotation;
+
+		registry.replace<FTransform>(entity, newTransform);
+	}
+
+	ShowImGuiWindow();
 }
 
 void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd)
@@ -109,7 +184,8 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	cmd->SetViewport(FViewport::FromSize(geometryBuffer.GetResolution()));
 	cmd->SetScissor(FRect2DInt::FromSize(geometryBuffer.GetResolution()));
 
-	const glm::mat4 modelMat = glm::translate(glm::mat4(1.f), mModelLocation);
+	cmd->BindPipeline(mGraphicsPipeline);
+	cmd->BindIndexBuffer(mesh->mIndicesBuffer);
 
 	glm::mat4 viewMat =
 		glm::rotate(glm::mat4(1.f), glm::radians(mCameraRotation.x), EVec3::Right)
@@ -121,15 +197,25 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	FMath::ConvertTurboToVulkanCoordinates(projMat);
 
 	FPushConstants pushConstants = {};
-	pushConstants.objToProj = projMat * viewMat * modelMat;
 	pushConstants.positionBuffer = positionBuffer->GetDeviceAddress();
 	pushConstants.normalBuffer = normalBuffer->GetDeviceAddress();
 	pushConstants.colorBuffer = colorBuffer->GetDeviceAddress();
 
-	cmd->BindPipeline(mGraphicsPipeline);
-	cmd->PushConstants(pushConstants);
-	cmd->BindIndexBuffer(mesh->mIndicesBuffer);
-	cmd->DrawIndexed(mesh->mVertexCount);
+	FWorld& world = *gEngine->GetWorld();
+	world.UpdateWorldTransforms();
+
+	auto celestialBodiesView = world.mRegistry.view<FWorldTransform, FCelestialBodyComponent>();
+	for (const entt::entity& celestialBody : celestialBodiesView)
+	{
+		const glm::float4x4 modelMat = celestialBodiesView.get<FWorldTransform>(celestialBody);
+		const glm::float3 planetColor = celestialBodiesView.get<FCelestialBodyComponent>(celestialBody).color;
+
+		pushConstants.objToProj = projMat * viewMat * modelMat;
+		pushConstants.color = glm::float4(planetColor, 1.f);
+
+		cmd->PushConstants(pushConstants);
+		cmd->DrawIndexed(mesh->mVertexCount);
+	}
 
 	cmd->EndRendering();
 }

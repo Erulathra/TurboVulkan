@@ -33,6 +33,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYN
 
 target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
 target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
+target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_ENABLE_EXPERIMENTAL)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3-shared)
 target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)

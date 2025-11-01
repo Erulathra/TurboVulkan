@@ -6,22 +6,37 @@
 
 namespace Turbo
 {
-	class FTransform final
+	class FWorld;
+}
+
+namespace Turbo
+{
+	struct FTransform
 	{
-	private:
 		glm::vec3 mPosition = {};
 		glm::quat mRotation = {};
-		glm::vec3 mScale = {};
+		glm::vec3 mScale = glm::vec3{1.f};
 	};
 
-	class FSceneGraph
+	struct FWorldTransform
 	{
-	private:
-		std::vector<glm::mat4> mWorld;
-		std::vector<glm::mat4> mLocal;
-		std::vector<uint32> mParent;
+		glm::mat4 mTransform = glm::mat4(1.f);
 
-		// TPoolGrowable<FTransform> mTransforms;
-		
+		operator glm::mat4() const
+		{
+			return mTransform;
+		}
 	};
+
+	struct FWorldTransformDirty { };
+
+	struct FRelationship
+	{
+		uint32 mNumChildren = {};
+		entt::entity mFirstChild = entt::null;
+		entt::entity mPrevious = entt::null;
+		entt::entity mNext = entt::null;
+		entt::entity mParent = entt::null;
+	};
+
 } // Turbo

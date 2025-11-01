@@ -7,6 +7,8 @@ cbuffer pushConstants
     float3* positionBuffer;
     float3* normalBuffer;
     float4* colorBuffer;
+
+    float4 meshColor;
 };
 
 struct VSOut
@@ -26,7 +28,7 @@ void vsMain(in uint vertexId : SV_VertexID, out VSOut vsOut)
 {
     vsOut.position = mul(float4(positionBuffer[vertexId], 1.f), modelToProj);
     vsOut.normal = normalBuffer[vertexId];
-    vsOut.color = colorBuffer[vertexId].xyz;
+    vsOut.color = colorBuffer[vertexId].xyz * meshColor.xyz;
 }
 
 [shader("pixel")]

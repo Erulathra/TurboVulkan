@@ -53,6 +53,7 @@ endif ()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ############################################################################################
 # MSVC
