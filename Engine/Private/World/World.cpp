@@ -6,7 +6,7 @@ namespace Turbo
 {
 	void MarkDirty_Impl(entt::registry& registry, entt::entity entity)
 	{
-		registry.emplace<FWorldTransformDirty>(entity);
+		registry.emplace_or_replace<FWorldTransformDirty>(entity);
 	}
 
 	void AddWorldTransform(entt::registry& registry, entt::entity entity)
@@ -114,8 +114,8 @@ namespace Turbo
 				}
 				else
 				{
-					const FWorldTransform& parentWorld = dirtyTransformGroup.get<FWorldTransform>(dirtyEntity);
-					world.mTransform = localMatrix * parentWorld.mTransform;
+					const FWorldTransform& parentWorld = dirtyTransformGroup.get<FWorldTransform>(relationship.mParent);
+					world.mTransform = parentWorld.mTransform * localMatrix;
 				}
 			}
 		}

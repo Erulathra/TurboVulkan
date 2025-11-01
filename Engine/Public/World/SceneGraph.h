@@ -13,16 +13,16 @@ namespace Turbo
 {
 	struct FTransform
 	{
-		glm::vec3 mPosition = {};
-		glm::quat mRotation = {};
-		glm::vec3 mScale = glm::vec3{1.f};
+		glm::float3 mPosition = {};
+		glm::quat mRotation = glm::quat(glm::float3(0.f));
+		glm::float3 mScale = glm::float3{1.f};
 	};
 
 	struct FWorldTransform
 	{
-		glm::mat4 mTransform = glm::mat4(1.f);
+		glm::float4x4 mTransform = glm::float4x4(1.f);
 
-		operator glm::mat4() const
+		operator glm::float4x4() const
 		{
 			return mTransform;
 		}

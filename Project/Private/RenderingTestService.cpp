@@ -112,9 +112,11 @@ void FRenderingTestLayer::Start()
 
 	for (uint32 planetId = 1; planetId < 3; ++planetId)
 	{
-		constexpr float offset = 4.f;
-		const entt::entity pivot = CreatePivot(world, sun, 0.f, 45.f / static_cast<float>(planetId));
-		CreateCelestialBody(world, pivot, offset * static_cast<float>(planetId), 90.f, ELinearColor::kWhite);
+		constexpr float offset = 2.f;
+		const entt::entity pivot = CreatePivot(world, sun, 0.f, 1.f / static_cast<float>(planetId));
+		const entt::entity planet = CreateCelestialBody(world, pivot, offset * static_cast<float>(planetId), 1.f, ELinearColor::kWhite);
+
+		TURBO_LOG(LOG_TEMP, Info, "{} -> {} -> {}", (int32) sun, (int32) pivot, (int32) planet);
 	}
 }
 
@@ -149,7 +151,7 @@ void FRenderingTestLayer::BeginTick_GameThread(double deltaTime)
 		FTransform newTransform = rotationView.get<FTransform>(entity);
 		const FRotateComponent& rotateComponent = rotationView.get<FRotateComponent>(entity);
 
-		newTransform.mRotation = glm::quat(EVec3::Up * glm::radians(rotateComponent.speed)) * newTransform.mRotation;
+		newTransform.mRotation = glm::quat(EVec3::Up * rotateComponent.speed * static_cast<float>(deltaTime)) * newTransform.mRotation;
 
 		registry.replace<FTransform>(entity, newTransform);
 	}
