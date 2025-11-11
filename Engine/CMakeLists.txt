@@ -46,7 +46,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 target_link_libraries(${PROJECT_NAME} PUBLIC GPUOpen::VulkanMemoryAllocator)
 target_link_libraries(${PROJECT_NAME} PUBLIC VulkanMemoryAllocator-Hpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC vk-bootstrap::vk-bootstrap)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC EnTT::EnTT)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC dds_image)
+target_compile_definitions(${PROJECT_NAME} PUBLIC DDS_USE_STD_FILESYSTEM)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE slang)
 

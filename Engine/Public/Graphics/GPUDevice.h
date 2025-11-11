@@ -44,7 +44,7 @@ namespace Turbo
 		bool PresentFrame();
 
 		FCommandBuffer* GetCommandBuffer() { return mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
-		THandle<FDescriptorPool> GetDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
+		THandle<FDescriptorPool> GetFrameDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
 
 		THandle<FTexture> GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
 
@@ -78,8 +78,9 @@ namespace Turbo
 
 		/** Resource creation */
 	public:
-		THandle<FBuffer> CreateBuffer(const FBufferBuilder& builder, FCommandBuffer* commandBuffer = nullptr);
+		THandle<FBuffer> CreateBuffer(const FBufferBuilder& builder);
 		THandle<FTexture> CreateTexture(const FTextureBuilder& builder);
+		THandle<FSampler> CreateSampler(const FSamplerBuilder& builder);
 		THandle<FPipeline> CreatePipeline(const FPipelineBuilder& builder);
 		THandle<FDescriptorPool> CreateDescriptorPool(const FDescriptorPoolBuilder& builder);
 		THandle<FDescriptorSetLayout> CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder);
@@ -97,6 +98,7 @@ namespace Turbo
 	public:
 		void DestroyBuffer(THandle<FBuffer> handle);
 		void DestroyTexture(THandle<FTexture> handle);
+		void DestroySampler(THandle<FSampler> handle);
 		void DestroyPipeline(THandle<FPipeline> handle);
 		void DestroyDescriptorPool(THandle<FDescriptorPool> handle);
 		void DestroyDescriptorSetLayout(THandle<FDescriptorSetLayout> handle);
@@ -108,6 +110,7 @@ namespace Turbo
 	public:
 		void DestroyBufferImmediate(const FBufferDestroyer& destroyer);
 		void DestroyTextureImmediate(const FTextureDestroyer& destroyer);
+		void DestroySamplerImmediate(const FSamplerDestroyer& destroyer);
 		void DestroyPipelineImmediate(const FPipelineDestroyer& destroyer);
 		void DestroyDescriptorPoolImmediate(const FDescriptorPoolDestroyer& destroyer);
 		void DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer);

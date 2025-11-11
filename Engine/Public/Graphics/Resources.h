@@ -73,17 +73,28 @@ namespace Turbo
 		FName mName;
 	};
 
+	class FSamplerDestroyer final : IDestroyer
+	{
+		DESTROYER_BODY()
+	public:
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	private:
+		vk::Sampler mVkSampler;
+		THandle<FSampler> mHandle;
+	};
+
 	class FTexture final
 	{
 		RESOURCE_BODY()
 	public:
-		[[nodiscard]] glm::ivec2 GetSize2D() const { return glm::ivec2{mWidth, mHeight}; }
-		[[nodiscard]] glm::ivec3 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
+		[[nodiscard]] glm::int2 GetSize2D() const { return glm::ivec2{mWidth, mHeight}; }
+		[[nodiscard]] glm::int2 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
 
 	private:
-		vk::Image mImage = nullptr;
-		vk::ImageView mImageView = nullptr;
+		vk::Image mVkImage = nullptr;
+		vk::ImageView mVkImageView = nullptr;
 		vk::Format mFormat = vk::Format::eUndefined;
 		vk::ImageLayout mCurrentLayout = vk::ImageLayout::eUndefined;
 		vma::Allocation mImageAllocation = nullptr;

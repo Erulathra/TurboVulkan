@@ -36,6 +36,10 @@ private:
 	Turbo::THandle<Turbo::FPipeline> mGraphicsPipeline;
 
 	Turbo::THandle<Turbo::FSubMesh> mMeshHandle;
+	Turbo::THandle<Turbo::FTexture> mCatTexture;
+	Turbo::THandle<Turbo::FSampler> mCatSampler;
+
+	Turbo::THandle<Turbo::FDescriptorSetLayout> mMaterialSetLayout;
 
 	std::vector<entt::entity> entities;
 };

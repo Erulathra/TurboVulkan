@@ -19,7 +19,7 @@ struct FPushConstants
 
 	vk::DeviceAddress positionBuffer;
 	vk::DeviceAddress normalBuffer;
-	vk::DeviceAddress colorBuffer;
+	vk::DeviceAddress uvBuffer;
 	uint64 _PADDING;
 
 	glm::float4 color = ELinearColor::kYellow;
@@ -78,16 +78,30 @@ void FRenderingTestLayer::Start()
 {
 	TRACE_ZONE_SCOPED()
 
-	mMeshHandle = entt::locator<FAssetManager>::value().LoadMesh("Content/Meshes/IcoPlanet.glb");
+	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+
+	mMeshHandle = entt::locator<FAssetManager>::value().LoadMesh("Content/Meshes/SM_Cube.glb");
+	mCatTexture = entt::locator<FAssetManager>::value().LoadTexture("Content/Textures/T_IndianaCat.dds");
+
+	FSamplerBuilder samplerBuilder = {};
+	samplerBuilder
+		.SetMinMagFilter(vk::Filter::eNearest, vk::Filter::eLinear)
+		.SetName(FName("CatSampler"));
+
+	mCatSampler = gpu.CreateSampler(samplerBuilder);
 
 	FDescriptorSetLayoutBuilder descriptorSetBuilder;
 	descriptorSetBuilder
-		.AddBinding(vk::DescriptorType::eStorageBuffer, 0, FName("positions"))
+		.AddBinding(vk::DescriptorType::eSampledImage, 0, 1, FName("Texture"))
+		.AddBinding(vk::DescriptorType::eSampler, 1, 1, FName("Sampler"))
 		.SetName(FName("GraphicsTest"));
+
+	mMaterialSetLayout = gpu.CreateDescriptorSetLayout(descriptorSetBuilder);
 
 	FPipelineBuilder graphicsPipelineBuilder;
 	graphicsPipelineBuilder.SetPushConstantType<FPushConstants>();
 	graphicsPipelineBuilder.SetName(FName("TestGraphicsPipeline"));
+	graphicsPipelineBuilder.AddDescriptorSetLayout(mMaterialSetLayout);
 
 	graphicsPipelineBuilder.GetShaderState()
 		.AddStage("PlanetShader", vk::ShaderStageFlagBits::eVertex)
@@ -103,7 +117,6 @@ void FRenderingTestLayer::Start()
 		.AddColorAttachment(FGeometryBuffer::kColorFormat)
 		.SetDepthAttachment(FGeometryBuffer::kDepthFormat);
 
-	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 	mGraphicsPipeline = gpu.CreatePipeline(graphicsPipelineBuilder);
 
 	FWorld& world = *gEngine->GetWorld();
@@ -126,6 +139,8 @@ void FRenderingTestLayer::Shutdown()
 	gpu.DestroyPipeline(mGraphicsPipeline);
 
 	entt::locator<FAssetManager>::value().UnloadMesh(mMeshHandle);
+	gpu.DestroyTexture(mCatTexture);
+	gpu.DestroySampler(mCatSampler);
 }
 
 void FRenderingTestLayer::ShowImGuiWindow()
@@ -169,11 +184,20 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	const FSubMesh* mesh = entt::locator<FAssetManager>::value().AccessMesh(mMeshHandle);
 	const FBuffer* positionBuffer = gpu->AccessBuffer(mesh->mPositionBuffer);
 	const FBuffer* normalBuffer = gpu->AccessBuffer(mesh->mNormalBuffer);
-	const FBuffer* colorBuffer = gpu->AccessBuffer(mesh->mColorBuffer);
+	const FBuffer* uvBuffer = gpu->AccessBuffer(mesh->mUVBuffer);
 
 	// Graphics pipeline
 	const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
 	const THandle<FTexture> dephtImageHandle = geometryBuffer.GetDepth();
+
+	FDescriptorSetBuilder descriptorSetBuilder = {};
+	descriptorSetBuilder
+		.SetLayout(mMaterialSetLayout)
+		.SetDescriptorPool(gpu->GetFrameDescriptorPool())
+		.SetTexture(mCatTexture, 0)
+		.SetSampler(mCatSampler, 1);
+
+	const THandle<FDescriptorSet> materialDescriptorSet = gpu->CreateDescriptorSet(descriptorSetBuilder);
 
 	cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eColorAttachmentOptimal);
 	cmd->TransitionImage(dephtImageHandle, vk::ImageLayout::eDepthAttachmentOptimal);
@@ -188,6 +212,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 
 	cmd->BindPipeline(mGraphicsPipeline);
 	cmd->BindIndexBuffer(mesh->mIndicesBuffer);
+	cmd->BindDescriptorSet(materialDescriptorSet, 0);
 
 	glm::mat4 viewMat =
 		glm::rotate(glm::mat4(1.f), glm::radians(mCameraRotation.x), EVec3::Right)
@@ -201,7 +226,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	FPushConstants pushConstants = {};
 	pushConstants.positionBuffer = positionBuffer->GetDeviceAddress();
 	pushConstants.normalBuffer = normalBuffer->GetDeviceAddress();
-	pushConstants.colorBuffer = colorBuffer->GetDeviceAddress();
+	pushConstants.uvBuffer = uvBuffer->GetDeviceAddress();
 
 	FWorld& world = *gEngine->GetWorld();
 	world.UpdateWorldTransforms();

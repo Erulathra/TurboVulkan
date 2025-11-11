@@ -5,7 +5,7 @@
 // integer types
 using int8 = std::int8_t;
 using uint8 = std::uint8_t;
-using byte = int8;
+using byte = uint8;
 
 using int16 = std::int16_t;
 using uint16 = std::uint16_t;

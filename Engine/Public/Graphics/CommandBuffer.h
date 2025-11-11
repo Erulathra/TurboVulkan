@@ -37,8 +37,9 @@ namespace Turbo
 		void BlitImage(THandle<FTexture> src, FRect2DInt srcRect, THandle<FTexture> dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
 
 		void CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, vk::DeviceSize size);
+		void CopyBufferToTexture(THandle<FBuffer> src, THandle<FTexture> dst, uint32 mipIndex, vk::DeviceSize bufferOffset = 0);
 
-		void BindDescriptorSet(THandle<FDescriptorSet> descriptorSetHandle, uint32 setIndex);
+		void BindDescriptorSet(THandle<FDescriptorSet> descriptorSetHandle, uint32 setIndex = 0);
 		void BindPipeline(THandle<FPipeline> pipelineHandle);
 		void BindIndexBuffer(THandle<FBuffer> indexBuffer);
 

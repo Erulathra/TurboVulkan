@@ -27,7 +27,7 @@ namespace Turbo
 
 		Default = 1 << 0,
 		RenderTarget = 1 << 1,
-		Compute = 1 << 2,
+		StorageImage = 1 << 2,
 	};
 	DEFINE_ENUM_OPERATORS(ETextureFlags, uint8)
 

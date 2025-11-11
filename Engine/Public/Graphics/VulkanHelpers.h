@@ -44,6 +44,61 @@ namespace Turbo
 		{
 			return v >= vk::Format::eD16Unorm && v <= vk::Format::eD32SfloatS8Uint;
 		}
+
+		constexpr uint32 CalculateImageSize(glm::int2 size, vk::Format format)
+		{
+			const uint32 numPixels = size.x * size.y;
+
+			if (format > vk::Format::eR8Unorm && format <= vk::Format::eR8Srgb)
+			{
+				// 1bpp
+				return numPixels;
+			}
+			else if (format > vk::Format::eR8G8Unorm && format <= vk::Format::eR8G8Srgb)
+			{
+				// 2bpp
+				return numPixels * 2;
+			}
+			else if (format > vk::Format::eR8G8B8Unorm && format <= vk::Format::eR8G8B8Srgb)
+			{
+				// 3bpp
+				return numPixels * 3;
+			}
+			else if (format > vk::Format::eR8G8B8A8Unorm && format <= vk::Format::eB8G8R8A8Srgb)
+			{
+				// 4bpp
+				return numPixels * 4;
+			}
+
+			// BC compression
+			else if (format > vk::Format::eBc1RgbUnormBlock && format <= vk::Format::eBc1RgbaSrgbBlock)
+			{
+				return numPixels / 2;
+			}
+			else if (format > vk::Format::eBc3UnormBlock && format <= vk::Format::eBc3SrgbBlock)
+			{
+				return numPixels;
+			}
+			else if (format > vk::Format::eBc4UnormBlock && format <= vk::Format::eBc4SnormBlock)
+			{
+				return numPixels / 2;
+			}
+			else if (format > vk::Format::eBc5UnormBlock && format <= vk::Format::eBc5SnormBlock)
+			{
+				return numPixels;
+			}
+			else if (format > vk::Format::eBc6HUfloatBlock && format <= vk::Format::eBc6HSfloatBlock)
+			{
+				return numPixels;
+			}
+			else if (format > vk::Format::eBc7UnormBlock && format <= vk::Format::eBc7SrgbBlock)
+			{
+				return numPixels;
+			}
+
+			TURBO_UNINPLEMENTED();
+			return 0;
+		}
 	}
 
 	namespace VulkanConverters
@@ -62,6 +117,48 @@ namespace Turbo
 	constexpr vk::ColorComponentFlags kRGBBits =
 		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
 		| vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+
+	namespace VulkanEnum
+	{
+		inline cstring GetShaderStageName(vk::ShaderStageFlagBits shaderStage)
+		{
+			switch (shaderStage)
+			{
+			case vk::ShaderStageFlagBits::eVertex:
+				return "Vertex";
+			case vk::ShaderStageFlagBits::eTessellationControl:
+				return "TessellationControl";
+			case vk::ShaderStageFlagBits::eTessellationEvaluation:
+				return "TessellationEvaluation";
+			case vk::ShaderStageFlagBits::eGeometry:
+				return "Geometry";
+			case vk::ShaderStageFlagBits::eFragment:
+				return "Fragment";
+			case vk::ShaderStageFlagBits::eCompute:
+				return "Compute";
+			case vk::ShaderStageFlagBits::eRaygenKHR:
+				return "ReyGen";
+			case vk::ShaderStageFlagBits::eAnyHitKHR:
+				return "AnyHit";
+			case vk::ShaderStageFlagBits::eClosestHitKHR:
+				return "ClosestHit";
+			case vk::ShaderStageFlagBits::eMissKHR:
+				return "Miss";
+			case vk::ShaderStageFlagBits::eIntersectionKHR:
+				return "Intersection";
+			case vk::ShaderStageFlagBits::eCallableKHR:
+				return "Callable";
+			case vk::ShaderStageFlagBits::eTaskEXT:
+				return "Task";
+			case vk::ShaderStageFlagBits::eMeshEXT:
+				return "Mesh";
+			default: ;
+			}
+
+			return "Unknown";
+		}
+	}
+
 
 	template <typename HandleType>
 	struct HandleTraits
@@ -181,6 +278,21 @@ namespace Turbo
 		static cstring GetTypePostFix()
 		{
 			return "_Pipeline";
+		}
+	};
+
+	template <>
+	struct HandleTraits<vk::Sampler>
+	{
+		static uint64 CastToU64Handle(vk::Sampler handle)
+		{
+			VkSampler nativeHandle = handle;
+			return reinterpret_cast<uint64>(nativeHandle);
+		}
+
+		static cstring GetTypePostFix()
+		{
+			return "_Sampler";
 		}
 	};
 }

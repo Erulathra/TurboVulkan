@@ -193,7 +193,20 @@ namespace Turbo
 					FWindow& window = entt::locator<FWindow>::value();
 					window.SetFullscreen(!window.IsFullscreenEnabled());
 				}
-			});
+			}
+		);
+
+		const FName Exit("Exit");
+		inputSystem.RegisterBinding(Exit, EKeys::Escape);
+		inputSystem.GetActionEvent(Exit).AddLambda(
+			[](const FActionEvent& actionEvent)
+			{
+				if (actionEvent.bDown)
+				{
+					gEngine->RequestExit(EExitCode::Success);
+				}
+			}
+		);
 	}
 
 	void FEngine::HandleMainWindowEvents(EWindowEvent event)

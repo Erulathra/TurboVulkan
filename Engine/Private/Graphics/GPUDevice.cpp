@@ -65,7 +65,7 @@ namespace Turbo
 		mImmediateCommandsBuffer = CreateCommandBuffer(mImmediateCommandsPool, immediateCommandBuffer);
 	}
 
-	THandle<FBuffer> FGPUDevice::CreateBuffer(const FBufferBuilder& builder, FCommandBuffer* commandBuffer)
+	THandle<FBuffer> FGPUDevice::CreateBuffer(const FBufferBuilder& builder)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -118,23 +118,6 @@ namespace Turbo
 				TRACE_ZONE_SCOPED_N("Copy mapped")
 
 				mVmaAllocator.copyMemoryToAllocation(builder.mInitialData, buffer->mAllocation, 0, builder.mSize);
-
-				if (commandBuffer == nullptr)
-				{
-					commandBuffer = GetCommandBuffer();
-				}
-
-				TURBO_CHECK(commandBuffer);
-
-#if 0
-				commandBuffer->BufferBarrier(
-					handle,
-					vk::AccessFlagBits2::eHostWrite,
-					vk::PipelineStageFlagBits2::eHost,
-					vk::AccessFlagBits2::eMemoryRead,
-					vk::PipelineStageFlagBits2::eVertexInput
-					);
-#endif
 			}
 			else // Use staging buffer
 			{
@@ -145,17 +128,17 @@ namespace Turbo
 					const static FName kStagingBufferName = FName("Staging");
 
 					FBufferBuilder stagingBufferBuilder = {};
-					stagingBufferBuilder.Init(vk::BufferUsageFlagBits::eTransferSrc, EBufferFlags::CreateMapped, builder.mSize);
-					stagingBufferBuilder.SetName(kStagingBufferName);
-					stagingBufferBuilder.SetData(builder.mInitialData);
-					const THandle<FBuffer> stagingBuffer = CreateBuffer(stagingBufferBuilder, &cmd);
+					stagingBufferBuilder
+						.Init(vk::BufferUsageFlagBits::eTransferSrc, EBufferFlags::CreateMapped, builder.mSize)
+						.SetName(kStagingBufferName)
+						.SetData(builder.mInitialData);
+					const THandle<FBuffer> stagingBuffer = CreateBuffer(stagingBufferBuilder);
 
 					cmd.CopyBuffer(stagingBuffer, handle, builder.mSize);
 					DestroyBuffer(stagingBuffer);
 
 					// No need for synchronization as we would submit this command buffer just after that lambda.
 				}));
-
 			}
 		}
 
@@ -172,10 +155,41 @@ namespace Turbo
 		FTexture* texture = AccessTexture(handle);
 		InitVulkanTexture(builder, handle, texture);
 
-		if (builder.mInitialData)
-		{
-			TURBO_UNINPLEMENTED_MSG("Texture loading is not implemented yet.");
-		}
+		return handle;
+	}
+
+	THandle<FSampler> FGPUDevice::CreateSampler(const FSamplerBuilder& builder)
+	{
+		TRACE_ZONE_SCOPED()
+
+		const THandle<FSampler> handle = mSamplerPool->Acquire();
+		TURBO_CHECK(handle);
+
+		FSampler* sampler = AccessSampler(handle);
+		sampler->mAddressModeU = builder.mAddressModeU;
+		sampler->mAddressModeV = builder.mAddressModeV;
+		sampler->mAddressModeW = builder.mAddressModeW;
+		sampler->mMinFilter = builder.mMinFilter;
+		sampler->mMagFilter = builder.mMagFilter;
+		sampler->mMipFilter = builder.mMipFilter;
+		sampler->mName = builder.mName;
+
+		vk::SamplerCreateInfo createInfo = {};
+		createInfo.addressModeU = sampler->mAddressModeU;
+		createInfo.addressModeV = sampler->mAddressModeV;
+		createInfo.addressModeW = sampler->mAddressModeW;
+		createInfo.minFilter = sampler->mMinFilter;
+		createInfo.magFilter = sampler->mMagFilter;
+		createInfo.mipmapMode = sampler->mMipFilter;
+
+		// TODO:
+		createInfo.anisotropyEnable = vk::False;
+		createInfo.compareEnable = vk::False;
+		createInfo.unnormalizedCoordinates = vk::False;
+		createInfo.borderColor = vk::BorderColor::eIntOpaqueWhite;
+
+		CHECK_VULKAN_RESULT(sampler->mVkSampler, mVkDevice.createSampler(createInfo));
+		SetResourceName(sampler->mVkSampler, builder.mName);
 
 		return handle;
 	}
@@ -478,7 +492,7 @@ namespace Turbo
 					const FTexture* texture = AccessTexture(THandle<FTexture>(resource));
 
 					vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
-					imageInfo.imageView = texture->mImageView;
+					imageInfo.imageView = texture->mVkImageView;
 
 					if (binding.mType == vk::DescriptorType::eSampledImage)
 					{
@@ -628,9 +642,24 @@ namespace Turbo
 
 		FTextureDestroyer destroyer = {};
 		destroyer.mHandle = handle;
-		destroyer.mImage = texture->mImage;
-		destroyer.mImageView = texture->mImageView;
+		destroyer.mImage = texture->mVkImage;
+		destroyer.mImageView = texture->mVkImageView;
 		destroyer.mImageAllocation = texture->mImageAllocation;
+
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		frameData.mDestroyQueue.RequestDestroy(destroyer);
+	}
+
+	void FGPUDevice::DestroySampler(THandle<FSampler> handle)
+	{
+		const FSampler* sampler = AccessSampler(handle);
+		TURBO_CHECK(sampler)
+
+		TURBO_LOG(LOG_GPU_DEVICE, Display, "Destroying {} sampler.", sampler->mName);
+
+		FSamplerDestroyer destroyer = {};
+		destroyer.mHandle = handle;
+		destroyer.mVkSampler = sampler->mVkSampler;
 
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
@@ -844,8 +873,8 @@ namespace Turbo
 			THandle<FTexture> handle = mTexturePool->Acquire();
 			FTexture* texture = mTexturePool->Access(handle);
 			*texture = {};
-			texture->mImage = builtImages[imageId];
-			texture->mImageView = builtImageViews[imageId];
+			texture->mVkImage = builtImages[imageId];
+			texture->mVkImageView = builtImageViews[imageId];
 			texture->mFormat = mVkSurfaceFormat.format;
 
 			texture->mWidth = frameBufferSize.x;
@@ -855,8 +884,8 @@ namespace Turbo
 
 			static const std::array<FName, kMaxSwapChainImages> swapChainTextureNames = CreateSwapChainTexturesNames();
 			texture->mName = swapChainTextureNames[imageId];
-			SetResourceName(texture->mImage, texture->mName);
-			SetResourceName(texture->mImageView, texture->mName);
+			SetResourceName(texture->mVkImage, texture->mName);
+			SetResourceName(texture->mVkImageView, texture->mName);
 
 			mSwapChainTextures[imageId] = handle;
 
@@ -1134,7 +1163,7 @@ namespace Turbo
 		for (uint32 imageId = 0; imageId < mNumSwapChainImages; ++imageId)
 		{
 			FTexture* texture = AccessTexture(mSwapChainTextures[imageId]);
-			mVkDevice.destroyImageView(texture->mImageView);
+			mVkDevice.destroyImageView(texture->mVkImageView);
 			mTexturePool->Release(mSwapChainTextures[imageId]);
 
 			mVkDevice.destroySemaphore(mSubmitSemaphores[imageId]);
@@ -1233,12 +1262,12 @@ namespace Turbo
 		imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
 
 		const bool bRenderTarget = TEST_FLAG(builder.mFlags, ETextureFlags::RenderTarget);
-		const bool bCompute = TEST_FLAG(builder.mFlags, ETextureFlags::Compute);
+		const bool bStorageImage = TEST_FLAG(builder.mFlags, ETextureFlags::StorageImage);
 
 		using EImgUsage = vk::ImageUsageFlagBits;
 
 		imageCreateInfo.usage = EImgUsage::eSampled;
-		imageCreateInfo.usage |= bCompute ? EImgUsage::eStorage : static_cast<EImgUsage>(0);
+		imageCreateInfo.usage |= bStorageImage ? EImgUsage::eStorage : static_cast<EImgUsage>(0);
 		if (TextureFormat::HasDepthOrStencil(builder.mFormat))
 		{
 			imageCreateInfo.usage |= EImgUsage::eDepthStencilAttachment;
@@ -1260,13 +1289,13 @@ namespace Turbo
 		{
 			std::pair<vk::Image, vma::Allocation> allocationResult;
 			CHECK_VULKAN_RESULT(allocationResult, mVmaAllocator.createImage(imageCreateInfo, imageAllocationInfo))
-			std::tie(texture->mImage, texture->mImageAllocation) = allocationResult;
+			std::tie(texture->mVkImage, texture->mImageAllocation) = allocationResult;
 		}
 
-		SetResourceName(texture->mImage, texture->mName);
+		SetResourceName(texture->mVkImage, texture->mName);
 
 		vk::ImageViewCreateInfo viewCreateInfo = {};
-		viewCreateInfo.image = texture->mImage;
+		viewCreateInfo.image = texture->mVkImage;
 		viewCreateInfo.viewType = VkConvert::ToVkImageViewType(builder.mType);
 		viewCreateInfo.format = builder.mFormat;
 		viewCreateInfo.subresourceRange.aspectMask =
@@ -1275,9 +1304,9 @@ namespace Turbo
 		viewCreateInfo.subresourceRange.layerCount = 1;
 
 
-		CHECK_VULKAN_RESULT(texture->mImageView, mVkDevice.createImageView(viewCreateInfo));
+		CHECK_VULKAN_RESULT(texture->mVkImageView, mVkDevice.createImageView(viewCreateInfo));
 
-		SetResourceName(texture->mImageView, builder.mName);
+		SetResourceName(texture->mVkImageView, builder.mName);
 	}
 
 	void FGPUDevice::DestroyBufferImmediate(const FBufferDestroyer& destroyer)
@@ -1291,6 +1320,12 @@ namespace Turbo
 		mVmaAllocator.destroyImage(destroyer.mImage, destroyer.mImageAllocation);
 		mVkDevice.destroyImageView(destroyer.mImageView);
 		mTexturePool->Release(destroyer.mHandle);
+	}
+
+	void FGPUDevice::DestroySamplerImmediate(const FSamplerDestroyer& destroyer)
+	{
+		mVkDevice.destroySampler(destroyer.mVkSampler);
+		mSamplerPool->Release(destroyer.mHandle);
 	}
 
 	void FGPUDevice::DestroyPipelineImmediate(const FPipelineDestroyer& destroyer)

@@ -7,6 +7,11 @@ namespace Turbo {
 		GPUDevice.DestroyBufferImmediate(*this);
 	}
 
+	void FSamplerDestroyer::Destroy(FGPUDevice& GPUDevice)
+	{
+		GPUDevice.DestroySamplerImmediate(*this);
+	}
+
 	void FTextureDestroyer::Destroy(FGPUDevice& GPUDevice)
 	{
 		GPUDevice.DestroyTextureImmediate(*this);

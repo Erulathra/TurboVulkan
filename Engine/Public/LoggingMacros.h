@@ -31,6 +31,7 @@ namespace Turbo
 #define LOG_TEMP			Display
 #define LOG_STREAMING		Display
 #define LOG_MESH_LOADING	Display
+#define LOG_TEXTURE_LOADING	Display
 #define LOG_INPUT			Display
 #define LOG_SLANG			Display
 

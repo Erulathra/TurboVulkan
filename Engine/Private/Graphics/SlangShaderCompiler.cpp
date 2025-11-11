@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include "Graphics/ResourceBuilders.h"
+#include "Graphics/VulkanHelpers.h"
 
 namespace Turbo
 {
@@ -27,7 +28,7 @@ namespace Turbo
 
 	vk::ShaderModule FSlangShaderCompiler::CompileShader(vk::Device device, const FShaderStage& shaderStage)
 	{
-		TURBO_LOG(LOG_SLANG, Info, "Compiling `Shaders/{}.slang` shader.", shaderStage.mShaderName);
+		TURBO_LOG(LOG_SLANG, Info, "Compiling `Shaders/{}.slang` ({}) shader.", shaderStage.mShaderName, VulkanEnum::GetShaderStageName(shaderStage.mStage));
 
 		vk::ShaderModule result = nullptr;
 

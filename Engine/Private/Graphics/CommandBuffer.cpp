@@ -63,7 +63,7 @@ namespace Turbo
 
 		const vk::ImageAspectFlags aspectFlags = newLayout == vk::ImageLayout::eDepthAttachmentOptimal ? vk::ImageAspectFlagBits::eDepth : vk::ImageAspectFlagBits::eColor;
 		imageBarrier.setSubresourceRange(VkInit::ImageSubresourceRange(aspectFlags));
-		imageBarrier.setImage(texture->mImage);
+		imageBarrier.setImage(texture->mVkImage);
 
 		vk::DependencyInfo dependencyInfo{};
 		dependencyInfo.setImageMemoryBarrierCount(1);
@@ -102,7 +102,7 @@ namespace Turbo
 
 		const vk::ClearColorValue clearColorValue {color.r, color.g, color.b, color.a};
 		const vk::ImageSubresourceRange subresourceRange = VkInit::ImageSubresourceRange();
-		mVkCommandBuffer.clearColorImage(texture->mImage, vk::ImageLayout::eGeneral, clearColorValue, subresourceRange);
+		mVkCommandBuffer.clearColorImage(texture->mVkImage, vk::ImageLayout::eGeneral, clearColorValue, subresourceRange);
 	}
 
 	void FCommandBuffer::BlitImage(THandle<FTexture> src, FRect2DInt srcRect, THandle<FTexture> dst, FRect2DInt dstRect, EFilter filter)
@@ -131,9 +131,9 @@ namespace Turbo
 		FTexture* dstTexture = mGpu->AccessTexture(dst);
 		TURBO_CHECK(srcTexture && dstTexture)
 
-		blitInfo.srcImage = srcTexture->mImage;
+		blitInfo.srcImage = srcTexture->mVkImage;
 		blitInfo.srcImageLayout = vk::ImageLayout::eTransferSrcOptimal;
-		blitInfo.dstImage = dstTexture->mImage;
+		blitInfo.dstImage = dstTexture->mVkImage;
 		blitInfo.dstImageLayout = vk::ImageLayout::eTransferDstOptimal;
 
 		blitInfo.filter = VkConvert::ToVkFilter(filter);
@@ -158,6 +158,35 @@ namespace Turbo
 		copyBufferInfo.setRegions(bufferCopy);
 
 		mVkCommandBuffer.copyBuffer2(copyBufferInfo);
+	}
+
+	void FCommandBuffer::CopyBufferToTexture(THandle<FBuffer> src, THandle<FTexture> dst, uint32 mipIndex, vk::DeviceSize bufferOffset)
+	{
+		const FBuffer* srcBuffer = mGpu->AccessBuffer(src);
+		const FTexture* dstTexture = mGpu->AccessTexture(dst);
+		const glm::int2 texSize = dstTexture->GetSize2D();
+
+		vk::ImageSubresourceLayers imageSubresource = {};
+		imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+		imageSubresource.mipLevel = mipIndex;
+		imageSubresource.baseArrayLayer = 0;
+		imageSubresource.layerCount = 1;
+
+		vk::BufferImageCopy2 bufferImageCopy = {};
+		bufferImageCopy.bufferOffset = bufferOffset;
+		bufferImageCopy.bufferRowLength = texSize.x;
+		bufferImageCopy.bufferImageHeight = texSize.y;
+		bufferImageCopy.imageOffset = VulkanConverters::ToOffset3D(glm::int3(0.f));
+		bufferImageCopy.imageExtent = VulkanConverters::ToExtent3D(glm::int3(texSize, 1.f));
+		bufferImageCopy.imageSubresource = imageSubresource;
+
+		vk::CopyBufferToImageInfo2 copyBufferToImageInfo = {};
+		copyBufferToImageInfo.srcBuffer = srcBuffer->mVkBuffer;
+		copyBufferToImageInfo.dstImage = dstTexture->mVkImage;
+		copyBufferToImageInfo.dstImageLayout = vk::ImageLayout::eTransferDstOptimal;
+		copyBufferToImageInfo.setRegions(bufferImageCopy);
+
+		mVkCommandBuffer.copyBufferToImage2(copyBufferToImageInfo);
 	}
 
 	void FCommandBuffer::BindDescriptorSet(THandle<FDescriptorSet> descriptorSetHandle, uint32 setIndex)
@@ -220,7 +249,7 @@ namespace Turbo
 
 			vk::RenderingAttachmentInfo& attachmentInfo = colorAttachments[attachmentIndex];
 			attachmentInfo = vk::RenderingAttachmentInfo();
-			attachmentInfo.imageView = attachmentTexture->mImageView;
+			attachmentInfo.imageView = attachmentTexture->mVkImageView;
 			attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 			attachmentInfo.loadOp = vk::AttachmentLoadOp::eLoad;
 			attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -236,7 +265,7 @@ namespace Turbo
 			TURBO_CHECK(depthTexture)
 
 			TURBO_CHECK(attachmentSize == depthTexture->GetSize2D())
-			depthAttachmentInfo.imageView = depthTexture->mImageView;
+			depthAttachmentInfo.imageView = depthTexture->mVkImageView;
 			depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 			depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
 			depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;

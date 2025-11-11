@@ -48,17 +48,14 @@ namespace Turbo
 		BUILDER_BODY()
 
 	public:
-		FTextureBuilder& Init(vk::Format format, ETextureType type, ETextureFlags flags)
+		FTextureBuilder& Init(vk::Format format, ETextureType type, ETextureFlags flags = ETextureFlags::Default)
 			{ mFormat = format; mType = type; mFlags = flags;  return *this; }
 		FTextureBuilder& SetSize(glm::ivec3 size) { mWidth = size.x; mHeight = size.y; mDepth = size.z; return *this; }
 		FTextureBuilder& SetNumMips(uint8 numMips) { mNumMips = numMips; return *this; }
 
-		FTextureBuilder& SetData(void* data) { mInitialData = data; return *this; }
-
 		FTextureBuilder& SetName(FName name) { mName = name; return *this; }
 
 	private:
-		void* mInitialData = nullptr;
 		uint16 mWidth = 1;
 		uint16 mHeight = 1;
 		uint16 mDepth = 1;
@@ -83,6 +80,8 @@ namespace Turbo
 		FSamplerBuilder& SetAddressUV(vk::SamplerAddressMode u, vk::SamplerAddressMode v) { mAddressModeU = u; mAddressModeV = v; return *this; }
 		FSamplerBuilder& SetAddressUVW(vk::SamplerAddressMode u, vk::SamplerAddressMode v, vk::SamplerAddressMode w)
 			{ mAddressModeU = u; mAddressModeV = v; mAddressModeV = w; return *this; }
+		FSamplerBuilder& SetAddress(vk::SamplerAddressMode mode)
+			{ mAddressModeU = mode; mAddressModeV = mode; mAddressModeV = mode; return *this; }
 
 		FSamplerBuilder& SetName(FName name) { mName = name; return *this; }
 
