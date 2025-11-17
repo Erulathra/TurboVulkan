@@ -1,9 +1,8 @@
+#include "Common.slang"
+
 import Math;
 
-[vk_binding(0, 0)]
-Texture2D<float3> texture;
-
-[vk_binding(1, 0)]
+[vk_binding(0, 1)]
 SamplerState textureSampler;
 
 [[vk::push_constant]]
@@ -14,7 +13,7 @@ cbuffer pushConstants
     float3* normalBuffer;
     float2* uvBuffer;
 
-    float4 meshColor;
+    uint textureId;
 };
 
 struct VSOut
@@ -46,7 +45,7 @@ void psMain(in VSOut vsOut, out PSOut psOut)
     float lightIntensity = ambientLight + max(0.f, dot(vsOut.normal, -sunDir));
     lightIntensity = clamp(lightIntensity, 0.f, 1.f);
 
-    const float3 baseColor = texture.Sample(textureSampler, vsOut.uv);
+    const float3 baseColor = texturePool[textureId].Sample(textureSampler, vsOut.uv);
     const float3 colorLightPass = baseColor * lightIntensity;
 
     psOut.color = float4(baseColor, 1.f);

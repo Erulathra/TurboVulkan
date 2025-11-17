@@ -20,9 +20,7 @@ struct FPushConstants
 	vk::DeviceAddress positionBuffer;
 	vk::DeviceAddress normalBuffer;
 	vk::DeviceAddress uvBuffer;
-	uint64 _PADDING;
-
-	glm::float4 color = ELinearColor::kYellow;
+	uint32 textureId;
 };
 
 struct FRotateComponent
@@ -92,8 +90,7 @@ void FRenderingTestLayer::Start()
 
 	FDescriptorSetLayoutBuilder descriptorSetBuilder;
 	descriptorSetBuilder
-		.AddBinding(vk::DescriptorType::eSampledImage, 0, 1, FName("Texture"))
-		.AddBinding(vk::DescriptorType::eSampler, 1, 1, FName("Sampler"))
+		.AddBinding(vk::DescriptorType::eSampler, 0, 1, {}, FName("Sampler"))
 		.SetName(FName("GraphicsTest"));
 
 	mMaterialSetLayout = gpu.CreateDescriptorSetLayout(descriptorSetBuilder);
@@ -125,7 +122,7 @@ void FRenderingTestLayer::Start()
 
 	for (uint32 planetId = 1; planetId < 3; ++planetId)
 	{
-		constexpr float offset = 2.f;
+		constexpr float offset = 3.f;
 		const entt::entity pivot = CreatePivot(world, sun, 0.f, 1.f / static_cast<float>(planetId));
 		const entt::entity planet = CreateCelestialBody(world, pivot, offset * static_cast<float>(planetId), 1.f, ELinearColor::kWhite);
 
@@ -141,6 +138,8 @@ void FRenderingTestLayer::Shutdown()
 	entt::locator<FAssetManager>::value().UnloadMesh(mMeshHandle);
 	gpu.DestroyTexture(mCatTexture);
 	gpu.DestroySampler(mCatSampler);
+
+	gpu.DestroyDescriptorSetLayout(mMaterialSetLayout);
 }
 
 void FRenderingTestLayer::ShowImGuiWindow()
@@ -194,8 +193,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	descriptorSetBuilder
 		.SetLayout(mMaterialSetLayout)
 		.SetDescriptorPool(gpu->GetFrameDescriptorPool())
-		.SetTexture(mCatTexture, 0)
-		.SetSampler(mCatSampler, 1);
+		.SetSampler(mCatSampler, 0);
 
 	const THandle<FDescriptorSet> materialDescriptorSet = gpu->CreateDescriptorSet(descriptorSetBuilder);
 
@@ -212,7 +210,8 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 
 	cmd->BindPipeline(mGraphicsPipeline);
 	cmd->BindIndexBuffer(mesh->mIndicesBuffer);
-	cmd->BindDescriptorSet(materialDescriptorSet, 0);
+	cmd->BindDescriptorSet(gpu->GetBindlessResourcesSet(), 0);
+	cmd->BindDescriptorSet(materialDescriptorSet, 1);
 
 	glm::mat4 viewMat =
 		glm::rotate(glm::mat4(1.f), glm::radians(mCameraRotation.x), EVec3::Right)
@@ -227,6 +226,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	pushConstants.positionBuffer = positionBuffer->GetDeviceAddress();
 	pushConstants.normalBuffer = normalBuffer->GetDeviceAddress();
 	pushConstants.uvBuffer = uvBuffer->GetDeviceAddress();
+	pushConstants.textureId = mCatTexture.mIndex;
 
 	FWorld& world = *gEngine->GetWorld();
 	world.UpdateWorldTransforms();
@@ -238,7 +238,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 		const glm::float3 planetColor = celestialBodiesView.get<FCelestialBodyComponent>(celestialBody).color;
 
 		pushConstants.objToProj = projMat * viewMat * modelMat;
-		pushConstants.color = glm::float4(planetColor, 1.f);
+		// pushConstants.color = glm::float4(planetColor, 1.f);
 
 		cmd->PushConstants(pushConstants);
 		cmd->DrawIndexed(mesh->mVertexCount);

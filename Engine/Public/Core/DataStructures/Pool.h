@@ -3,10 +3,10 @@
 
 namespace Turbo
 {
-	using FPoolIndexType = uint32;
+	using FPoolIndexType = uint16;
 	inline constexpr FPoolIndexType kInvalidHandle = std::numeric_limits<FPoolIndexType>::max();
 
-	using FPoolGenerationType = uint32;
+	using FPoolGenerationType = uint16;
 	inline constexpr FPoolGenerationType kInvalidGeneration = std::numeric_limits<FPoolGenerationType>::max();
 
 	struct FHandle
@@ -228,3 +228,38 @@ namespace Turbo
 		FPoolIndexType mSize = 0;
 	};
 } // turbo
+
+inline bool operator==(const Turbo::FHandle lhs, const Turbo::FHandle rhs)
+{
+	return lhs.mIndex == rhs.mIndex
+		&& lhs.mGeneration == rhs.mGeneration;
+}
+
+template<>
+struct std::hash<Turbo::FHandle>
+{
+	std::size_t operator()(Turbo::FHandle handle) const noexcept
+	{
+		const std::size_t h1 = std::hash<Turbo::FPoolIndexType>{}(handle.mIndex);
+		const std::size_t h2 = std::hash<Turbo::FPoolGenerationType>{}(handle.mGeneration);
+		return h1 ^ (h2 << 1);
+	}
+};
+
+template<typename T>
+inline bool operator==(const Turbo::THandle<T> lhs, const Turbo::THandle<T> rhs)
+{
+	return lhs.mIndex == rhs.mIndex
+		&& lhs.mGeneration == rhs.mGeneration;
+}
+
+template<typename T>
+struct std::hash<Turbo::THandle<T>>
+{
+	std::size_t operator()(Turbo::THandle<T> handle) const noexcept
+	{
+		const std::size_t h1 = std::hash<Turbo::FPoolIndexType>{}(handle.mIndex);
+		const std::size_t h2 = std::hash<Turbo::FPoolGenerationType>{}(handle.mGeneration);
+		return h1 ^ (h2 << 1);
+	}
+};

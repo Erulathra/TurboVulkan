@@ -123,21 +123,22 @@ namespace Turbo
 		BUILDER_BODY()
 
 	public:
-		FDescriptorSetLayoutBuilder& Reset() { mNumBindings = 0; mSetIndex = 0; return *this; }
-		FDescriptorSetLayoutBuilder& AddBinding(vk::DescriptorType type, uint16 start, uint16 count, FName name = FName())
+		FDescriptorSetLayoutBuilder& Reset() { *this = {}; return *this; }
+		FDescriptorSetLayoutBuilder& AddBinding(vk::DescriptorType type, uint16 start, uint16 count, vk::DescriptorBindingFlags flags = {}, FName name = FName())
 		{
 			TURBO_CHECK_MSG(count > 0, "Binding count must be greater than 0.")
 
-			mBindings[mNumBindings] = {type, start, count, name};
+			mBindings[mNumBindings] = {type, start, count, flags, name};
 			++mNumBindings;
 
 			return *this;
 		}
-		FDescriptorSetLayoutBuilder& AddBinding(vk::DescriptorType type, uint16 id, FName name = FName())
+		FDescriptorSetLayoutBuilder& AddBinding(vk::DescriptorType type, uint16 id, vk::DescriptorBindingFlags flags = {}, FName name = FName())
 		{
-			return AddBinding(type, id, 1, name);
+			return AddBinding(type, id, 1, flags, name);
 		}
-		FDescriptorSetLayoutBuilder& SetSetIndex(uint16 index) { mSetIndex = index; return *this; }
+		FDescriptorSetLayoutBuilder& SetIndex(uint16 index) { mSetIndex = index; return *this; }
+		FDescriptorSetLayoutBuilder& SetFlags(vk::DescriptorSetLayoutCreateFlags flags) { mFlags = flags; return *this; }
 
 		FDescriptorSetLayoutBuilder& SetName(FName name) { mName = name; return *this; }
 
@@ -145,6 +146,7 @@ namespace Turbo
 		std::array<FBinding, kMaxDescriptorsPerSet> mBindings;
 		uint16 mNumBindings = 0;
 		uint16 mSetIndex = 0;
+		vk::DescriptorSetLayoutCreateFlags mFlags = {};
 
 		FName mName;
 	};
@@ -189,6 +191,7 @@ namespace Turbo
 		}
 
 		FDescriptorSetBuilder& SetName(FName name) { mName = name; return *this; }
+		FDescriptorSetBuilder& SetFlags(vk::DescriptorPoolCreateFlags flags) { mFlags = flags; return *this; }
 
 	private:
 		std::array<FHandle, kMaxDescriptorsPerSet> mResources;
@@ -197,6 +200,8 @@ namespace Turbo
 		THandle<FDescriptorSetLayout> mLayout = {};
 		THandle<FDescriptorPool> mDescriptorPool = {};
 		uint32 mNumResources = 0;
+
+		vk::DescriptorPoolCreateFlags mFlags;
 
 		FName mName;
 	};
@@ -426,7 +431,7 @@ namespace Turbo
 		FPipelineRenderingBuilder mPipelineRenderingBuilder;
 
 		std::array<THandle<FDescriptorSetLayout>, kMaxDescriptorSetLayouts> mDescriptorSetLayouts;
-		uint32 mNumActiveLayouts = 0;
+		uint32 mNumActiveLayouts = 1; // The 0th set are always bindless resources
 
 		uint32 mPushConstantSize = 0;
 

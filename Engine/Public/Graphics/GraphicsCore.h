@@ -23,7 +23,7 @@ inline constexpr uint32 kVulkanVersion = MAKE_VERSION(1, 3, 0);
 
 /** Constants end */
 
-#define VULKAN_HPP_ASSERT_ON_RESULT(EXPRESSION) {}
+// #define VULKAN_HPP_ASSERT_ON_RESULT(EXPRESSION) {}
 #include <vulkan/vulkan.hpp>
 
 template <>

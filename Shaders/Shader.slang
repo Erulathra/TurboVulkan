@@ -5,7 +5,7 @@ import Math;
 [[vk::binding(0, 0)]]
 RWTexture2D<float4> inOutTexture;
 
-struct Data 
+struct Data
 {
     float4 vertices[3];
 };
@@ -60,4 +60,3 @@ void main(uint3 threadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupTh
 
     inOutTexture[threadId.xy] = float4(outColor.x, outColor.y, 0.0f, 1.0f);
 }
-

@@ -14,6 +14,9 @@ namespace Turbo
 
 	DECLARE_DELEGATE(FOnImmediateSubmit, FCommandBuffer&);
 
+	constexpr size_t kTexturePoolSize = 1024;
+	constexpr uint32 kSampledImageBindingIndex = 0;
+
 	class FBufferedFrameData final
 	{
 		vk::Fence mCommandBufferExecutedFence = nullptr;
@@ -45,6 +48,8 @@ namespace Turbo
 
 		FCommandBuffer* GetCommandBuffer() { return mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
 		THandle<FDescriptorPool> GetFrameDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
+
+		THandle<FDescriptorSet> GetBindlessResourcesSet() { return mBindlessResourcesSet; }
 
 		THandle<FTexture> GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
 
@@ -146,6 +151,8 @@ namespace Turbo
 
 		void InitializeImmediateCommands();
 
+		void InitializeBindlessResources();
+
 		vk::PresentModeKHR GetBestPresentMode();
 		/** Initialization methods end */
 
@@ -157,6 +164,7 @@ namespace Turbo
 		void DestroySwapChain();
 		void DestroyFrameDatas();
 		void DestroyImmediateCommands();
+		void DestroyBindlessResources();
 
 		/** Destroy methods end */
 
@@ -168,6 +176,7 @@ namespace Turbo
 		/** Rendering interface */
 	private:
 		void AdvanceFrameCounters();
+		void UpdateBindlessResources();
 
 		/** Rendering interface end */
 
@@ -193,10 +202,10 @@ namespace Turbo
 		void SetResourceName(HandleType vkHandle, std::string_view name) const;
 		/** Debug end */
 
-	private:
 		/** Resource pools */
+	private:
 		TPoolHeap<FBuffer, 4096> mBufferPool;
-		TPoolHeap<FTexture, 512> mTexturePool;
+		TPoolHeap<FTexture, kTexturePoolSize> mTexturePool;
 		TPoolHeap<FSampler, 32> mSamplerPool;
 		TPoolHeap<FPipeline, 128> mPipelinePool;
 		TPoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
@@ -205,6 +214,16 @@ namespace Turbo
 		TPoolHeap<FShaderState, 128> mShaderStatePool;
 
 		/** Resource pools end */
+
+		/** Bindless resources */
+	private:
+		THandle<FDescriptorPool> mBindlessResourcesPool;
+		THandle<FDescriptorSetLayout> mBindlessResourcesLayout;
+		THandle<FDescriptorSet> mBindlessResourcesSet;
+
+		std::vector<THandle<FTexture>> mBindlessTexturesToUpdate;
+
+		/** Bindless resources end */
 
 		/** Vulkan handles */
 	private:

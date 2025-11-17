@@ -165,6 +165,7 @@ namespace Turbo
 		const FBuffer* srcBuffer = mGpu->AccessBuffer(src);
 		const FTexture* dstTexture = mGpu->AccessTexture(dst);
 		const glm::int2 texSize = dstTexture->GetSize2D();
+		const glm::int2 mipSize = glm::int2(texSize.x >> mipIndex, texSize.y >> mipIndex);
 
 		vk::ImageSubresourceLayers imageSubresource = {};
 		imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -172,12 +173,13 @@ namespace Turbo
 		imageSubresource.baseArrayLayer = 0;
 		imageSubresource.layerCount = 1;
 
+
 		vk::BufferImageCopy2 bufferImageCopy = {};
 		bufferImageCopy.bufferOffset = bufferOffset;
-		bufferImageCopy.bufferRowLength = texSize.x;
-		bufferImageCopy.bufferImageHeight = texSize.y;
+		bufferImageCopy.bufferRowLength = mipSize.x;
+		bufferImageCopy.bufferImageHeight = mipSize.y;
 		bufferImageCopy.imageOffset = VulkanConverters::ToOffset3D(glm::int3(0.f));
-		bufferImageCopy.imageExtent = VulkanConverters::ToExtent3D(glm::int3(texSize, 1.f));
+		bufferImageCopy.imageExtent = VulkanConverters::ToExtent3D(glm::int3(mipSize, 1.f));
 		bufferImageCopy.imageSubresource = imageSubresource;
 
 		vk::CopyBufferToImageInfo2 copyBufferToImageInfo = {};

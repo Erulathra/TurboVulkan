@@ -154,6 +154,7 @@ namespace Turbo
 		vk::DescriptorType mType = {};
 		uint16 mIndex = 0;
 		uint16 mCount = 0;
+		vk::DescriptorBindingFlags mFlags = {};
 
 		FName mName;
 	};
@@ -163,7 +164,7 @@ namespace Turbo
 		RESOURCE_BODY()
 
 	private:
-		vk::DescriptorSetLayout mLayout = nullptr;
+		vk::DescriptorSetLayout mVkLayout = nullptr;
 		TArrayHeap<vk::DescriptorSetLayoutBinding, kMaxDescriptorsPerSet> mVkBindings;
 		TArrayHeap<FBinding, kMaxDescriptorsPerSet> mBindings;
 		uint16 mNumBindings = 0;
@@ -189,10 +190,10 @@ namespace Turbo
 		RESOURCE_BODY()
 
 	public:
-		[[nodiscard]] vk::DescriptorPool GetDescriptorPool() const { return mDescriptorPool; }
+		[[nodiscard]] vk::DescriptorPool GetDescriptorPool() const { return mVkDescriptorPool; }
 
 	private:
-		vk::DescriptorPool mDescriptorPool;
+		vk::DescriptorPool mVkDescriptorPool;
 		std::vector<THandle<FDescriptorSet>> mDescriptorSets;
 
 		FName mName;
@@ -206,7 +207,7 @@ namespace Turbo
 		virtual void Destroy(FGPUDevice& GPUDevice) override;
 
 	private:
-		vk::DescriptorSetLayout mLayout = nullptr;
+		vk::DescriptorSetLayout mVkLayout = nullptr;
 		THandle<FDescriptorSetLayout> mHandle = {};
 	};
 
@@ -218,7 +219,7 @@ namespace Turbo
 		virtual void Destroy(FGPUDevice& GPUDevice) override;
 
 	private:
-		vk::DescriptorPool mDescriptorPool;
+		vk::DescriptorPool mVkDescriptorPool;
 		THandle<FDescriptorPool> mhandle;
 	};
 
