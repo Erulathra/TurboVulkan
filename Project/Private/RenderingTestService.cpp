@@ -21,6 +21,7 @@ struct FPushConstants
 	vk::DeviceAddress normalBuffer;
 	vk::DeviceAddress uvBuffer;
 	uint32 textureId;
+	uint32 samplerId;
 };
 
 struct FRotateComponent
@@ -93,12 +94,10 @@ void FRenderingTestLayer::Start()
 		.AddBinding(vk::DescriptorType::eSampler, 0, 1, {}, FName("Sampler"))
 		.SetName(FName("GraphicsTest"));
 
-	mMaterialSetLayout = gpu.CreateDescriptorSetLayout(descriptorSetBuilder);
 
 	FPipelineBuilder graphicsPipelineBuilder;
 	graphicsPipelineBuilder.SetPushConstantType<FPushConstants>();
 	graphicsPipelineBuilder.SetName(FName("TestGraphicsPipeline"));
-	graphicsPipelineBuilder.AddDescriptorSetLayout(mMaterialSetLayout);
 
 	graphicsPipelineBuilder.GetShaderState()
 		.AddStage("PlanetShader", vk::ShaderStageFlagBits::eVertex)
@@ -138,8 +137,6 @@ void FRenderingTestLayer::Shutdown()
 	entt::locator<FAssetManager>::value().UnloadMesh(mMeshHandle);
 	gpu.DestroyTexture(mCatTexture);
 	gpu.DestroySampler(mCatSampler);
-
-	gpu.DestroyDescriptorSetLayout(mMaterialSetLayout);
 }
 
 void FRenderingTestLayer::ShowImGuiWindow()
@@ -189,14 +186,6 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
 	const THandle<FTexture> dephtImageHandle = geometryBuffer.GetDepth();
 
-	FDescriptorSetBuilder descriptorSetBuilder = {};
-	descriptorSetBuilder
-		.SetLayout(mMaterialSetLayout)
-		.SetDescriptorPool(gpu->GetFrameDescriptorPool())
-		.SetSampler(mCatSampler, 0);
-
-	const THandle<FDescriptorSet> materialDescriptorSet = gpu->CreateDescriptorSet(descriptorSetBuilder);
-
 	cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eColorAttachmentOptimal);
 	cmd->TransitionImage(dephtImageHandle, vk::ImageLayout::eDepthAttachmentOptimal);
 
@@ -211,7 +200,6 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	cmd->BindPipeline(mGraphicsPipeline);
 	cmd->BindIndexBuffer(mesh->mIndicesBuffer);
 	cmd->BindDescriptorSet(gpu->GetBindlessResourcesSet(), 0);
-	cmd->BindDescriptorSet(materialDescriptorSet, 1);
 
 	glm::mat4 viewMat =
 		glm::rotate(glm::mat4(1.f), glm::radians(mCameraRotation.x), EVec3::Right)
@@ -227,6 +215,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	pushConstants.normalBuffer = normalBuffer->GetDeviceAddress();
 	pushConstants.uvBuffer = uvBuffer->GetDeviceAddress();
 	pushConstants.textureId = mCatTexture.mIndex;
+	pushConstants.samplerId = mCatSampler.mIndex;
 
 	FWorld& world = *gEngine->GetWorld();
 	world.UpdateWorldTransforms();

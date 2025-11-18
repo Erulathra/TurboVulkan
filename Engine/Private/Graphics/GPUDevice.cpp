@@ -73,6 +73,8 @@ namespace Turbo
 		descriptorPoolBuilder
 			.SetMaxSets(1)
 			.SetPoolRatio(vk::DescriptorType::eSampledImage, kTexturePoolSize)
+			.SetPoolRatio(vk::DescriptorType::eStorageImage, kTexturePoolSize)
+			.SetPoolRatio(vk::DescriptorType::eSampler, kSamplerPoolSize)
 			.SetFlags(vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind)
 			.SetName(FName("BindlessResources"));
 		mBindlessResourcesPool = CreateDescriptorPool(descriptorPoolBuilder);
@@ -84,7 +86,9 @@ namespace Turbo
 		layoutBuilder
 			.SetIndex(0)
 			.SetFlags(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool)
-			.AddBinding(vk::DescriptorType::eSampledImage, kSampledImageBindingIndex, kTexturePoolSize, bindingFlags, FName("texturePool"))
+			.AddBinding(vk::DescriptorType::eSampledImage, BindlessResourcesBindings::kSampledImage, kTexturePoolSize, bindingFlags, FName("texturePool"))
+			.AddBinding(vk::DescriptorType::eStorageImage, BindlessResourcesBindings::kStorageImage, kTexturePoolSize, bindingFlags, FName("rwTexturePool"))
+			.AddBinding(vk::DescriptorType::eSampler, BindlessResourcesBindings::kSampler, kSamplerPoolSize, bindingFlags, FName("samplerPool"))
 			.SetName(FName("BindlessResources"));
 		mBindlessResourcesLayout = CreateDescriptorSetLayout(layoutBuilder);
 		TURBO_CHECK(mBindlessResourcesLayout)
@@ -188,7 +192,7 @@ namespace Turbo
 		FTexture* texture = AccessTexture(handle);
 		InitVulkanTexture(builder, handle, texture);
 
-		mBindlessTexturesToUpdate.push_back(handle);
+		mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, handle);
 
 		return handle;
 	}
@@ -227,6 +231,8 @@ namespace Turbo
 
 		CHECK_VULKAN_RESULT(sampler->mVkSampler, mVkDevice.createSampler(createInfo));
 		SetResourceName(sampler->mVkSampler, builder.mName);
+
+		mBindlessResourcesToUpdate.emplace_back(EResourceType::Sampler, handle);
 
 		return handle;
 	}
@@ -1203,37 +1209,81 @@ namespace Turbo
 		// todo: sort `mBindlessTexturesToUpdate` to reduce memory jumps (?)
 
 		std::vector<vk::WriteDescriptorSet> descriptorWrites;
-		descriptorWrites.reserve(mBindlessTexturesToUpdate.size());
+		descriptorWrites.reserve(mBindlessResourcesToUpdate.size() * 2);
 
 		const FDescriptorSet* targetDescriptorSet = AccessDescriptorSet(mBindlessResourcesSet);
-		uint32 writeCount = 0;
 
-		for (THandle<FTexture> textureToBindHandle : mBindlessTexturesToUpdate)
+		vk::WriteDescriptorSet writeDescriptorSet;
+		writeDescriptorSet.descriptorCount = 1;
+		writeDescriptorSet.dstSet = targetDescriptorSet->mVkDescriptorSet;
+
+		for (const FBindlessResourceUpdateRequest& request : mBindlessResourcesToUpdate)
 		{
-			const FTexture* textureToBind = AccessTexture(textureToBindHandle);
+			writeDescriptorSet.dstArrayElement = request.mHandle.mIndex;
 
-			vk::WriteDescriptorSet& writeDescriptorSet = descriptorWrites.emplace_back();
-			writeDescriptorSet.descriptorCount = 1;
-			writeDescriptorSet.dstArrayElement = textureToBindHandle.mIndex;
-			writeDescriptorSet.descriptorType = vk::DescriptorType::eSampledImage;
-			writeDescriptorSet.dstSet = targetDescriptorSet->mVkDescriptorSet;
-			writeDescriptorSet.dstBinding = kSampledImageBindingIndex;
+			switch (request.mType)
+			{
+			case EResourceType::RWTexture:
+				{
+					const FTexture* textureToBind = AccessTexture(THandle<FTexture>(request.mHandle));
+					writeDescriptorSet.descriptorType = vk::DescriptorType::eStorageImage;
+					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kStorageImage;
 
-			vk::DescriptorImageInfo imageBinding = {};
-			imageBinding.imageView = textureToBind->mVkImageView;
-			imageBinding.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+					vk::DescriptorImageInfo imageBinding = {};
+					imageBinding.imageView = textureToBind->mVkImageView;
+					imageBinding.imageLayout = vk::ImageLayout::eGeneral;
+					imageBinding.sampler = nullptr;
 
-			writeDescriptorSet.setImageInfo(imageBinding);
+					writeDescriptorSet.setImageInfo(imageBinding);
 
-			writeCount++;
+					descriptorWrites.push_back(writeDescriptorSet);
+
+					// No brake by design. We want to bind RWTexture both as SampledImage and StorageImage
+				}
+			case EResourceType::Texture:
+				{
+					const FTexture* textureToBind = AccessTexture(THandle<FTexture>(request.mHandle));
+					writeDescriptorSet.descriptorType = vk::DescriptorType::eSampledImage;
+					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kSampledImage;
+
+					vk::DescriptorImageInfo imageBinding = {};
+					imageBinding.imageView = textureToBind->mVkImageView;
+					imageBinding.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+					imageBinding.sampler = nullptr;
+
+					writeDescriptorSet.setImageInfo(imageBinding);
+
+					descriptorWrites.push_back(writeDescriptorSet);
+
+					break;
+				}
+			case EResourceType::Sampler:
+				{
+					const FSampler* samplerToBind = AccessSampler(THandle<FSampler>(request.mHandle));
+					writeDescriptorSet.descriptorType = vk::DescriptorType::eSampler;
+					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kSampler;
+
+					vk::DescriptorImageInfo samplerBinding = {};
+					samplerBinding.imageLayout = vk::ImageLayout::eUndefined;
+					samplerBinding.imageView = nullptr;
+					samplerBinding.sampler = samplerToBind->mVkSampler;
+
+					writeDescriptorSet.setImageInfo(samplerBinding);
+
+					descriptorWrites.push_back(writeDescriptorSet);
+
+					break;
+				}
+			default: ;
+			}
 		}
 
-		if (writeCount > 0)
+		if (descriptorWrites.empty() == false)
 		{
-			mVkDevice.updateDescriptorSets(writeCount, descriptorWrites.data(), 0, nullptr);
+			mVkDevice.updateDescriptorSets(descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 		}
 
-		mBindlessTexturesToUpdate.clear();
+		mBindlessResourcesToUpdate.clear();
 	}
 
 	void FGPUDevice::WaitIdle() const

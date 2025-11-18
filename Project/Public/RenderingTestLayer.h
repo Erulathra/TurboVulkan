@@ -39,7 +39,5 @@ private:
 	Turbo::THandle<Turbo::FTexture> mCatTexture;
 	Turbo::THandle<Turbo::FSampler> mCatSampler;
 
-	Turbo::THandle<Turbo::FDescriptorSetLayout> mMaterialSetLayout;
-
 	std::vector<entt::entity> entities;
 };

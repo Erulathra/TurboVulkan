@@ -1,6 +1,6 @@
-#include "MathConstants.slang"
+#include "Modules/MathConstants.slang"
 
-import Math;
+import Modules.Math;
 
 [[vk::binding(0, 0)]]
 RWTexture2D<float4> inOutTexture;

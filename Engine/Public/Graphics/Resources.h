@@ -16,6 +16,33 @@
 
 namespace Turbo
 {
+	enum class EResourceType : uint8
+	{
+		Texture,
+		RWTexture,
+		Sampler,
+
+		None,
+	};
+
+	namespace BindlessResourcesBindings
+	{
+		constexpr uint32 kSampledImage = 0;
+		constexpr uint32 kStorageImage = 1;
+		constexpr uint32 kSampler = 2;
+	}
+
+	struct FBindlessResourceUpdateRequest
+	{
+		EResourceType mType = EResourceType::None;
+		FHandle mHandle = FHandle();
+
+		FBindlessResourceUpdateRequest(EResourceType resource, const FHandle& resourceHandle)
+			: mType(resource)
+			, mHandle(resourceHandle)
+		{
+		}
+	};
 
 	/** Vulkan object abstractions */
 

@@ -106,9 +106,11 @@ namespace Turbo
 
 		slang::SessionDesc sessionDesc = {};
 
+#if 0 // It was very annoying in to use that approach in other editors
 		constexpr std::array kShaderSearchPaths = {"Shaders/Modules"};
 		sessionDesc.searchPaths = kShaderSearchPaths.data();
 		sessionDesc.searchPathCount = kShaderSearchPaths.size();
+#endif
 
 		sessionDesc.targets = &targetDesc;
 		sessionDesc.targetCount = 1;

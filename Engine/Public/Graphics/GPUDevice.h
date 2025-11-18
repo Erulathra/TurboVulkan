@@ -15,7 +15,7 @@ namespace Turbo
 	DECLARE_DELEGATE(FOnImmediateSubmit, FCommandBuffer&);
 
 	constexpr size_t kTexturePoolSize = 1024;
-	constexpr uint32 kSampledImageBindingIndex = 0;
+	constexpr size_t kSamplerPoolSize = 128;
 
 	class FBufferedFrameData final
 	{
@@ -206,7 +206,7 @@ namespace Turbo
 	private:
 		TPoolHeap<FBuffer, 4096> mBufferPool;
 		TPoolHeap<FTexture, kTexturePoolSize> mTexturePool;
-		TPoolHeap<FSampler, 32> mSamplerPool;
+		TPoolHeap<FSampler, kSamplerPoolSize> mSamplerPool;
 		TPoolHeap<FPipeline, 128> mPipelinePool;
 		TPoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
 		TPoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;
@@ -221,7 +221,7 @@ namespace Turbo
 		THandle<FDescriptorSetLayout> mBindlessResourcesLayout;
 		THandle<FDescriptorSet> mBindlessResourcesSet;
 
-		std::vector<THandle<FTexture>> mBindlessTexturesToUpdate;
+		std::vector<FBindlessResourceUpdateRequest> mBindlessResourcesToUpdate;
 
 		/** Bindless resources end */
 
