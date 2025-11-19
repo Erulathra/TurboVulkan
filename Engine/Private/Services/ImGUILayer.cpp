@@ -88,6 +88,8 @@ namespace Turbo
 
 	void FImGuiLayer::BeginTick_GameThread(double deltaTime)
 	{
+		TRACE_ZONE_SCOPED()
+
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
@@ -95,11 +97,16 @@ namespace Turbo
 
 	void FImGuiLayer::EndTick_GameThread(double deltaTime)
 	{
+		TRACE_ZONE_SCOPED()
+
 		ImGui::Render();
 	}
 
 	void FImGuiLayer::BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> PresentImage)
 	{
+		TRACE_ZONE_SCOPED()
+		TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGui");
+
 		FRenderingAttachments renderingAttachments;
 		renderingAttachments.AddColorAttachment(PresentImage);
 

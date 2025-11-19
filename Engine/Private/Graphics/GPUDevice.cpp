@@ -1213,6 +1213,9 @@ namespace Turbo
 
 		const FDescriptorSet* targetDescriptorSet = AccessDescriptorSet(mBindlessResourcesSet);
 
+		std::vector<vk::DescriptorImageInfo> imageBindings;
+		imageBindings.reserve(mBindlessResourcesToUpdate.size() * 2);
+
 		vk::WriteDescriptorSet writeDescriptorSet;
 		writeDescriptorSet.descriptorCount = 1;
 		writeDescriptorSet.dstSet = targetDescriptorSet->mVkDescriptorSet;
@@ -1229,7 +1232,7 @@ namespace Turbo
 					writeDescriptorSet.descriptorType = vk::DescriptorType::eStorageImage;
 					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kStorageImage;
 
-					vk::DescriptorImageInfo imageBinding = {};
+					vk::DescriptorImageInfo& imageBinding = imageBindings.emplace_back();
 					imageBinding.imageView = textureToBind->mVkImageView;
 					imageBinding.imageLayout = vk::ImageLayout::eGeneral;
 					imageBinding.sampler = nullptr;
@@ -1246,7 +1249,7 @@ namespace Turbo
 					writeDescriptorSet.descriptorType = vk::DescriptorType::eSampledImage;
 					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kSampledImage;
 
-					vk::DescriptorImageInfo imageBinding = {};
+					vk::DescriptorImageInfo& imageBinding = imageBindings.emplace_back();
 					imageBinding.imageView = textureToBind->mVkImageView;
 					imageBinding.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 					imageBinding.sampler = nullptr;
@@ -1263,7 +1266,7 @@ namespace Turbo
 					writeDescriptorSet.descriptorType = vk::DescriptorType::eSampler;
 					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kSampler;
 
-					vk::DescriptorImageInfo samplerBinding = {};
+					vk::DescriptorImageInfo& samplerBinding = imageBindings.emplace_back();
 					samplerBinding.imageLayout = vk::ImageLayout::eUndefined;
 					samplerBinding.imageView = nullptr;
 					samplerBinding.sampler = samplerToBind->mVkSampler;
