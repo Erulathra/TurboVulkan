@@ -19,10 +19,16 @@ namespace Turbo
 
 		explicit constexpr operator bool() const { return IsValid(); }
 		constexpr bool operator!() const { return !IsValid(); }
+
+		constexpr bool operator==(const FHandle& rhs) const
+		{
+			return mIndex == rhs.mIndex
+				&& mGeneration == rhs.mGeneration;
+		}
 	};
 
 	template <typename ObjectType>
-	struct THandle final : FHandle
+	struct THandle final : public FHandle
 	{
 	};
 

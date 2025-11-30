@@ -8,6 +8,29 @@ constexpr std::array kSupportedDescriptors = {
 	vk::DescriptorType::eStorageBuffer,
 };
 
+Turbo::FBufferBuilder Turbo::FBufferBuilder::CreateStagingBuffer(const void* data, uint32 size)
+{
+	static const FName kStagingBufferName("Staging");
+
+	FBufferBuilder result = {};
+	result
+		.Init(vk::BufferUsageFlagBits::eTransferSrc, EBufferFlags::CreateMapped, size)
+		.SetData(data)
+		.SetName(kStagingBufferName);
+
+	return result;
+}
+
+Turbo::FBufferBuilder Turbo::FBufferBuilder::CreateStagingBuffer(uint32 size)
+{
+	return CreateStagingBuffer(nullptr, size);
+}
+
+Turbo::FBufferBuilder Turbo::FBufferBuilder::CreateStagingBuffer(std::span<byte> data)
+{
+	return CreateStagingBuffer(data.data(), data.size());
+}
+
 Turbo::FDescriptorPoolBuilder::FDescriptorPoolBuilder()
 {
 	Reset();

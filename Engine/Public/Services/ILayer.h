@@ -16,11 +16,12 @@ namespace Turbo
 		virtual void Start() = 0;
 		virtual void Shutdown() = 0;
 
-		virtual void BeginTick_GameThread(double deltaTime) {};
-		virtual void EndTick_GameThread(double deltaTime) {};
+		virtual void BeginTick(double deltaTime) {};
+		virtual void EndTick(double deltaTime) {};
 
-		virtual void PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd) {};
-		virtual void BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> presentImage) {};
+		virtual void PostBeginFrame(FGPUDevice* gpu, FCommandBuffer* cmd) {};
+		virtual void RenderScene(FGPUDevice* gpu, FCommandBuffer* cmd) {};
+		virtual void BeginPresentingFrame(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> presentImage) {};
 
 		virtual bool ShouldTick() { return false; };
 		virtual bool ShouldRender() { return false; };

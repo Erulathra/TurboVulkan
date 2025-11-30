@@ -17,9 +17,9 @@ struct FPushConstants
 {
 	glm::float4x4 objToProj;
 
-	vk::DeviceAddress positionBuffer;
-	vk::DeviceAddress normalBuffer;
-	vk::DeviceAddress uvBuffer;
+	DeviceAddress positionBuffer;
+	DeviceAddress normalBuffer;
+	DeviceAddress uvBuffer;
 	uint32 textureId;
 	uint32 samplerId;
 };
@@ -151,7 +151,7 @@ void FRenderingTestLayer::ShowImGuiWindow()
 	ImGui::End();
 }
 
-void FRenderingTestLayer::BeginTick_GameThread(double deltaTime)
+void FRenderingTestLayer::BeginTick(double deltaTime)
 {
 	FWorld& world = *gEngine->GetWorld();
 	entt::registry& registry = world.mRegistry;
@@ -170,17 +170,20 @@ void FRenderingTestLayer::BeginTick_GameThread(double deltaTime)
 	ShowImGuiWindow();
 }
 
-void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd)
+void FRenderingTestLayer::PostBeginFrame(FGPUDevice* gpu, FCommandBuffer* cmd)
 {
 	TRACE_ZONE_SCOPED()
 	TRACE_GPU_SCOPED(gpu, cmd, "RenderingTestLayer");
 
 	const FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 
-	const FSubMesh* mesh = entt::locator<FAssetManager>::value().AccessMesh(mMeshHandle);
-	const FBuffer* positionBuffer = gpu->AccessBuffer(mesh->mPositionBuffer);
-	const FBuffer* normalBuffer = gpu->AccessBuffer(mesh->mNormalBuffer);
-	const FBuffer* uvBuffer = gpu->AccessBuffer(mesh->mUVBuffer);
+	FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+	const FMesh* mesh = assetManager.AccessMesh(mMeshHandle);
+	const FSubMesh* subMesh = assetManager.AccessSubMesh(mesh->mSubMeshes[0]);
+
+	const FBuffer* positionBuffer = gpu->AccessBuffer(subMesh->mPositionBuffer);
+	const FBuffer* normalBuffer = gpu->AccessBuffer(subMesh->mNormalBuffer);
+	const FBuffer* uvBuffer = gpu->AccessBuffer(subMesh->mUVBuffer);
 
 	// Graphics pipeline
 	const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
@@ -198,7 +201,7 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	cmd->SetScissor(FRect2DInt::FromSize(geometryBuffer.GetResolution()));
 
 	cmd->BindPipeline(mGraphicsPipeline);
-	cmd->BindIndexBuffer(mesh->mIndicesBuffer);
+	cmd->BindIndexBuffer(subMesh->mIndicesBuffer);
 	cmd->BindDescriptorSet(gpu->GetBindlessResourcesSet(), 0);
 
 	glm::mat4 viewMat =
@@ -221,16 +224,16 @@ void FRenderingTestLayer::PostBeginFrame_RenderThread(FGPUDevice* gpu, FCommandB
 	world.UpdateWorldTransforms();
 
 	auto celestialBodiesView = world.mRegistry.view<FWorldTransform, FCelestialBodyComponent>();
+
 	for (const entt::entity& celestialBody : celestialBodiesView)
 	{
 		const glm::float4x4 modelMat = celestialBodiesView.get<FWorldTransform>(celestialBody);
 		const glm::float3 planetColor = celestialBodiesView.get<FCelestialBodyComponent>(celestialBody).color;
 
 		pushConstants.objToProj = projMat * viewMat * modelMat;
-		// pushConstants.color = glm::float4(planetColor, 1.f);
 
 		cmd->PushConstants(pushConstants);
-		cmd->DrawIndexed(mesh->mVertexCount);
+		cmd->DrawIndexed(subMesh->mVertexCount);
 	}
 
 	cmd->EndRendering();

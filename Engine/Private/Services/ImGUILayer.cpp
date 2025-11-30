@@ -86,7 +86,7 @@ namespace Turbo
 		ImGui_ImplVulkan_Shutdown();
 	}
 
-	void FImGuiLayer::BeginTick_GameThread(double deltaTime)
+	void FImGuiLayer::BeginTick(double deltaTime)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -95,14 +95,14 @@ namespace Turbo
 		ImGui::NewFrame();
 	}
 
-	void FImGuiLayer::EndTick_GameThread(double deltaTime)
+	void FImGuiLayer::EndTick(double deltaTime)
 	{
 		TRACE_ZONE_SCOPED()
 
 		ImGui::Render();
 	}
 
-	void FImGuiLayer::BeginPresentingFrame_RenderThread(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> PresentImage)
+	void FImGuiLayer::BeginPresentingFrame(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> PresentImage)
 	{
 		TRACE_ZONE_SCOPED()
 		TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGui");

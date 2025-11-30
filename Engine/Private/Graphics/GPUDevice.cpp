@@ -109,6 +109,13 @@ namespace Turbo
 		const THandle<FBuffer> handle = mBufferPool->Acquire();
 		TURBO_CHECK(handle)
 
+#if TURBO_BUILD_DEVELOPMENT
+		if (TEST_FLAG(builder.mUsageFlags, vk::BufferUsageFlagBits::eUniformBuffer))
+		{
+			TURBO_ENSURE(builder.mSize < kMaxUniformBufferSize);
+		}
+#endif
+
 		FBuffer* buffer = AccessBuffer(handle);
 		buffer->mName = builder.mName;
 		buffer->mDeviceSize = builder.mSize;
@@ -162,14 +169,17 @@ namespace Turbo
 
 				ImmediateSubmit(FOnImmediateSubmit::CreateLambda([&](FCommandBuffer& cmd)
 				{
-					const static FName kStagingBufferName = FName("Staging");
-
-					FBufferBuilder stagingBufferBuilder = {};
-					stagingBufferBuilder
-						.Init(vk::BufferUsageFlagBits::eTransferSrc, EBufferFlags::CreateMapped, builder.mSize)
-						.SetName(kStagingBufferName)
-						.SetData(builder.mInitialData);
+					const FBufferBuilder stagingBufferBuilder = FBufferBuilder::CreateStagingBuffer(builder.mInitialData, builder.mSize);
 					const THandle<FBuffer> stagingBuffer = CreateBuffer(stagingBufferBuilder);
+
+					// ensure that writing to staging buffer are completed before coping it to target buffer;
+					cmd.BufferBarrier(
+						stagingBuffer,
+						vk::AccessFlagBits::eHostWrite,
+						vk::PipelineStageFlagBits::eHost,
+						vk::AccessFlagBits::eTransferRead,
+						vk::PipelineStageFlagBits::eTransfer
+						);
 
 					cmd.CopyBuffer(stagingBuffer, handle, builder.mSize);
 					DestroyBuffer(stagingBuffer);

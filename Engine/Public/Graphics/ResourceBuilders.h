@@ -4,6 +4,7 @@
 #include "Core/Name.h"
 #include "Graphics/GraphicsCore.h"
 #include "Graphics/Enums.h"
+#include "Graphics/VulkanHelpers.h"
 
 #define BUILDER_BODY()			\
 	public:						\
@@ -24,6 +25,11 @@ namespace Turbo
 	class FBufferBuilder final
 	{
 		BUILDER_BODY()
+
+	public:
+		static FBufferBuilder CreateStagingBuffer(const void* data, uint32 size);
+		static FBufferBuilder CreateStagingBuffer(uint32 size);
+		static FBufferBuilder CreateStagingBuffer(std::span<byte> data);
 
 	public:
 		FBufferBuilder& Reset() { mSize = 0; mInitialData = nullptr; return *this; }
@@ -417,11 +423,14 @@ namespace Turbo
 		FPipelineBuilder& AddDescriptorSetLayout(THandle<FDescriptorSetLayout> handle)
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
 
-		template <typename pushConstantType> requires (sizeof(pushConstantType) < kMaxPushConstantSize)
-		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(pushConstantType); TURBO_CHECK(mPushConstantSize < 128); return *this; }
+		template <TPushConstant PushConstantType>
+		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(PushConstantType); TURBO_CHECK(mPushConstantSize < 128); return *this; }
 
 		FPipelineBuilder& SetPrimitiveTopology(vk::PrimitiveTopology primitiveTopology) { mTopology = primitiveTopology; return *this; }
 		FPipelineBuilder& SetName(FName name) { mName = name; return *this; }
+
+	public:
+		FName GetName() const { return mName; }
 
 	private:
 		FRasterizationBuilder mRasterizationBuilder;

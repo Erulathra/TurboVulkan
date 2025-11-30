@@ -3,28 +3,38 @@
 #include "CommonTypeDefs.h"
 #include "Core/Math/MathCommon.h"
 
-/** Constants */
-
-inline constexpr uint16 kInvalidSetIndex = std::numeric_limits<uint16>::max();
-
-inline constexpr uint8 kMaxColorAttachments = 8;
-inline constexpr uint8 kMaxShaderStages = 5;
-inline constexpr uint8 kMaxDescriptorsPerSet = 8;
-inline constexpr uint32 kMaxSwapChainImages = 5;
-inline constexpr uint32 kMaxBufferedFrames = 2;
-
-// In theory VK supports up to 16, but I want to save some memory.
-inline constexpr uint8 kMaxDescriptorSetLayouts = 4;
-inline constexpr uint32 kMaxDescriptorSets = 4;
-
-inline constexpr uint32 kMaxPushConstantSize = 256;
-
-inline constexpr uint32 kVulkanVersion = MAKE_VERSION(1, 3, 0);
-
-/** Constants end */
-
 // #define VULKAN_HPP_ASSERT_ON_RESULT(EXPRESSION) {}
 #include <vulkan/vulkan.hpp>
+
+/** Constants */
+namespace Turbo
+{
+	inline constexpr uint16 kInvalidSetIndex = std::numeric_limits<uint16>::max();
+
+	inline constexpr uint8 kMaxColorAttachments = 8;
+	inline constexpr uint8 kMaxShaderStages = 5;
+	inline constexpr uint8 kMaxDescriptorsPerSet = 8;
+	inline constexpr uint32 kMaxSwapChainImages = 5;
+	inline constexpr uint32 kMaxBufferedFrames = 2;
+
+	// In theory VK supports up to 16, but I want to save some memory.
+	inline constexpr uint8 kMaxDescriptorSetLayouts = 4;
+	inline constexpr uint32 kMaxDescriptorSets = 4;
+
+	inline constexpr uint32 kMaxPushConstantSize = 256;
+
+	inline constexpr uint32 kVulkanVersion = MAKE_VERSION(1, 3, 0);
+
+	inline constexpr uint32 kDefaultTimeout = 1000000000; // 1 second
+	inline constexpr uint32 kMaxTimeout = std::numeric_limits<uint32>::max();
+
+	using DeviceAddress = vk::DeviceAddress;
+	inline constexpr DeviceAddress NullDeviceAddress = 0;
+
+	inline constexpr vk::DeviceSize kMaxUniformBufferSize = 65536;
+}
+
+/** Constants end */
 
 template <>
 struct fmt::formatter<vk::Result> : formatter<int32>
@@ -97,5 +107,3 @@ struct fmt::formatter<VkResult> : formatter<int32>
 #define CHECK_VULKAN_HPP_MSG(EXPRESSION, MESSAGE, ...) { (void)(EXPRESSION); }
 #endif // else TURBO_BUILD_SHIPPING
 
-constexpr inline uint32 kDefaultTimeout = 1000000000; // 1 second
-constexpr inline uint32 kMaxTimeout = std::numeric_limits<uint32>::max();

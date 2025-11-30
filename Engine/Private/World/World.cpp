@@ -80,7 +80,6 @@ namespace Turbo
 	{
 		TRACE_ZONE_SCOPED();
 
-
 		auto dirtyTransformGroup = mRegistry.group<FRelationship, FWorldTransformDirty, FTransform, FWorldTransform>();
 		{
 			TRACE_ZONE_SCOPED_N("Sort dirty transforms")

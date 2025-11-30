@@ -17,8 +17,8 @@ public:
 	virtual void Shutdown() override;
 	void ShowImGuiWindow();
 
-	virtual void BeginTick_GameThread(double deltaTime) override;
-	virtual void PostBeginFrame_RenderThread(Turbo::FGPUDevice* gpu, Turbo::FCommandBuffer* cmd) override;
+	virtual void BeginTick(double deltaTime) override;
+	virtual void PostBeginFrame(Turbo::FGPUDevice* gpu, Turbo::FCommandBuffer* cmd) override;
 
 	virtual bool ShouldTick() override { return true; }
 	virtual bool ShouldRender() override { return true; }
@@ -35,7 +35,7 @@ private:
 
 	Turbo::THandle<Turbo::FPipeline> mGraphicsPipeline;
 
-	Turbo::THandle<Turbo::FSubMesh> mMeshHandle;
+	Turbo::THandle<Turbo::FMesh> mMeshHandle;
 	Turbo::THandle<Turbo::FTexture> mCatTexture;
 	Turbo::THandle<Turbo::FSampler> mCatSampler;
 

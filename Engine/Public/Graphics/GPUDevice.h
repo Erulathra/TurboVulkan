@@ -57,6 +57,8 @@ namespace Turbo
 
 		void ImmediateSubmit(const FOnImmediateSubmit& immediateSubmitDelegate);
 
+		uint32 GetNumRenderedFrames() const { return mRenderedFrames; }
+
 		/** Rendering interface end */
 
 		/** Resource accessors */

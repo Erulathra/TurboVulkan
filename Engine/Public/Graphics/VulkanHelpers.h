@@ -295,4 +295,14 @@ namespace Turbo
 			return "_Sampler";
 		}
 	};
+
+	template <typename AccessMaskType>
+	concept TAccessMask = std::convertible_to<AccessMaskType, vk::AccessFlags> || std::convertible_to<AccessMaskType, vk::AccessFlags2>;
+
+	template <typename StageMaskType>
+	concept TStageMask = std::convertible_to<StageMaskType, vk::PipelineStageFlags> || std::convertible_to<StageMaskType, vk::PipelineStageFlags2>;
+
+	template <typename PushConstantType>
+	concept TPushConstant = sizeof(PushConstantType) < kMaxPushConstantSize;
 }
+

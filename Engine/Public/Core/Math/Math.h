@@ -8,6 +8,14 @@
 #define TURBO_SMALL_NUMBER 1e-5
 #define TURBO_VERY_SMALL_NUMBER 1e-8
 
+namespace glm
+{
+	typedef uint32						uint1;			//!< \brief unsigned integer vector with 1 component. (From GLM_GTX_compatibility extension)
+	typedef vec<2, uint32, highp>		uint2;			//!< \brief unsigned integer vector with 2 components. (From GLM_GTX_compatibility extension)
+	typedef vec<3, uint32, highp>		uint3;			//!< \brief unsigned integer vector with 3 components. (From GLM_GTX_compatibility extension)
+	typedef vec<4, uint32, highp>		uint4;			//!< \brief unsigned integer vector with 4 components. (From GLM_GTX_compatibility extension)
+}
+
 namespace Turbo
 {
 	namespace FMath
@@ -32,16 +40,16 @@ namespace Turbo
 			return glm::ceil(lhs / rhs);
 		}
 
-		inline void ConvertTurboToVulkanCoordinates(glm::mat4& transform)
+		inline void ConvertTurboToVulkanCoordinates(glm::float4x4& transform)
 		{
 			transform[1][1] = -transform[1][1];
 		}
 
-		inline glm::mat4 CreateTransform(const glm::vec3& position, const glm::quat& rotation, const glm::vec3 scale)
+		inline glm::float4x4 CreateTransform(const glm::float3& position, const glm::quat& rotation, const glm::float3 scale)
 		{
-			const glm::mat4 translationMat = glm::translate(glm::mat4(1.f), position);
-			const glm::mat4 rotationMat = glm::toMat4(rotation);
-			const glm::mat4 scaleMat = glm::scale(glm::mat4(1.f), scale);
+			const glm::float4x4 translationMat = glm::translate(glm::float4x4(1.f), position);
+			const glm::float4x4 rotationMat = glm::toMat4(rotation);
+			const glm::float4x4 scaleMat = glm::scale(glm::float4x4(1.f), scale);
 
 			return translationMat * rotationMat * scaleMat;
 		}
@@ -49,9 +57,9 @@ namespace Turbo
 	};
 
 	template <>
-	inline glm::ivec3 FMath::DivideAndRoundUp(glm::ivec3 lhs, glm::ivec3 rhs)
+	inline glm::int3 FMath::DivideAndRoundUp(glm::int3 lhs, glm::int3 rhs)
 	{
-		return glm::ivec3(glm::ceil(glm::vec3(lhs) / glm::vec3(rhs)));
+		return glm::int3(glm::ceil(glm::float3(lhs) / glm::float3(rhs)));
 	}
 
 } // Turbo

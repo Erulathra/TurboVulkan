@@ -73,7 +73,15 @@ namespace Turbo
 		texture->mCurrentLayout = newLayout;
 	}
 
-	void FCommandBuffer::BufferBarrier(THandle<FBuffer> bufferHandle, vk::AccessFlags2 srcAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 dstStageMask)
+	void FCommandBuffer::BufferBarrier_Internal(
+		THandle<FBuffer> bufferHandle,
+		vk::AccessFlags2 srcAccessMask,
+		vk::PipelineStageFlags2 srcStageMask,
+		vk::AccessFlags2 dstAccessMask,
+		vk::PipelineStageFlags2 dstStageMask,
+		vk::DeviceSize offset,
+		vk::DeviceSize size
+	)
 	{
 		const FBuffer* buffer = mGpu->AccessBuffer(bufferHandle);
 
@@ -83,13 +91,12 @@ namespace Turbo
 		memoryBarrier.dstAccessMask = dstAccessMask;
 		memoryBarrier.dstStageMask = dstStageMask;
 		memoryBarrier.buffer = buffer->mVkBuffer;
-		memoryBarrier.offset = 0;
-		memoryBarrier.size = vk::WholeSize;
+		memoryBarrier.offset = offset;
+		memoryBarrier.size = size;
 
 		vk::DependencyInfo dependencyInfo = {};
 		dependencyInfo.setBufferMemoryBarriers({memoryBarrier});
 
-		// It's important to insert a buffer memory barrier here to ensure writing to the buffer has finished.
 		mVkCommandBuffer.pipelineBarrier2(dependencyInfo);
 	}
 
@@ -144,20 +151,33 @@ namespace Turbo
 
 	void FCommandBuffer::CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, vk::DeviceSize size)
 	{
+		const FCopyBufferInfo copyBufferInfo = {
+			.mSrc = src,
+			.mDst = dst,
+			.mSize = size
+		};
+
+		CopyBuffer(copyBufferInfo);
+	}
+
+	void FCommandBuffer::CopyBuffer(const FCopyBufferInfo& copyBufferInfo)
+	{
 		vk::BufferCopy2 bufferCopy;
-		bufferCopy.srcOffset = 0;
-		bufferCopy.dstOffset = 0;
-		bufferCopy.size = size;
+		bufferCopy.srcOffset = copyBufferInfo.mSrcOffset;
+		bufferCopy.dstOffset = copyBufferInfo.mDstOffset;
+		bufferCopy.size = copyBufferInfo.mSize;
 
-		const FBuffer* srcBuffer = mGpu->AccessBuffer(src);
-		const FBuffer* dstBuffer = mGpu->AccessBuffer(dst);
+		TURBO_CHECK(bufferCopy.size > 0);
 
-		vk::CopyBufferInfo2 copyBufferInfo;
-		copyBufferInfo.srcBuffer = srcBuffer->mVkBuffer;
-		copyBufferInfo.dstBuffer = dstBuffer->mVkBuffer;
-		copyBufferInfo.setRegions(bufferCopy);
+		const FBuffer* srcBuffer = mGpu->AccessBuffer(copyBufferInfo.mSrc);
+		const FBuffer* dstBuffer = mGpu->AccessBuffer(copyBufferInfo.mDst);
 
-		mVkCommandBuffer.copyBuffer2(copyBufferInfo);
+		vk::CopyBufferInfo2 vkCopyBufferInfo;
+		vkCopyBufferInfo.srcBuffer = srcBuffer->mVkBuffer;
+		vkCopyBufferInfo.dstBuffer = dstBuffer->mVkBuffer;
+		vkCopyBufferInfo.setRegions(bufferCopy);
+
+		mVkCommandBuffer.copyBuffer2(vkCopyBufferInfo);
 	}
 
 	void FCommandBuffer::CopyBufferToTexture(THandle<FBuffer> src, THandle<FTexture> dst, uint32 mipIndex, vk::DeviceSize bufferOffset)
@@ -336,7 +356,7 @@ namespace Turbo
 		return result;
 	}
 
-	void FCommandBuffer::PushConstantsImpl(void* pushConstants, uint32 size)
+	void FCommandBuffer::PushConstants_Internal(void* pushConstants, uint32 size)
 	{
 		const FPipeline* currentPipeline = mGpu->AccessPipeline(mCurrentPipeline);
 

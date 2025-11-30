@@ -59,6 +59,10 @@ namespace Turbo
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpu.Init(gpuDeviceBuilder);
 
+		entt::locator<FAssetManager>::emplace<FAssetManager>();
+		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+		assetManager.Init(gpu);
+
 		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::emplace(&gpu);
 		geometryBuffer.Init(window.GetFrameBufferSize());
 
@@ -67,8 +71,6 @@ namespace Turbo
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
 		inputSystem.Init();
 		SetupBasicInputBindings();
-
-		entt::locator<FAssetManager>::emplace<FAssetManager>();
 
 		// TODO: this is a bad place to initialize the world.
 		mWorld = std::make_unique<FWorld>();
@@ -116,7 +118,7 @@ namespace Turbo
 			{
 				if (layer->ShouldTick())
 				{
-					layer->BeginTick_GameThread(deltaTime);
+					layer->BeginTick(deltaTime);
 				}
 			}
 		}
@@ -128,7 +130,7 @@ namespace Turbo
 				if (ILayer* layer = layerIt->get();
 					layer->ShouldTick())
 				{
-					layer->EndTick_GameThread(deltaTime);
+					layer->EndTick(deltaTime);
 				}
 			}
 		}
@@ -148,7 +150,18 @@ namespace Turbo
 				{
 					if (layer->ShouldRender())
 					{
-						layer->PostBeginFrame_RenderThread(&gpu, cmd);
+						layer->PostBeginFrame(&gpu, cmd);
+					}
+				}
+			}
+
+			{
+				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
+				for (const TSharedPtr<ILayer>& layer : layerStack)
+				{
+					if (layer->ShouldRender())
+					{
+						layer->RenderScene(&gpu, cmd);
 					}
 				}
 			}
@@ -163,7 +176,7 @@ namespace Turbo
 					if (ILayer* layer = layerIt->get();
 						layer->ShouldRender())
 					{
-						layer->BeginPresentingFrame_RenderThread(&gpu, cmd, presentImage);
+						layer->BeginPresentingFrame(&gpu, cmd, presentImage);
 					}
 				}
 			}
@@ -238,6 +251,8 @@ namespace Turbo
 		}
 
 		entt::locator<FGeometryBuffer>::value().Destroy();
+		entt::locator<FAssetManager>::value().Destroy(gpu);
+
 		gpu.Shutdown();
 		entt::locator<FGeometryBuffer>::reset();
 

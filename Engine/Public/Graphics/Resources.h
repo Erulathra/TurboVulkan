@@ -52,8 +52,9 @@ namespace Turbo
 
 	public:
 		[[nodiscard]] void* GetMappedAddress() const { return mMappedAddress; }
-		[[nodiscard]] vk::DeviceAddress GetDeviceAddress() const { return mDeviceAddress; }
+		[[nodiscard]] DeviceAddress GetDeviceAddress() const { return mDeviceAddress; }
 		[[nodiscard]] FName GetName() const { return mName; }
+		[[nodiscard]] vk::DeviceSize GetSize() const { return mDeviceSize; }
 
 	private:
 		vk::Buffer mVkBuffer = nullptr;
@@ -62,7 +63,7 @@ namespace Turbo
 		vk::BufferUsageFlags mUsageFlags = {};
 		vk::DeviceSize mDeviceSize = {};
 
-		vk::DeviceAddress mDeviceAddress = {};
+		DeviceAddress mDeviceAddress = {};
 		void* mMappedAddress = nullptr;
 
 		THandle<FBuffer> mHandle = {};

@@ -1,22 +1,46 @@
 module CommonTypes;
 
-public struct Vertex
+public enum ECameraType
 {
-	public float3 position;
-	float uv_x;
-	public float3 normal;
-	float uv_y;
+    Perspective,
+    Orthographic
+}
 
-    public float2 GetUV() { return float2(uv_x, uv_y); }
+public struct FViewData
+{
+    public float4x4 mProjectionMatrix;
+    public float4x4 mViewMatrix;
+
+    public float4x4 mWorldToProjection;
+
+    float time;
+    float worldTime;
+    float deltaTime;
+    float frameIndex;
 };
 
-public struct VertexWithColor
+public struct FMaterialInstance
 {
-	public float3 position;
-	float uv_x;
-	public float3 normal;
-    float uv_y;
-    public float4 color;
+    public uint diffuseTexture;
+    public uint diffuseSampler;
 
-    float2 GetUV() { return float2(uv_x, uv_y); }
+    uint PADDING[3];
+};
+
+public struct FMeshData
+{
+    public float3* positionBuffer;
+    public float3* normalBuffer;
+    public float2* uvBuffer;
+    public float4* colorBuffer;
+}
+
+public struct FCommonPushConstants
+{
+    public float4x4 modelToProj;
+    public float3x3 invModelToProj;
+
+    public FViewData* viewData;
+    public FMaterialInstance* materialInstance;
+    public FMeshData* meshData;
 };
