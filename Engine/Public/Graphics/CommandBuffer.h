@@ -45,27 +45,15 @@ namespace Turbo
 		void TransitionImage(THandle<FTexture> textureHandle, vk::ImageLayout newLayout);
 
 	public:
-		template<TAccessMask SrcAccessMaskType, TStageMask SrcStageMaskType, TAccessMask DstAccessMaskType, TStageMask DstStageMaskType>
 		void BufferBarrier(
 			THandle<FBuffer> bufferHandle,
-			SrcAccessMaskType srcAccessMask,
-			SrcStageMaskType srcStageMask,
-			DstAccessMaskType dstAccessMask,
-			DstStageMaskType dstStageMask,
+			vk::AccessFlags2 srcAccessMask,
+			vk::PipelineStageFlags2 srcStageMask,
+			vk::AccessFlags2 dstAccessMask,
+			vk::PipelineStageFlags2 dstStageMask,
 			vk::DeviceSize offset = 0,
 			vk::DeviceSize size = vk::WholeSize
-		)
-		{
-			BufferBarrier_Internal(
-				bufferHandle,
-				static_cast<vk::AccessFlagBits2>(srcAccessMask),
-				static_cast<vk::PipelineStageFlagBits2>(srcStageMask),
-				static_cast<vk::AccessFlagBits2>(dstAccessMask),
-				static_cast<vk::PipelineStageFlagBits2>(dstStageMask),
-				offset,
-				size
-			);
-		}
+		);
 
 		void ClearImage(THandle<FTexture> textureHandle, glm::vec4 color = ELinearColor::kBlack);
 		void BlitImage(THandle<FTexture> src, FRect2DInt srcRect, THandle<FTexture> dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
@@ -104,15 +92,6 @@ namespace Turbo
 		vk::CommandBufferSubmitInfo CreateSubmitInfo() const;
 
 		void PushConstants_Internal(void* pushConstants, uint32 size);
-		void BufferBarrier_Internal(
-			THandle<FBuffer> bufferHandle,
-			vk::AccessFlags2 srcAccessMask,
-			vk::PipelineStageFlags2 srcStageMask,
-			vk::AccessFlags2 dstAccessMask,
-			vk::PipelineStageFlags2 dstStageMask,
-			vk::DeviceSize offset,
-			vk::DeviceSize size
-		);
 
 	private:
 		FGPUDevice* mGpu;

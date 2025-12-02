@@ -59,10 +59,10 @@ namespace Turbo
 		std::memcpy(viewDataBuffer->GetMappedAddress(), &viewData, sizeof(FViewData));
 		cmd->BufferBarrier(
 			mViewDataUniformBuffer,
-			vk::AccessFlagBits::eHostWrite,
-			vk::PipelineStageFlagBits::eHost,
-			vk::AccessFlagBits::eShaderRead,
-			vk::PipelineStageFlagBits::eTransfer
+			vk::AccessFlagBits2::eHostWrite,
+			vk::PipelineStageFlagBits2::eHost,
+			vk::AccessFlagBits2::eShaderRead,
+			vk::PipelineStageFlagBits2::eTransfer
 		);
 	}
 

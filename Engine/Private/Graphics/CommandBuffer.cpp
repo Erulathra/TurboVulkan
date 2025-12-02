@@ -73,7 +73,7 @@ namespace Turbo
 		texture->mCurrentLayout = newLayout;
 	}
 
-	void FCommandBuffer::BufferBarrier_Internal(
+	void FCommandBuffer::BufferBarrier(
 		THandle<FBuffer> bufferHandle,
 		vk::AccessFlags2 srcAccessMask,
 		vk::PipelineStageFlags2 srcStageMask,

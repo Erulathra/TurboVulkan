@@ -175,10 +175,10 @@ namespace Turbo
 					// ensure that writing to staging buffer are completed before coping it to target buffer;
 					cmd.BufferBarrier(
 						stagingBuffer,
-						vk::AccessFlagBits::eHostWrite,
-						vk::PipelineStageFlagBits::eHost,
-						vk::AccessFlagBits::eTransferRead,
-						vk::PipelineStageFlagBits::eTransfer
+						vk::AccessFlagBits2::eHostWrite,
+						vk::PipelineStageFlagBits2::eHost,
+						vk::AccessFlagBits2::eTransferRead,
+						vk::PipelineStageFlagBits2::eTransfer
 						);
 
 					cmd.CopyBuffer(stagingBuffer, handle, builder.mSize);

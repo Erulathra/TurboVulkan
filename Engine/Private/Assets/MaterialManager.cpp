@@ -99,10 +99,10 @@ namespace Turbo
 
 		cmd.BufferBarrier(
 			stagingBufferHandle,
-			vk::AccessFlagBits::eHostWrite,
-			vk::PipelineStageFlagBits::eHost,
-			vk::AccessFlagBits::eTransferRead,
-			vk::PipelineStageFlagBits::eTransfer
+			vk::AccessFlagBits2::eHostWrite,
+			vk::PipelineStageFlagBits2::eHost,
+			vk::AccessFlagBits2::eTransferRead,
+			vk::PipelineStageFlagBits2::eTransfer
 			);
 
 		const FCopyBufferInfo copyBufferInfo = {
@@ -116,10 +116,10 @@ namespace Turbo
 		cmd.CopyBuffer(copyBufferInfo);
 		cmd.BufferBarrier(
 			material->mUniformBuffer,
-			vk::AccessFlagBits::eTransferWrite,
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::AccessFlagBits::eUniformRead,
-			vk::PipelineStageFlagBits::eVertexShader
+			vk::AccessFlagBits2::eTransferWrite,
+			vk::PipelineStageFlagBits2::eTransfer,
+			vk::AccessFlagBits2::eUniformRead,
+			vk::PipelineStageFlagBits2::eVertexShader
 			);
 
 		gpu.DestroyBuffer(stagingBufferHandle);

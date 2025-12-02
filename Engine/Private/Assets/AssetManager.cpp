@@ -150,10 +150,10 @@ namespace Turbo
 				const THandle<FBuffer> stagingBuffer = gpu.CreateBuffer(stagingBufferBuilder);
 				cmd.BufferBarrier(
 					stagingBuffer,
-					vk::AccessFlagBits::eHostWrite,
-					vk::PipelineStageFlagBits::eHost,
-					vk::AccessFlagBits::eTransferRead,
-					vk::PipelineStageFlagBits::eTransfer
+					vk::AccessFlagBits2::eHostWrite,
+					vk::PipelineStageFlagBits2::eHost,
+					vk::AccessFlagBits2::eTransferRead,
+					vk::PipelineStageFlagBits2::eTransfer
 					);
 
 				const FCopyBufferInfo copyBufferInfo = {

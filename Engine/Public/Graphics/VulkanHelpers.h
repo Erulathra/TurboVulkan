@@ -296,11 +296,20 @@ namespace Turbo
 		}
 	};
 
-	template <typename AccessMaskType>
-	concept TAccessMask = std::convertible_to<AccessMaskType, vk::AccessFlags> || std::convertible_to<AccessMaskType, vk::AccessFlags2>;
+	struct FAccessMask
+	{
+		vk::AccessFlags2 mAccessFlags;
 
-	template <typename StageMaskType>
-	concept TStageMask = std::convertible_to<StageMaskType, vk::PipelineStageFlags> || std::convertible_to<StageMaskType, vk::PipelineStageFlags2>;
+		operator vk::AccessFlags() const
+		{
+			return static_cast<vk::AccessFlags>(static_cast<uint64>(mAccessFlags));
+		}
+
+		operator vk::AccessFlags2() const
+		{
+			return mAccessFlags;
+		}
+	};
 
 	template <typename PushConstantType>
 	concept TPushConstant = sizeof(PushConstantType) < kMaxPushConstantSize;
