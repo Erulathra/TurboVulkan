@@ -29,7 +29,7 @@ struct PSOut
 [shader("vertex")]
 void vsMain(in uint vertexId : SV_VertexID, out VSOut vsOut)
 {
-    vsOut.position = mul(float4(positionBuffer[vertexId], 1.f), modelToProj);
+    vsOut.position = float4(positionBuffer[vertexId], 1.f);
     vsOut.normal = normalBuffer[vertexId];
     vsOut.uv = uvBuffer[vertexId];
 }

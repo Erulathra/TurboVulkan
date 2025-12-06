@@ -23,8 +23,7 @@ void vsMain(in uint vertexId : SV_VertexID, out VSOut vsOut)
 {
     FMeshData* mesh = pc.meshData;
 
-    //vsOut.position = mul(float4(mesh.positionBuffer[vertexId], 1.f), pc.modelToProj);
-    vsOut.position = float4(mesh.positionBuffer[vertexId], 1.f);
+    vsOut.position = mul(float4(mesh.positionBuffer[vertexId], 1.f), pc.modelToProj);
     vsOut.normal = mul(mesh.normalBuffer[vertexId], pc.normalModelToWorld);
     vsOut.uv = mesh.uvBuffer[vertexId];
 }

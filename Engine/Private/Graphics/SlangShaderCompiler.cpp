@@ -102,7 +102,8 @@ namespace Turbo
 	{
 		slang::TargetDesc targetDesc = {};
 		targetDesc.format = SLANG_SPIRV;
-		targetDesc.profile = mGlobalSession->findProfile("glsl_460");
+		targetDesc.profile = mGlobalSession->findProfile("spirv_1_6");
+		targetDesc.forceGLSLScalarBufferLayout = true;
 
 		slang::SessionDesc sessionDesc = {};
 
@@ -119,7 +120,7 @@ namespace Turbo
 #if !TURBO_BUILD_SHIPPING
 			{slang::CompilerOptionName::Optimization, {slang::CompilerOptionValueKind::Int, SLANG_OPTIMIZATION_LEVEL_NONE, 0, nullptr, nullptr}},
 			{slang::CompilerOptionName::EmitSpirvDirectly, {slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr}},
-			{slang::CompilerOptionName::DebugInformation, {slang::CompilerOptionValueKind::Int, SLANG_DEBUG_INFO_LEVEL_STANDARD, 0, nullptr, nullptr}}
+			{slang::CompilerOptionName::DebugInformation, {slang::CompilerOptionValueKind::Int, SLANG_DEBUG_INFO_LEVEL_STANDARD, 0, nullptr, nullptr}},
 #else
 			{ slang::CompilerOptionName::Optimization, {slang::CompilerOptionValueKind::Int, SLANG_OPTIMIZATION_LEVEL_MAXIMAL, 0, nullptr, nullptr} },
 #endif // !TURBO_BUILD_SHIPPING

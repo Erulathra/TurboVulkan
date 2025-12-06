@@ -151,10 +151,15 @@ namespace Turbo
 				FMaterial::PushConstants pushConstants = {};
 				pushConstants.mModelToProj = mViewData.mWorldToProjection * worldTransform.mTransform;
 
+
 				const glm::float3x3 invModelToWorld =  glm::float3x3(glm::transpose(glm::inverse(worldTransform.mTransform)));
+#if 0
 				pushConstants.mInvModelToWorld[0] = glm::float4(invModelToWorld[0], 0.f);
 				pushConstants.mInvModelToWorld[1] = glm::float4(invModelToWorld[1], 0.f);
 				pushConstants.mInvModelToWorld[2] = glm::float4(invModelToWorld[2], 0.f);
+#else
+				pushConstants.mInvModelToWorld = invModelToWorld;
+#endif
 
 				pushConstants.mViewData = viewDataDeviceAddress;
 				pushConstants.mMaterialInstance = materialManager.GetMaterialInstanceAddress(*gpu, materialInstanceHandle);

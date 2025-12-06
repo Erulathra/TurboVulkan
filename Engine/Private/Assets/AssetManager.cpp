@@ -84,7 +84,7 @@ namespace Turbo
 			return {};
 		}
 
-		fastgltf::Parser parser(fastgltf::Extensions::KHR_draco_mesh_compression);
+		fastgltf::Parser parser;
 		fastgltf::Expected<fastgltf::Asset> meshAsset = parser.loadGltf(data.get(), path, fastgltf::Options::GenerateMeshIndices);
 		if (meshAsset.error() != fastgltf::Error::None)
 		{

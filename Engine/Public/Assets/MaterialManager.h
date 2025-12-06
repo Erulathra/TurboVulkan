@@ -25,7 +25,11 @@ namespace Turbo
 		struct PushConstants final
 		{
 			glm::float4x4 mModelToProj;
+#if 0
 			glm::float4 mInvModelToWorld[3];
+#else
+			glm::float3x3 mInvModelToWorld;
+#endif
 
 			FDeviceAddress mViewData;
 			FDeviceAddress mMaterialInstance;

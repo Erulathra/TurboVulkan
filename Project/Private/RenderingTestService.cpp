@@ -93,6 +93,7 @@ void FRenderingTestLayer::Start()
 
 	// THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_IcoPlanet.glb").front();
 	THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front();
+	// THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front();
 	FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("BaseMaterial.slang");
 	THandle<FMaterial> materialHandle = materialManager.LoadMaterial(pipelineBuilder, 0, 1);
 	THandle<FMaterial::Instance> instanceHandle = materialManager.CreateMaterialInstance(materialHandle);

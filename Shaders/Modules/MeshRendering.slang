@@ -23,8 +23,6 @@ public struct FMaterialInstance
 {
     public uint diffuseTexture;
     public uint diffuseSampler;
-
-    uint PADDING[3];
 };
 
 public struct FMeshData
