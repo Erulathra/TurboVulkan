@@ -23,12 +23,14 @@ namespace Turbo
 
 		/** Mesh interface */
 	public:
-		THandle<FMesh> LoadMesh(const std::filesystem::path& path);
-		FMesh* AccessMesh(THandle<FMesh> handle) { return mMeshPool.Access(handle); }
-		FSubMesh* AccessSubMesh(THandle<FSubMesh> handle) { return mSubMeshPool.Access(handle); }
-		DeviceAddress GetMeshPointersAddress(FGPUDevice& GpuDevice, THandle<FSubMesh> handle) const;
+		std::vector<THandle<FMesh>> LoadMesh(const std::filesystem::path& path);
 
-		void UnloadMesh(THandle<FMesh> meshToUnload);
+		FMesh* AccessMesh(THandle<FMesh> handle) { return mMeshPool.Access(handle); }
+		const FMesh* AccessMesh(THandle<FMesh> handle) const { return mMeshPool.Access(handle); }
+
+		FDeviceAddress GetMeshPointersAddress(FGPUDevice& gpu, THandle<FMesh> handle) const;
+
+		void UnloadMesh(const std::vector<THandle<FMesh>>& meshesToUnload);
 		/** Mesh interface end */
 
 	public:
@@ -39,7 +41,6 @@ namespace Turbo
 
 	private:
 		TPoolGrowable<FMesh> mMeshPool;
-		TPoolGrowable<FSubMesh> mSubMeshPool;
 
 		THandle<FBuffer> mSubMeshPointersPool;
 

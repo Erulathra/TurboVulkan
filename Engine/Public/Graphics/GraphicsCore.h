@@ -28,8 +28,8 @@ namespace Turbo
 	inline constexpr uint32 kDefaultTimeout = 1000000000; // 1 second
 	inline constexpr uint32 kMaxTimeout = std::numeric_limits<uint32>::max();
 
-	using DeviceAddress = vk::DeviceAddress;
-	inline constexpr DeviceAddress NullDeviceAddress = 0;
+	using FDeviceAddress = vk::DeviceAddress;
+	inline constexpr FDeviceAddress kNullDeviceAddress = 0;
 
 	inline constexpr vk::DeviceSize kMaxUniformBufferSize = 65536;
 }

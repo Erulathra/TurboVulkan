@@ -16,17 +16,23 @@ namespace Turbo
 	{
 	public:
 		virtual void Start() override;
+		virtual void Shutdown() override;
+
+		virtual FName GetName() override
+		{
+			static FName name("Scene Rendering Layer");
+			return name;
+		}
 
 		virtual void RenderScene(FGPUDevice* gpu, FCommandBuffer* cmd) override;
 		virtual bool ShouldRender() override;
 
 	private:
 		void UpdateViewData(FGPUDevice* gpu, FCommandBuffer* cmd, FWorld* world);
+		void RenderMeshes(FGPUDevice* gpu, FCommandBuffer* cmd, FWorld* world);
 
 	private:
 		FViewData mViewData;
 		THandle<FBuffer> mViewDataUniformBuffer;
-
-		std::vector<THandle<FMaterial>> mMaterials;
 	};
 } // Turbo

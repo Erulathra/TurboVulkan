@@ -11,13 +11,12 @@ namespace Turbo
 	class FPipeline;
 	class FCommandBuffer;
 
-
 	struct FMaterial final
 	{
 		using FUniformBufferIndex = uint32;
 		static constexpr FUniformBufferIndex kInvalidUniformBufferIndex = std::numeric_limits<FUniformBufferIndex>::max();
 
-		struct Instance final
+		struct  Instance final
 		{
 			THandle<FMaterial> material = {};
 			uint32 mUniformBufferIndex = kInvalidUniformBufferIndex;
@@ -26,11 +25,12 @@ namespace Turbo
 		struct PushConstants final
 		{
 			glm::float4x4 mModelToProj;
-			glm::float3x3 mInvModelToProj;
+			glm::float4 mInvModelToWorld[3];
 
-			DeviceAddress mViewData;
-			DeviceAddress mMaterialInstance;
-			DeviceAddress mMeshData;
+			FDeviceAddress mViewData;
+			FDeviceAddress mMaterialInstance;
+			FDeviceAddress mMeshData;
+			FDeviceAddress mSceneData;
 		};
 
 		THandle<FPipeline> mPipeline = {};
@@ -42,6 +42,9 @@ namespace Turbo
 	class FMaterialManager final
 	{
 		DELETE_COPY(FMaterialManager);
+
+	public:
+		FMaterialManager() = default;
 
 	public:
 		static FPipelineBuilder CreateOpaquePipeline(std::string_view shaderName);
@@ -57,18 +60,21 @@ namespace Turbo
 
 		THandle<FMaterial::Instance> CreateMaterialInstance(THandle<FMaterial> materialHandle);
 
-		void UpdateMaterialInstance(FCommandBuffer& cmd, THandle<FMaterial::Instance> instanceHandle, std::span<byte> data);
-
 		template<typename UniformBufferStruct>
 		void UpdateMaterialInstance(FCommandBuffer& cmd, THandle<FMaterial::Instance> instanceHandle, UniformBufferStruct* data)
 		{
 			byte bytes[sizeof(data)] = static_cast<byte*>(data);
 			UpdateMaterialInstance(cmd, instanceHandle, bytes);
 		}
+		void UpdateMaterialInstance(FCommandBuffer& cmd, THandle<FMaterial::Instance> instanceHandle, std::span<byte> data);
+
+		FDeviceAddress GetMaterialInstanceAddress(const FGPUDevice& gpu, THandle<FMaterial::Instance> instanceHandle) const;
 
 	public:
 		FMaterial* AccessMaterial(THandle<FMaterial> handle) { return mMaterialPool.Access(handle); }
+		const FMaterial* AccessMaterial(THandle<FMaterial> handle) const { return mMaterialPool.Access(handle); }
 		FMaterial::Instance* AccessInstance(THandle<FMaterial::Instance> handle) { return  mMaterialInstancePool.Access(handle); }
+		const FMaterial::Instance* AccessInstance(THandle<FMaterial::Instance> handle) const { return  mMaterialInstancePool.Access(handle); }
 
 	public:
 		void DestroyMaterial(THandle<FMaterial> materialHandle);

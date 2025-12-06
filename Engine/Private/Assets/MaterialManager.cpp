@@ -35,19 +35,22 @@ namespace Turbo
 		const THandle<FPipeline> pipelineHandle = gpu.CreatePipeline(pipelineBuilder);
 		TURBO_CHECK(pipelineHandle);
 
-		FBufferBuilder bufferBuilder = {};
-		bufferBuilder
-			.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::None, uniformStructSize * maxInstances)
-			.SetName(FName(fmt::format("{}_Uniforms", pipelineBuilder.GetName())));
-		const THandle<FBuffer> uniformBufferHandle = gpu.CreateBuffer(bufferBuilder);
-		TURBO_CHECK(uniformBufferHandle);
-
 		const THandle<FMaterial> materialHandle = mMaterialPool.Acquire();
 		FMaterial* material = mMaterialPool.Access(materialHandle);
 		material->mPipeline = pipelineHandle;
-		material->mUniformBuffer = uniformBufferHandle;
+		material->mUniformBuffer = {};
 		material->mUniformStructSize = uniformStructSize;
 		material->mMaxInstances = maxInstances;
+
+		if (uniformStructSize > 0)
+		{
+			FBufferBuilder bufferBuilder = {};
+			bufferBuilder
+				.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::None, uniformStructSize * maxInstances)
+				.SetName(FName(fmt::format("{}_Uniforms", pipelineBuilder.GetName())));
+			material->mUniformBuffer = gpu.CreateBuffer(bufferBuilder);
+			TURBO_CHECK(material->mUniformBuffer);
+		}
 
 		mMaterialToMaterialInstanceMap[materialHandle] = FMaterialInstanceArray();
 
@@ -125,6 +128,19 @@ namespace Turbo
 		gpu.DestroyBuffer(stagingBufferHandle);
 	}
 
+	FDeviceAddress FMaterialManager::GetMaterialInstanceAddress(const FGPUDevice& gpu, THandle<FMaterial::Instance> instanceHandle) const
+	{
+		const FMaterial::Instance* instance = mMaterialInstancePool.Access(instanceHandle);
+		const FMaterial* material = mMaterialPool.Access(instance->material);
+		if (material->mUniformBuffer.IsValid())
+		{
+			const FBuffer* uniformBuffer = gpu.AccessBuffer(material->mUniformBuffer);
+			return uniformBuffer->GetDeviceAddress() + instance->mUniformBufferIndex * material->mUniformStructSize;
+		}
+
+		return kNullDeviceAddress;
+	}
+
 	void FMaterialManager::DestroyMaterial(THandle<FMaterial> materialHandle)
 	{
 		TRACE_ZONE_SCOPED()
@@ -134,7 +150,11 @@ namespace Turbo
 		const FMaterial* material = mMaterialPool.Access(materialHandle);
 		TURBO_CHECK(material);
 		gpu.DestroyPipeline(material->mPipeline);
-		gpu.DestroyBuffer(material->mUniformBuffer);
+
+		if (material->mUniformBuffer.IsValid())
+		{
+			gpu.DestroyBuffer(material->mUniformBuffer);
+		}
 
 		const FMaterialInstanceArray& instanceHandles = mMaterialToMaterialInstanceMap.at(materialHandle);
 		for (const THandle materialInstanceHandle : instanceHandles)

@@ -1,6 +1,7 @@
 #include "Core/Engine.h"
 
 #include "Assets/AssetManager.h"
+#include "Assets/MaterialManager.h"
 #include "Core/CoreTimer.h"
 #include "Core/Window.h"
 #include "Core/Input/Input.h"
@@ -10,6 +11,7 @@
 #include "Graphics/GPUDevice.h"
 #include "Services/ImGUIService.h"
 #include "Services/ILayer.h"
+#include "Services/SceneRenderingLayer.h"
 #include "World/World.h"
 
 namespace Turbo
@@ -62,6 +64,8 @@ namespace Turbo
 		entt::locator<FAssetManager>::emplace<FAssetManager>();
 		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 		assetManager.Init(gpu);
+
+		entt::locator<FMaterialManager>::emplace<FMaterialManager>();
 
 		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::emplace(&gpu);
 		geometryBuffer.Init(window.GetFrameBufferSize());
@@ -191,6 +195,7 @@ namespace Turbo
 	{
 		FLayersStack& layerStack = entt::locator<FLayersStack>::value();
 		layerStack.PushLayer<FImGuiLayer>();
+		layerStack.PushLayer<FSceneRenderingLayer>();
 	}
 
 	void FEngine::SetupBasicInputBindings()

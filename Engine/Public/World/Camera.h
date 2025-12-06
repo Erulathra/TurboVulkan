@@ -29,6 +29,12 @@ namespace Turbo
 		glm::float4x4 mProjectionMatrix = {1.f};
 	};
 
+	struct FFreeCamera
+	{
+		float mMovementSpeed = 0.1f;
+		float mRotationSpeed = glm::radians(3.6f);
+	};
+
 	struct FCameraDirty {};
 	struct FMainViewport {};
 
@@ -49,6 +55,11 @@ namespace Turbo
 	{
 	public:
 		static void UpdateDirtyCameras(entt::registry& registry);
+		static void UpdateFreeCamera(entt::registry& registry, glm::float3 movementInput, glm::float2 rotationInput);
+
+	public:
+		static void InitializeCamera(entt::registry& registry, entt::entity entity);
+		static void InitializeFreeCamera(entt::registry& registry, entt::entity entity);
 
 	public:
 		FCameraUtils() = delete;

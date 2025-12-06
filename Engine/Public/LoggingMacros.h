@@ -24,16 +24,17 @@ namespace Turbo
 }
 
 // Log Categories, you should specify verbosity as value
-#define LOG_ENGINE			Info
-#define LOG_WINDOW			Display
-#define LOG_RHI				Info
-#define LOG_GPU_DEVICE		Display
-#define LOG_TEMP			Display
-#define LOG_STREAMING		Display
-#define LOG_MESH_LOADING	Display
-#define LOG_TEXTURE_LOADING	Display
-#define LOG_INPUT			Display
-#define LOG_SLANG			Display
+#define LOG_ENGINE				Info
+#define LOG_WINDOW				Display
+#define LOG_RHI					Info
+#define LOG_GPU_DEVICE			Display
+#define LOG_TEMP				Display
+#define LOG_STREAMING			Display
+#define LOG_MESH_LOADING		Display
+#define LOG_TEXTURE_LOADING		Display
+#define LOG_INPUT				Display
+#define LOG_SLANG				Display
+#define LOG_SCENE_RENDERING		Display
 
 #define TURBO_MIN(a,b) (((a)<(b))?(a):(b))
 #define TURBO_MAX(a,b) (((a)>(b))?(a):(b))

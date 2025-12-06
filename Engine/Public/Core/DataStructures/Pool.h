@@ -89,10 +89,12 @@ namespace Turbo
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
-			const FPoolGenerationType currentGeneration = mGenerations[handle.mIndex];
-			if (handle.IsValid() && handle.mIndex < mData.size() && handle.mGeneration == currentGeneration)
+			if (handle.IsValid() && handle.mIndex < mData.size())
 			{
-				return &mData[handle.mIndex];
+				if (handle.mGeneration == mGenerations[handle.mIndex])
+				{
+					return &mData[handle.mIndex];
+				}
 			}
 
 			return nullptr;
@@ -102,10 +104,12 @@ namespace Turbo
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
-			const FPoolGenerationType currentGeneration = mGenerations[handle.mIndex];
-			if (handle.IsValid() && handle.mIndex < mData.size() && handle.mGeneration == currentGeneration)
+			if (handle.IsValid() && handle.mIndex < mData.size())
 			{
-				return &mData[handle.mIndex];
+				if (handle.mGeneration == mGenerations[handle.mIndex])
+				{
+					return &mData[handle.mIndex];
+				}
 			}
 
 			return nullptr;

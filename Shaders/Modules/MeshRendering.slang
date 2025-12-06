@@ -13,10 +13,10 @@ public struct FViewData
 
     public float4x4 mWorldToProjection;
 
-    float time;
-    float worldTime;
-    float deltaTime;
-    float frameIndex;
+    public double time;
+    public double worldTime;
+    public double deltaTime;
+    public uint frameIndex;
 };
 
 public struct FMaterialInstance
@@ -35,12 +35,18 @@ public struct FMeshData
     public float4* colorBuffer;
 }
 
+public struct FSceneData
+{
+    public float4 dummyData;
+}
+
 public struct FCommonPushConstants
 {
     public float4x4 modelToProj;
-    public float3x3 invModelToProj;
+    public float3x3 normalModelToWorld;
 
     public FViewData* viewData;
     public FMaterialInstance* materialInstance;
     public FMeshData* meshData;
+    public FSceneData* sceneData;
 };

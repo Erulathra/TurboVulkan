@@ -23,7 +23,7 @@ namespace Turbo
 	}
 
 	template<typename T>
-	void LoadComponentBuffer( const fastgltf::Asset& meshAsset, THandle<FBuffer>& outBuffer, DeviceAddress& outDeviceAddress, std::string_view attributeName)
+	void LoadComponentBuffer( const fastgltf::Asset& meshAsset, THandle<FBuffer>& outBuffer, FDeviceAddress& outDeviceAddress, std::string_view attributeName)
 	{
 		const fastgltf::Mesh& gltfMesh = meshAsset.meshes.front();
 		const fastgltf::Primitive& gltfSubmesh = gltfMesh.primitives.front();
@@ -61,7 +61,7 @@ namespace Turbo
 	{
 		FBufferBuilder bufferBuilder = {};
 		bufferBuilder
-			.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::None, sizeof(FMeshPointers) * kMaxSubmeshes)
+			.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::None, sizeof(FMeshPointers))
 			.SetName(FName("MeshPointer"));
 
 		mSubMeshPointersPool = gpu.CreateBuffer(bufferBuilder);
@@ -72,7 +72,7 @@ namespace Turbo
 		gpu.DestroyBuffer(mSubMeshPointersPool);
 	}
 
-	THandle<FMesh> FAssetManager::LoadMesh(const std::filesystem::path& path)
+	std::vector<THandle<FMesh>> FAssetManager::LoadMesh(const std::filesystem::path& path)
 	{
 		// This method is as much naive as it can be, but for now it should last.
 		TURBO_LOG(LOG_MESH_LOADING, Info, "Loading GLTF mesh. ({})", path.string())
@@ -99,16 +99,14 @@ namespace Turbo
 
 		fastgltf::Mesh& gltfMesh = meshAsset->meshes.front();
 
-		THandle<FMesh> result = mMeshPool.Acquire();
-		FMesh* mesh = mMeshPool.Access(result);
-		mesh->mNumSubMeshes = gltfMesh.primitives.size();
+		std::vector<THandle<FMesh>> result;
 
 		// load submeshes
-		for (uint32 subMeshId = 0; subMeshId < mesh->mNumSubMeshes; ++subMeshId)
+		for (uint32 subMeshId = 0; subMeshId < gltfMesh.primitives.size(); ++subMeshId)
 		{
-			THandle<FSubMesh> subMeshHandle = mSubMeshPool.Acquire();
-			FSubMesh* subMesh = mSubMeshPool.Access(subMeshHandle);
-			mesh->mSubMeshes[subMeshId] = subMeshHandle;
+			THandle<FMesh> meshHandle = mMeshPool.Acquire();
+			result.push_back(meshHandle);
+			FMesh* subMesh = mMeshPool.Access(meshHandle);
 
 			fastgltf::Primitive& glftSubMesh = gltfMesh.primitives[subMeshId];
 
@@ -139,7 +137,7 @@ namespace Turbo
 
 			FMeshPointers meshPointers = {};
 
-			LoadComponentBuffer<glm::vec3>(meshAsset.get(), subMesh->mPositionBuffer, meshPointers.mColorBuffer, kPositionName);
+			LoadComponentBuffer<glm::vec3>(meshAsset.get(), subMesh->mPositionBuffer, meshPointers.mPositionBuffer, kPositionName);
 			LoadComponentBuffer<glm::vec3>(meshAsset.get(), subMesh->mNormalBuffer, meshPointers.mNormalBuffer, kNormalName);
 			LoadComponentBuffer<glm::vec2>(meshAsset.get(), subMesh->mUVBuffer, meshPointers.mUVBuffer, kUVName);
 			LoadComponentBuffer<glm::vec4>(meshAsset.get(), subMesh->mColorBuffer, meshPointers.mColorBuffer, kColorName);
@@ -159,7 +157,7 @@ namespace Turbo
 				const FCopyBufferInfo copyBufferInfo = {
 					.mSrc = stagingBuffer,
 					.mDst = mSubMeshPointersPool,
-					.mDstOffset = sizeof(FMeshPointers) * result.mIndex,
+					.mDstOffset = sizeof(FMeshPointers) * result.front().mIndex,
 					.mSize = sizeof(FMeshPointers)
 				};
 
@@ -172,32 +170,29 @@ namespace Turbo
 		return result;
 	}
 
-	DeviceAddress FAssetManager::GetMeshPointersAddress(FGPUDevice& GpuDevice, THandle<FSubMesh> handle) const
+	FDeviceAddress FAssetManager::GetMeshPointersAddress(FGPUDevice& gpu, THandle<FMesh> handle) const
 	{
-		const FBuffer* pointersPoolBuffer = GpuDevice.AccessBuffer(mSubMeshPointersPool);
+		const FBuffer* pointersPoolBuffer = gpu.AccessBuffer(mSubMeshPointersPool);
 		TURBO_CHECK(pointersPoolBuffer);
 
-		const DeviceAddress memoryOffset = sizeof(FMeshPointers) * handle.mIndex;
+		const FDeviceAddress memoryOffset = sizeof(FMeshPointers) * handle.mIndex;
 		TURBO_CHECK(memoryOffset < pointersPoolBuffer->GetSize());
 
 		return pointersPoolBuffer->GetDeviceAddress() + memoryOffset;
 	}
 
-	void FAssetManager::UnloadMesh(THandle<FMesh> meshToUnload)
+	void FAssetManager::UnloadMesh(const std::vector<THandle<FMesh>>& meshesToUnload)
 	{
-		const FMesh* mesh = mMeshPool.Access(meshToUnload);
-
-		for (uint32 subMeshId = 0; subMeshId < mesh->mNumSubMeshes; ++subMeshId)
+		for (const THandle<FMesh> meshHandle : meshesToUnload)
 		{
-			THandle<FSubMesh> subMeshHandle = mesh->mSubMeshes[subMeshId];
-			const FSubMesh* subMesh = mSubMeshPool.Access(subMeshHandle);
+			const FMesh* mesh = mMeshPool.Access(meshHandle);
 
 			const std::array buffersToDestroy = {
-				subMesh->mIndicesBuffer,
-				subMesh->mPositionBuffer,
-				subMesh->mNormalBuffer,
-				subMesh->mUVBuffer,
-				subMesh->mColorBuffer,
+				mesh->mIndicesBuffer,
+				mesh->mPositionBuffer,
+				mesh->mNormalBuffer,
+				mesh->mUVBuffer,
+				mesh->mColorBuffer,
 			};
 
 			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();

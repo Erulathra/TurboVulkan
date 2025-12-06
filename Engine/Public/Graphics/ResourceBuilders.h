@@ -424,7 +424,7 @@ namespace Turbo
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
 
 		template <TPushConstant PushConstantType>
-		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(PushConstantType); TURBO_CHECK(mPushConstantSize < 128); return *this; }
+		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(PushConstantType); return *this; }
 
 		FPipelineBuilder& SetPrimitiveTopology(vk::PrimitiveTopology primitiveTopology) { mTopology = primitiveTopology; return *this; }
 		FPipelineBuilder& SetName(FName name) { mName = name; return *this; }

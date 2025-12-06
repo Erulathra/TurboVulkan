@@ -409,7 +409,6 @@ namespace Turbo
 
 			pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 
-			VkPipelineRenderingCreateInfo pipelineRendering3;
 			vk::PipelineRenderingCreateInfo& pipelineRendering = chain.get<vk::PipelineRenderingCreateInfo>();
 			pipelineRendering.colorAttachmentCount = builder.mPipelineRenderingBuilder.mNumColorAttachments;
 			pipelineRendering.pColorAttachmentFormats = builder.mPipelineRenderingBuilder.mColorAttachmentFormats.data();
@@ -841,6 +840,7 @@ namespace Turbo
 
 		vk::PhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.setTextureCompressionBC(true);
+		deviceFeatures.setShaderFloat64(true);
 
 		vk::PhysicalDeviceVulkan11Features device11Features = {};
 		device11Features.setShaderDrawParameters(true);

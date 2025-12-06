@@ -28,7 +28,7 @@ namespace Turbo
 		}
 	};
 
-	struct FWorldTransformDirty { };
+	struct FWorldTransformDirty {};
 
 	struct FRelationship
 	{

@@ -34,3 +34,12 @@ public float Sin0To1(float x)
 {
     return sin(x) * 0.5f + 0.5f;
 }
+
+public float3 HSVToRGB(float3 hsv)
+{
+    // https://gist.github.com/iUltimateLP/5129149bf82757b31542
+    const float4 k = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    const float3 p = abs(frac(hsv.xxx + k.xyz) * 6.0 - k.www);
+
+    return hsv.z * lerp(k.xxx, saturate(p - k.xxx), hsv.y);
+}
