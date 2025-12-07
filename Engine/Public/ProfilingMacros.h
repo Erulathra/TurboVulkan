@@ -30,7 +30,14 @@ using FTraceGPUCtx = TracyVkCtx;
 
 #define TRACE_MARK_FRAME() tracy::Profiler::SendFrameMark( nullptr )
 
-#define TRACE_PLOT_VALUE(NAME, VALUE) TracyPlot(NAME, VALUE);
+#define TRACE_PLOT(NAME, VALUE) TracyPlot(NAME, VALUE);
+#define TRACE_PLOT_CONFIGURE(NAME, FORMAT, STEP, FILL, COLOR) TracyPlotConfig(NAME, FORMAT, STEP, FILL, COLOR);
+
+namespace Turbo
+{
+	using EPlotFormat = tracy::PlotFormatType;
+	using FCounterType = int64;
+}
 
 #if 0 // broken
 inline void * operator new ( std :: size_t count )
@@ -63,6 +70,7 @@ using FTraceGPUCtx = void*;
 
 #define TRACE_MARK_FRAME() {}
 
-#define TRACE_PLOT_VALUE(NAME, VALUE) {}
+#define TRACE_PLOT(NAME, VALUE) {}
+#define TRACE_PLOT_CONFIGURE(NAME, FORMAT, STEP, FILL, COLOR) {}
 
 #endif // else WITH_PROFILER

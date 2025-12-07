@@ -119,8 +119,15 @@ namespace Turbo
 
 			FDeviceAddress viewDataDeviceAddress = gpu->AccessBuffer(mViewDataUniformBuffer)->GetDeviceAddress();
 
+#if WITH_PROFILER
+			FCounterType numDrawCalls = 0;
+			FCounterType numPipelineSwitches = 0;
+#endif // WITH_PROFILER
 			for (const entt::entity& entity : meshTransformView)
 			{
+				TRACE_ZONE_SCOPED_N("Render entity")
+				TRACE_GPU_SCOPED(gpu, cmd, "Render entity");
+
 				const FWorldTransform& worldTransform = meshTransformView.get<FWorldTransform>(entity);
 				const FMeshComponent& meshComponent = meshTransformView.get<FMeshComponent>(entity);
 
@@ -131,6 +138,10 @@ namespace Turbo
 
 					cmd->BindPipeline(material->mPipeline);
 					cmd->BindDescriptorSet(gpu->GetBindlessResourcesSet(), 0);
+
+#if WITH_PROFILER
+					numPipelineSwitches++;
+#endif // WITH_PROFILER
 				}
 
 				if (meshComponent.mMaterialInstance != materialInstanceHandle)
@@ -153,13 +164,7 @@ namespace Turbo
 
 
 				const glm::float3x3 invModelToWorld =  glm::float3x3(glm::transpose(glm::inverse(worldTransform.mTransform)));
-#if 0
-				pushConstants.mInvModelToWorld[0] = glm::float4(invModelToWorld[0], 0.f);
-				pushConstants.mInvModelToWorld[1] = glm::float4(invModelToWorld[1], 0.f);
-				pushConstants.mInvModelToWorld[2] = glm::float4(invModelToWorld[2], 0.f);
-#else
 				pushConstants.mInvModelToWorld = invModelToWorld;
-#endif
 
 				pushConstants.mViewData = viewDataDeviceAddress;
 				pushConstants.mMaterialInstance = materialManager.GetMaterialInstanceAddress(*gpu, materialInstanceHandle);
@@ -170,11 +175,24 @@ namespace Turbo
 				{
 					cmd->PushConstants(pushConstants);
 					cmd->DrawIndexed(mesh->mVertexCount);
+
+#if WITH_PROFILER
+					numDrawCalls++;
+#endif // WITH_PROFILER
 				}
 			}
 
 			cmd->EndRendering();
+
+			static const cstring kDrawCallPlotName = "Draw calls";
+			TRACE_PLOT_CONFIGURE(kDrawCallPlotName, EPlotFormat::Number, true, true, 0xFF00FF)
+			TRACE_PLOT(kDrawCallPlotName, numDrawCalls)
+
+			static const cstring kPipelineSwitchesName = "Pipeline switches";
+			TRACE_PLOT_CONFIGURE(kPipelineSwitchesName, EPlotFormat::Number, true, true, 0xFFFF00)
+			TRACE_PLOT(kPipelineSwitchesName, numDrawCalls)
 		}
+
 	}
 
 	void FSceneRenderingLayer::RenderScene(FGPUDevice* gpu, FCommandBuffer* cmd)

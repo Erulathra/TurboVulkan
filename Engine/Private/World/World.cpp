@@ -68,7 +68,7 @@ namespace Turbo
 			});
 		}
 
-		TRACE_PLOT_VALUE("Dirty transforms", static_cast<int64>(processedEntities.size()));
+		TRACE_PLOT("Dirty transforms", static_cast<int64>(processedEntities.size()));
 
 		for (entt::entity entity : entitiesToProcess)
 		{
