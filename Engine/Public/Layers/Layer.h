@@ -1,4 +1,5 @@
 #pragma once
+#include "Event.h"
 #include "Core/Delegate.h"
 #include "Graphics/Resources.h"
 
@@ -6,6 +7,7 @@ namespace Turbo
 {
 	class FCommandBuffer;
 	class FGPUDevice;
+
 
 	class ILayer
 	{
@@ -15,6 +17,8 @@ namespace Turbo
 
 		virtual void Start() = 0;
 		virtual void Shutdown() = 0;
+
+		virtual void OnEvent(FEventBase& event) {}
 
 		virtual void BeginTick(double deltaTime) {};
 		virtual void EndTick(double deltaTime) {};
@@ -36,6 +40,10 @@ namespace Turbo
 	class FLayersStack final
 	{
 	public:
+		using Iterator = FLayersCollection::iterator;
+		using ReverseIterator = FLayersCollection::reverse_iterator;
+
+	public:
 		FLayersStack();
 		DELETE_COPY(FLayersStack)
 
@@ -48,11 +56,11 @@ namespace Turbo
 
 		TSharedPtr<ILayer> GetLayer(FName layerName);
 
-		FLayersCollection::iterator begin() { return mLayers.begin(); };
-		FLayersCollection::iterator end() { return mLayers.end(); };
+		Iterator begin() { return mLayers.begin(); };
+		Iterator end() { return mLayers.end(); };
 
-		FLayersCollection::reverse_iterator rbegin() { return mLayers.rbegin(); };
-		FLayersCollection::reverse_iterator rend() { return mLayers.rend(); };
+		ReverseIterator rbegin() { return mLayers.rbegin(); };
+		ReverseIterator rend() { return mLayers.rend(); };
 
 	private:
 		void PushLayer_Impl(const TSharedPtr<ILayer>& newLayer);

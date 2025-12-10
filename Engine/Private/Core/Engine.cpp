@@ -4,14 +4,15 @@
 #include "Assets/MaterialManager.h"
 #include "Core/CoreTimer.h"
 #include "Core/Window.h"
+#include "Core/WindowEvents.h"
 #include "Core/Input/Input.h"
 #include "Core/Input/FSDLInputSystem.h"
 #include "Core/Input/Keys.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
-#include "Services/ImGUIService.h"
-#include "Services/ILayer.h"
-#include "Services/SceneRenderingLayer.h"
+#include "Layers/ImGUILayer.h"
+#include "Layers/Layer.h"
+#include "Layers/SceneRenderingLayer.h"
 #include "World/World.h"
 
 namespace Turbo
@@ -70,11 +71,8 @@ namespace Turbo
 		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::emplace(&gpu);
 		geometryBuffer.Init(window.GetFrameBufferSize());
 
-		window.OnWindowEvent.AddRaw(this, &ThisClass::HandleMainWindowEvents);
-
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
 		inputSystem.Init();
-		SetupBasicInputBindings();
 
 		// TODO: this is a bad place to initialize the world.
 		mWorld = std::make_unique<FWorld>();
@@ -95,6 +93,23 @@ namespace Turbo
 		End();
 
 		return static_cast<int32_t>(mExitCode);
+	}
+
+	EEventReply FEngine::PushEvent(FEventBase& event)
+	{
+		OnEvent(event);
+
+		FLayersStack& layerStack = entt::locator<FLayersStack>::value();
+		for (auto It = layerStack.rbegin();  It != layerStack.rend(); ++It)
+		{
+			It->get()->OnEvent(event);
+			if (event.mEventReply != EEventReply::Unhandled)
+			{
+				return event.mEventReply;
+			}
+		}
+
+		return event.mEventReply;
 	}
 
 	void FEngine::GameThreadLoop()
@@ -191,55 +206,23 @@ namespace Turbo
 		TRACE_MARK_FRAME();
 	}
 
+	void FEngine::OnEvent(FEventBase& event)
+	{
+		FEventDispatcher::Dispatch<FResizeWindowEvent>(
+			event, [](const FResizeWindowEvent& resizeWindowEvent)
+		{
+			TURBO_LOG(LOG_ENGINE, Info, "Window resized. New size {}", resizeWindowEvent.mNewWindowSize)
+
+			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+			gpu.RequestSwapChainResize();
+		});
+	}
+
 	void FEngine::RegisterEngineLayers()
 	{
 		FLayersStack& layerStack = entt::locator<FLayersStack>::value();
 		layerStack.PushLayer<FImGuiLayer>();
 		layerStack.PushLayer<FSceneRenderingLayer>();
-	}
-
-	void FEngine::SetupBasicInputBindings()
-	{
-		const FName ToggleFullscreenName("ToggleFullscreen");
-		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
-		inputSystem.RegisterBinding(ToggleFullscreenName, EKeys::F11);
-		inputSystem.GetActionEvent(ToggleFullscreenName).AddLambda(
-			[](const FActionEvent& actionEvent)
-			{
-				if (actionEvent.bDown)
-				{
-					FWindow& window = entt::locator<FWindow>::value();
-					window.SetFullscreen(!window.IsFullscreenEnabled());
-				}
-			}
-		);
-
-		const FName Exit("Exit");
-		inputSystem.RegisterBinding(Exit, EKeys::Escape);
-		inputSystem.GetActionEvent(Exit).AddLambda(
-			[](const FActionEvent& actionEvent)
-			{
-				if (actionEvent.bDown)
-				{
-					gEngine->RequestExit(EExitCode::Success);
-				}
-			}
-		);
-	}
-
-	void FEngine::HandleMainWindowEvents(EWindowEvent event)
-	{
-		FWindow& window = entt::locator<FWindow>::value();
-
-		if (event == EWindowEvent::WindowCloseRequest)
-		{
-			RequestExit(EExitCode::Success);
-		}
-		else if (event == EWindowEvent::WindowResized)
-		{
-			const glm::vec2 windowSize = window.GetFrameBufferSize();
-			TURBO_LOG(LOG_ENGINE, Info, "Window resized. New size {}", windowSize)
-		}
 	}
 
 	void FEngine::End()

@@ -59,6 +59,8 @@ namespace Turbo
 
 		uint32 GetNumRenderedFrames() const { return mRenderedFrames; }
 
+		void RequestSwapChainResize() { mbRequestedSwapchainResize = true; }
+
 		/** Rendering interface end */
 
 		/** Resource accessors */

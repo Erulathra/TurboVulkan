@@ -25,7 +25,8 @@ namespace Turbo
 	}
 
 	FActionEvent::FActionEvent(const FActionEvent& other)
-		: ActionName(other.ActionName)
+		: FEventBase(other.mEventTypeId)
+		, ActionName(other.ActionName)
 		, Key(other.Key)
 		, bAxis(other.bAxis)
 		, bDown(other.bDown)

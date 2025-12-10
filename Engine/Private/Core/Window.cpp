@@ -1,6 +1,8 @@
 #include "Core/Window.h"
 
 #include "backends/imgui_impl_sdl3.h"
+#include "Core/Engine.h"
+#include "Core/WindowEvents.h"
 #include "Input/FSDLInputSystem.h"
 
 namespace Turbo
@@ -42,8 +44,6 @@ namespace Turbo
 			return false;
 		}
 
-		PerTypeWindowEvents.resize(static_cast<uint32>(EWindowEvent::Num));
-
 		return true;
 	}
 
@@ -63,34 +63,33 @@ namespace Turbo
 			// Handle ImGui events
 			// ImGui_ImplSDL3_ProcessEvent(&event);
 
-			EWindowEvent convertedEvent = EWindowEvent::None;
 			switch (event.type)
 			{
 			case SDL_EVENT_QUIT:
 			case SDL_EVENT_TERMINATING:
-				convertedEvent = EWindowEvent::WindowCloseRequest;
-				break;
-			case SDL_EVENT_WINDOW_FOCUS_LOST:
-				convertedEvent = EWindowEvent::FocusLost;
-				break;
-			case SDL_EVENT_WINDOW_FOCUS_GAINED:
-				convertedEvent = EWindowEvent::FocusGained;
-				break;
+				{
+					FCloseWindowEvent newEvent = {};
+					gEngine->PushEvent(newEvent);
+					break;
+				}
 			case SDL_EVENT_WINDOW_RESIZED:
-				convertedEvent = EWindowEvent::WindowResized;
-				break;
+				{
+					FResizeWindowEvent newEvent = {};
+					newEvent.mNewWindowSize = GetFrameBufferSize();
+					gEngine->PushEvent(newEvent);
+					break;
+				}
 			case SDL_EVENT_KEY_DOWN:
 			case SDL_EVENT_KEY_UP:
-				OnSdlKeyboardEvent.ExecuteIfBound(event.key);
-				break;
+				{
+					OnSdlKeyboardEvent.ExecuteIfBound(event.key);
+					break;
+				}
 			default:
 				break;
 			}
 
-			OnWindowEvent.Broadcast(convertedEvent);
 			OnSDLEvent.Broadcast(&event);
-
-			PerTypeWindowEvents[static_cast<uint32>(convertedEvent)].Broadcast(convertedEvent);
 		}
 	}
 
@@ -108,7 +107,7 @@ namespace Turbo
 		}
 	}
 
-	glm::ivec2 FWindow::GetFrameBufferSize() const
+	glm::uint2 FWindow::GetFrameBufferSize() const
 	{
 		glm::ivec2 Result;
 		if (!SDL_GetWindowSizeInPixels(mSDLWindow, &Result.x, &Result.y))

@@ -17,3 +17,6 @@ add_subdirectory(Engine)
 
 # Game Project
 add_subdirectory(Project)
+
+# Editor Project
+add_subdirectory(Editor)

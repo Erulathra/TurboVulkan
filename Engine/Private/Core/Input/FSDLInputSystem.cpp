@@ -2,6 +2,7 @@
 
 #include "Core/Engine.h"
 #include "Core/Input/Keys.h"
+#include "Layers/Layer.h"
 
 namespace Turbo
 {
@@ -78,11 +79,6 @@ namespace Turbo
 		return false;
 	}
 
-	FOnActionEvent& FSDLInputSystem::GetActionEvent(FName actionName)
-	{
-		return mActionEventDelegates[actionName];
-	}
-
 	bool FSDLInputSystem::RegisterBinding(FName actionName, const FKey& key)
 	{
 		mActionBindings[actionName] = key;
@@ -110,7 +106,8 @@ namespace Turbo
 			newKeyEvent.bDown = keyboardEvent.down;
 			newKeyEvent.bRepeat = keyboardEvent.repeat;
 
-			OnKeyEvent.Broadcast(newKeyEvent);
+			gEngine->PushEvent(newKeyEvent);
+
 			HandleKeyEvent(newKeyEvent);
 		}
 	}
@@ -134,8 +131,7 @@ namespace Turbo
 				newActionEvent.bDown = keyEvent.bDown;
 				newActionEvent.bAxis = false;
 
-				OnActionEvent.Broadcast(newActionEvent);
-				mActionEventDelegates[actionName].Broadcast(newActionEvent);
+				gEngine->PushEvent(newActionEvent);
 			}
 		}
 	}

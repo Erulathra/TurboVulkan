@@ -6,19 +6,6 @@
 
 namespace Turbo
 {
-	enum class EWindowEvent : uint32
-	{
-		None = 0,
-
-		WindowCloseRequest,
-		FocusLost,
-		FocusGained,
-
-		WindowResized,
-
-		Num
-	};
-
 	// TODO: Replace that with config
 	namespace WindowDefaultValues
 	{
@@ -27,7 +14,6 @@ namespace Turbo
 		static constexpr std::string_view kName = "Turbo Vulkan";
 	}
 
-	DECLARE_MULTICAST_DELEGATE(FWindowEventDelegate, EWindowEvent);
 	DECLARE_MULTICAST_DELEGATE(FSDLEventDelegate, SDL_Event*);
 	DECLARE_DELEGATE(FOnSDLKeyboardEvent, const SDL_KeyboardEvent&);
 
@@ -55,21 +41,14 @@ namespace Turbo
 
 		/** Events */
 	public:
-		FWindowEventDelegate OnWindowEvent;
 		FSDLEventDelegate OnSDLEvent;
-
-	public:
-		FWindowEventDelegate& GetEventTypeDelegate(EWindowEvent EventType) { return PerTypeWindowEvents[static_cast<uint32>(EventType)]; }
-
-	private:
-		std::vector<FWindowEventDelegate> PerTypeWindowEvents;
 
 		/** Basic Interface */
 	public:
 		void PollWindowEventsAndErrors();
 
 		void ShowWindow(bool bVisible);
-		[[nodiscard]] glm::ivec2 GetFrameBufferSize() const;
+		[[nodiscard]] glm::uint2 GetFrameBufferSize() const;
 		[[nodiscard]] SDL_Window* GetWindow() const { return mSDLWindow; }
 
 		float GetDisplayScale() const;
@@ -111,4 +90,6 @@ namespace Turbo
 	public:
 		friend class FEngine;
 	};
+
+
 } // Turbo

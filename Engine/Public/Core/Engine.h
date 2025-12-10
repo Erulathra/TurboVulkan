@@ -59,16 +59,16 @@ namespace Turbo
 	public:
 		[[nodiscard]] EEngineState GetEngineState() { return mEngineState; }
 
+	public:
+		EEventReply PushEvent(FEventBase& event);
+
 	private:
 		void GameThreadLoop();
 		void GameThreadTick();
 
+		void OnEvent(FEventBase& event);
+
 		void RegisterEngineLayers();
-
-		// TODO: Move me somewhere else
-		void SetupBasicInputBindings();
-
-		void HandleMainWindowEvents(EWindowEvent event);
 
 	private:
 		bool mbExitRequested = false;

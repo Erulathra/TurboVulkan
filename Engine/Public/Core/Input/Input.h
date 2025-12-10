@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Delegate.h"
+#include "Layers/Event.h"
 
 namespace Turbo
 {
@@ -25,23 +26,29 @@ namespace Turbo
 		}
 	};
 
-	struct FKeyEvent
+	struct FKeyEvent : FEventBase
 	{
+		EVENT_BODY(FKeyEvent)
+
 		FKey Key;
 
 		bool bDown : 1 = false;
 		bool bRepeat : 1 = false;
 	};
 
-	struct FAxisEvent
+	struct FAxisEvent : FEventBase
 	{
+		EVENT_BODY(FAxisEvent)
+
 		FKey Key;
 
 		float Value = 0.f;
 	};
 
-	struct FActionEvent
+	struct FActionEvent : FEventBase
 	{
+		EVENT_BODY(FActionEvent)
+
 		FName ActionName{};
 
 		FKey Key{};
@@ -49,8 +56,6 @@ namespace Turbo
 
 		bool bDown = false;
 		float Value = 0.f;
-
-		FActionEvent() = default;
 
 		FActionEvent(const FActionEvent& other);
 		FActionEvent& operator=(const FActionEvent& other);
@@ -70,10 +75,6 @@ namespace Turbo
 		static IInputSystem* Get();
 
 	public:
-		FOnKeyEvent OnKeyEvent;
-		FOnActionEvent OnActionEvent;
-
-	public:
 		virtual void Init() = 0;
 		virtual void Destroy() = 0;
 
@@ -82,8 +83,6 @@ namespace Turbo
 
 		virtual bool IsKeyPressed(const FKey& key) = 0;
 		virtual bool IsActionPressed(FName actionName) = 0;
-
-		virtual FOnActionEvent& GetActionEvent(FName actionName) = 0;
 
 		virtual bool RegisterBinding(FName actionName, const FKey& key) = 0;
 		virtual std::unordered_map<FName, FKey>& GetBindings() = 0;
