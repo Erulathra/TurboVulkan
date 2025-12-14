@@ -23,9 +23,8 @@ namespace Turbo
 		virtual Turbo::FName GetName() override;
 
 		/** IService Interface end */
-
 	private:
-		entt::entity mCameraEntity = entt::null;
+		entt::entity mSunEntity;
 	};
 
 }

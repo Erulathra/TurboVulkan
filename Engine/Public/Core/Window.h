@@ -16,6 +16,9 @@ namespace Turbo
 
 	DECLARE_MULTICAST_DELEGATE(FSDLEventDelegate, SDL_Event*);
 	DECLARE_DELEGATE(FOnSDLKeyboardEvent, const SDL_KeyboardEvent&);
+	DECLARE_DELEGATE(FOnSDLMouseButtonEvent, const SDL_MouseButtonEvent&);
+	DECLARE_DELEGATE(FOnSDLMouseMotionEvent, const SDL_MouseMotionEvent&);
+	DECLARE_DELEGATE(FOnSDLMouseWheelEvent, const SDL_MouseWheelEvent&);
 
 	class FWindow
 	{
@@ -48,6 +51,8 @@ namespace Turbo
 		void PollWindowEventsAndErrors();
 
 		void ShowWindow(bool bVisible);
+		void ShowCursor(bool bVisible);
+
 		[[nodiscard]] glm::uint2 GetFrameBufferSize() const;
 		[[nodiscard]] SDL_Window* GetWindow() const { return mSDLWindow; }
 
@@ -58,8 +63,17 @@ namespace Turbo
 
 		/** SDL Interface **/
 	public:
-		void BindKeyboardEvent(const FOnSDLKeyboardEvent& NewDelegate) { OnSdlKeyboardEvent = NewDelegate; }
-		void RemoveKeyboardEvent() { OnSdlKeyboardEvent = FOnSDLKeyboardEvent(); }
+		void BindKeyboardEvent(const FOnSDLKeyboardEvent& NewDelegate) { OnSDLKeyboardEvent = NewDelegate; }
+		void RemoveKeyboardEvent() { OnSDLKeyboardEvent = FOnSDLKeyboardEvent(); }
+
+		void BindMouseButtonEvent(const FOnSDLMouseButtonEvent& NewDelegate) { OnSDLMouseButtonEvent = NewDelegate; }
+		void RemoveMouseButtonEvent() { OnSDLMouseButtonEvent = FOnSDLMouseButtonEvent(); }
+
+		void BindMouseMotionEvent(const FOnSDLMouseMotionEvent& NewDelegate) { OnSDLMouseMotionEvent = NewDelegate; }
+		void RemoveMouseMotionEvent() { OnSDLMouseMotionEvent = FOnSDLMouseMotionEvent(); }
+
+		void BindMouseWheelEvent(const FOnSDLMouseWheelEvent& NewDelegate) { OnSDLMouseWheelEvent = NewDelegate; }
+		void RemoveMouseWheelEvent() { OnSDLMouseWheelEvent = FOnSDLMouseWheelEvent(); }
 
 		/** Vulkan Interface */
 	public:
@@ -81,7 +95,10 @@ namespace Turbo
 		SDL_Window* mSDLWindow = nullptr;
 		VkSurfaceKHR mVulkanSurface = nullptr;
 
-		FOnSDLKeyboardEvent OnSdlKeyboardEvent;
+		FOnSDLKeyboardEvent OnSDLKeyboardEvent;
+		FOnSDLMouseButtonEvent OnSDLMouseButtonEvent;
+		FOnSDLMouseMotionEvent OnSDLMouseMotionEvent;
+		FOnSDLMouseWheelEvent OnSDLMouseWheelEvent;
 
 		bool mbFullscreenEnabled = false;
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Math/FRotator.h"
 
 namespace Turbo
 {
@@ -31,8 +32,9 @@ namespace Turbo
 
 	struct FFreeCamera
 	{
-		float mMovementSpeed = 0.1f;
-		float mRotationSpeed = glm::radians(3.6f);
+		float mMaxMovementSpeed = 5.f;
+		float mRotationSensitivity = glm::radians(0.16f);
+		FRotator mRotator = FRotator(0.f);
 	};
 
 	struct FCameraDirty {};
@@ -55,7 +57,8 @@ namespace Turbo
 	{
 	public:
 		static void UpdateDirtyCameras(entt::registry& registry);
-		static void UpdateFreeCamera(entt::registry& registry, glm::float3 movementInput, glm::float2 rotationInput);
+		static void UpdateFreeCameraPosition(entt::registry& registry, const glm::float3& movementInput, float deltaTime);
+		static void UpdateFreeCameraRotation(entt::registry& registry, const glm::float2& deltaRotation);
 
 	public:
 		static void InitializeCamera(entt::registry& registry, entt::entity entity);

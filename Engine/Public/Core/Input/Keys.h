@@ -160,5 +160,23 @@ namespace Turbo
 		DECLARE_KEY(RightShift, false);
 		DECLARE_KEY(RightAlt, false);
 		DECLARE_KEY(RightGui, false);
+
+		DECLARE_KEY(MouseButtonLeft, false);
+		DECLARE_KEY(MouseButtonMiddle, false);
+		DECLARE_KEY(MouseButtonRight, false);
+		DECLARE_KEY(MouseButton4, false);
+		DECLARE_KEY(MouseButton5, false);
+		DECLARE_KEY(MouseButton6, false);
+		DECLARE_KEY(MouseButton7, false);
+		DECLARE_KEY(MouseButton8, false);
+
+		DECLARE_KEY(MousePositionX, true);
+		DECLARE_KEY(MousePositionY, true);
+
+		DECLARE_KEY(MouseDeltaPositionX, true);
+		DECLARE_KEY(MouseDeltaPositionY, true);
+
+		DECLARE_KEY(MouseScrollX, true);
+		DECLARE_KEY(MouseScrollY, true);
 	} // namespace EKeys
 } // namespace Turbo

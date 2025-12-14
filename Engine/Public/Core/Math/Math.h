@@ -54,6 +54,32 @@ namespace Turbo
 			return translationMat * rotationMat * scaleMat;
 		}
 
+		template <typename T>
+		T SafeNormal(T value)
+		{
+			if (glm::length(value) < TURBO_SMALL_NUMBER)
+			{
+				return T(0.f);
+			}
+
+			return glm::normalize(value);
+		}
+
+		template <typename T>
+			requires std::is_floating_point_v<T>
+		T NormalizeAngle(T radians)
+		{
+			constexpr T TwoPi = glm::two_pi<T>();
+
+			radians = glm::mod<T>(radians, TwoPi);
+			if (radians < 0.f)
+			{
+				radians += TwoPi;
+			}
+
+			return radians;
+		}
+
 	};
 
 	template <>

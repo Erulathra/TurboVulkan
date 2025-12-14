@@ -79,25 +79,18 @@ void FRenderingTestLayer::Start()
 	TRACE_ZONE_SCOPED()
 
 	FWorld& world = *gEngine->GetWorld();
-	mCameraEntity = world.mRegistry.create();
-	FCameraUtils::InitializeFreeCamera(world.mRegistry, mCameraEntity);
-	world.mRegistry.emplace<FMainViewport>(mCameraEntity);
-
-	FTransform cameraTransform = {};
-	cameraTransform.mPosition = glm::float3(0.f, 0.f, -10.f);
-	world.mRegistry.replace<FTransform>(mCameraEntity, cameraTransform);
 
 	FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
 	// THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_IcoPlanet.glb").front();
-	THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front();
-	// THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front();
+	// THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front();
+	THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front();
 	FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("BaseMaterial.slang");
 	THandle<FMaterial> materialHandle = materialManager.LoadMaterial(pipelineBuilder, 0, 1);
 	THandle<FMaterial::Instance> instanceHandle = materialManager.CreateMaterialInstance(materialHandle);
 
-	// const entt::entity sun = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshHandle, instanceHandle);
+	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshHandle, instanceHandle);
 
 	for (uint32 planetId = 1; planetId < 3; ++planetId)
 	{
@@ -138,9 +131,15 @@ void FRenderingTestLayer::Shutdown()
 
 void FRenderingTestLayer::ShowImGuiWindow()
 {
+	FWorld* world = gEngine->GetWorld();
+	FTransform transform = world->mRegistry.get<FTransform>(mSunEntity);
+
 	ImGui::Begin("Rendering test");
 	ImGui::Text("Frame time: %f, FPS: %f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
+	ImGui::DragFloat3("Sun Pos", glm::value_ptr(transform.mPosition));
 	ImGui::End();
+
+	world->mRegistry.replace<FTransform>(mSunEntity, transform);
 }
 
 void FRenderingTestLayer::BeginTick(double deltaTime)
@@ -154,7 +153,7 @@ void FRenderingTestLayer::BeginTick(double deltaTime)
 		FTransform newTransform = rotationView.get<FTransform>(entity);
 		const FRotateComponent& rotateComponent = rotationView.get<FRotateComponent>(entity);
 
-		newTransform.mRotation = glm::quat(EVec3::Up * rotateComponent.speed * static_cast<float>(deltaTime)) * newTransform.mRotation;
+		newTransform.mRotation = glm::quat(EFloat3::Up * rotateComponent.speed * static_cast<float>(deltaTime)) * newTransform.mRotation;
 
 		registry.replace<FTransform>(entity, newTransform);
 	}

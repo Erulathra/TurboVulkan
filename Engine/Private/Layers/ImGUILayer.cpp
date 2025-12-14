@@ -34,6 +34,7 @@ namespace Turbo
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
 		ImGui_ImplSDL3_InitForVulkan(window.GetWindow());
 

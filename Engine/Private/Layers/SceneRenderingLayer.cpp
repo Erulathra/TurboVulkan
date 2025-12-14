@@ -46,7 +46,7 @@ namespace Turbo
 		const FWorldTransform& cameraTransform = mainCameraView.get<FWorldTransform>(mainCameraEntity);
 
 		mViewData.mProjectionMatrix = cameraCache.mProjectionMatrix;
-		mViewData.mViewMatrix = cameraTransform.mTransform;
+		mViewData.mViewMatrix = glm::inverse(cameraTransform.mTransform);
 		mViewData.mWorldToProjection = mViewData.mProjectionMatrix * mViewData.mViewMatrix;
 
 		mViewData.mTime = FCoreTimer::TimeFromEngineStart();

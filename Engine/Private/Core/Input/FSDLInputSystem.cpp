@@ -10,22 +10,28 @@ namespace Turbo
 	{
 		FWindow& SDLWindow = entt::locator<FWindow>::value();
 		SDLWindow.BindKeyboardEvent(FOnSDLKeyboardEvent::CreateRaw(this, &ThisClass::HandleSDLKeyboardEvent));
+		SDLWindow.BindMouseButtonEvent(FOnSDLMouseButtonEvent::CreateRaw(this, &ThisClass::HandleSDLMouseButtonEvent));
+		SDLWindow.BindMouseMotionEvent(FOnSDLMouseMotionEvent::CreateRaw(this, &ThisClass::HandleSDLMouseMotionEvent));
+		SDLWindow.BindMouseWheelEvent(FOnSDLMouseWheelEvent::CreateRaw(this, &ThisClass::HandleSDLMouseWheelEvent));
 	}
 
 	void FSDLInputSystem::Destroy()
 	{
 		FWindow& SDLWindow = entt::locator<FWindow>::value();
 		SDLWindow.RemoveKeyboardEvent();
+		SDLWindow.RemoveMouseButtonEvent();
+		SDLWindow.RemoveMouseMotionEvent();
+		SDLWindow.RemoveMouseWheelEvent();
 	}
 
 	float FSDLInputSystem::GetAxisValue(const FKey& key)
 	{
-		if (!key.bAxis)
+		if (!key.mbAxis)
 		{
 			return 0.f;
 		}
 
-		if (const auto axisValueIt = mLastAxisValues.find(key.keyName);
+		if (const auto axisValueIt = mLastAxisValues.find(key.mKeyName);
 			axisValueIt != mLastAxisValues.end())
 		{
 			return axisValueIt->second;
@@ -39,7 +45,7 @@ namespace Turbo
 		if (const auto actionKeyIt = mActionBindings.find(actionName);
 			actionKeyIt != mActionBindings.end())
 		{
-			if (actionKeyIt->second.bAxis)
+			if (actionKeyIt->second.mbAxis)
 			{
 				return GetAxisValue(actionKeyIt->second);
 			}
@@ -52,7 +58,7 @@ namespace Turbo
 
 	bool FSDLInputSystem::IsKeyPressed(const FKey& key)
 	{
-		if (const auto actionEventIt = mLastKeyValues.find(key.keyName);
+		if (const auto actionEventIt = mLastKeyValues.find(key.mKeyName);
 			actionEventIt != mLastKeyValues.end())
 		{
 			return actionEventIt->second;
@@ -68,7 +74,7 @@ namespace Turbo
 		if (const auto actionKeyIt = mActionBindings.find(actionName);
 			actionKeyIt != mActionBindings.end())
 		{
-			if (actionKeyIt->second.bAxis)
+			if (actionKeyIt->second.mbAxis)
 			{
 				return GetAxisValue(actionKeyIt->second) > kAnalogActivationValue;
 			}
@@ -79,9 +85,9 @@ namespace Turbo
 		return false;
 	}
 
-	bool FSDLInputSystem::RegisterBinding(FName actionName, const FKey& key)
+	bool FSDLInputSystem::RegisterBinding(const FActionBinding& actionBinding)
 	{
-		mActionBindings[actionName] = key;
+		mActionBindings[actionBinding.mActionName] = actionBinding.mKey;
 
 		return true;
 	}
@@ -97,39 +103,134 @@ namespace Turbo
 			return;
 		}
 
-		if (!key.bAxis)
+		if (!key.mbAxis)
 		{
-			mLastKeyValues[key.keyName] = keyboardEvent.down;
-
 			FKeyEvent newKeyEvent{};
-			newKeyEvent.Key = key;
-			newKeyEvent.bDown = keyboardEvent.down;
-			newKeyEvent.bRepeat = keyboardEvent.repeat;
-
-			gEngine->PushEvent(newKeyEvent);
+			newKeyEvent.mKey = key;
+			newKeyEvent.mbDown = keyboardEvent.down;
+			newKeyEvent.mbRepeat = keyboardEvent.repeat;
 
 			HandleKeyEvent(newKeyEvent);
 		}
 	}
 
-	void FSDLInputSystem::HandleKeyEvent(const FKeyEvent& keyEvent)
+	void FSDLInputSystem::HandleSDLMouseButtonEvent(const SDL_MouseButtonEvent& mouseButtonEvent)
 	{
 		TRACE_ZONE_SCOPED();
 
-		if (keyEvent.bRepeat)
+		const FKey key = ConvertSDLMouseButton(mouseButtonEvent.button);
+		if (key == EKeys::None)
+		{
+			TURBO_LOG(LOG_INPUT, Warn, "InputEvent: Unknown mouse button: {}", mouseButtonEvent.button);
+			return;
+		}
+
+		if (!key.mbAxis)
+		{
+			mLastKeyValues[key.mKeyName] = mouseButtonEvent.down;
+
+			FKeyEvent newKeyEvent{};
+			newKeyEvent.mKey = key;
+			newKeyEvent.mbDown = mouseButtonEvent.down;
+			newKeyEvent.mbRepeat = false;
+
+			HandleKeyEvent(newKeyEvent);
+		}
+	}
+
+	void FSDLInputSystem::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent& mouseMotionEvent)
+	{
+		FAxisEvent newPositionXEvent;
+		newPositionXEvent.mKey = EKeys::MousePositionX;
+		newPositionXEvent.mValue = mouseMotionEvent.x;
+		HandleAxisEvent(newPositionXEvent);
+
+		FAxisEvent newPositionYEvent;
+		newPositionYEvent.mKey = EKeys::MousePositionY;
+		newPositionYEvent.mValue = mouseMotionEvent.y;
+		HandleAxisEvent(newPositionYEvent);
+
+		if (glm::abs(mouseMotionEvent.xrel) > TURBO_VERY_SMALL_NUMBER)
+		{
+			FAxisEvent newDeltaPosXEvent;
+			newDeltaPosXEvent.mKey = EKeys::MouseDeltaPositionX;
+			newDeltaPosXEvent.mValue = mouseMotionEvent.xrel;
+			HandleAxisEvent(newDeltaPosXEvent);
+		}
+
+		if (glm::abs(mouseMotionEvent.yrel) > TURBO_VERY_SMALL_NUMBER)
+		{
+			FAxisEvent newDeltaPosYEvent;
+			newDeltaPosYEvent.mKey = EKeys::MouseDeltaPositionY;
+			newDeltaPosYEvent.mValue = mouseMotionEvent.yrel;
+			HandleAxisEvent(newDeltaPosYEvent);
+		}
+	}
+
+	void FSDLInputSystem::HandleSDLMouseWheelEvent(const SDL_MouseWheelEvent& mouseWheelEvent)
+	{
+		const float DirectionSign = mouseWheelEvent.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.f : 1.f;
+
+		if (glm::abs(mouseWheelEvent.integer_x) > 0)
+		{
+			FAxisEvent newAxisEvent;
+			newAxisEvent.mKey = EKeys::MouseScrollX;
+			newAxisEvent.mValue = static_cast<float>(mouseWheelEvent.integer_x) * DirectionSign;
+			HandleAxisEvent(newAxisEvent);
+		}
+
+		if (glm::abs(mouseWheelEvent.integer_y) > 0)
+		{
+			FAxisEvent newAxisEvent;
+			newAxisEvent.mKey = EKeys::MouseScrollY;
+			newAxisEvent.mValue = static_cast<float>(mouseWheelEvent.integer_y) * DirectionSign;
+			HandleAxisEvent(newAxisEvent);
+		}
+	}
+
+	void FSDLInputSystem::HandleKeyEvent(FKeyEvent& keyEvent)
+	{
+		TRACE_ZONE_SCOPED();
+
+		mLastKeyValues[keyEvent.mKey.mKeyName] = keyEvent.mbDown;
+		gEngine->PushEvent(keyEvent);
+
+		if (keyEvent.mbRepeat)
 		{
 			return;
 		}
 
 		for (const auto& [actionName, key] : mActionBindings)
 		{
-			if (key == keyEvent.Key)
+			if (key == keyEvent.mKey)
 			{
 				FActionEvent newActionEvent{};
-				newActionEvent.ActionName = actionName;
-				newActionEvent.Key = keyEvent.Key;
-				newActionEvent.bDown = keyEvent.bDown;
-				newActionEvent.bAxis = false;
+				newActionEvent.mActionName = actionName;
+				newActionEvent.mKey = keyEvent.mKey;
+				newActionEvent.mbDown = keyEvent.mbDown;
+				newActionEvent.mbAxis = false;
+
+				gEngine->PushEvent(newActionEvent);
+			}
+		}
+	}
+
+	void FSDLInputSystem::HandleAxisEvent(FAxisEvent& axisEvent)
+	{
+		TRACE_ZONE_SCOPED();
+
+		mLastAxisValues[axisEvent.mKey.mKeyName] = axisEvent.mValue;
+		gEngine->PushEvent(axisEvent);
+
+		for (const auto& [actionName, key] : mActionBindings)
+		{
+			if (key == axisEvent.mKey)
+			{
+				FActionEvent newActionEvent{};
+				newActionEvent.mActionName = actionName;
+				newActionEvent.mKey = axisEvent.mKey;
+				newActionEvent.mbAxis = true;
+				newActionEvent.mValue = axisEvent.mValue;
 
 				gEngine->PushEvent(newActionEvent);
 			}
@@ -289,6 +390,23 @@ namespace Turbo
 		case SDLK_RALT: return EKeys::RightAlt;
 		case SDLK_MODE: return EKeys::RightAlt;
 		case SDLK_RGUI: return EKeys::RightGui;
+
+		default: return EKeys::None;
+		}
+	}
+
+	FKey FSDLInputSystem::ConvertSDLMouseButton(uint8 mouseButtonIndex)
+	{
+		switch (mouseButtonIndex)
+		{
+		case SDL_BUTTON_LEFT: return EKeys::MouseButtonLeft;
+		case SDL_BUTTON_MIDDLE: return EKeys::MouseButtonMiddle;
+		case SDL_BUTTON_RIGHT: return EKeys::MouseButtonRight;
+		case 4: return EKeys::MouseButton4;
+		case 5: return EKeys::MouseButton5;
+		case 6: return EKeys::MouseButton6;
+		case 7: return EKeys::MouseButton7;
+		case 8: return EKeys::MouseButton8;
 
 		default: return EKeys::None;
 		}

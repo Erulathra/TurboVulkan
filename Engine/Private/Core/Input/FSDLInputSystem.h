@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Input/Input.h"
+#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_keycode.h"
 
 struct SDL_KeyboardEvent;
@@ -27,14 +28,20 @@ namespace Turbo
 		virtual bool IsKeyPressed(const FKey& key) override;
 		virtual bool IsActionPressed(FName actionName) override;
 
-		virtual bool RegisterBinding(FName actionName, const FKey& key) override;
+		virtual bool RegisterBinding(const FActionBinding& actionBinding) override;
 		virtual std::unordered_map<FName, FKey>& GetBindings() override { return mActionBindings; }
 
 	private:
 		void HandleSDLKeyboardEvent(const SDL_KeyboardEvent& keyboardEvent);
-		static FKey ConvertSDLKey(SDL_Keycode key);
+		void HandleSDLMouseButtonEvent(const SDL_MouseButtonEvent& mouseButtonEvent);
+		void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent& mouseMotionEvent);
+		void HandleSDLMouseWheelEvent(const SDL_MouseWheelEvent& mouseWheelEvent);
 
-		void HandleKeyEvent(const FKeyEvent& keyEvent);
+		static FKey ConvertSDLKey(SDL_Keycode key);
+		static FKey ConvertSDLMouseButton(uint8 mouseButtonIndex);
+
+		void HandleKeyEvent(FKeyEvent& keyEvent);
+		void HandleAxisEvent(FAxisEvent& axisEvent);
 
 	private:
 		std::unordered_map<FName /** actionName **/, FKey> mActionBindings;

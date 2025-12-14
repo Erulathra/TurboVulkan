@@ -12,6 +12,9 @@ namespace Turbo
 		virtual void Start() override;
 		virtual void Shutdown() override;
 
+		virtual void BeginTick(double deltaTime) override;
+		virtual bool ShouldTick() override;
+
 		virtual void OnEvent(FEventBase& event) override;
 
 	public:

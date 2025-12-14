@@ -1,6 +1,15 @@
 #include "World/Camera.h"
 
+#include "Assets/AssetManager.h"
+#include "Assets/AssetManager.h"
+#include "Assets/AssetManager.h"
+#include "Assets/AssetManager.h"
+#include "Assets/AssetManager.h"
+#include "Assets/AssetManager.h"
+#include "Assets/AssetManager.h"
+#include "Assets/AssetManager.h"
 #include "Core/CoreTimer.h"
+#include "Core/Math/FRotator.h"
 #include "World/SceneGraph.h"
 
 namespace Turbo
@@ -57,16 +66,49 @@ namespace Turbo
 		registry.remove<FCameraDirty>(view.begin(), view.end());
 	}
 
-	void FCameraUtils::UpdateFreeCamera(entt::registry& registry, glm::float3 movementInput, glm::float2 rotationInput)
+	void FCameraUtils::UpdateFreeCameraPosition(entt::registry& registry, const glm::float3& movementInput, float deltaTime)
 	{
+		if (glm::length2(movementInput) < TURBO_SMALL_NUMBER)
+		{
+			return;
+		}
+
 		const auto view = registry.view<FFreeCamera, FCamera const, FTransform const, FMainViewport const>();
 		for (entt::entity entity : view)
 		{
 			const FFreeCamera& camera = view.get<FFreeCamera>(entity);
 
+			const glm::float3 normalizedInput = glm::normalize(movementInput);
+
+			const glm::float3 rightMovement = camera.mRotator.Right() * normalizedInput.x;
+			const glm::float3 upMovement = EFloat3::Up * normalizedInput.y;
+			const glm::float3 forwardMovement = camera.mRotator.Forward() * normalizedInput.z;
+			// const glm::float3 forwardMovement = EFloat3::Forward * normalizedInput.z;
+
+			const glm::float3 deltaPos = (rightMovement + upMovement + forwardMovement) * camera.mMaxMovementSpeed * deltaTime;
+
 			FTransform transform = view.get<FTransform>(entity);
-			transform.mPosition += glm::normalize(movementInput) * camera.mMovementSpeed * static_cast<float>(FCoreTimer::DeltaTime());
-			transform.mRotation *= glm::quat(glm::float3(rotationInput.y, 0.f, rotationInput.x) * camera.mRotationSpeed);
+			transform.mPosition += deltaPos;
+			registry.replace<FTransform>(entity, transform);
+		}
+	}
+
+	void FCameraUtils::UpdateFreeCameraRotation(entt::registry& registry, const glm::float2& deltaRotation)
+	{
+		if (glm::length2(deltaRotation) < TURBO_SMALL_NUMBER)
+		{
+			return;
+		}
+
+		const auto view = registry.view<FFreeCamera, FCamera const, FTransform const, FMainViewport const>();
+		for (entt::entity entity : view)
+		{
+			FFreeCamera& camera = view.get<FFreeCamera>(entity);
+			camera.mRotator += FRotator(deltaRotation.y, deltaRotation.x, 0.f) * camera.mRotationSensitivity;
+			camera.mRotator.Normalize();
+
+			FTransform transform = view.get<FTransform>(entity);
+			transform.mRotation = camera.mRotator.ToQuat();
 
 			registry.replace<FTransform>(entity, transform);
 		}

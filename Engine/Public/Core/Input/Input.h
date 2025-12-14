@@ -6,8 +6,8 @@ namespace Turbo
 {
 	struct FKey
 	{
-		FName keyName{};
-		bool bAxis = false;
+		FName mKeyName{};
+		bool mbAxis = false;
 
 		FKey() = default;
 
@@ -17,7 +17,7 @@ namespace Turbo
 
 		friend bool operator==(const FKey& lhs, const FKey& rhs)
 		{
-			return lhs.keyName == rhs.keyName;
+			return lhs.mKeyName == rhs.mKeyName;
 		}
 
 		friend bool operator!=(const FKey& lhs, const FKey& rhs)
@@ -30,35 +30,41 @@ namespace Turbo
 	{
 		EVENT_BODY(FKeyEvent)
 
-		FKey Key;
+		FKey mKey;
 
-		bool bDown : 1 = false;
-		bool bRepeat : 1 = false;
+		bool mbDown : 1 = false;
+		bool mbRepeat : 1 = false;
 	};
 
 	struct FAxisEvent : FEventBase
 	{
 		EVENT_BODY(FAxisEvent)
 
-		FKey Key;
+		FKey mKey;
 
-		float Value = 0.f;
+		float mValue = 0.f;
 	};
 
 	struct FActionEvent : FEventBase
 	{
 		EVENT_BODY(FActionEvent)
 
-		FName ActionName{};
+		FName mActionName{};
 
-		FKey Key{};
-		bool bAxis = false;
+		FKey mKey{};
+		bool mbAxis = false;
 
-		bool bDown = false;
-		float Value = 0.f;
+		bool mbDown = false;
+		float mValue = 0.f;
 
 		FActionEvent(const FActionEvent& other);
 		FActionEvent& operator=(const FActionEvent& other);
+	};
+
+	struct FActionBinding
+	{
+		FName mActionName;
+		FKey mKey;
 	};
 
 	DECLARE_MULTICAST_DELEGATE(FOnKeyEvent, FKeyEvent);
@@ -84,7 +90,7 @@ namespace Turbo
 		virtual bool IsKeyPressed(const FKey& key) = 0;
 		virtual bool IsActionPressed(FName actionName) = 0;
 
-		virtual bool RegisterBinding(FName actionName, const FKey& key) = 0;
+		virtual bool RegisterBinding(const FActionBinding& ActionBinding) = 0;
 		virtual std::unordered_map<FName, FKey>& GetBindings() = 0;
 	};
 } // Turbo

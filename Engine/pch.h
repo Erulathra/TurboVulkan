@@ -32,6 +32,8 @@
 
 // Internal Math
 #include "Core/Math/Math.h"
+#include "Core/Math/Vector.h"
+#include "Core/Math/MathTypes.h"
 
 #include "magic_enum/magic_enum.hpp"
 

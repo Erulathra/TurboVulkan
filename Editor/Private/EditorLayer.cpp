@@ -5,6 +5,7 @@
 #include "Core/WindowEvents.h"
 #include "Core/Input/Input.h"
 #include "Core/Input/Keys.h"
+#include "EditorViewPort/EditorFreeCamera.h"
 
 namespace Turbo
 {
@@ -14,18 +15,32 @@ namespace Turbo
 	void FEditorLayer::Start()
 	{
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
-		inputSystem.RegisterBinding(kToggleFullscreenName, EKeys::F11);
-		inputSystem.RegisterBinding(kExitName, EKeys::Escape);
+		inputSystem.RegisterBinding({kToggleFullscreenName, EKeys::F11});
+		inputSystem.RegisterBinding({kExitName, EKeys::Escape});
+
+		FEditorFreeCameraUtils::Init();
 	}
 
 	void FEditorLayer::Shutdown()
 	{
 	}
 
+	void FEditorLayer::BeginTick(double deltaTime)
+	{
+		FEditorFreeCameraUtils::Tick(deltaTime);
+	}
+
+	bool FEditorLayer::ShouldTick()
+	{
+		return true;
+	}
+
 	void FEditorLayer::OnEvent(FEventBase& event)
 	{
 		FEventDispatcher::Dispatch<FActionEvent>(event, this, &FEditorLayer::HandleInputActionEvent);
 		FEventDispatcher::Dispatch<FCloseWindowEvent>(event, this, &FEditorLayer::HandleCloseEvent);
+
+		FEditorFreeCameraUtils::HandleEvent(event);
 	}
 
 	FName FEditorLayer::GetName()
@@ -36,13 +51,13 @@ namespace Turbo
 
 	void FEditorLayer::HandleInputActionEvent(FActionEvent& event)
 	{
-		if (event.ActionName == kToggleFullscreenName && event.bDown)
+		if (event.mActionName == kToggleFullscreenName && event.mbDown)
 		{
 			FWindow& window = entt::locator<FWindow>::value();
 			window.SetFullscreen(!window.IsFullscreenEnabled());
 			event.Handle();
 		}
-		else if (event.ActionName == kExitName && event.bDown)
+		else if (event.mActionName == kExitName && event.mbDown)
 		{
 			gEngine->RequestExit(EExitCode::Success);
 			event.Handle();

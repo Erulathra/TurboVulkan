@@ -3,14 +3,14 @@
 namespace Turbo
 {
 	FKey::FKey(FName keyName, bool bAxis)
-		: keyName(keyName)
-		, bAxis(bAxis)
+		: mKeyName(keyName)
+		, mbAxis(bAxis)
 	{
 	}
 
 	FKey::FKey(const FKey& other)
-		: keyName(other.keyName)
-		, bAxis(other.bAxis)
+		: mKeyName(other.mKeyName)
+		, mbAxis(other.mbAxis)
 	{
 	}
 
@@ -19,18 +19,18 @@ namespace Turbo
 		if (this == &other)
 			return *this;
 
-		keyName = other.keyName;
-		bAxis = other.bAxis;
+		mKeyName = other.mKeyName;
+		mbAxis = other.mbAxis;
 		return *this;
 	}
 
 	FActionEvent::FActionEvent(const FActionEvent& other)
 		: FEventBase(other.mEventTypeId)
-		, ActionName(other.ActionName)
-		, Key(other.Key)
-		, bAxis(other.bAxis)
-		, bDown(other.bDown)
-		, Value(other.Value)
+		, mActionName(other.mActionName)
+		, mKey(other.mKey)
+		, mbAxis(other.mbAxis)
+		, mbDown(other.mbDown)
+		, mValue(other.mValue)
 	{
 	}
 
@@ -39,11 +39,11 @@ namespace Turbo
 		if (this == &other)
 			return *this;
 
-		ActionName = other.ActionName;
-		Key = other.Key;
-		bAxis = other.bAxis;
-		bDown = other.bDown;
-		Value = other.Value;
+		mActionName = other.mActionName;
+		mKey = other.mKey;
+		mbAxis = other.mbAxis;
+		mbDown = other.mbDown;
+		mValue = other.mValue;
 
 		return *this;
 	}

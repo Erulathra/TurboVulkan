@@ -82,8 +82,22 @@ namespace Turbo
 			case SDL_EVENT_KEY_DOWN:
 			case SDL_EVENT_KEY_UP:
 				{
-					OnSdlKeyboardEvent.ExecuteIfBound(event.key);
+					OnSDLKeyboardEvent.ExecuteIfBound(event.key);
 					break;
+				}
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
+				{
+					OnSDLMouseButtonEvent.ExecuteIfBound(event.button);
+					break;
+				}
+			case SDL_EVENT_MOUSE_MOTION:
+				{
+					OnSDLMouseMotionEvent.ExecuteIfBound(event.motion);
+				}
+			case SDL_EVENT_MOUSE_WHEEL:
+				{
+					OnSDLMouseWheelEvent.ExecuteIfBound(event.wheel);
 				}
 			default:
 				break;
@@ -104,6 +118,29 @@ namespace Turbo
 		else
 		{
 			SDL_HideWindow(mSDLWindow);
+		}
+	}
+
+	void FWindow::ShowCursor(bool bVisible)
+	{
+		TURBO_LOG(LOG_WINDOW, Display, "Setting cursor visibility to {}", bVisible);
+
+		bool bResult = true;
+
+		if (bVisible)
+		{
+			bResult &= SDL_ShowCursor();
+		}
+		else
+		{
+			bResult &= SDL_HideCursor();
+		}
+
+		bResult &= SDL_SetWindowRelativeMouseMode(mSDLWindow, !bVisible);
+
+		if (bResult == false)
+		{
+			LogError();
 		}
 	}
 

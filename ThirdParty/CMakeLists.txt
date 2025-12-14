@@ -17,7 +17,7 @@ CPMAddPackage( "gh:gabime/spdlog@1.15.3")
 # Math library
 CPMAddPackage(
         GITHUB_REPOSITORY "g-truc/glm"
-        GIT_TAG "1.0.1"
+        GIT_TAG "8f6213d"
         OPTIONS "GLM_ENABLE_SIMD_AVX2 ON"
 )
 
