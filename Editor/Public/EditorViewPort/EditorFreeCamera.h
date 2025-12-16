@@ -29,5 +29,6 @@ namespace Turbo
 		static bool HandleEnableAction(FActionEvent& actionEvent);
 		static bool HandleMovementAction(FActionEvent& actionEvent);
 		static bool HandleRotationAction(FActionEvent& actionEvent);
+		static bool HandleChangeSpeedAction(FActionEvent& actionEvent);
 	};
 } // Turbo

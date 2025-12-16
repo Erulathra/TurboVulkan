@@ -33,6 +33,8 @@ namespace Turbo
 		const FActionBinding kRotateX {FName{"FreeCamera.RotateX"}, EKeys::MouseDeltaPositionX};
 		const FActionBinding kRotateY {FName{"FreeCamera.RotateY"}, EKeys::MouseDeltaPositionY};
 
+		const FActionBinding kChangeSpeed {FName{"FreeCamera.ChangeSpeed"}, EKeys::MouseScrollY};
+
 		const FActionBinding kEnable {FName{"FreeCamera.Enable"}, EKeys::MouseButtonRight};
 
 		const std::array<const FCameraBinding, 6> kMovementBindings = {
@@ -79,6 +81,7 @@ namespace Turbo
 		}
 
 		inputSystem.RegisterBinding(FreeCamera::kEnable);
+		inputSystem.RegisterBinding(FreeCamera::kChangeSpeed);
 	}
 
 	void FEditorFreeCameraUtils::OnConstructMainViewPort(entt::registry& registry, const entt::entity& entity)
@@ -118,6 +121,11 @@ namespace Turbo
 	void FEditorFreeCameraUtils::HandleAction(FActionEvent& actionEvent)
 	{
 		if (HandleEnableAction(actionEvent))
+		{
+			return;
+		}
+
+		if (HandleChangeSpeedAction(actionEvent))
 		{
 			return;
 		}
@@ -219,6 +227,27 @@ namespace Turbo
 		if (glm::length2(deltaRotation) > TURBO_SMALL_NUMBER)
 		{
 			FCameraUtils::UpdateFreeCameraRotation(gEngine->GetWorld()->mRegistry, deltaRotation);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool FEditorFreeCameraUtils::HandleChangeSpeedAction(FActionEvent& actionEvent)
+	{
+		bool bNavigationEnabled = true;
+
+		FWorld* world = gEngine->GetWorld();
+		auto view = world->mRegistry.view<FEditorFreeCameraInput>();
+		for (const entt::entity cameraEntity : view)
+		{
+			FEditorFreeCameraInput& freeCameraInput = view.get<FEditorFreeCameraInput>(cameraEntity);
+			bNavigationEnabled &= freeCameraInput.bNavigationEnabled;
+		}
+
+		if (bNavigationEnabled && actionEvent.mActionName == FreeCamera::kChangeSpeed.mActionName)
+		{
+			FCameraUtils::UpdateFreeCameraSpeed(world->mRegistry, glm::trunc(actionEvent.mValue));
 			return true;
 		}
 

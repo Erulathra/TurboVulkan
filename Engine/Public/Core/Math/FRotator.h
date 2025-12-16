@@ -33,22 +33,26 @@ namespace Turbo
 		{
 		}
 
+		[[nodiscard]]
 		static TRotator FromQuat(const QuatType& quat)
 		{
 			const ScalarType3 glmEuler = glm::eulerAngles(quat);
 			return TRotator(glmEuler);
 		}
 
+		[[nodiscard]]
 		ScalarType3 ToEuler() const
 		{
 			return ScalarType3(mPitch, mYaw, mRoll);
 		}
 
+		[[nodiscard]]
 		QuatType ToQuat() const
 		{
 			return glm::quat(-ScalarType3(mPitch, mYaw, mRoll));
 		}
 
+		[[nodiscard]]
 		TRotator Normalize() const
 		{
 			return TRotator(
@@ -58,16 +62,19 @@ namespace Turbo
 			);
 		}
 
+		[[nodiscard]]
 		ScalarType3 Forward() const
 		{
 			return glm::normalize(ToQuat() * EFloat3::Forward);
 		}
 
+		[[nodiscard]]
 		ScalarType3 Up() const
 		{
 			return glm::normalize(ToQuat() * EFloat3::Up);
 		}
 
+		[[nodiscard]]
 		ScalarType3 Right() const
 		{
 			return glm::normalize(ToQuat() * EFloat3::Right);

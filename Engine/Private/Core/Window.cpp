@@ -94,10 +94,12 @@ namespace Turbo
 			case SDL_EVENT_MOUSE_MOTION:
 				{
 					OnSDLMouseMotionEvent.ExecuteIfBound(event.motion);
+					break;
 				}
 			case SDL_EVENT_MOUSE_WHEEL:
 				{
 					OnSDLMouseWheelEvent.ExecuteIfBound(event.wheel);
+					break;
 				}
 			default:
 				break;

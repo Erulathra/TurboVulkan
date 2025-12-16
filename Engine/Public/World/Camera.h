@@ -32,7 +32,10 @@ namespace Turbo
 
 	struct FFreeCamera
 	{
-		float mMaxMovementSpeed = 5.f;
+		float mMinMovementSpeed = 1.f;
+		float mMaxMovementSpeed = 1000.f;
+		float mMovementSpeedFactor = 1.1f;
+		float mMovementSpeed = 5.f;
 		float mRotationSensitivity = glm::radians(0.16f);
 		FRotator mRotator = FRotator(0.f);
 	};
@@ -59,6 +62,7 @@ namespace Turbo
 		static void UpdateDirtyCameras(entt::registry& registry);
 		static void UpdateFreeCameraPosition(entt::registry& registry, const glm::float3& movementInput, float deltaTime);
 		static void UpdateFreeCameraRotation(entt::registry& registry, const glm::float2& deltaRotation);
+		static void UpdateFreeCameraSpeed(entt::registry& registry, const int32 deltaSpeed);
 
 	public:
 		static void InitializeCamera(entt::registry& registry, entt::entity entity);

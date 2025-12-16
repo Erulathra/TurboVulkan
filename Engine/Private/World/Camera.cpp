@@ -85,7 +85,7 @@ namespace Turbo
 			const glm::float3 forwardMovement = camera.mRotator.Forward() * normalizedInput.z;
 			// const glm::float3 forwardMovement = EFloat3::Forward * normalizedInput.z;
 
-			const glm::float3 deltaPos = (rightMovement + upMovement + forwardMovement) * camera.mMaxMovementSpeed * deltaTime;
+			const glm::float3 deltaPos = (rightMovement + upMovement + forwardMovement) * camera.mMovementSpeed * deltaTime;
 
 			FTransform transform = view.get<FTransform>(entity);
 			transform.mPosition += deltaPos;
@@ -105,12 +105,38 @@ namespace Turbo
 		{
 			FFreeCamera& camera = view.get<FFreeCamera>(entity);
 			camera.mRotator += FRotator(deltaRotation.y, deltaRotation.x, 0.f) * camera.mRotationSensitivity;
-			camera.mRotator.Normalize();
+			camera.mRotator = camera.mRotator.Normalize();
 
 			FTransform transform = view.get<FTransform>(entity);
 			transform.mRotation = camera.mRotator.ToQuat();
 
 			registry.replace<FTransform>(entity, transform);
+		}
+	}
+
+	void FCameraUtils::UpdateFreeCameraSpeed(entt::registry& registry, const int32 deltaSpeed)
+	{
+		if (deltaSpeed == 0)
+		{
+			return;
+		}
+
+		const auto view = registry.view<FFreeCamera, FCamera const, FTransform const, FMainViewport const>();
+		for (entt::entity entity : view)
+		{
+			FFreeCamera& camera = view.get<FFreeCamera>(entity);
+			if (deltaSpeed > 0)
+			{
+				camera.mMovementSpeed *= camera.mMovementSpeedFactor;
+			}
+			else
+			{
+				camera.mMovementSpeed /= camera.mMovementSpeedFactor;
+			}
+
+			camera.mMovementSpeed = glm::clamp(camera.mMovementSpeed, camera.mMinMovementSpeed, camera.mMaxMovementSpeed);
+
+			TURBO_LOG(LOG_TEMP, Info, "Free camera speed changed to: {}", camera.mMovementSpeed);
 		}
 	}
 
