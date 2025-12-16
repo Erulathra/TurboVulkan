@@ -135,8 +135,6 @@ namespace Turbo
 			}
 
 			camera.mMovementSpeed = glm::clamp(camera.mMovementSpeed, camera.mMinMovementSpeed, camera.mMaxMovementSpeed);
-
-			TURBO_LOG(LOG_TEMP, Info, "Free camera speed changed to: {}", camera.mMovementSpeed);
 		}
 	}
 

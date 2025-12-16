@@ -205,7 +205,7 @@ namespace Turbo
 		auto mainCameraView = world->mRegistry.view<FCamera>();
 		if (mainCameraView.begin() == mainCameraView.end())
 		{
-			TURBO_LOG(LOG_SCENE_RENDERING, Error, "Scene doesn't contain any camera.")
+			TURBO_LOG(LogSceneRendering, Error, "Scene doesn't contain any camera.")
 			return;
 		}
 

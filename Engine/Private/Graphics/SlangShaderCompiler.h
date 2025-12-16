@@ -5,6 +5,8 @@
 #include "slang.h"
 #include "slang-com-ptr.h"
 
+DECLARE_LOG_CATEGORY(LogSlang, Display, Display)
+
 namespace Turbo
 {
 	class FShaderStage;

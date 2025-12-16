@@ -20,7 +20,7 @@
 
 // Internal headers
 #include "CommonMacros.h"
-#include "LoggingMacros.h"
+#include "TurboLog.h"
 #include "CommonTypeDefs.h"
 #include "ProfilingMacros.h"
 #include "Core/Name.h"

@@ -4,6 +4,8 @@
 #include <SDL3/SDL_vulkan.h>
 #include "Core/Delegate.h"
 
+DECLARE_LOG_CATEGORY(LogWindow, Info, Display)
+
 namespace Turbo
 {
 	// TODO: Replace that with config

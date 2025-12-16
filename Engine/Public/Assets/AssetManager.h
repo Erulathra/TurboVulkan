@@ -2,6 +2,9 @@
 
 #include "StaticMesh.h"
 
+DECLARE_LOG_CATEGORY(LogMeshLoading, Display, Display)
+DECLARE_LOG_CATEGORY(LogTextureLoading, Display, Display)
+
 namespace Turbo
 {
 	class FTexture;

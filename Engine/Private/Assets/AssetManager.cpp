@@ -19,7 +19,7 @@ namespace Turbo
 
 	void LogGLTFError(std::string_view message, fastgltf::Error error)
 	{
-		TURBO_LOG(LOG_MESH_LOADING, Error, "{} Error: {} Message: {}", message, fastgltf::getErrorName(error), fastgltf::getErrorMessage(error));
+		TURBO_LOG(LogMeshLoading, Error, "{} Error: {} Message: {}", message, fastgltf::getErrorName(error), fastgltf::getErrorMessage(error));
 	}
 
 	template<typename T>
@@ -75,7 +75,7 @@ namespace Turbo
 	std::vector<THandle<FMesh>> FAssetManager::LoadMesh(const std::filesystem::path& path)
 	{
 		// This method is as much naive as it can be, but for now it should last.
-		TURBO_LOG(LOG_MESH_LOADING, Info, "Loading GLTF mesh. ({})", path.string())
+		TURBO_LOG(LogMeshLoading, Info, "Loading GLTF mesh. ({})", path.string())
 
 		fastgltf::Expected<fastgltf::GltfDataBuffer> data = fastgltf::GltfDataBuffer::FromPath(path);
 		if (data.error() != fastgltf::Error::None)
@@ -223,13 +223,13 @@ namespace Turbo
 		TRACE_ZONE_SCOPED()
 
 		THandle<FTexture> result = {};
-		TURBO_LOG(LOG_TEXTURE_LOADING, Info, "Loading {} using DDS loader.", path.c_str());
+		TURBO_LOG(LogTextureLoading, Info, "Loading {} using DDS loader.", path.c_str());
 
 		dds::Image image;
 		if (const dds::ReadResult readResult = dds::readFile(path, &image);
 			readResult != dds::ReadResult::Success)
 		{
-			TURBO_LOG(LOG_TEXTURE_LOADING, Error, "Error {} during loading {}", magic_enum::enum_name(readResult), path.c_str());
+			TURBO_LOG(LogTextureLoading, Error, "Error {} during loading {}", magic_enum::enum_name(readResult), path.c_str());
 			return result;
 		}
 
@@ -280,7 +280,7 @@ namespace Turbo
 		case dds::Unknown:
 		case dds::Buffer:
 		default:
-			TURBO_LOG(LOG_TEXTURE_LOADING, Error, "Invalid texture type for {}", path.c_str());
+			TURBO_LOG(LogTextureLoading, Error, "Invalid texture type for {}", path.c_str());
 			return result;
 		}
 

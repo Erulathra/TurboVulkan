@@ -14,7 +14,7 @@ namespace Turbo
 {
 	void FGPUDevice::Init(const FGPUDeviceBuilder& gpuDeviceBuilder)
 	{
-		TURBO_LOG(LOG_GPU_DEVICE, Info, "Initializing GPU Device.");
+		TURBO_LOG(LogGPUDevice, Info, "Initializing GPU Device.");
 
 		FWindow& window = entt::locator<FWindow>::value();
 		window.InitForVulkan();
@@ -629,7 +629,7 @@ namespace Turbo
 
 		if (builder.mStagesCount == 0)
 		{
-			TURBO_LOG(LOG_GPU_DEVICE, Warn, "Shader {} doesn't contain any shader stage.", builder.mName);
+			TURBO_LOG(LogGPUDevice, Warn, "Shader {} doesn't contain any shader stage.", builder.mName);
 			return handle;
 		}
 
@@ -700,7 +700,7 @@ namespace Turbo
 		const FBuffer* buffer = AccessBuffer(handle);
 		TURBO_CHECK(buffer);
 
-		TURBO_LOG(LOG_GPU_DEVICE, Display, "Destroying {} buffer.", buffer->mName);
+		TURBO_LOG(LogGPUDevice, Display, "Destroying {} buffer.", buffer->mName);
 
 		FBufferDestroyer destroyer;
 		destroyer.mHandle = handle;
@@ -716,7 +716,7 @@ namespace Turbo
 		const FTexture* texture = AccessTexture(handle);
 		TURBO_CHECK(texture)
 
-		TURBO_LOG(LOG_GPU_DEVICE, Display, "Destroying {} texture.", texture->mName);
+		TURBO_LOG(LogGPUDevice, Display, "Destroying {} texture.", texture->mName);
 
 		FTextureDestroyer destroyer = {};
 		destroyer.mHandle = handle;
@@ -733,7 +733,7 @@ namespace Turbo
 		const FSampler* sampler = AccessSampler(handle);
 		TURBO_CHECK(sampler)
 
-		TURBO_LOG(LOG_GPU_DEVICE, Display, "Destroying {} sampler.", sampler->mName);
+		TURBO_LOG(LogGPUDevice, Display, "Destroying {} sampler.", sampler->mName);
 
 		FSamplerDestroyer destroyer = {};
 		destroyer.mHandle = handle;
@@ -876,7 +876,7 @@ namespace Turbo
 		vkb::PhysicalDevice physicalDevice = selectPhysicalDeviceResult.value();
 
 		mVkPhysicalDevice = physicalDevice;
-		TURBO_LOG(LOG_GPU_DEVICE, Info, "Selected {} as primary physical device.", physicalDevice.name);
+		TURBO_LOG(LogGPUDevice, Info, "Selected {} as primary physical device.", physicalDevice.name);
 
 		return physicalDevice;
 	}
@@ -922,7 +922,7 @@ namespace Turbo
 
 		const FWindow& window = entt::locator<FWindow>::value();
 		const glm::ivec2& frameBufferSize = window.GetFrameBufferSize();
-		TURBO_LOG(LOG_GPU_DEVICE, Info, "Creating swapchain of size: {}", frameBufferSize);
+		TURBO_LOG(LogGPUDevice, Info, "Creating swapchain of size: {}", frameBufferSize);
 
 		vkb::SwapchainBuilder swapchainBuilder {mVkPhysicalDevice, mVkDevice, mVkWindowSurface};
 		vkb::Result<vkb::Swapchain> buildSwapchainResult = swapchainBuilder
@@ -939,7 +939,7 @@ namespace Turbo
 		mVkSurfaceFormat = { builtSwapchain.image_format, builtSwapchain.color_space };
 		mPresentMode = static_cast<vk::PresentModeKHR>(builtSwapchain.present_mode);
 
-		TURBO_LOG(LOG_GPU_DEVICE, Info, "Selected present mode: {}", magic_enum::enum_name(mPresentMode));
+		TURBO_LOG(LogGPUDevice, Info, "Selected present mode: {}", magic_enum::enum_name(mPresentMode));
 
 		const std::vector<VkImage> builtImages = builtSwapchain.get_images().value();
 		const std::vector<VkImageView> builtImageViews = builtSwapchain.get_image_views().value();
@@ -996,7 +996,7 @@ namespace Turbo
 
 	void FGPUDevice::CreateFrameDatas()
 	{
-		TURBO_LOG(LOG_GPU_DEVICE, Info, "Creating frames data")
+		TURBO_LOG(LogGPUDevice, Info, "Creating frames data")
 
 		const vk::FenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
 		const vk::SemaphoreCreateInfo semaphoreCreateInfo = VulkanInitializers::SemaphoreCreateInfo();
@@ -1094,7 +1094,7 @@ namespace Turbo
 	{
 		CHECK_VULKAN_HPP(mVkDevice.waitIdle())
 
-		TURBO_LOG(LOG_GPU_DEVICE, Info, "Starting Gpu Device shutdown.")
+		TURBO_LOG(LogGPUDevice, Info, "Starting Gpu Device shutdown.")
 
 		DestroyBindlessResources();
 		DestroyImmediateCommands();
@@ -1351,7 +1351,7 @@ namespace Turbo
 
 	void FGPUDevice::DestroyFrameDatas()
 	{
-		TURBO_LOG(LOG_GPU_DEVICE, Info, "Destroying frames data")
+		TURBO_LOG(LogGPUDevice, Info, "Destroying frames data")
 
 		for (FBufferedFrameData& frameData : mFrameDatas)
 		{
@@ -1549,20 +1549,20 @@ namespace Turbo
 	{
 		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
 		{
-			TURBO_LOG(LOG_RHI, Display, "{}", callbackData->pMessage)
+			TURBO_LOG(LogGPUDevice, Display, "{}", callbackData->pMessage)
 		}
 		else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
 		{
 			// Messages with info severity are very verbose, so I reduced its verbosity to display.
-			TURBO_LOG(LOG_RHI, Display, "{}", callbackData->pMessage)
+			TURBO_LOG(LogGPUDevice, Display, "{}", callbackData->pMessage)
 		}
 		else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 		{
-			TURBO_LOG(LOG_RHI, Warn, "{}", callbackData->pMessage)
+			TURBO_LOG(LogGPUDevice, Warn, "{}", callbackData->pMessage)
 		}
 		else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 		{
-			TURBO_LOG(LOG_RHI, Error, "{}", callbackData->pMessage)
+			TURBO_LOG(LogGPUDevice, Error, "{}", callbackData->pMessage)
 			TURBO_DEBUG_BREAK();
 		}
 

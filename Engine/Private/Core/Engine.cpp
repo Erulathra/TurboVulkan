@@ -26,7 +26,8 @@ namespace Turbo
 
 	void FEngine::Init()
 	{
-		TURBO_LOG(LOG_ENGINE, Info, "Creating engine instance.");
+		// TURBO_LOG(LOG_ENGINE, Info, "Creating engine instance.");
+		TURBO_LOG(LogEngine, Info, "Creating engine instance.")
 		gEngine = TUniquePtr<FEngine>(new FEngine());
 
 #if 0
@@ -211,7 +212,7 @@ namespace Turbo
 		FEventDispatcher::Dispatch<FResizeWindowEvent>(
 			event, [](const FResizeWindowEvent& resizeWindowEvent)
 		{
-			TURBO_LOG(LOG_ENGINE, Info, "Window resized. New size {}", resizeWindowEvent.mNewWindowSize)
+			TURBO_LOG(LogEngine, Info, "Window resized. New size {}", resizeWindowEvent.mNewWindowSize)
 
 			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 			gpu.RequestSwapChainResize();
@@ -227,7 +228,7 @@ namespace Turbo
 
 	void FEngine::End()
 	{
-		TURBO_LOG(LOG_ENGINE, Info, "Begin exit sequence.");
+		TURBO_LOG(LogEngine, Info, "Begin exit sequence.");
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		gpu.WaitIdle();

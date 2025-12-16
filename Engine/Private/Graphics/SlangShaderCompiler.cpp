@@ -10,7 +10,7 @@ namespace Turbo
 
 	void FSlangShaderCompiler::Init()
 	{
-		TURBO_LOG(LOG_SLANG, Info, "Initializing Slang shader compiler.");
+		TURBO_LOG(LogSlang, Info, "Initializing Slang shader compiler.");
 
 		slang::createGlobalSession(mGlobalSession.writeRef());
 		CreateSession();
@@ -19,7 +19,7 @@ namespace Turbo
 
 	void FSlangShaderCompiler::Destroy()
 	{
-		TURBO_LOG(LOG_SLANG, Info, "Destroying Slang shader compiler.");
+		TURBO_LOG(LogSlang, Info, "Destroying Slang shader compiler.");
 
 		mSession = nullptr;
 		mGlobalSession = nullptr;
@@ -28,7 +28,7 @@ namespace Turbo
 
 	vk::ShaderModule FSlangShaderCompiler::CompileShader(vk::Device device, const FShaderStage& shaderStage)
 	{
-		TURBO_LOG(LOG_SLANG, Info, "Compiling `Shaders/{}.slang` ({}) shader.", shaderStage.mShaderName, VulkanEnum::GetShaderStageName(shaderStage.mStage));
+		TURBO_LOG(LogSlang, Info, "Compiling `Shaders/{}.slang` ({}) shader.", shaderStage.mShaderName, VulkanEnum::GetShaderStageName(shaderStage.mStage));
 
 		vk::ShaderModule result = nullptr;
 
@@ -40,7 +40,7 @@ namespace Turbo
 
 		if (!module)
 		{
-			TURBO_LOG(LOG_SLANG, Error, "Error during shader module creation.");
+			TURBO_LOG(LogSlang, Error, "Error during shader module creation.");
 			return result;
 		}
 
@@ -48,7 +48,7 @@ namespace Turbo
 		module->findEntryPointByName(shaderStage.mEntryPoint.c_str(), entryPoint.writeRef());
 		if (!entryPoint)
 		{
-			TURBO_LOG(LOG_SLANG, Error, "Invalid or missing entry point.");
+			TURBO_LOG(LogSlang, Error, "Invalid or missing entry point.");
 			return result;
 		}
 
@@ -64,18 +64,18 @@ namespace Turbo
 		PrintMessageIfNeeded(diagnosticsBlob);
 		if (compilationResult != SLANG_OK)
 		{
-			TURBO_LOG(LOG_SLANG, Error, "Error {} during shader program compilation.", compilationResult);
+			TURBO_LOG(LogSlang, Error, "Error {} during shader program compilation.", compilationResult);
 			return result;
 		}
 
-		TURBO_LOG(LOG_SLANG, Info, "Linking {} shader.", shaderStage.mShaderName);
+		TURBO_LOG(LogSlang, Info, "Linking {} shader.", shaderStage.mShaderName);
 		Slang::ComPtr<slang::IComponentType> linkedProgram;
 		const SlangResult linkingResult = composedProgram->link(linkedProgram.writeRef(), diagnosticsBlob.writeRef());
 
 		PrintMessageIfNeeded(diagnosticsBlob);
 		if (linkingResult != SLANG_OK)
 		{
-			TURBO_LOG(LOG_SLANG, Error, "Error {} during shader program linking.", linkingResult);
+			TURBO_LOG(LogSlang, Error, "Error {} during shader program linking.", linkingResult);
 			return result;
 		}
 
@@ -85,7 +85,7 @@ namespace Turbo
 		PrintMessageIfNeeded(diagnosticsBlob);
 		if (finalResult != SLANG_OK)
 		{
-			TURBO_LOG(LOG_SLANG, Error, "Unknown shader compilation error ({})", finalResult);
+			TURBO_LOG(LogSlang, Error, "Unknown shader compilation error ({})", finalResult);
 			return result;
 		}
 
@@ -141,7 +141,7 @@ namespace Turbo
 	{
 		if (diagnosticsBlob)
 		{
-			TURBO_LOG(LOG_SLANG, Info, "There was a message compilation. Message: \n{}", static_cast<cstring>(diagnosticsBlob->getBufferPointer()));
+			TURBO_LOG(LogSlang, Info, "There was a message compilation. Message: \n{}", static_cast<cstring>(diagnosticsBlob->getBufferPointer()));
 		}
 	}
 } // Turbo

@@ -2,6 +2,8 @@
 #include "Core/Delegate.h"
 #include "Layers/Event.h"
 
+DECLARE_LOG_CATEGORY(LogInput, Display, Display)
+
 namespace Turbo
 {
 	struct FKey

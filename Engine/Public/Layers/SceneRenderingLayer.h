@@ -4,6 +4,8 @@
 #include "World/Camera.h"
 #include "World/World.h"
 
+DECLARE_LOG_CATEGORY(LogSceneRendering, Display, Display)
+
 namespace Turbo
 {
 	class FBuffer;

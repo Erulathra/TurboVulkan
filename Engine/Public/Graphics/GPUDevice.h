@@ -8,6 +8,8 @@
 #include "Graphics/Resources.h"
 #include "VulkanHelpers.h"
 
+DECLARE_LOG_CATEGORY(LogGPUDevice, Info, Display)
+
 namespace Turbo
 {
 	class FWindow;

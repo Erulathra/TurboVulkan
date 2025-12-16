@@ -99,7 +99,7 @@ namespace Turbo
 		const FKey key = ConvertSDLKey(keyboardEvent.key);
 		if (key == EKeys::None)
 		{
-			TURBO_LOG(LOG_INPUT, Warn, "InputEvent: Unknown input code: {}", keyboardEvent.key);
+			TURBO_LOG(LogInput, Warn, "InputEvent: Unknown input code: {}", keyboardEvent.key);
 			return;
 		}
 
@@ -121,7 +121,7 @@ namespace Turbo
 		const FKey key = ConvertSDLMouseButton(mouseButtonEvent.button);
 		if (key == EKeys::None)
 		{
-			TURBO_LOG(LOG_INPUT, Warn, "InputEvent: Unknown mouse button: {}", mouseButtonEvent.button);
+			TURBO_LOG(LogInput, Warn, "InputEvent: Unknown mouse button: {}", mouseButtonEvent.button);
 			return;
 		}
 

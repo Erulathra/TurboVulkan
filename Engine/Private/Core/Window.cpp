@@ -12,7 +12,7 @@ namespace Turbo
 
 	void FWindow::InitBackend()
 	{
-		TURBO_LOG(LOG_WINDOW, Info, "Initializing SDL.");
+		TURBO_LOG(LogWindow, Info, "Initializing SDL.");
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
 			LogError();
@@ -21,24 +21,24 @@ namespace Turbo
 
 	void FWindow::StopBackend()
 	{
-		TURBO_LOG(LOG_WINDOW, Info, "Stopping SDL.");
+		TURBO_LOG(LogWindow, Info, "Stopping SDL.");
 		SDL_Quit();
 	}
 
 	void FWindow::Destroy()
 	{
-		TURBO_LOG(LOG_WINDOW, Info, "Destroying window.");
+		TURBO_LOG(LogWindow, Info, "Destroying window.");
 		SDL_DestroyWindow(mSDLWindow);
 	}
 
 	bool FWindow::Init()
 	{
-		TURBO_LOG(LOG_WINDOW, Info, "Initializing Window.");
+		TURBO_LOG(LogWindow, Info, "Initializing Window.");
 		mSDLWindow = SDL_CreateWindow(WindowDefaultValues::kName.data(), WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY,
 		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN);
 		if (!mSDLWindow)
 		{
-			TURBO_LOG(LOG_WINDOW, Error, "SDL window creation error. See bellow logs for details");
+			TURBO_LOG(LogWindow, Error, "SDL window creation error. See bellow logs for details");
 			LogError();
 
 			return false;
@@ -49,7 +49,7 @@ namespace Turbo
 
 	void FWindow::LogError()
 	{
-		TURBO_LOG(LOG_WINDOW, Error, "SDL_ERROR: {}", SDL_GetError());
+		TURBO_LOG(LogWindow, Error, "SDL_ERROR: {}", SDL_GetError());
 	}
 
 	void FWindow::PollWindowEventsAndErrors()
@@ -111,7 +111,7 @@ namespace Turbo
 
 	void FWindow::ShowWindow(bool bVisible)
 	{
-		TURBO_LOG(LOG_WINDOW, Info, "Setting window visibility to {}", bVisible);
+		TURBO_LOG(LogWindow, Info, "Setting window visibility to {}", bVisible);
 
 		if (bVisible)
 		{
@@ -125,7 +125,7 @@ namespace Turbo
 
 	void FWindow::ShowCursor(bool bVisible)
 	{
-		TURBO_LOG(LOG_WINDOW, Display, "Setting cursor visibility to {}", bVisible);
+		TURBO_LOG(LogWindow, Display, "Setting cursor visibility to {}", bVisible);
 
 		bool bResult = true;
 
@@ -222,7 +222,7 @@ namespace Turbo
 
 		if (!SDL_Vulkan_CreateSurface(mSDLWindow, vulkanInstance, nullptr, &mVulkanSurface))
 		{
-			TURBO_LOG(LOG_WINDOW, Error, "Window Vulkan surface creation error. Check bellow logs:");
+			TURBO_LOG(LogWindow, Error, "Window Vulkan surface creation error. Check bellow logs:");
 			LogError();
 
 			return false;
