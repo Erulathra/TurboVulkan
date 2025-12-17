@@ -67,18 +67,18 @@ namespace Turbo
 	constexpr Turbo::LogVerbosity Turbo::GetLogCategoryDefaultVerbosity<NAME>() { return Turbo::DEFAULT_VERBOSITY; }	\
 
 
-#define TURBO_LOG(CATEGORY, VERBOSITY, ...)																\
+#define TURBO_LOG(CATEGORY, VERBOSITY, MESSAGE, ...)																\
 {																											\
 	using namespace Turbo;																					\
 	if constexpr (VERBOSITY >= LOG_VERBOSITY && VERBOSITY >= GetLogCategoryStaticVerbosity<CATEGORY>())		\
 	{																										\
 		if (VERBOSITY >= GetLogCategoryDynamicVerbosity<CATEGORY>())										\
 		{																									\
-			if constexpr (VERBOSITY == Display) SPDLOG_DEBUG(__VA_ARGS__);									\
-			else if constexpr (VERBOSITY == Info) SPDLOG_INFO(__VA_ARGS__);   			    				\
-			else if constexpr (VERBOSITY == Warn) SPDLOG_WARN(__VA_ARGS__);									\
-			else if constexpr (VERBOSITY == Error) SPDLOG_ERROR(__VA_ARGS__);								\
-			else if constexpr (VERBOSITY == Critical) SPDLOG_CRITICAL(__VA_ARGS__);							\
+			if constexpr (VERBOSITY == Display) SPDLOG_DEBUG("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);			\
+			else if constexpr (VERBOSITY == Info) SPDLOG_INFO("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);   		\
+			else if constexpr (VERBOSITY == Warn) SPDLOG_WARN("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);			\
+			else if constexpr (VERBOSITY == Error) SPDLOG_ERROR("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);			\
+			else if constexpr (VERBOSITY == Critical) SPDLOG_CRITICAL("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);	\
 		}																									\
 	}																										\
 }
