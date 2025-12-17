@@ -83,5 +83,10 @@ namespace Turbo
 	}																										\
 }
 
+namespace Turbo
+{
+	void InitLogger();
+}
+
 DECLARE_LOG_CATEGORY(LogTemp, Display, Display);
 DECLARE_LOG_CATEGORY(LogEngine, Display, Display);

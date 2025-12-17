@@ -22,7 +22,7 @@ install_manifest.txt
 imgui.ini
 
 # runtime files
-Runtime/*
+Saved/*
 
 # Python enviro
 .venv

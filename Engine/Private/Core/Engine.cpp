@@ -26,6 +26,8 @@ namespace Turbo
 
 	void FEngine::Init()
 	{
+		InitLogger();
+
 		// TURBO_LOG(LOG_ENGINE, Info, "Creating engine instance.");
 		TURBO_LOG(LogEngine, Info, "Creating engine instance.")
 		gEngine = TUniquePtr<FEngine>(new FEngine());
