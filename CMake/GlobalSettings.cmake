@@ -14,6 +14,50 @@ function(turbo_message VERBOSITY MESSAGE)
 endfunction()
 
 ############################################################################################
+# Project setup helper functions
+############################################################################################
+
+function(setup_project_directory TARGET)
+    target_copy_slang_binaries(${TARGET})
+
+    add_custom_command(
+            TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_SOURCE_DIR}/Content
+            ${CMAKE_CURRENT_BINARY_DIR}/Content
+    )
+
+    add_custom_command(
+            TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_SOURCE_DIR}/Content
+            ${CMAKE_CURRENT_BINARY_DIR}/Content
+    )
+
+    add_custom_command(
+            TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_SOURCE_DIR}/Saved
+            ${CMAKE_CURRENT_BINARY_DIR}/Saved
+    )
+
+    add_custom_command(
+            TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_SOURCE_DIR}/Shaders
+            ${CMAKE_CURRENT_BINARY_DIR}/Shaders
+    )
+
+    if (WIN32)
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:${PROJECT_NAME}> $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>
+                COMMAND_EXPAND_LISTS
+        )
+    endif ()
+
+endfunction()
+
+############################################################################################
 # Build configuration
 ############################################################################################
 

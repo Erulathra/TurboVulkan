@@ -1,4 +1,3 @@
-#include "RenderingTestLayer.h"
 #include "Core/Engine.h"
 #include "Layers/Layer.h"
 
