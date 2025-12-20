@@ -83,20 +83,23 @@ void FRenderingTestLayer::Start()
 	FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
-	// THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_IcoPlanet.glb").front();
-	// THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front();
-	THandle<FMesh> meshHandle = assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front();
+	std::array meshes = {
+		assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front(),
+		assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front(),
+		assetManager.LoadMesh("Content/Meshes/SM_IcoPlanet.glb").front(),
+	};
+
 	FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("BaseMaterial.slang");
 	THandle<FMaterial> materialHandle = materialManager.LoadMaterial(pipelineBuilder, 0, 1);
 	THandle<FMaterial::Instance> instanceHandle = materialManager.CreateMaterialInstance(materialHandle);
 
-	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshHandle, instanceHandle);
+	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshes[0], instanceHandle);
 
 	for (uint32 planetId = 1; planetId < 3; ++planetId)
 	{
 		constexpr float offset = 3.f;
 		const entt::entity pivot = CreatePivot(world, entt::null, 0.f, 1.f / static_cast<float>(planetId));
-		const entt::entity planet = CreateCelestialBody(world, pivot, offset * static_cast<float>(planetId), 1.f, meshHandle, instanceHandle);
+		const entt::entity planet = CreateCelestialBody(world, pivot, offset * static_cast<float>(planetId), 1.f, meshes[planetId & meshes.size()], instanceHandle);
 	}
 }
 

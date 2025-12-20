@@ -61,15 +61,15 @@ namespace Turbo
 	{
 		FBufferBuilder bufferBuilder = {};
 		bufferBuilder
-			.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::None, sizeof(FMeshPointers))
+			.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::None, sizeof(FMeshPointers) * kMaxSubmeshes)
 			.SetName(FName("MeshPointer"));
 
-		mSubMeshPointersPool = gpu.CreateBuffer(bufferBuilder);
+		mMeshPointersPool = gpu.CreateBuffer(bufferBuilder);
 	}
 
 	void FAssetManager::Destroy(FGPUDevice& gpu) const
 	{
-		gpu.DestroyBuffer(mSubMeshPointersPool);
+		gpu.DestroyBuffer(mMeshPointersPool);
 	}
 
 	std::vector<THandle<FMesh>> FAssetManager::LoadMesh(const std::filesystem::path& path)
@@ -156,7 +156,7 @@ namespace Turbo
 
 				const FCopyBufferInfo copyBufferInfo = {
 					.mSrc = stagingBuffer,
-					.mDst = mSubMeshPointersPool,
+					.mDst = mMeshPointersPool,
 					.mDstOffset = sizeof(FMeshPointers) * result.front().mIndex,
 					.mSize = sizeof(FMeshPointers)
 				};
@@ -172,7 +172,7 @@ namespace Turbo
 
 	FDeviceAddress FAssetManager::GetMeshPointersAddress(FGPUDevice& gpu, THandle<FMesh> handle) const
 	{
-		const FBuffer* pointersPoolBuffer = gpu.AccessBuffer(mSubMeshPointersPool);
+		const FBuffer* pointersPoolBuffer = gpu.AccessBuffer(mMeshPointersPool);
 		TURBO_CHECK(pointersPoolBuffer);
 
 		const FDeviceAddress memoryOffset = sizeof(FMeshPointers) * handle.mIndex;

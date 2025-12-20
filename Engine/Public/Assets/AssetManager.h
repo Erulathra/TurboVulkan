@@ -45,7 +45,7 @@ namespace Turbo
 	private:
 		TPoolGrowable<FMesh> mMeshPool;
 
-		THandle<FBuffer> mSubMeshPointersPool;
+		THandle<FBuffer> mMeshPointersPool;
 
 	public:
 		friend class FEngine;
