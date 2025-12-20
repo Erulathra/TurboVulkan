@@ -5,9 +5,9 @@
 #include "Core/CoreTimer.h"
 #include "Core/Window.h"
 #include "Core/WindowEvents.h"
-#include "Core/Input/Input.h"
 #include "Core/Input/FSDLInputSystem.h"
-#include "Core/Input/Keys.h"
+#include "Core/Input/Input.h"
+#include "Core/Math/Random.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 #include "Layers/ImGUILayer.h"
@@ -27,6 +27,7 @@ namespace Turbo
 	void FEngine::Init()
 	{
 		InitLogger();
+		Random::SetRandomSeed();
 
 		// TURBO_LOG(LOG_ENGINE, Info, "Creating engine instance.");
 		TURBO_LOG(LogEngine, Info, "Creating engine instance.")
