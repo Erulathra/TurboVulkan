@@ -79,7 +79,7 @@ namespace Turbo
 		FMaterial::Instance* instance = mMaterialInstancePool.Access(instanceHandle);
 
 		instance->material = materialHandle;
-		instance->mUniformBufferIndex = availableIndexes.front();
+		instance->mUniformBufferIndex = availableIndexes.back();
 		availableIndexes.pop_back();
 
 		return instanceHandle;

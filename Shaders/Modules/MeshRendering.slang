@@ -27,10 +27,10 @@ public struct FMaterialInstance
 
 public struct FMeshData
 {
-    public float3* positionBuffer;
-    public float3* normalBuffer;
-    public float2* uvBuffer;
-    public float4* colorBuffer;
+    public const Ptr<float3> positionBuffer;
+    public const Ptr<float3> normalBuffer;
+    public const Ptr<float2> uvBuffer;
+    public const Ptr<float4> colorBuffer;
 }
 
 public struct FSceneData
@@ -43,8 +43,8 @@ public struct FCommonPushConstants
     public float4x4 modelToProj;
     public float3x3 normalModelToWorld;
 
-    public FViewData* viewData;
-    public FMaterialInstance* materialInstance;
-    public FMeshData* meshData;
-    public FSceneData* sceneData;
+    public const Ptr<FViewData> viewData;
+    public const Ptr<void> materialInstance;
+    public const Ptr<FMeshData> meshData;
+    public const Ptr<FSceneData> sceneData;
 };

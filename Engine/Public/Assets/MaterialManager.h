@@ -67,8 +67,7 @@ namespace Turbo
 		template<typename UniformBufferStruct>
 		void UpdateMaterialInstance(FCommandBuffer& cmd, THandle<FMaterial::Instance> instanceHandle, UniformBufferStruct* data)
 		{
-			byte bytes[sizeof(data)] = static_cast<byte*>(data);
-			UpdateMaterialInstance(cmd, instanceHandle, bytes);
+			UpdateMaterialInstance(cmd, instanceHandle, std::span<byte>(reinterpret_cast<byte*>(data), sizeof(UniformBufferStruct)));
 		}
 		void UpdateMaterialInstance(FCommandBuffer& cmd, THandle<FMaterial::Instance> instanceHandle, std::span<byte> data);
 

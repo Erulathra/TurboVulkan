@@ -6,6 +6,11 @@ import Modules.Math;
 [[vk::push_constant]]
 FCommonPushConstants pc;
 
+struct InstanceData
+{
+    float3 color;
+}
+
 struct VSOut
 {
     float4 position : SV_Position;
@@ -37,8 +42,12 @@ void psMain(in VSOut vsOut, out PSOut psOut)
     float lightIntensity = ambientLight + max(0.f, dot(vsOut.normal, -sunDir));
     lightIntensity = clamp(lightIntensity, 0.f, 1.f);
 
-	const float hue = frac(float(pc.viewData.time / 2.));
-    const float3 baseColor = HSVToRGB(float3(hue, 1.f, 1.f));
+	// const float hue = frac(float(pc.viewData.time / 2.));
+    // const float3 baseColor = HSVToRGB(float3(hue, 1.f, 1.f));
+
+    const Ptr<InstanceData> instance = Ptr<InstanceData>(pc.materialInstance);
+
+    const float3 baseColor = instance.color;
     const float3 colorLightPass = baseColor * lightIntensity;
 
     psOut.color = float4(baseColor, 1.f);

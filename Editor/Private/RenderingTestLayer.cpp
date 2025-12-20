@@ -4,26 +4,19 @@
 
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
+#include "Core/Math/Random.h"
 #include "Core/Math/Vector.h"
 #include "glm/gtx/compatibility.hpp"
-#include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/ResourceBuilders.h"
-#include "World/Camera.h"
 #include "World/MeshComponent.h"
 #include "World/World.h"
 
 using namespace Turbo;
 
-struct FPushConstants
+struct FMaterialUniforms
 {
-	glm::float4x4 objToProj;
-
-	FDeviceAddress positionBuffer;
-	FDeviceAddress normalBuffer;
-	FDeviceAddress uvBuffer;
-	uint32 textureId;
-	uint32 samplerId;
+	glm::float3 mColor;
 };
 
 struct FRotateComponent
@@ -46,22 +39,38 @@ entt::entity CreatePivot(FWorld& world, entt::entity parent, float offset, float
 	// initialize components
 	FTransform& transform = registry.emplace<FTransform>(entity);
 	transform.mPosition.x = offset;
+	transform.mRotation = glm::quat(glm::float3(0.f, glm::tau<float>(), 0.f) * Random::RandomFloat());
 	FRotateComponent& rotateComponent = registry.emplace<FRotateComponent>(entity);
 	rotateComponent.speed = rotationSpeed;
 
 	return entity;
 }
 
-entt::entity CreateCelestialBody(FWorld& world, entt::entity parent, float offset, float rotationSpeed, THandle<FMesh> meshHandle, THandle<FMaterial::Instance> matInstanceHandle)
+entt::entity CreateCelestialBody(FWorld& world, entt::entity parent, float offset, float rotationSpeed, THandle<FMesh> meshHandle, THandle<FMaterial> matHandle)
 {
 	entt::entity entity = CreatePivot(world, parent, offset, rotationSpeed);
 
-	FMaterial::Instance* matInstance = entt::locator<FMaterialManager>::value().AccessInstance(matInstanceHandle);
+	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+	THandle<FMaterial::Instance> instanceHandle = materialManager.CreateMaterialInstance(matHandle);
+	FMaterial::Instance* matInstance = entt::locator<FMaterialManager>::value().AccessInstance(instanceHandle);
+	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+
+	gpu.ImmediateSubmit(FOnImmediateSubmit::CreateLambda(
+		[&](FCommandBuffer& cmd)
+		{
+			FMaterialUniforms materialUniforms = {};
+			materialUniforms.mColor = Random::RandomColor();
+
+			TURBO_LOG(LogTemp, Info, "PlanetColor: {}", materialUniforms.mColor);
+
+			FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+			materialManager.UpdateMaterialInstance<FMaterialUniforms>(cmd, instanceHandle, &materialUniforms);
+		}));
 
 	FMeshComponent& meshComponent = world.mRegistry.emplace<FMeshComponent>(entity);
 	meshComponent.mMesh = meshHandle;
 	meshComponent.mMaterial = matInstance->material;
-	meshComponent.mMaterialInstance = matInstanceHandle;
+	meshComponent.mMaterialInstance = instanceHandle;
 
     return entity;
 }
@@ -90,16 +99,15 @@ void FRenderingTestLayer::Start()
 	};
 
 	FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("BaseMaterial.slang");
-	THandle<FMaterial> materialHandle = materialManager.LoadMaterial(pipelineBuilder, 0, 1);
-	THandle<FMaterial::Instance> instanceHandle = materialManager.CreateMaterialInstance(materialHandle);
+	THandle<FMaterial> materialHandle = materialManager.LoadMaterial<FMaterialUniforms>(pipelineBuilder, 256);
 
-	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshes[0], instanceHandle);
+	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshes[0], materialHandle);
 
-	for (uint32 planetId = 1; planetId < 3; ++planetId)
+	for (uint32 planetId = 1; planetId < 16; ++planetId)
 	{
-		constexpr float offset = 3.f;
+		constexpr float offset = 5.f;
 		const entt::entity pivot = CreatePivot(world, entt::null, 0.f, 1.f / static_cast<float>(planetId));
-		const entt::entity planet = CreateCelestialBody(world, pivot, offset * static_cast<float>(planetId), 1.f, meshes[planetId & meshes.size()], instanceHandle);
+		const entt::entity planet = CreateCelestialBody(world, pivot, offset * static_cast<float>(planetId), 1.f, meshes[planetId % meshes.size()], materialHandle);
 	}
 }
 

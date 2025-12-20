@@ -841,6 +841,7 @@ namespace Turbo
 		vk::PhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.setTextureCompressionBC(true);
 		deviceFeatures.setShaderFloat64(true);
+		deviceFeatures.setShaderInt64(true);
 
 		vk::PhysicalDeviceVulkan11Features device11Features = {};
 		device11Features.setShaderDrawParameters(true);

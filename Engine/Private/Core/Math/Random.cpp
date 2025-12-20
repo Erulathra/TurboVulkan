@@ -48,6 +48,6 @@ namespace Turbo
 
 	glm::float3 Random::RandomColor(float saturation, float value)
 	{
-		return glm::hsvColor(glm::float3(RandomFloat(), saturation, value));
+		return glm::rgbColor(glm::float3(RandomFloat() * 360.f, saturation, value));
 	}
 } // Turbo
