@@ -6,8 +6,24 @@
 
 entt::dense_map<entt::hashed_string::value_type, Turbo::LogVerbosity> Turbo::gLogVerbosityMap;
 
+constexpr cstring kLogFilePath = "Saved/Logs/TurboEngine.log";
+constexpr cstring kBackupFileLogPath = "Saved/Logs/TurboEngine.bc.log";
+
 void Turbo::InitLogger()
 {
+	if (std::filesystem::exists(kLogFilePath))
+	{
+		if (std::filesystem::exists(kBackupFileLogPath))
+		{
+			std::filesystem::remove(kBackupFileLogPath);
+		}
+
+		std::filesystem::copy_file(kLogFilePath, kBackupFileLogPath);
+		std::filesystem::remove(kLogFilePath);
+	}
+
+	spdlog::set_level(spdlog::level::debug);
+
 	spdlog::init_thread_pool(8192, 1);
 	auto stdoutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 	auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("Saved/Logs/TurboEngine.log");

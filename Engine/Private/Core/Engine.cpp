@@ -44,9 +44,6 @@ namespace Turbo
 
 	int32_t FEngine::Start(int32 argc, char* argv[])
 	{
-		// TODO: Move me elsewhere
-		spdlog::set_level(spdlog::level::debug);
-
 		mEngineState = EEngineState::Initializing;
 
 		entt::locator<FCoreTimer>::reset(new FCoreTimer());
