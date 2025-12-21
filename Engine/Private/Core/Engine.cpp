@@ -161,8 +161,8 @@ namespace Turbo
 		{
 			FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 
-			FCommandBuffer* cmd = gpu.GetCommandBuffer();
-			cmd->ClearImage(geometryBuffer.GetColor());
+			FCommandBuffer& cmd = gpu.GetCommandBuffer();
+			cmd.ClearImage(geometryBuffer.GetColor());
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
@@ -170,7 +170,7 @@ namespace Turbo
 				{
 					if (layer->ShouldRender())
 					{
-						layer->PostBeginFrame(&gpu, cmd);
+						layer->PostBeginFrame(gpu, cmd);
 					}
 				}
 			}
@@ -181,7 +181,7 @@ namespace Turbo
 				{
 					if (layer->ShouldRender())
 					{
-						layer->RenderScene(&gpu, cmd);
+						layer->RenderScene(gpu, cmd);
 					}
 				}
 			}
@@ -196,7 +196,7 @@ namespace Turbo
 					if (ILayer* layer = layerIt->get();
 						layer->ShouldRender())
 					{
-						layer->BeginPresentingFrame(&gpu, cmd, presentImage);
+						layer->BeginPresentingFrame(gpu, cmd, presentImage);
 					}
 				}
 			}

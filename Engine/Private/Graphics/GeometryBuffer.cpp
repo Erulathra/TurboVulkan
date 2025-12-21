@@ -49,16 +49,16 @@ namespace Turbo
 		Init(newResolution);
 	}
 
-	void FGeometryBuffer::BlitResultToTexture(FCommandBuffer* cmd, THandle<FTexture> presentTextureHandle)
+	void FGeometryBuffer::BlitResultToTexture(FCommandBuffer& cmd, THandle<FTexture> presentTextureHandle)
 	{
 		FTexture* presentTexture = mGpu->AccessTexture(presentTextureHandle);
 		TURBO_CHECK(presentTexture)
 
 		const FRect2DInt srcRect = FRect2DInt::FromSize(mResolution);
 		const FRect2DInt dstRect = FRect2DInt::FromSize(presentTexture->GetSize());
-		cmd->TransitionImage(mColor, vk::ImageLayout::eTransferSrcOptimal);
-		cmd->TransitionImage(presentTextureHandle, vk::ImageLayout::eTransferDstOptimal);
-		cmd->BlitImage(mColor, srcRect, presentTextureHandle, dstRect);
-		cmd->TransitionImage(presentTextureHandle, vk::ImageLayout::eGeneral);
+		cmd.TransitionImage(mColor, vk::ImageLayout::eTransferSrcOptimal);
+		cmd.TransitionImage(presentTextureHandle, vk::ImageLayout::eTransferDstOptimal);
+		cmd.BlitImage(mColor, srcRect, presentTextureHandle, dstRect);
+		cmd.TransitionImage(presentTextureHandle, vk::ImageLayout::eGeneral);
 	}
 } // Turbo

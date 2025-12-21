@@ -24,7 +24,7 @@ namespace Turbo
 
 		void Resize(const glm::ivec2& newResolution);
 
-		void BlitResultToTexture(FCommandBuffer* cmd, THandle<FTexture> swapChainTexture);
+		void BlitResultToTexture(FCommandBuffer& cmd, THandle<FTexture> swapChainTexture);
 
 	public:
 		[[nodiscard]] THandle<FTexture> GetColor() const { return mColor; }

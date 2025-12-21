@@ -87,7 +87,11 @@ namespace Turbo
 
 	void FMaterialManager::UpdateMaterialInstance(FCommandBuffer& cmd, THandle<FMaterial::Instance> instanceHandle, std::span<byte> data)
 	{
+		TRACE_ZONE_SCOPED();
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+
+		TRACE_GPU_SCOPED(gpu, cmd, "Update Material Instance")
+
 
 		const FMaterial::Instance* instance = mMaterialInstancePool.Access(instanceHandle);
 		const FMaterial* material = mMaterialPool.Access(instance->material);

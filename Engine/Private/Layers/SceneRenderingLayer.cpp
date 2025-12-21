@@ -32,7 +32,7 @@ namespace Turbo
 		gpu.DestroyBuffer(mViewDataUniformBuffer);
 	}
 
-	void FSceneRenderingLayer::UpdateViewData(FGPUDevice* gpu, FCommandBuffer* cmd, FWorld* world)
+	void FSceneRenderingLayer::UpdateViewData(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -52,11 +52,11 @@ namespace Turbo
 		mViewData.mTime = FCoreTimer::TimeFromEngineStart();
 		mViewData.mWorldTime = FCoreTimer::TimeFromEngineStart();
 		mViewData.mDeltaTime = FCoreTimer::DeltaTime();
-		mViewData.mFrameIndex = gpu->GetNumRenderedFrames();
+		mViewData.mFrameIndex = gpu.GetNumRenderedFrames();
 
-		FBuffer* viewDataBuffer = gpu->AccessBuffer(mViewDataUniformBuffer);
+		FBuffer* viewDataBuffer = gpu.AccessBuffer(mViewDataUniformBuffer);
 		std::memcpy(viewDataBuffer->GetMappedAddress(), &mViewData, sizeof(FViewData));
-		cmd->BufferBarrier(
+		cmd.BufferBarrier(
 			mViewDataUniformBuffer,
 			vk::AccessFlagBits2::eHostWrite,
 			vk::PipelineStageFlagBits2::eHost,
@@ -65,7 +65,7 @@ namespace Turbo
 		);
 	}
 
-	void FSceneRenderingLayer::RenderMeshes(FGPUDevice* gpu, FCommandBuffer* cmd, FWorld* world)
+	void FSceneRenderingLayer::RenderMeshes(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -96,16 +96,16 @@ namespace Turbo
 			const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
 			const THandle<FTexture> dephtImageHandle = geometryBuffer.GetDepth();
 
-			cmd->TransitionImage(drawImageHandle, vk::ImageLayout::eColorAttachmentOptimal);
-			cmd->TransitionImage(dephtImageHandle, vk::ImageLayout::eDepthAttachmentOptimal);
+			cmd.TransitionImage(drawImageHandle, vk::ImageLayout::eColorAttachmentOptimal);
+			cmd.TransitionImage(dephtImageHandle, vk::ImageLayout::eDepthAttachmentOptimal);
 
 			FRenderingAttachments renderingAttachments;
 			renderingAttachments.AddColorAttachment(drawImageHandle);
 			renderingAttachments.SetDepthAttachment(dephtImageHandle);
 
-			cmd->BeginRendering(renderingAttachments);
-			cmd->SetViewport(FViewport::FromSize(geometryBuffer.GetResolution()));
-			cmd->SetScissor(FRect2DInt::FromSize(geometryBuffer.GetResolution()));
+			cmd.BeginRendering(renderingAttachments);
+			cmd.SetViewport(FViewport::FromSize(geometryBuffer.GetResolution()));
+			cmd.SetScissor(FRect2DInt::FromSize(geometryBuffer.GetResolution()));
 
 			const auto meshTransformView = world->mRegistry.view<FMeshComponent, FWorldTransform>();
 
@@ -117,7 +117,7 @@ namespace Turbo
 			THandle<FMesh> meshHandle;
 			const FMesh* mesh = {};
 
-			FDeviceAddress viewDataDeviceAddress = gpu->AccessBuffer(mViewDataUniformBuffer)->GetDeviceAddress();
+			FDeviceAddress viewDataDeviceAddress = gpu.AccessBuffer(mViewDataUniformBuffer)->GetDeviceAddress();
 
 #if WITH_PROFILER
 			FCounterType numDrawCalls = 0;
@@ -136,8 +136,8 @@ namespace Turbo
 					materialHandle = meshComponent.mMaterial;
 					const FMaterial* material = materialManager.AccessMaterial(materialHandle);
 
-					cmd->BindPipeline(material->mPipeline);
-					cmd->BindDescriptorSet(gpu->GetBindlessResourcesSet(), 0);
+					cmd.BindPipeline(material->mPipeline);
+					cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
 
 #if WITH_PROFILER
 					numPipelineSwitches++;
@@ -156,7 +156,7 @@ namespace Turbo
 					meshHandle = meshComponent.mMesh;
 					mesh = assetManager.AccessMesh(meshHandle);
 
-					cmd->BindIndexBuffer(mesh->mIndicesBuffer);
+					cmd.BindIndexBuffer(mesh->mIndicesBuffer);
 				}
 
 				FMaterial::PushConstants pushConstants = {};
@@ -167,14 +167,14 @@ namespace Turbo
 				pushConstants.mInvModelToWorld = invModelToWorld;
 
 				pushConstants.mViewData = viewDataDeviceAddress;
-				pushConstants.mMaterialInstance = materialManager.GetMaterialInstanceAddress(*gpu, materialInstanceHandle);
-				pushConstants.mMeshData = assetManager.GetMeshPointersAddress(*gpu, meshHandle);
+				pushConstants.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, materialInstanceHandle);
+				pushConstants.mMeshData = assetManager.GetMeshPointersAddress(gpu, meshHandle);
 				pushConstants.mSceneData = kNullDeviceAddress;
 
 				if (mesh != nullptr)
 				{
-					cmd->PushConstants(pushConstants);
-					cmd->DrawIndexed(mesh->mVertexCount);
+					cmd.PushConstants(pushConstants);
+					cmd.DrawIndexed(mesh->mVertexCount);
 
 #if WITH_PROFILER
 					numDrawCalls++;
@@ -182,7 +182,7 @@ namespace Turbo
 				}
 			}
 
-			cmd->EndRendering();
+			cmd.EndRendering();
 
 			static const cstring kDrawCallPlotName = "Draw calls";
 			TRACE_PLOT_CONFIGURE(kDrawCallPlotName, EPlotFormat::Number, true, true, 0xFF00FF)
@@ -195,7 +195,7 @@ namespace Turbo
 
 	}
 
-	void FSceneRenderingLayer::RenderScene(FGPUDevice* gpu, FCommandBuffer* cmd)
+	void FSceneRenderingLayer::RenderScene(FGPUDevice& gpu, FCommandBuffer& cmd)
 	{
 		TRACE_ZONE_SCOPED_N("Render Scene")
 

@@ -26,12 +26,12 @@ namespace Turbo
 			return name;
 		}
 
-		virtual void RenderScene(FGPUDevice* gpu, FCommandBuffer* cmd) override;
+		virtual void RenderScene(FGPUDevice& gpu, FCommandBuffer& cmd) override;
 		virtual bool ShouldRender() override;
 
 	private:
-		void UpdateViewData(FGPUDevice* gpu, FCommandBuffer* cmd, FWorld* world);
-		void RenderMeshes(FGPUDevice* gpu, FCommandBuffer* cmd, FWorld* world);
+		void UpdateViewData(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world);
+		void RenderMeshes(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world);
 
 	private:
 		FViewData mViewData;

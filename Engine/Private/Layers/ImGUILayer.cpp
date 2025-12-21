@@ -103,7 +103,7 @@ namespace Turbo
 		ImGui::Render();
 	}
 
-	void FImGuiLayer::BeginPresentingFrame(FGPUDevice* gpu, FCommandBuffer* cmd, THandle<FTexture> PresentImage)
+	void FImGuiLayer::BeginPresentingFrame(FGPUDevice& gpu, FCommandBuffer& cmd, THandle<FTexture> PresentImage)
 	{
 		TRACE_ZONE_SCOPED()
 		TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGui");
@@ -111,8 +111,8 @@ namespace Turbo
 		FRenderingAttachments renderingAttachments;
 		renderingAttachments.AddColorAttachment(PresentImage);
 
-		cmd->BeginRendering(renderingAttachments);
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd->GetVkCommandBuffer());
-		cmd->EndRendering();
+		cmd.BeginRendering(renderingAttachments);
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.GetVkCommandBuffer());
+		cmd.EndRendering();
 	}
 } // Turbo

@@ -48,7 +48,7 @@ namespace Turbo
 		bool BeginFrame();
 		bool PresentFrame();
 
-		FCommandBuffer* GetCommandBuffer() { return mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
+		FCommandBuffer& GetCommandBuffer() { return *mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
 		THandle<FDescriptorPool> GetFrameDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
 
 		THandle<FDescriptorSet> GetBindlessResourcesSet() { return mBindlessResourcesSet; }
