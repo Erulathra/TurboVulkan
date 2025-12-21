@@ -1323,9 +1323,16 @@ namespace Turbo
 
 			const vk::CommandBufferSubmitInfo bufferSubmitInfo = mImmediateCommandsBuffer->CreateSubmitInfo();
 			const vk::SubmitInfo2 submitInfo = VkInit::SubmitInfo(bufferSubmitInfo, nullptr, nullptr);
-			CHECK_VULKAN_HPP(mVkQueue.submit2(1, &submitInfo, mImmediateCommandsFence));
 
-			CHECK_VULKAN_HPP(mVkDevice.waitForFences({mImmediateCommandsFence}, vk::True, kDefaultTimeout));
+			{
+				TRACE_ZONE_SCOPED_N("Queue submit")
+				CHECK_VULKAN_HPP(mVkQueue.submit2(1, &submitInfo, mImmediateCommandsFence));
+			}
+
+			{
+				TRACE_ZONE_SCOPED_N("Wait for fence")
+				CHECK_VULKAN_HPP(mVkDevice.waitForFences({mImmediateCommandsFence}, vk::True, kDefaultTimeout));
+			}
 		}
 	}
 

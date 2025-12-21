@@ -35,7 +35,7 @@ namespace Turbo
 		};
 
 		THandle<FPipeline> mPipeline = {};
-		THandle<FBuffer> mUniformBuffer = {};
+		THandle<FBuffer> mInstanceDataBuffer = {};
 		uint32 mUniformStructSize = 0;
 		uint32 mMaxInstances = 0;
 	};

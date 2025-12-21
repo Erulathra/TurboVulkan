@@ -206,6 +206,7 @@ FName FRenderingTestLayer::GetName()
 void FRenderingTestLayer::ShuffleColors()
 {
 	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+
 	gpu.ImmediateSubmit(FOnImmediateSubmit::CreateLambda(
 		[&](FCommandBuffer& cmd)
 		{
