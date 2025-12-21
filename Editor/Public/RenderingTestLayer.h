@@ -24,6 +24,9 @@ namespace Turbo
 
 		/** IService Interface end */
 	private:
+		void ShuffleColors();
+
+	private:
 		entt::entity mSunEntity;
 	};
 
