@@ -16,7 +16,7 @@ namespace Turbo
 		float mAspectRatio = 16.f / 9.f;
 
 		float mNearPlane = 0.1f;
-		float mFarPlane = 1000.f;
+		float mFarPlane = 10000.f;
 
 		EProjectionType mProjectionType = EProjectionType::Perspective;
 

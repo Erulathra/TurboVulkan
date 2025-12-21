@@ -41,7 +41,8 @@ public struct FSceneData
 public struct FCommonPushConstants
 {
     public float4x4 modelToProj;
-    public float3x3 normalModelToWorld;
+    public float4x4 modelToView;
+    public float3x3 normalModelToView;
 
     public const Ptr<FViewData> viewData;
     public const Ptr<void> materialInstance;

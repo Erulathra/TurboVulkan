@@ -16,7 +16,8 @@ using namespace Turbo;
 
 struct FMaterialUniforms
 {
-	glm::float3 mColor;
+	glm::float3 mColor = ELinearColor::kWhite;
+	float emissive = 0.f;
 };
 
 struct FPlanetComponent
@@ -51,9 +52,13 @@ entt::entity CreatePivot(FWorld& world, entt::entity parent, float offset, float
 	return entity;
 }
 
-entt::entity CreateCelestialBody(FWorld& world, entt::entity parent, float offset, float rotationSpeed, THandle<FMesh> meshHandle, THandle<FMaterial> matHandle)
+entt::entity CreateCelestialBody(FWorld& world, entt::entity parent, float offset, float rotationSpeed, THandle<FMesh> meshHandle, THandle<FMaterial> matHandle, float emissive = 0.f)
 {
 	entt::entity entity = CreatePivot(world, parent, offset, rotationSpeed);
+
+	FTransform transform = world.mRegistry.get<FTransform>(entity);
+	transform.mScale = glm::float3(1.f) * Random::RandomRange(0.5f, 1.5f);
+	world.mRegistry.replace<FTransform>(entity, transform);
 
 	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 	THandle<FMaterial::Instance> instanceHandle = materialManager.CreateMaterialInstance(matHandle);
@@ -65,8 +70,7 @@ entt::entity CreateCelestialBody(FWorld& world, entt::entity parent, float offse
 		{
 			FMaterialUniforms materialUniforms = {};
 			materialUniforms.mColor = Random::RandomColor();
-
-			TURBO_LOG(LogTemp, Info, "PlanetColor: {}", materialUniforms.mColor);
+			materialUniforms.emissive = emissive;
 
 			FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 			materialManager.UpdateMaterialInstance(cmd, instanceHandle, &materialUniforms);
@@ -100,28 +104,29 @@ void FRenderingTestLayer::Start()
 	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
 	std::array meshes = {
-		assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front(),
-		assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front(),
+		// assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front(),
+		// assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front(),
 		assetManager.LoadMesh("Content/Meshes/SM_IcoPlanet.glb").front(),
 	};
 
 	FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("BaseMaterial.slang");
-	THandle<FMaterial> materialHandle = materialManager.LoadMaterial<FMaterialUniforms>(pipelineBuilder, 256);
+	THandle<FMaterial> materialHandle = materialManager.LoadMaterial<FMaterialUniforms>(pipelineBuilder, 2048);
 
-	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshes[0], materialHandle);
+	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshes[0], materialHandle, 1.f);
 	FTransform sunTransform = world.mRegistry.get<FTransform>(mSunEntity);
 	sunTransform.mScale = glm::float3(5.f);
 
 	world.mRegistry.replace<FTransform>(mSunEntity, sunTransform);
 
-	for (uint32 planetId = 1; planetId < 256; ++planetId)
+	for (uint32 planetId = 1; planetId < 1024; ++planetId)
 	{
-		constexpr float offset = 3.f;
-		const entt::entity pivot = CreatePivot(world, entt::null, 0.f, 1.f / static_cast<float>(planetId));
+		constexpr float offset = 1.f;
+		const float orbitRadius = Random::RandomRange(0.5f, 1.f) * offset * static_cast<float>(planetId + 20);
+		const float planetSpeed = 50.f / orbitRadius;
 
-		const float orbitRadius = Random::RandomRange(0.5f, 1.f) * offset * static_cast<float>(planetId + 1);
-		const float planetSpeed = 6.67f / orbitRadius;
-		const entt::entity planet = CreateCelestialBody(world, pivot, orbitRadius, planetSpeed, meshes[planetId % meshes.size()], materialHandle);
+		const entt::entity pivot = CreatePivot(world, entt::null, 0.f, planetSpeed);
+
+		const entt::entity planet = CreateCelestialBody(world, pivot, orbitRadius, 1.f, meshes[planetId % meshes.size()], materialHandle);
 	}
 }
 
@@ -202,7 +207,7 @@ void FRenderingTestLayer::ShuffleColors()
 {
 	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 	gpu.ImmediateSubmit(FOnImmediateSubmit::CreateLambda(
-		[](FCommandBuffer& cmd)
+		[&](FCommandBuffer& cmd)
 		{
 			FWorld& world = *gEngine->GetWorld();
 			entt::registry& registry = world.mRegistry;
@@ -210,12 +215,13 @@ void FRenderingTestLayer::ShuffleColors()
 
 			FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
-			for (entt::entity planetEntity : meshesView)
+			for (entt::entity entity : meshesView)
 			{
-				FMeshComponent& meshComponent = meshesView.get<FMeshComponent>(planetEntity);
+				FMeshComponent& meshComponent = meshesView.get<FMeshComponent>(entity);
 
 				FMaterialUniforms materialUniforms = {};
 				materialUniforms.mColor = Random::RandomColor();
+				materialUniforms.emissive = entity == mSunEntity;
 
 				materialManager.UpdateMaterialInstance(cmd, meshComponent.mMaterialInstance, &materialUniforms);
 			}

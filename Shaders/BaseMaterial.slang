@@ -9,12 +9,14 @@ FCommonPushConstants pc;
 struct InstanceData
 {
     float3 color;
+	float emissive;
 }
 
 struct VSOut
 {
     float4 position : SV_Position;
-    float3 normal;
+    float3 viewPosition;
+    float3 viewNormal;
     float2 uv;
 }
 
@@ -28,27 +30,31 @@ void vsMain(in uint vertexId : SV_VertexID, out VSOut vsOut)
 {
     FMeshData* mesh = pc.meshData;
 
-    vsOut.position = mul(float4(mesh.positionBuffer[vertexId], 1.f), pc.modelToProj);
-    vsOut.normal = mul(mesh.normalBuffer[vertexId], pc.normalModelToWorld);
+	const float4 modelPosition = float4(mesh.positionBuffer[vertexId], 1.f);
+
+    vsOut.position = mul(modelPosition, pc.modelToProj);
+    vsOut.viewPosition = mul(modelPosition, pc.modelToView).xyz;
+    vsOut.viewNormal = mul(mesh.normalBuffer[vertexId], pc.normalModelToView);
     vsOut.uv = mesh.uvBuffer[vertexId];
 }
 
 [shader("pixel")]
 void psMain(in VSOut vsOut, out PSOut psOut)
 {
-    const float3 sunDir = normalize(float3(-1.f, -1.f, -1.f));
-    const float ambientLight = 0.1f;
-
-    float lightIntensity = ambientLight + max(0.f, dot(vsOut.normal, -sunDir));
-    lightIntensity = clamp(lightIntensity, 0.f, 1.f);
-
-	// const float hue = frac(float(pc.viewData.time / 2.));
-    // const float3 baseColor = HSVToRGB(float3(hue, 1.f, 1.f));
-
     const Ptr<InstanceData> instance = Ptr<InstanceData>(pc.materialInstance);
+
+    const float3 sunWorldPos = float3(0.f);
+    const float3 sunPos = mul(float4(sunWorldPos, 1.f), pc.viewData.mViewMatrix).xyz;
+
+    const float ambientLight = 0.01f + instance.emissive;
+
+    const float3 sunDir = normalize(vsOut.viewPosition - sunPos);
+
+    float lightIntensity = ambientLight + max(0.f, dot(vsOut.viewNormal, -sunDir));
+    lightIntensity = saturate(lightIntensity);
 
     const float3 baseColor = instance.color;
     const float3 colorLightPass = baseColor * lightIntensity;
 
-    psOut.color = float4(baseColor, 1.f);
+    psOut.color = float4(colorLightPass, 1.f);
 }

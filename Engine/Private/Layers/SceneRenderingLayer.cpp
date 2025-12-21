@@ -161,10 +161,8 @@ namespace Turbo
 
 				FMaterial::PushConstants pushConstants = {};
 				pushConstants.mModelToProj = mViewData.mWorldToProjection * worldTransform.mTransform;
-
-
-				const glm::float3x3 invModelToWorld =  glm::float3x3(glm::transpose(glm::inverse(worldTransform.mTransform)));
-				pushConstants.mInvModelToWorld = invModelToWorld;
+				pushConstants.mModelToView = mViewData.mViewMatrix * worldTransform.mTransform;
+				pushConstants.mInvModelToView = glm::float3x3(glm::transpose(glm::inverse(pushConstants.mModelToView)));
 
 				pushConstants.mViewData = viewDataDeviceAddress;
 				pushConstants.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, materialInstanceHandle);
@@ -190,7 +188,7 @@ namespace Turbo
 
 			static const cstring kPipelineSwitchesName = "Pipeline switches";
 			TRACE_PLOT_CONFIGURE(kPipelineSwitchesName, EPlotFormat::Number, true, true, 0xFFFF00)
-			TRACE_PLOT(kPipelineSwitchesName, numDrawCalls)
+			TRACE_PLOT(kPipelineSwitchesName, numPipelineSwitches)
 		}
 
 	}
