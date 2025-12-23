@@ -24,7 +24,7 @@ namespace Turbo
 		// Statics
 		static constexpr IndexType CreateIndex(IndexType index, GenerationType generation)
 		{
-			return index | (generation << kIndexMaskLength);
+			return index | (static_cast<IndexType>(generation) << kIndexMaskLength);
 		}
 
 		// Helpers
