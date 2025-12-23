@@ -1,59 +1,32 @@
 #pragma once
+
 #include <stack>
+#include "Core/DataStructures/Handle.h"
 
 namespace Turbo
 {
-	using FPoolIndexType = uint16;
-	inline constexpr FPoolIndexType kInvalidHandle = std::numeric_limits<FPoolIndexType>::max();
-
-	using FPoolGenerationType = uint16;
-	inline constexpr FPoolGenerationType kInvalidGeneration = std::numeric_limits<FPoolGenerationType>::max();
-
-	struct FHandle
-	{
-		FPoolIndexType mIndex = kInvalidHandle;
-		FPoolGenerationType mGeneration = kInvalidGeneration;
-
-		[[nodiscard]] constexpr bool IsValid() const { return mIndex != kInvalidHandle && mGeneration != kInvalidGeneration; }
-		constexpr void Reset() { mIndex = kInvalidHandle; mGeneration = kInvalidGeneration; }
-
-		explicit constexpr operator bool() const { return IsValid(); }
-		constexpr bool operator!() const { return !IsValid(); }
-
-		constexpr bool operator==(const FHandle& rhs) const
-		{
-			return mIndex == rhs.mIndex
-				&& mGeneration == rhs.mGeneration;
-		}
-	};
-
-	template <typename ObjectType>
-	struct THandle final : public FHandle
-	{
-	};
-
-	template<typename T, FPoolIndexType size>
-		requires (size < kInvalidHandle)
+	template<typename T, FHandle::IndexType size>
+		requires (size < FHandle::kMaxIndex)
 	class TPool
 	{
 	public:
 		TPool() { Clear(); }
 
 	public:
-		[[nodiscard]] static constexpr FPoolIndexType GetCapacity() { return size; }
-		[[nodiscard]] FPoolIndexType GetNumAcquiredResources() const { return mUsedIndices; }
+		[[nodiscard]] static constexpr FHandle::IndexType GetCapacity() { return size; }
+		[[nodiscard]] FHandle::IndexType GetNumAcquiredResources() const { return mUsedIndices; }
 
 		void Clear()
 		{
 			mFreeIndicesHead = 0;
 			mUsedIndices = 0;
 
-			for (FPoolIndexType i = 0; i < size; ++i)
+			for (FHandle::IndexType i = 0; i < size; ++i)
 			{
 				mFreeIndices[i] = i;
 			}
 
-			for (FPoolIndexType i = 0; i < size; ++i)
+			for (FHandle::IndexType i = 0; i < size; ++i)
 			{
 				mGenerations[i] = 0;
 			}
@@ -63,10 +36,11 @@ namespace Turbo
 		{
 			TURBO_CHECK_MSG(mFreeIndicesHead < size, "No more resources left!")
 
+			FHandle::IndexType newIndex = mFreeIndices[mFreeIndicesHead];
+
 			THandle<T> NewHandle {};
-			NewHandle.mIndex = mFreeIndices[mFreeIndicesHead];
-			NewHandle.mGeneration = mGenerations[NewHandle.mIndex];
-			TURBO_CHECK_MSG(NewHandle.mGeneration < kInvalidGeneration, "No more resource generations left!")
+			NewHandle.mIndexAndGen = FHandle::CreateIndex(newIndex, mGenerations[newIndex]);
+			TURBO_CHECK_MSG(NewHandle.GetGeneration() < FHandle::kMaxGeneration, "No more resource generations left!")
 
 			++mFreeIndicesHead;
 			++mUsedIndices;
@@ -81,19 +55,19 @@ namespace Turbo
 			--mFreeIndicesHead;
 			--mUsedIndices;
 
-			mFreeIndices[mFreeIndicesHead] = handle.mIndex;
-			++mGenerations[handle.mIndex];
+			mFreeIndices[mFreeIndicesHead] = handle.GetIndex();
+			++mGenerations[handle.GetIndex()];
 		}
 
 		T* Access(THandle<T> handle)
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
-			if (handle.IsValid() && handle.mIndex < mData.size())
+			if (handle.IsValid() && handle.GetIndex() < mData.size())
 			{
-				if (handle.mGeneration == mGenerations[handle.mIndex])
+				if (handle.GetGeneration() == mGenerations[handle.GetIndex()])
 				{
-					return &mData[handle.mIndex];
+					return &mData[handle.GetIndex()];
 				}
 			}
 
@@ -104,11 +78,11 @@ namespace Turbo
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
-			if (handle.IsValid() && handle.mIndex < mData.size())
+			if (handle.IsValid() && handle.GetIndex() < mData.size())
 			{
-				if (handle.mGeneration == mGenerations[handle.mIndex])
+				if (handle.GetGeneration() == mGenerations[handle.GetIndex()])
 				{
-					return &mData[handle.mIndex];
+					return &mData[handle.GetIndex()];
 				}
 			}
 
@@ -118,15 +92,15 @@ namespace Turbo
 	private:
 
 		std::array<T, size> mData;
-		std::array<FPoolGenerationType, size> mGenerations;
-		std::array<FPoolIndexType, size> mFreeIndices;
+		std::array<FHandle::GenerationType, size> mGenerations;
+		std::array<FHandle::IndexType, size> mFreeIndices;
 
-		FPoolIndexType mFreeIndicesHead = 0;
-		FPoolIndexType mUsedIndices = 0;
+		FHandle::IndexType mFreeIndicesHead = 0;
+		FHandle::IndexType mUsedIndices = 0;
 	};
 
-	template<typename T, FPoolIndexType size>
-		requires (size < kInvalidHandle)
+	template<typename T, FHandle::IndexType size>
+		requires (size < FHandle::kMaxIndex)
 	class TPoolHeap
 	{
 		using TPoolType = TPool<T, size>;
@@ -142,15 +116,15 @@ namespace Turbo
 	template<typename T>
 	class TPoolGrowable final
 	{
-		static constexpr FPoolIndexType kInitialSize = 32;
+		static constexpr FHandle::IndexType kInitialSize = 32;
 
 	public:
-		TPoolGrowable(FPoolIndexType initialSize = kInitialSize)
+		TPoolGrowable(FHandle::IndexType initialSize = kInitialSize)
 		{
 			Clear(initialSize);
 		}
 
-		void Clear(FPoolIndexType numElements)
+		void Clear(FHandle::IndexType numElements)
 		{
 			mData.clear();
 			mGenerations.clear();
@@ -159,14 +133,14 @@ namespace Turbo
 			Reserve(numElements);
 		}
 
-		void Reserve(FPoolIndexType numElements)
+		void Reserve(FHandle::IndexType numElements)
 		{
 			if (numElements < mSize)
 			{
 				return;
 			}
 
-			const FPoolIndexType oldSize = mSize;
+			const FHandle::IndexType oldSize = mSize;
 			mSize = numElements;
 
 			mData.resize(mSize);
@@ -174,7 +148,7 @@ namespace Turbo
 			mFreeIndices.reserve(mSize);
 
 
-			for (FPoolIndexType Index = mSize; Index > oldSize; --Index)
+			for (FHandle::IndexType Index = mSize; Index > oldSize; --Index)
 			{
 				mFreeIndices.push_back(Index - 1);
 			}
@@ -187,31 +161,33 @@ namespace Turbo
 				Reserve(mSize == 0 ? kInitialSize : mSize * 2);
 			}
 
-			THandle<T> NewHandle {};
-			NewHandle.mIndex = mFreeIndices.back();
+			FHandle::IndexType newIndex = mFreeIndices.back();
 			mFreeIndices.pop_back();
-			NewHandle.mGeneration = mGenerations[NewHandle.mIndex];
-			TURBO_CHECK_MSG(NewHandle.mGeneration < kInvalidGeneration, "No more resource generations left!")
 
-			return NewHandle;
+			THandle<T> newHandle {};
+			newHandle.mIndexAndGen = FHandle::CreateIndex(newIndex, mGenerations[newIndex]);
+
+			TURBO_CHECK_MSG(newHandle.GetGeneration() < FHandle::kGenerationMask, "No more resource generations left!")
+
+			return newHandle;
 		}
 
 		void Release(THandle<T> handle)
 		{
 			TURBO_CHECK(mFreeIndices.size() > 0)
 
-			mFreeIndices.push_back(handle.mIndex);
-			++mGenerations[handle.mIndex];
+			mFreeIndices.push_back(handle.GetIndex());
+			++mGenerations[handle.GetIndex()];
 		}
 
 		T* Access(THandle<T> handle)
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
-			const FPoolGenerationType currentGeneration = mGenerations[handle.mIndex];
-			if (handle.IsValid() && handle.mIndex < mData.size() && handle.mGeneration == currentGeneration)
+			const FHandle::GenerationType currentGeneration = mGenerations[handle.GetIndex()];
+			if (handle.IsValid() && handle.GetIndex() < mData.size() && handle.GetGeneration() == currentGeneration)
 			{
-				return &mData[handle.mIndex];
+				return &mData[handle.GetIndex()];
 			}
 
 			return nullptr;
@@ -221,10 +197,10 @@ namespace Turbo
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
-			const FPoolGenerationType currentGeneration = mGenerations[handle.mIndex];
-			if (handle.IsValid() && handle.mIndex < mData.size() && handle.mGeneration == currentGeneration)
+			const FHandle::GenerationType currentGeneration = mGenerations[handle.GetIndex()];
+			if (handle.IsValid() && handle.GetIndex() < mData.size() && handle.GetGeneration() == currentGeneration)
 			{
-				return &mData[handle.mIndex];
+				return &mData[handle.GetIndex()];
 			}
 
 			return nullptr;
@@ -232,44 +208,10 @@ namespace Turbo
 
 	private:
 		std::vector<T> mData;
-		std::vector<FPoolGenerationType> mGenerations;
-		std::vector<FPoolIndexType> mFreeIndices;
+		std::vector<FHandle::GenerationType> mGenerations;
+		std::vector<FHandle::IndexType> mFreeIndices;
 
-		FPoolIndexType mSize = 0;
+		FHandle::IndexType mSize = 0;
 	};
 } // turbo
 
-inline bool operator==(const Turbo::FHandle lhs, const Turbo::FHandle rhs)
-{
-	return lhs.mIndex == rhs.mIndex
-		&& lhs.mGeneration == rhs.mGeneration;
-}
-
-template<>
-struct std::hash<Turbo::FHandle>
-{
-	std::size_t operator()(Turbo::FHandle handle) const noexcept
-	{
-		const std::size_t h1 = std::hash<Turbo::FPoolIndexType>{}(handle.mIndex);
-		const std::size_t h2 = std::hash<Turbo::FPoolGenerationType>{}(handle.mGeneration);
-		return h1 ^ (h2 << 1);
-	}
-};
-
-template<typename T>
-inline bool operator==(const Turbo::THandle<T> lhs, const Turbo::THandle<T> rhs)
-{
-	return lhs.mIndex == rhs.mIndex
-		&& lhs.mGeneration == rhs.mGeneration;
-}
-
-template<typename T>
-struct std::hash<Turbo::THandle<T>>
-{
-	std::size_t operator()(Turbo::THandle<T> handle) const noexcept
-	{
-		const std::size_t h1 = std::hash<Turbo::FPoolIndexType>{}(handle.mIndex);
-		const std::size_t h2 = std::hash<Turbo::FPoolGenerationType>{}(handle.mGeneration);
-		return h1 ^ (h2 << 1);
-	}
-};

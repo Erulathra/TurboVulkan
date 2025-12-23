@@ -1233,7 +1233,7 @@ namespace Turbo
 
 		for (const FBindlessResourceUpdateRequest& request : mBindlessResourcesToUpdate)
 		{
-			writeDescriptorSet.dstArrayElement = request.mHandle.mIndex;
+			writeDescriptorSet.dstArrayElement = request.mHandle.GetIndex();;
 
 			switch (request.mType)
 			{

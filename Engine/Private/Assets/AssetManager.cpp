@@ -157,7 +157,7 @@ namespace Turbo
 				const FCopyBufferInfo copyBufferInfo = {
 					.mSrc = stagingBuffer,
 					.mDst = mMeshPointersPool,
-					.mDstOffset = sizeof(FMeshPointers) * result.front().mIndex,
+					.mDstOffset = sizeof(FMeshPointers) * result.front().GetIndex(),
 					.mSize = sizeof(FMeshPointers)
 				};
 
@@ -175,7 +175,7 @@ namespace Turbo
 		const FBuffer* pointersPoolBuffer = gpu.AccessBuffer(mMeshPointersPool);
 		TURBO_CHECK(pointersPoolBuffer);
 
-		const FDeviceAddress memoryOffset = sizeof(FMeshPointers) * handle.mIndex;
+		const FDeviceAddress memoryOffset = sizeof(FMeshPointers) * handle.GetIndex();
 		TURBO_CHECK(memoryOffset < pointersPoolBuffer->GetSize());
 
 		return pointersPoolBuffer->GetDeviceAddress() + memoryOffset;

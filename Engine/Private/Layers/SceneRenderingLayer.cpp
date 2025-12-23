@@ -74,17 +74,17 @@ namespace Turbo
 			world->mRegistry.sort<FMeshComponent>(
 				[]( const FMeshComponent& lhs, const FMeshComponent& rhs) -> bool
 				{
-					if (lhs.mMaterial.mIndex == rhs.mMaterial.mIndex)
+					if (lhs.mMaterial.GetIndex() == rhs.mMaterial.GetIndex())
 					{
-						if (lhs.mMaterialInstance.mIndex == rhs.mMaterialInstance.mIndex)
+						if (lhs.mMaterialInstance.GetIndex() == rhs.mMaterialInstance.GetIndex())
 						{
-							return lhs.mMesh.mIndex < rhs.mMesh.mIndex;
+							return lhs.mMesh.GetIndex() < rhs.mMesh.GetIndex();
 						}
 
-						return lhs.mMaterialInstance.mIndex < rhs.mMaterialInstance.mIndex;
+						return lhs.mMaterialInstance.GetIndex() < rhs.mMaterialInstance.GetIndex();
 					}
 
-					return lhs.mMaterial.mIndex < rhs.mMaterial.mIndex;
+					return lhs.mMaterial.GetIndex() < rhs.mMaterial.GetIndex();
 				});
 		}
 
@@ -171,6 +171,8 @@ namespace Turbo
 
 				if (mesh != nullptr)
 				{
+					TRACE_ZONE_SCOPED_N("Draw Indexed")
+
 					cmd.PushConstants(pushConstants);
 					cmd.DrawIndexed(mesh->mVertexCount);
 
