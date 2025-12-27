@@ -121,8 +121,6 @@ namespace Turbo
 			TURBO_CHECK(asset != nullptr)
 
 			++refCounters[handle.mHandle.GetIndex()];
-
-			TURBO_LOG(LogTemp, Info, "Access. RefCount: {}", refCounters[handle.mHandle.GetIndex()]);
 		}
 
 		static void ReleaseReference(const TAssetHandle<AssetType>& handle)
@@ -136,8 +134,6 @@ namespace Turbo
 
 			RefCounterType& refCounter = refCounters[handle.mHandle.GetIndex()];
 			--refCounter;
-
-			TURBO_LOG(LogTemp, Info, "Release. RefCount: {}", refCounters[handle.mHandle.GetIndex()]);
 
 			if (refCounter > 0)
 			{
