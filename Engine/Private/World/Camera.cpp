@@ -1,14 +1,6 @@
 #include "World/Camera.h"
 
 #include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Core/CoreTimer.h"
 #include "Core/Math/FRotator.h"
 #include "World/SceneGraph.h"
 

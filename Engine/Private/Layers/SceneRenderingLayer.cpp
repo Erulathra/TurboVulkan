@@ -109,7 +109,8 @@ namespace Turbo
 
 			const auto meshTransformView = world->mRegistry.view<FMeshComponent, FWorldTransform>();
 
-			const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+			// const FOldAssetManager& assetManager = entt::locator<FOldAssetManager>::value();
+			const FMeshManager& meshManager = entt::locator<FMeshManager>::value();
 			const FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
 			THandle<FMaterial> materialHandle;
@@ -154,7 +155,7 @@ namespace Turbo
 				if (meshComponent.mMesh != meshHandle)
 				{
 					meshHandle = meshComponent.mMesh;
-					mesh = assetManager.AccessMesh(meshHandle);
+					mesh = FMeshLoader::AccessAsset(meshHandle);
 
 					cmd.BindIndexBuffer(mesh->mIndicesBuffer);
 				}
@@ -166,7 +167,7 @@ namespace Turbo
 
 				pushConstants.mViewData = viewDataDeviceAddress;
 				pushConstants.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, materialInstanceHandle);
-				pushConstants.mMeshData = assetManager.GetMeshPointersAddress(gpu, meshHandle);
+				pushConstants.mMeshData = meshManager.GetMeshPointersAddress(gpu, meshHandle);
 				pushConstants.mSceneData = kNullDeviceAddress;
 
 				if (mesh != nullptr)

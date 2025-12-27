@@ -5,7 +5,7 @@
 namespace Turbo
 {
 	class FWorld;
-	class FAssetManager;
+	class FOldAssetManager;
 	class FGPUDevice;
 	class FCoreTimer;
 	class FVulkanRHI;

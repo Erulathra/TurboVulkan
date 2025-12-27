@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/DataStructures/Pool.h"
+#include "Core/DataStructures/GenPoolGrowable.h"
 #include "Graphics/ResourceBuilders.h"
 
 // TODO: cache gpu device
@@ -81,8 +81,8 @@ namespace Turbo
 		void DestroyMaterialInstance(THandle<FMaterial::Instance> handle);
 
 	private:
-		TPoolGrowable<FMaterial> mMaterialPool;
-		TPoolGrowable<FMaterial::Instance> mMaterialInstancePool;
+		TGenPoolGrowable<FMaterial> mMaterialPool;
+		TGenPoolGrowable<FMaterial::Instance> mMaterialInstancePool;
 
 		using FMaterialInstanceArray = entt::dense_set<THandle<FMaterial::Instance>>;
 		using FMaterialToMaterialInstanceMap = entt::dense_map<THandle<FMaterial>, FMaterialInstanceArray>;

@@ -1,7 +1,7 @@
 #include "Core/Name.h"
 
 namespace Turbo {
-	using FNameHashMapType = std::unordered_map<std::string /** name */, FNameId /* id */>;
+	using FNameHashMapType = entt::dense_map<std::string /** name */, FNameId /* id */>;
 	using FNameLookUpTableType = std::vector<std::string>;
 
 	TUniquePtr<FNameHashMapType> gNameHashMap;

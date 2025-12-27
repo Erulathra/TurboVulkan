@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Assets/GenericAssetManager.h"
 #include "Layers/Layer.h"
 
 namespace Turbo
@@ -28,6 +29,7 @@ namespace Turbo
 
 	private:
 		entt::entity mSunEntity;
+		std::array<TAssetHandle<FMesh>, 4> mMeshes;
 	};
 
 }

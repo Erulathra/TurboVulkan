@@ -112,7 +112,7 @@ namespace Turbo
 #if TURBO_BUILD_DEVELOPMENT
 		if (TEST_FLAG(builder.mUsageFlags, vk::BufferUsageFlagBits::eUniformBuffer))
 		{
-			TURBO_ENSURE(builder.mSize < kMaxUniformBufferSize);
+			TURBO_ENSURE(builder.mSize <= kMaxUniformBufferSize);
 		}
 #endif
 

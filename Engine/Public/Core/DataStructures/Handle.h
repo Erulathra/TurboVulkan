@@ -42,6 +42,19 @@ namespace Turbo
 			return mIndexAndGen == rhs.mIndexAndGen;
 		}
 
+		constexpr bool operator!=(const FHandle& rhs) const
+		{
+			return !(*this == rhs);
+		}
+
+		FHandle() { }
+		FHandle(const FHandle& other) noexcept :mIndexAndGen(other.mIndexAndGen) { }
+		FHandle& operator=(const FHandle& other) noexcept
+		{
+			this->mIndexAndGen = other.mIndexAndGen;
+			return *this;
+		}
+
 		// Index and Generation
 		IndexType mIndexAndGen = kInvalidIndex;
 	};

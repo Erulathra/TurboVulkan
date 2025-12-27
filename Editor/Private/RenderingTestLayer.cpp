@@ -11,6 +11,7 @@
 #include "Graphics/ResourceBuilders.h"
 #include "World/MeshComponent.h"
 #include "World/World.h"
+#include "Assets/GenericAssetManager.h"
 
 using namespace Turbo;
 
@@ -100,19 +101,20 @@ void FRenderingTestLayer::Start()
 
 	FWorld& world = *gEngine->GetWorld();
 
-	FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+	FOldAssetManager& assetManager = entt::locator<FOldAssetManager>::value();
 	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
-	std::array meshes = {
-		// assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front(),
-		// assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front(),
-		assetManager.LoadMesh("Content/Meshes/SM_IcoPlanet.glb").front(),
+	mMeshes = {
+		FMeshLoader::GetAsset(FName("Content/Meshes/SM_IcoPlanet.glb")),
+		FMeshLoader::GetAsset(FName("Content/Meshes/SM_IcoPlanet.glb")),
+		FMeshLoader::GetAsset(FName("Content/Meshes/SM_IcoPlanet.glb")),
+		FMeshLoader::GetAsset(FName("Content/Meshes/SM_IcoPlanet.glb"))
 	};
 
 	FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("BaseMaterial.slang");
 	THandle<FMaterial> materialHandle = materialManager.LoadMaterial<FMaterialUniforms>(pipelineBuilder, 2048);
 
-	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshes[0], materialHandle, 1.f);
+	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, mMeshes[0].mHandle, materialHandle, 1.f);
 	FTransform sunTransform = world.mRegistry.get<FTransform>(mSunEntity);
 	sunTransform.mScale = glm::float3(5.f);
 
@@ -126,12 +128,17 @@ void FRenderingTestLayer::Start()
 
 		const entt::entity pivot = CreatePivot(world, entt::null, 0.f, planetSpeed);
 
-		const entt::entity planet = CreateCelestialBody(world, pivot, orbitRadius, 1.f, meshes[planetId % meshes.size()], materialHandle);
+		const entt::entity planet = CreateCelestialBody(world, pivot, orbitRadius, 1.f, mMeshes[planetId % mMeshes.size()].mHandle, materialHandle);
 	}
 }
 
 void FRenderingTestLayer::Shutdown()
 {
+	for (auto& mesh : mMeshes)
+	{
+		mesh = TAssetHandle<FMesh>();
+	}
+
 	FWorld& world = *gEngine->GetWorld();
 	entt::registry& registry = world.mRegistry;
 
@@ -144,12 +151,6 @@ void FRenderingTestLayer::Shutdown()
 		const FMeshComponent& meshComponent = view.get<FMeshComponent>(entity);
 		usedMeshes.emplace(meshComponent.mMesh);
 		usedMaterials.emplace(meshComponent.mMaterial);
-	}
-
-	FAssetManager& assetManager = entt::locator<FAssetManager>::value();
-	for (THandle<FMesh> mesh : usedMeshes)
-	{
-		assetManager.UnloadMesh({mesh});
 	}
 
 	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();

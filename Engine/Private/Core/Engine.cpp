@@ -63,9 +63,13 @@ namespace Turbo
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpu.Init(gpuDeviceBuilder);
 
-		entt::locator<FAssetManager>::emplace<FAssetManager>();
-		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+		entt::locator<FOldAssetManager>::emplace<FOldAssetManager>();
+		FOldAssetManager& assetManager = entt::locator<FOldAssetManager>::value();
 		assetManager.Init(gpu);
+
+		entt::locator<FMeshManager>::emplace<FMeshManager>();
+		FMeshManager& meshManager = entt::locator<FMeshManager>::value();
+		meshManager.Init(gpu);
 
 		entt::locator<FMaterialManager>::emplace<FMaterialManager>();
 
@@ -240,7 +244,8 @@ namespace Turbo
 		}
 
 		entt::locator<FGeometryBuffer>::value().Destroy();
-		entt::locator<FAssetManager>::value().Destroy(gpu);
+		entt::locator<FOldAssetManager>::value().Destroy(gpu);
+		entt::locator<FMeshManager>::value().Destroy(gpu);
 
 		gpu.Shutdown();
 		entt::locator<FGeometryBuffer>::reset();

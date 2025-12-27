@@ -1,13 +1,18 @@
 #pragma once
+
+#include "GenericAssetManager.h"
+#include "Graphics/GPUDevice.h"
 #include "Graphics/GraphicsCore.h"
+
+DECLARE_LOG_CATEGORY(LogMeshLoading, Display, Display)
 
 namespace Turbo
 {
 	class FBuffer;
 	struct FMaterial;
 
-	// TODO: Think about better memory layout
-	static constexpr uint32 kMaxSubMeshesPerMesh = 15;
+	// TODO: Replace with something more robust
+	constexpr uint32 kMaxMeshes = 2048;
 
 	struct FMesh final
 	{
@@ -19,6 +24,8 @@ namespace Turbo
 		THandle<FBuffer> mColorBuffer = {};
 
 		uint32 mVertexCount = 0;
+
+		FName mName;
 	};
 
 	struct FMeshPointers final
@@ -29,4 +36,26 @@ namespace Turbo
 		FDeviceAddress mColorBuffer = kNullDeviceAddress;
 	};
 
+	using FMeshLoader = FAssetManager<FMesh>;
+
+	struct FMeshManager
+	{
+		DELETE_COPY(FMeshManager)
+		FMeshManager() = default;
+
+	public:
+		void Init(FGPUDevice& gpu);
+		void Destroy(FGPUDevice& gpu);
+
+		FDeviceAddress GetMeshPointersAddress(FGPUDevice& gpu, THandle<FMesh> handle) const;
+
+	public:
+		THandle<FBuffer> mMeshPointersPool;
+	};
+
+
+	template<>
+	bool FMeshLoader::TryLoadAsset(FName assetPath, THandle<FMesh> assetHandle, FMesh& outLoadedAsset);
+	template<>
+	void FMeshLoader::UnloadAsset(THandle<FMesh> assetHandle, const FMesh& unloadedAsset);
 } // Turbo

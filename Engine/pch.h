@@ -2,6 +2,7 @@
 
 // C++ standard library headers
 #include <memory>
+#include <cstring>
 #include <utility>
 #include <algorithm>
 #include <ranges>
@@ -25,7 +26,7 @@
 #include "ProfilingMacros.h"
 #include "Core/Name.h"
 
-#include "Core/DataStructures/Pool.h"
+#include "Core/DataStructures/GenPool.h"
 
 // GLM
 #include "Core/Math/MathCommon.h"
