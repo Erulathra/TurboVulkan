@@ -29,7 +29,7 @@ namespace Turbo
 
 		// Helpers
 		IndexType GetIndex() const { return mIndexAndGen & kIndexMask; }
-		GenerationType GetGeneration() const { return mIndexAndGen & (mIndexAndGen << kIndexMaskLength); }
+		GenerationType GetGeneration() const { return mIndexAndGen >> kIndexMaskLength; }
 
 		[[nodiscard]] constexpr bool IsValid() const { return mIndexAndGen != kInvalidIndex; }
 		constexpr void Reset() { mIndexAndGen = kInvalidIndex; }

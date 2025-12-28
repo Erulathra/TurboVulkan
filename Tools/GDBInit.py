@@ -1,5 +1,5 @@
 import GLMPrettyPrinter
-import TurboFNamePrettyPrinter
+import TurboPrettyPrinters
 
 def init():
     print("Loading Turbo Printers")
