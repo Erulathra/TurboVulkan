@@ -17,6 +17,14 @@ endfunction()
 # Project setup helper functions
 ############################################################################################
 
+function(disable_rtti TARGET)
+    target_compile_options(${TARGET} PRIVATE -fno-rtti)
+endfunction()
+
+function(disable_exceptions TARGET)
+    target_compile_options(${TARGET} PRIVATE -fno-exceptions)
+endfunction()
+
 function(setup_project_directory TARGET)
     target_copy_slang_binaries(${TARGET})
 

@@ -15,3 +15,6 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
 target_link_libraries(${PROJECT_NAME} TurboVulkan)
 
 setup_project_directory(${PROJECT_NAME})
+
+disable_rtti(${PROJECT_NAME})
+disable_exceptions(${PROJECT_NAME})

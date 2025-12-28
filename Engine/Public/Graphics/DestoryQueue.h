@@ -57,7 +57,7 @@ namespace Turbo
 		{
 			using CastedQueueType= TDestroyQueue<DestroyerType>;
 
-			const size_t typeID = typeid(destroyer).hash_code();
+			const size_t typeID = entt::type_id<DestroyerType>().index();
 
 			IDestroyQueue* destroyQueue;
 
