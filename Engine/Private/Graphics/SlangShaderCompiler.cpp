@@ -28,7 +28,7 @@ namespace Turbo
 
 	vk::ShaderModule FSlangShaderCompiler::CompileShader(vk::Device device, const FShaderStage& shaderStage)
 	{
-		TURBO_LOG(LogSlang, Info, "Compiling `Shaders/{}.slang` ({}) shader.", shaderStage.mShaderName, VulkanEnum::GetShaderStageName(shaderStage.mStage));
+		TURBO_LOG(LogSlang, Info, "Compiling `Shaders/{}` ({}) shader.", shaderStage.mShaderName, VulkanEnum::GetShaderStageName(shaderStage.mStage));
 
 		vk::ShaderModule result = nullptr;
 

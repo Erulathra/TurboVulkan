@@ -1,6 +1,9 @@
 #pragma once
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#ifndef SPDLOG_ACTIVE_LEVEL
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#endif // ifndef SPDLOG_ACTIVE_LEVEL
+
 #include "spdlog/spdlog.h"
 #include "entt/entt.hpp"
 
@@ -67,20 +70,25 @@ namespace Turbo
 	constexpr Turbo::LogVerbosity Turbo::GetLogCategoryDefaultVerbosity<NAME>() { return Turbo::DEFAULT_VERBOSITY; }	\
 
 
-#define TURBO_LOG(CATEGORY, VERBOSITY, MESSAGE, ...)																\
-{																											\
-	using namespace Turbo;																					\
-	if constexpr (VERBOSITY >= LOG_VERBOSITY && VERBOSITY >= GetLogCategoryStaticVerbosity<CATEGORY>())		\
-	{																										\
-		if (VERBOSITY >= GetLogCategoryDynamicVerbosity<CATEGORY>())										\
-		{																									\
-			if constexpr (VERBOSITY == Display) SPDLOG_DEBUG("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);			\
-			else if constexpr (VERBOSITY == Info) SPDLOG_INFO("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);   		\
-			else if constexpr (VERBOSITY == Warn) SPDLOG_WARN("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);			\
-			else if constexpr (VERBOSITY == Error) SPDLOG_ERROR("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);			\
-			else if constexpr (VERBOSITY == Critical) SPDLOG_CRITICAL("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);	\
-		}																									\
-	}																										\
+#define TURBO_LOG(CATEGORY, VERBOSITY, MESSAGE, ...)																	\
+{																														\
+	using namespace Turbo;																								\
+	if constexpr (VERBOSITY >= LOG_VERBOSITY && VERBOSITY >= GetLogCategoryStaticVerbosity<CATEGORY>())					\
+	{																													\
+		if (VERBOSITY >= GetLogCategoryDynamicVerbosity<CATEGORY>())													\
+		{																												\
+			if constexpr (VERBOSITY == Display)																			\
+				SPDLOG_DEBUG("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);										\
+			else if constexpr (VERBOSITY == Info)																		\
+				SPDLOG_INFO("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);   									\
+			else if constexpr (VERBOSITY == Warn)																		\
+				SPDLOG_WARN("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);										\
+			else if constexpr (VERBOSITY == Error)																		\
+				SPDLOG_ERROR("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);										\
+			else if constexpr (VERBOSITY == Critical)																	\
+				SPDLOG_CRITICAL("[" #CATEGORY "] " MESSAGE __VA_OPT__(,) __VA_ARGS__);									\
+		}																												\
+	}																													\
 }
 
 namespace Turbo

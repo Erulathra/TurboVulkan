@@ -3,6 +3,7 @@
 #include "StaticMesh.h"
 #include "Core/DataStructures/GenPoolGrowable.h"
 
+DECLARE_LOG_CATEGORY(LogAssetManager, Display, Display)
 DECLARE_LOG_CATEGORY(LogMeshLoading, Display, Display)
 DECLARE_LOG_CATEGORY(LogTextureLoading, Display, Display)
 
@@ -25,28 +26,53 @@ namespace Turbo
 		void Init(FGPUDevice& gpu);
 		void Destroy(FGPUDevice& gpu) const;
 
+		/** data interface */
+	public:
+
+
+		/** data interface end */
+
 		/** Mesh interface */
 	public:
-		std::vector<THandle<FMesh>> LoadMesh(const std::filesystem::path& path);
+		[[nodiscard]] THandle<FMesh> LoadMesh(FName path);
+		void UnloadMesh(THandle<FMesh> meshHandle);
 
-		FMesh* AccessMesh(THandle<FMesh> handle) { return mMeshPool.Access(handle); }
-		const FMesh* AccessMesh(THandle<FMesh> handle) const { return mMeshPool.Access(handle); }
+		[[nodiscard]] FMesh* AccessMesh(THandle<FMesh> handle) { return mMeshPool.Access(handle); }
+		[[nodiscard]] const FMesh* AccessMesh(THandle<FMesh> handle) const { return mMeshPool.Access(handle); }
 
-		FDeviceAddress GetMeshPointersAddress(FGPUDevice& gpu, THandle<FMesh> handle) const;
+		[[nodiscard]] FDeviceAddress GetMeshPointersAddress(FGPUDevice& gpu, THandle<FMesh> handle) const;
 
-		void UnloadMesh(const std::vector<THandle<FMesh>>& meshesToUnload);
 		/** Mesh interface end */
 
+		/** Texture interface */
 	public:
-		THandle<FTexture> LoadTexture(const std::filesystem::path& path, bool bSRGB = true);
+		[[nodiscard]] THandle<FTexture> LoadTexture(FName path, bool bSRGB = true);
+		void UnloadTexture(THandle<FTexture> handle);
 
 	private:
-		THandle<FTexture> LoadDDS(const std::filesystem::path& path, bool bSRGB = true);
+		THandle<FTexture> LoadDDS(FName path, bool bSRGB = true);
+
+		/** Texture interface end */
+
+	private:
+		template<typename AssetType>
+		THandle<AssetType> FindCachedAsset(FName path)
+		{
+			if (auto foundIt = mAssetCache.find(path);
+				foundIt != mAssetCache.end())
+			{
+				TURBO_LOG(LogAssetManager, Display, "Cache hit! ({})", path.ToString())
+				return THandle<AssetType>(foundIt->second);
+			}
+
+			return {};
+		}
 
 	private:
 		TGenPoolGrowable<FMesh> mMeshPool;
-
 		THandle<FBuffer> mMeshPointersPool;
+
+		entt::dense_map<FName, FHandle> mAssetCache;
 
 	public:
 		friend class FEngine;

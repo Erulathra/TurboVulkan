@@ -13,6 +13,7 @@
 
 // stl collections
 #include <vector>
+#include <span>
 #include <map>
 #include <unordered_map>
 #include <set>

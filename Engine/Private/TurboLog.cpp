@@ -22,8 +22,6 @@ void Turbo::InitLogger()
 		std::filesystem::remove(kLogFilePath);
 	}
 
-	spdlog::set_level(spdlog::level::debug);
-
 	spdlog::init_thread_pool(8192, 1);
 	auto stdoutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 	auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("Saved/Logs/TurboEngine.log");
@@ -32,6 +30,8 @@ void Turbo::InitLogger()
 	auto logger = std::make_shared<spdlog::async_logger>("defaultLogger", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
 	spdlog::register_logger(logger);
 	spdlog::set_default_logger(logger);
+
+	spdlog::set_level(spdlog::level::trace);
 
 	spdlog::flush_every(std::chrono::nanoseconds(250));
 

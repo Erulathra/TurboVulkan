@@ -19,6 +19,8 @@ namespace Turbo
 		THandle<FBuffer> mColorBuffer = {};
 
 		uint32 mVertexCount = 0;
+
+		FName mName;
 	};
 
 	struct FMeshPointers final

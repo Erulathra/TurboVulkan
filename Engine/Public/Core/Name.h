@@ -7,7 +7,7 @@ namespace Turbo
 	class FName
 	{
 	public:
-		explicit FName();
+		FName();
 		explicit FName(std::string_view string);
 
 		FName(const FName& other) : mStringId(other.mStringId) { }

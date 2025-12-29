@@ -120,7 +120,6 @@ namespace Turbo
 		[[nodiscard]] glm::int2 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
 
-	private:
 		vk::Image mVkImage = nullptr;
 		vk::ImageView mVkImageView = nullptr;
 		vk::Format mFormat = vk::Format::eUndefined;
@@ -134,7 +133,7 @@ namespace Turbo
 
 		THandle<FTexture> mHandle = {};
 
-		FName mName;
+		FName mName = {};
 	};
 
 	class FTextureDestroyer final : public IDestroyer

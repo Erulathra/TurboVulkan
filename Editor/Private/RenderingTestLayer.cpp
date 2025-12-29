@@ -106,7 +106,9 @@ void FRenderingTestLayer::Start()
 	std::array meshes = {
 		// assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front(),
 		// assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front(),
-		assetManager.LoadMesh("Content/Meshes/SM_IcoPlanet.glb").front(),
+		assetManager.LoadMesh(FName("Content/Meshes/SM_IcoPlanet.glb")),
+		assetManager.LoadMesh(FName("Content/Meshes/SM_IcoPlanet.glb")),
+		assetManager.LoadMesh(FName("Content/Meshes/SM_IcoPlanet.glb")),
 	};
 
 	FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("BaseMaterial.slang");
