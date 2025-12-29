@@ -25,7 +25,7 @@
 #include "ProfilingMacros.h"
 #include "Core/Name.h"
 
-#include "Core/DataStructures/Pool.h"
+#include "Core/DataStructures/GenPool.h"
 
 // GLM
 #include "Core/Math/MathCommon.h"

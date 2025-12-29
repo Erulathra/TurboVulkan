@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StaticMesh.h"
+#include "Core/DataStructures/GenPoolGrowable.h"
 
 DECLARE_LOG_CATEGORY(LogMeshLoading, Display, Display)
 DECLARE_LOG_CATEGORY(LogTextureLoading, Display, Display)
@@ -43,7 +44,7 @@ namespace Turbo
 		THandle<FTexture> LoadDDS(const std::filesystem::path& path, bool bSRGB = true);
 
 	private:
-		TPoolGrowable<FMesh> mMeshPool;
+		TGenPoolGrowable<FMesh> mMeshPool;
 
 		THandle<FBuffer> mMeshPointersPool;
 
