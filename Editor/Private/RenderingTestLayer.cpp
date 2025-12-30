@@ -14,6 +14,12 @@
 
 using namespace Turbo;
 
+struct FMaterialData
+{
+	uint32 mTexture = 0;
+	uint32 mSampler = 0;
+};
+
 struct FMaterialUniforms
 {
 	glm::float3 mColor = ELinearColor::kWhite;
@@ -100,19 +106,34 @@ void FRenderingTestLayer::Start()
 
 	FWorld& world = *gEngine->GetWorld();
 
+	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 	FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
 	std::array meshes = {
-		// assetManager.LoadMesh("Content/Meshes/SM_BlenderMonkey.glb").front(),
-		// assetManager.LoadMesh("Content/Meshes/SM_Cube.glb").front(),
-		assetManager.LoadMesh(FName("Content/Meshes/SM_IcoPlanet.glb")),
-		assetManager.LoadMesh(FName("Content/Meshes/SM_IcoPlanet.glb")),
-		assetManager.LoadMesh(FName("Content/Meshes/SM_IcoPlanet.glb")),
+		assetManager.LoadMesh(FName("Content/Meshes/SM_Cube.glb")),
 	};
 
+	mCatTexture = assetManager.LoadTexture(FName("Content/Textures/T_IndianaCat.dds"));
+
+	FSamplerBuilder samplerBuilder = {};
+	samplerBuilder
+		.SetMinMagFilter(vk::Filter::eLinear, vk::Filter::eLinear)
+		.SetName(FName("catSampler"));
+	mSampler = gpu.CreateSampler(samplerBuilder);
+
 	FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("BaseMaterial.slang");
-	THandle<FMaterial> materialHandle = materialManager.LoadMaterial<FMaterialUniforms>(pipelineBuilder, 2048);
+	THandle<FMaterial> materialHandle = materialManager.LoadMaterial<FMaterialData, FMaterialUniforms>(pipelineBuilder, 2048);
+
+	FMaterialData materialData = {};
+	materialData.mTexture = mCatTexture.GetIndex();
+	materialData.mSampler = mSampler.GetIndex();
+
+	gpu.ImmediateSubmit(FOnImmediateSubmit::CreateLambda(
+		[&](FCommandBuffer& cmd)
+		{
+			materialManager.UpdateMaterialData(cmd, materialHandle, &materialData);
+		}));
 
 	mSunEntity = CreateCelestialBody(world, entt::null, 0.f, 0.f, meshes[0], materialHandle, 1.f);
 	FTransform sunTransform = world.mRegistry.get<FTransform>(mSunEntity);
@@ -159,6 +180,11 @@ void FRenderingTestLayer::Shutdown()
 	{
 		materialManager.DestroyMaterial(material);
 	}
+
+	assetManager.UnloadTexture(mCatTexture);
+
+	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+	gpu.DestroySampler(mSampler);
 }
 
 void FRenderingTestLayer::ShowImGuiWindow()

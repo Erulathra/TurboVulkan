@@ -311,7 +311,7 @@ namespace Turbo
 		}
 	};
 
-	template <typename PushConstantType>
-	concept TPushConstant = sizeof(PushConstantType) < kMaxPushConstantSize;
+	template <typename T>
+	concept PushConstant = sizeof(T) < kMaxPushConstantSize;
 }
 

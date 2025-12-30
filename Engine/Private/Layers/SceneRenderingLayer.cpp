@@ -166,6 +166,7 @@ namespace Turbo
 
 				pushConstants.mViewData = viewDataDeviceAddress;
 				pushConstants.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, materialInstanceHandle);
+				pushConstants.mMaterialData = materialManager.GetMaterialDataAddress(gpu, materialHandle);
 				pushConstants.mMeshData = assetManager.GetMeshPointersAddress(gpu, meshHandle);
 				pushConstants.mSceneData = kNullDeviceAddress;
 

@@ -28,6 +28,9 @@ namespace Turbo
 
 	private:
 		entt::entity mSunEntity;
+
+		THandle<FTexture> mCatTexture;
+		THandle<FSampler> mSampler;
 	};
 
 }

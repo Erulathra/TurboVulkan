@@ -29,7 +29,12 @@ namespace Turbo
 		return pipelineBuilder;
 	}
 
-	THandle<FMaterial> FMaterialManager::LoadMaterial(const FPipelineBuilder& pipelineBuilder, size_t uniformStructSize, size_t maxInstances)
+	THandle<FMaterial> FMaterialManager::LoadMaterial(
+		const FPipelineBuilder& pipelineBuilder,
+		size_t materialDataSize,
+		size_t perInstanceDataSize,
+		size_t maxInstances
+	)
 	{
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		const THandle<FPipeline> pipelineHandle = gpu.CreatePipeline(pipelineBuilder);
@@ -38,18 +43,20 @@ namespace Turbo
 		const THandle<FMaterial> materialHandle = mMaterialPool.Acquire();
 		FMaterial* material = mMaterialPool.Access(materialHandle);
 		material->mPipeline = pipelineHandle;
-		material->mInstanceDataBuffer = {};
-		material->mUniformStructSize = uniformStructSize;
+		material->mDataBuffer = {};
+		material->mMaterialDataSize = materialDataSize;
+		material->mPerInstanceDataSize = perInstanceDataSize;
 		material->mMaxInstances = maxInstances;
 
-		if (uniformStructSize > 0)
+		const size_t targetBufferSize = materialDataSize + perInstanceDataSize * maxInstances;
+		if (targetBufferSize > 0)
 		{
 			FBufferBuilder bufferBuilder = {};
 			bufferBuilder
-				.Init(vk::BufferUsageFlagBits::eStorageBuffer, EBufferFlags::CreateMapped, uniformStructSize * maxInstances)
+				.Init(vk::BufferUsageFlagBits::eStorageBuffer, EBufferFlags::CreateMapped, targetBufferSize)
 				.SetName(FName(fmt::format("{}_Uniforms", pipelineBuilder.GetName())));
-			material->mInstanceDataBuffer = gpu.CreateBuffer(bufferBuilder);
-			TURBO_CHECK(material->mInstanceDataBuffer);
+			material->mDataBuffer = gpu.CreateBuffer(bufferBuilder);
+			TURBO_CHECK(material->mDataBuffer);
 		}
 
 		mMaterialToMaterialInstanceMap[materialHandle] = FMaterialInstanceArray();
@@ -95,15 +102,15 @@ namespace Turbo
 		const FMaterial::Instance* instance = mMaterialInstancePool.Access(instanceHandle);
 		const FMaterial* material = mMaterialPool.Access(instance->material);
 
-		TURBO_CHECK(data.size() == material->mUniformStructSize)
+		TURBO_CHECK(data.size() == material->mPerInstanceDataSize)
 
-		const FBuffer* instancesDataBuffer = gpu.AccessBuffer(material->mInstanceDataBuffer);
+		const FBuffer* instancesDataBuffer = gpu.AccessBuffer(material->mDataBuffer);
 		byte* targetInstanceAddress =
-			static_cast<byte*>(instancesDataBuffer->GetMappedAddress()) + instance->mUniformBufferIndex * material ->mUniformStructSize;
+			static_cast<byte*>(instancesDataBuffer->GetMappedAddress()) + CalculateInstanceByteOffset(*material, instance->mUniformBufferIndex);
 		std::memcpy(targetInstanceAddress, data.data(), data.size());
 
 		cmd.BufferBarrier(
-			material->mInstanceDataBuffer,
+			material->mDataBuffer,
 			vk::AccessFlagBits2::eHostWrite,
 			vk::PipelineStageFlagBits2::eHost,
 			vk::AccessFlagBits2::eUniformRead,
@@ -115,13 +122,52 @@ namespace Turbo
 	{
 		const FMaterial::Instance* instance = mMaterialInstancePool.Access(instanceHandle);
 		const FMaterial* material = mMaterialPool.Access(instance->material);
-		if (material->mInstanceDataBuffer.IsValid())
+		if (material->mDataBuffer.IsValid())
 		{
-			const FBuffer* uniformBuffer = gpu.AccessBuffer(material->mInstanceDataBuffer);
-			return uniformBuffer->GetDeviceAddress() + instance->mUniformBufferIndex * material->mUniformStructSize;
+			const FBuffer* uniformBuffer = gpu.AccessBuffer(material->mDataBuffer);
+			return uniformBuffer->GetDeviceAddress() + CalculateInstanceByteOffset(*material, instance->mUniformBufferIndex);
 		}
 
 		return kNullDeviceAddress;
+	}
+
+	void FMaterialManager::UpdateMaterialData(FCommandBuffer& cmd, THandle<FMaterial> handle, std::span<byte> data)
+	{
+		TRACE_ZONE_SCOPED();
+
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+		TRACE_GPU_SCOPED(gpu, cmd, "Update Material Data")
+
+		const FMaterial* material = mMaterialPool.Access(handle);
+		TURBO_CHECK(data.size() == material->mMaterialDataSize)
+
+		const FBuffer* instancesDataBuffer = gpu.AccessBuffer(material->mDataBuffer);
+		std::memcpy(instancesDataBuffer->GetMappedAddress(), data.data(), data.size());
+
+		cmd.BufferBarrier(
+			material->mDataBuffer,
+			vk::AccessFlagBits2::eHostWrite,
+			vk::PipelineStageFlagBits2::eHost,
+			vk::AccessFlagBits2::eUniformRead,
+			vk::PipelineStageFlagBits2::eVertexShader
+			);
+	}
+
+	FDeviceAddress FMaterialManager::GetMaterialDataAddress(const FGPUDevice& gpu, THandle<FMaterial> handle) const
+	{
+		const FMaterial* material = mMaterialPool.Access(handle);
+		if (material->mDataBuffer.IsValid())
+		{
+			const FBuffer* uniformBuffer = gpu.AccessBuffer(material->mDataBuffer);
+			return uniformBuffer->GetDeviceAddress();
+		}
+
+		return kNullDeviceAddress;
+	}
+
+	size_t FMaterialManager::CalculateInstanceByteOffset(const FMaterial& material, uint32 instanceIndex)
+	{
+		return material.mMaterialDataSize + instanceIndex * material.mPerInstanceDataSize;
 	}
 
 	void FMaterialManager::DestroyMaterial(THandle<FMaterial> materialHandle)
@@ -134,9 +180,9 @@ namespace Turbo
 		TURBO_CHECK(material);
 		gpu.DestroyPipeline(material->mPipeline);
 
-		if (material->mInstanceDataBuffer.IsValid())
+		if (material->mDataBuffer.IsValid())
 		{
-			gpu.DestroyBuffer(material->mInstanceDataBuffer);
+			gpu.DestroyBuffer(material->mDataBuffer);
 		}
 
 		const FMaterialInstanceArray& instanceHandles = mMaterialToMaterialInstanceMap.at(materialHandle);

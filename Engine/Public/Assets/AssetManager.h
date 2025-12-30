@@ -26,12 +26,6 @@ namespace Turbo
 		void Init(FGPUDevice& gpu);
 		void Destroy(FGPUDevice& gpu) const;
 
-		/** data interface */
-	public:
-
-
-		/** data interface end */
-
 		/** Mesh interface */
 	public:
 		[[nodiscard]] THandle<FMesh> LoadMesh(FName path);

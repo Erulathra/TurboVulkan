@@ -45,6 +45,7 @@ public struct FCommonPushConstants
     public float3x3 normalModelToView;
 
     public const Ptr<FViewData> viewData;
+    public const Ptr<void> materialData;
     public const Ptr<void> materialInstance;
     public const Ptr<FMeshData> meshData;
     public const Ptr<FSceneData> sceneData;

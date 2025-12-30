@@ -423,7 +423,7 @@ namespace Turbo
 		FPipelineBuilder& AddDescriptorSetLayout(THandle<FDescriptorSetLayout> handle)
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
 
-		template <TPushConstant PushConstantType>
+		template <PushConstant PushConstantType>
 		FPipelineBuilder& SetPushConstantType() { mPushConstantSize = sizeof(PushConstantType); return *this; }
 
 		FPipelineBuilder& SetPrimitiveTopology(vk::PrimitiveTopology primitiveTopology) { mTopology = primitiveTopology; return *this; }
