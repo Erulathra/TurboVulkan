@@ -53,7 +53,7 @@ void psMain(in VSOut vsOut, out PSOut psOut)
     const float3 sunWorldPos = float3(0.f);
     const float3 sunPos = mul(float4(sunWorldPos, 1.f), pc.viewData.mViewMatrix).xyz;
 
-    const float ambientLight = 0.01f + instance.emissive;
+    const float ambientLight = 0.1f + instance.emissive;
 
     const float3 sunDir = normalize(vsOut.viewPosition - sunPos);
 

@@ -111,7 +111,7 @@ void FRenderingTestLayer::Start()
 	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
 	std::array meshes = {
-		assetManager.LoadMesh(FName("Content/Meshes/SM_Cube.glb")),
+		assetManager.LoadMesh(FName("Content/Meshes/SM_IcoPlanet.glb")),
 	};
 
 	mCatTexture = assetManager.LoadTexture(FName("Content/Textures/T_IndianaCat.dds"));
