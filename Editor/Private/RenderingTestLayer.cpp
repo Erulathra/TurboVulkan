@@ -52,8 +52,12 @@ entt::entity CreatePivot(FWorld& world, entt::entity parent, float offset, float
 	FTransform& transform = registry.emplace<FTransform>(entity);
 	transform.mPosition.x = offset;
 	transform.mRotation = glm::quat(glm::float3(0.f, glm::tau<float>(), 0.f) * Random::RandomFloat());
-	FRotateComponent& rotateComponent = registry.emplace<FRotateComponent>(entity);
-	rotateComponent.speed = rotationSpeed;
+
+	if (glm::abs(rotationSpeed) > TURBO_SMALL_NUMBER)
+	{
+		FRotateComponent& rotateComponent = registry.emplace<FRotateComponent>(entity);
+		rotateComponent.speed = rotationSpeed;
+	}
 
 	return entity;
 }
@@ -146,10 +150,11 @@ void FRenderingTestLayer::Start()
 		constexpr float offset = 1.f;
 		const float orbitRadius = Random::RandomRange(0.5f, 1.f) * offset * static_cast<float>(planetId + 20);
 		const float planetSpeed = 50.f / orbitRadius;
+		const float rotationSpeed = 1.f;
 
 		const entt::entity pivot = CreatePivot(world, entt::null, 0.f, planetSpeed);
 
-		const entt::entity planet = CreateCelestialBody(world, pivot, orbitRadius, 1.f, meshes[planetId % meshes.size()], materialHandle);
+		const entt::entity planet = CreateCelestialBody(world, pivot, orbitRadius, rotationSpeed, meshes[planetId % meshes.size()], materialHandle);
 	}
 }
 
@@ -200,6 +205,13 @@ void FRenderingTestLayer::ShowImGuiWindow()
 	{
 		ShuffleColors();
 	}
+
+	constexpr uint32 frameTimeHistorySize = 256;
+	static float frameTimeHistory[frameTimeHistorySize];
+
+	frameTimeHistory[FCoreTimer::TickIndex() % frameTimeHistorySize] = static_cast<float>(FCoreTimer::DeltaTime());
+
+	ImGui::PlotHistogram("Frame time graph", frameTimeHistory, frameTimeHistorySize);
 
 	ImGui::End();
 

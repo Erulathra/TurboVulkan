@@ -25,14 +25,13 @@ namespace Turbo {
 
 	void FCoreTimer::Tick()
 	{
-		if (bFirstTick)
+		if (mTickIndex == 0)
 		{
 			mDeltaTime = 0;
 			mTimeFromEngineStart = 0;
 
 			mTickStartTime = std::chrono::steady_clock::now();
-
-			bFirstTick = false;
+			++mTickIndex;
 
 			return;
 		}
@@ -43,5 +42,6 @@ namespace Turbo {
 		mTimeFromEngineStart = std::chrono::duration<double>(newTickStartTime - mEngineStartTime).count();
 
 		mTickStartTime = newTickStartTime;
+		++mTickIndex;
 	}
 } // Turbo

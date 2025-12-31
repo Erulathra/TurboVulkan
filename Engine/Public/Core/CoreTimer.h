@@ -16,6 +16,7 @@ namespace Turbo
 		static FCoreTimer* Get();
 		[[nodiscard]] static double DeltaTime() { return Get()->GetDeltaTime(); }
 		[[nodiscard]] static double TimeFromEngineStart() { return Get()->GetTimeFromEngineStart(); }
+		[[nodiscard]] static uint64 TickIndex() { return Get()->GetTickIndex(); }
 
 		DELETE_COPY(FCoreTimer)
 
@@ -25,15 +26,15 @@ namespace Turbo
 	private:
 		[[nodiscard]] double GetDeltaTime() const { return mDeltaTime; }
 		[[nodiscard]] double GetTimeFromEngineStart() const { return mTimeFromEngineStart; };
+		[[nodiscard]] uint64 GetTickIndex() const { return mTickIndex; };
 
 	private:
 		FChronoTimePoint mEngineStartTime {};
 		FChronoTimePoint mTickStartTime {};
 
-		bool bFirstTick = true;
-
 		double mDeltaTime = -1.;
 		double mTimeFromEngineStart = -1.;
+		uint64 mTickIndex = 0;
 
 	public:
 		friend class FEngine;
