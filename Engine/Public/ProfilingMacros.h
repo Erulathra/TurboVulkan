@@ -10,13 +10,17 @@
 	#define TracyFunction __FUNCSIG__
 #endif
 
-#include <tracy/Tracy.hpp>
+#include "tracy/Tracy.hpp"
+#include "tracy/TracyC.h"
 
 #include "Graphics/GraphicsCore.h"
-#include <tracy/TracyVulkan.hpp>
+#include "tracy/TracyVulkan.hpp"
 
 #define TRACE_ZONE_SCOPED() ZoneScoped;
 #define TRACE_ZONE_SCOPED_N(NAME) ZoneScopedN(NAME);
+
+#define TRACE_ZONE(ID, NAME) TracyCZoneN(ID, NAME, true);
+#define TRACE_ZONE_END(ID) TracyCZoneEnd(ID);
 
 using FTraceGPUCtx = TracyVkCtx;
 #define TRACE_NULL_GPU_CTX() nullptr
@@ -58,6 +62,9 @@ inline void operator delete ( void * ptr ) noexcept
 
 #define TRACE_ZONE_SCOPED() {}
 #define TRACE_ZONE_SCOPED_N(NAME) {}
+
+#define TRACE_ZONE(ID, NAME) {}
+#define TRACE_ZONE_END(ID) {}
 
 using FTraceGPUCtx = void*;
 #define TRACE_NULL_GPU_CTX() nullptr
