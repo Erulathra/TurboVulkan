@@ -21,6 +21,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC Public)
 disable_rtti(${PROJECT_NAME})
 disable_exceptions(${PROJECT_NAME})
 
+# enable vectorization
+if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+    target_compile_options(${PROJECT_NAME} PUBLIC -mavx2)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    target_compile_options(${PROJECT_NAME} PUBLIC /arch:AVX2)
+endif()
+
 ############################################################################################
 # Libraries
 ############################################################################################

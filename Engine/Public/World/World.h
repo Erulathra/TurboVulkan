@@ -38,6 +38,7 @@ namespace Turbo
 	private:
 		void PropagateDirty();
 		void ReCalculateDirtyTransforms();
+		void ReCalculateDirtyTransforms_DFS();
 
 	public:
 		entt::registry mRegistry;
