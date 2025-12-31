@@ -36,9 +36,7 @@ namespace Turbo
 		/** Scene Graph end */
 
 	private:
-		void PropagateDirty();
 		void ReCalculateDirtyTransforms();
-		void ReCalculateDirtyTransforms_DFS();
 
 	public:
 		entt::registry mRegistry;

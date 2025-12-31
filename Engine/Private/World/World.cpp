@@ -21,9 +21,6 @@ namespace Turbo
 
 	void FWorld::InitSceneGraph()
 	{
-		// TODO: remember to uncomment this
-		// mRegistry.group<FRelationship, FWorldTransformDirty, FTransform, FWorldTransform>();
-
 		mRegistry.on_construct<FTransform>().connect<MarkDirty_Impl>();
 		mRegistry.on_construct<FTransform>().connect<AddWorldTransform>();
 		mRegistry.on_update<FTransform>().connect<MarkDirty_Impl>();
@@ -33,107 +30,10 @@ namespace Turbo
 	{
 		TRACE_ZONE_SCOPED();
 
-#if 0
-		PropagateDirty();
 		ReCalculateDirtyTransforms();
-#else
-		ReCalculateDirtyTransforms_DFS();
-#endif
-	}
-
-	void FWorld::PropagateDirty()
-	{
-		TRACE_ZONE_SCOPED();
-
-		std::vector<entt::entity> entitiesToProcess;
-		entt::dense_set<entt::entity> processedEntities;
-		int32 entitiesToProcessBack = 0;
-
-		{
-			auto dirtyTransformsGroup = mRegistry.view<FRelationship, FWorldTransformDirty>();
-			for (entt::entity entity : dirtyTransformsGroup)
-			{
-				// entitiesToProcess.push_back(entity);
-				processedEntities.insert(entity);
-			}
-		}
-
-		// Iterate over children using breath first search
-		while (entitiesToProcessBack < entitiesToProcess.size())
-		{
-			entt::entity parent = entitiesToProcess[entitiesToProcessBack];
-			entitiesToProcessBack++;
-
-			EachChild(parent, [&](entt::entity child)
-			{
-				if (processedEntities.insert(child).second)
-				{
-					entitiesToProcess.push_back(child);
-				}
-			});
-		}
-
-		TRACE_PLOT("Dirty transforms", static_cast<int64>(processedEntities.size()));
-
-		for (entt::entity entity : entitiesToProcess)
-		{
-			mRegistry.emplace<FWorldTransformDirty>(entity);
-		}
 	}
 
 	void FWorld::ReCalculateDirtyTransforms()
-	{
-		TRACE_ZONE_SCOPED();
-
-		auto dirtyTransformGroup = mRegistry.group<FRelationship, FWorldTransformDirty, FTransform, FWorldTransform>();
-		{
-			TRACE_ZONE_SCOPED_N("Sort dirty transforms")
-
-			dirtyTransformGroup.sort(
-				[&](entt::entity lhs, entt::entity rhs)
-				{
-					const FRelationship& lhsRel = dirtyTransformGroup.get<FRelationship>(lhs);
-					const FRelationship& rhsRel = dirtyTransformGroup.get<FRelationship>(rhs);
-
-					return rhsRel.mParent == lhs
-						|| lhsRel.mNext == rhs
-						|| (!(lhsRel.mParent == rhs || rhsRel.mNext == lhs) && (lhsRel.mParent < rhsRel.mParent || (lhsRel.mParent == rhsRel.mParent && &lhsRel < &rhsRel)));
-				}
-			);
-		}
-
-		{
-			TRACE_ZONE_SCOPED_N("Recalculate dirty transforms")
-
-			for (const entt::entity dirtyEntity : dirtyTransformGroup)
-			{
-				const FRelationship& relationship = dirtyTransformGroup.get<FRelationship>(dirtyEntity);
-				const FTransform& local = dirtyTransformGroup.get<FTransform>(dirtyEntity);
-				FWorldTransform& world = dirtyTransformGroup.get<FWorldTransform>(dirtyEntity);
-
-				const glm::mat4 localMatrix = FMath::CreateTransform(local.mPosition, local.mRotation, local.mScale);
-
-				if (relationship.mParent == entt::null)
-				{
-					world.mTransform = localMatrix;
-				}
-				else
-				{
-					const FWorldTransform& parentWorld = dirtyTransformGroup.get<FWorldTransform>(relationship.mParent);
-					world.mTransform = parentWorld.mTransform * localMatrix;
-				}
-			}
-		}
-
-		{
-			TRACE_ZONE_SCOPED_N("Clear dirty flags")
-
-			const auto dirtyView = mRegistry.view<FWorldTransformDirty>();
-			mRegistry.remove<FWorldTransformDirty>(dirtyView.begin(), dirtyView.end());
-		}
-	}
-
-	void FWorld::ReCalculateDirtyTransforms_DFS()
 	{
 		TRACE_ZONE_SCOPED();
 
