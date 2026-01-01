@@ -211,7 +211,14 @@ void FRenderingTestLayer::ShowImGuiWindow()
 
 	frameTimeHistory[FCoreTimer::TickIndex() % frameTimeHistorySize] = static_cast<float>(FCoreTimer::DeltaTime());
 
-	ImGui::PlotHistogram("Frame time graph", frameTimeHistory, frameTimeHistorySize);
+	ImGui::PlotHistogram(
+		"Frame time graph",
+		frameTimeHistory,
+		frameTimeHistorySize,
+		0,
+		nullptr,
+		0.f
+	);
 
 	ImGui::End();
 

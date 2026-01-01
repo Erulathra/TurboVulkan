@@ -1,8 +1,8 @@
 [vk_binding(0, 0)]
-public Texture2D<float3> texturePool[];
+public __DynamicResource<__DynamicResourceKind::General> texturePool[];
 
 [vk_binding(1, 0)]
-public Texture2D<float3> rwTexturePool[];
+public __DynamicResource<__DynamicResourceKind::General> rwTexturePool[];
 
 [vk_binding(2, 0)]
 public SamplerState samplerPool[];

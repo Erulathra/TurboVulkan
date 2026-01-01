@@ -1253,6 +1253,7 @@ namespace Turbo
 					descriptorWrites.push_back(writeDescriptorSet);
 
 					// No brake by design. We want to bind RWTexture both as SampledImage and StorageImage
+					break;
 				}
 			case EResourceType::Texture:
 				{
