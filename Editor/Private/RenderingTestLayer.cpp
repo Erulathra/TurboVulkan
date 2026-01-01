@@ -174,19 +174,11 @@ void FRenderingTestLayer::Shutdown()
 		usedMaterials.emplace(meshComponent.mMaterial);
 	}
 
-	FAssetManager& assetManager = entt::locator<FAssetManager>::value();
-	for (THandle<FMesh> mesh : usedMeshes)
-	{
-		assetManager.UnloadMesh({mesh});
-	}
-
 	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 	for (THandle<FMaterial> material : usedMaterials)
 	{
 		materialManager.DestroyMaterial(material);
 	}
-
-	assetManager.UnloadTexture(mCatTexture);
 
 	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 	gpu.DestroySampler(mSampler);

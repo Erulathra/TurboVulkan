@@ -10,6 +10,7 @@
 #include "fastgltf/tools.hpp"
 
 #include "dds.hpp"
+#include "World/World.h"
 
 namespace Turbo
 {
@@ -62,7 +63,7 @@ namespace Turbo
 	{
 		FBufferBuilder bufferBuilder = {};
 		bufferBuilder
-			.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::None, sizeof(FMeshPointers) * kMaxSubmeshes)
+			.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::None, sizeof(FMeshPointers) * kMaxMeshes)
 			.SetName(FName("MeshPointer"));
 
 		mMeshPointersPool = gpu.CreateBuffer(bufferBuilder);
@@ -73,7 +74,7 @@ namespace Turbo
 		gpu.DestroyBuffer(mMeshPointersPool);
 	}
 
-	THandle<FMesh> FAssetManager::LoadMesh(FName path)
+	THandle<FMesh> FAssetManager::LoadMesh(FName path, bool bLevelAsset)
 	{
 		if (THandle<FMesh> cachedAsset = FindCachedAsset<FMesh>(path))
 		{
@@ -171,6 +172,11 @@ namespace Turbo
 			gpu.DestroyBuffer(stagingBuffer);
 		}));
 
+		if (bLevelAsset)
+		{
+			gEngine->GetWorld()->mRuntimeLevel.mLoadedMeshes.push_back(meshHandle);
+		}
+
 		mAssetCache[path] = meshHandle;
 		return meshHandle;
 	}
@@ -191,6 +197,11 @@ namespace Turbo
 	void FAssetManager::UnloadMesh(THandle<FMesh> meshHandle)
 	{
 		const FMesh* mesh = mMeshPool.Access(meshHandle);
+
+		if (mesh == nullptr)
+		{
+			return;
+		}
 
 		const std::array buffersToDestroy = {
 			mesh->mIndicesBuffer,
@@ -213,7 +224,7 @@ namespace Turbo
 		mMeshPool.Release(meshHandle);
 	}
 
-	THandle<FTexture> FAssetManager::LoadTexture(FName path, bool bSRGB)
+	THandle<FTexture> FAssetManager::LoadTexture(FName path, bool bSRGB, bool bLevelAsset)
 	{
 		THandle<FTexture> result = {};
 
@@ -233,6 +244,11 @@ namespace Turbo
 			mAssetCache[path] = result;
 		}
 
+		if (bLevelAsset)
+		{
+			gEngine->GetWorld()->mRuntimeLevel.mLoadedTextures.push_back(result);
+		}
+
 		return result;
 	}
 
@@ -242,6 +258,11 @@ namespace Turbo
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		const FTexture* texture = gpu.AccessTexture(handle);
+
+		if (texture == nullptr)
+		{
+			return;
+		}
 
 		mAssetCache.erase(texture->mName);
 		gpu.DestroyTexture(handle);

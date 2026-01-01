@@ -13,7 +13,7 @@ namespace Turbo
 	class FGPUDevice;
 
 	// Replace with something more robust
-	constexpr uint32 kMaxSubmeshes = 1024;
+	constexpr uint32 kMaxMeshes = 1024;
 
 	class FAssetManager final
 	{
@@ -28,7 +28,7 @@ namespace Turbo
 
 		/** Mesh interface */
 	public:
-		[[nodiscard]] THandle<FMesh> LoadMesh(FName path);
+		[[nodiscard]] THandle<FMesh> LoadMesh(FName path, bool bLevelAsset = true);
 		void UnloadMesh(THandle<FMesh> meshHandle);
 
 		[[nodiscard]] FMesh* AccessMesh(THandle<FMesh> handle) { return mMeshPool.Access(handle); }
@@ -40,7 +40,7 @@ namespace Turbo
 
 		/** Texture interface */
 	public:
-		[[nodiscard]] THandle<FTexture> LoadTexture(FName path, bool bSRGB = true);
+		[[nodiscard]] THandle<FTexture> LoadTexture(FName path, bool bSRGB = true, bool bLevelAsset = true);
 		void UnloadTexture(THandle<FTexture> handle);
 
 	private:

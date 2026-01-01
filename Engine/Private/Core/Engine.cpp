@@ -239,6 +239,8 @@ namespace Turbo
 			layerIt->get()->Shutdown();
 		}
 
+		mWorld->UnloadLevel();
+
 		entt::locator<FGeometryBuffer>::value().Destroy();
 		entt::locator<FAssetManager>::value().Destroy(gpu);
 

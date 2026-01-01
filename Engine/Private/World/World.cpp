@@ -19,6 +19,24 @@ namespace Turbo
 		MarkDirty_Impl(mRegistry, entity);
 	}
 
+	void FWorld::OpenLevel(FName path)
+	{
+	}
+
+	void FWorld::UnloadLevel()
+	{
+		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+		for (THandle<FMesh> mesh : mRuntimeLevel.mLoadedMeshes)
+		{
+			assetManager.UnloadMesh(mesh);
+		}
+
+		for (THandle<FTexture> texture : mRuntimeLevel.mLoadedTextures)
+		{
+			assetManager.UnloadTexture(texture);
+		}
+	}
+
 	void FWorld::InitSceneGraph()
 	{
 		mRegistry.on_construct<FTransform>().connect<MarkDirty_Impl>();
