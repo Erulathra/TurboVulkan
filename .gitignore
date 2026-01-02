@@ -27,3 +27,7 @@ Saved/*
 # Python enviro
 .venv
 **/__pycache__
+
+# Temp assets and external references
+Content/External
+Tools/Cache
