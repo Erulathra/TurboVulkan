@@ -10,6 +10,7 @@
 #include "fastgltf/tools.hpp"
 
 #include "dds.hpp"
+#include "Assets/GLTFHelpers.h"
 #include "World/World.h"
 
 namespace Turbo
@@ -87,15 +88,10 @@ namespace Turbo
 		std::vector<byte> meshBytes;
 		FileSystem::LoadAssetData(path, meshBytes);
 
-		fastgltf::Expected<fastgltf::GltfDataBuffer> data = fastgltf::GltfDataBuffer::FromSpan(meshBytes);
-		if (data.error() != fastgltf::Error::None)
-		{
-			LogGLTFError("Loading error.", data.error());
-			return {};
-		}
+		FTurboGLTFDataBuffer dataBuffer = FTurboGLTFDataBuffer::Load(path);
 
 		fastgltf::Parser parser;
-		fastgltf::Expected<fastgltf::Asset> meshAsset = parser.loadGltf(data.get(), path.ToCString(), fastgltf::Options::GenerateMeshIndices);
+		fastgltf::Expected<fastgltf::Asset> meshAsset = parser.loadGltf(dataBuffer, path.ToCString(), fastgltf::Options::GenerateMeshIndices);
 		if (meshAsset.error() != fastgltf::Error::None)
 		{
 			LogGLTFError("Parsing error.", meshAsset.error());
