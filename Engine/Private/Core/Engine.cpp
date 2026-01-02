@@ -77,7 +77,7 @@ namespace Turbo
 
 		// TODO: this is a bad place to initialize the world.
 		mWorld = std::make_unique<FWorld>();
-		mWorld->InitSceneGraph();
+		FSceneGraph::InitSceneGraph(mWorld->mRegistry);
 
 		for (const TSharedPtr<ILayer>& layer : entt::locator<FLayersStack>::value())
 		{

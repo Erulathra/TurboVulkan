@@ -21,11 +21,6 @@ namespace Turbo
 	struct FWorldTransform
 	{
 		glm::float4x4 mTransform = glm::float4x4(1.f);
-
-		operator glm::float4x4() const
-		{
-			return mTransform;
-		}
 	};
 
 	struct FWorldTransformDirty {};
@@ -39,4 +34,31 @@ namespace Turbo
 		entt::entity mParent = entt::null;
 	};
 
+	struct FSceneGraph
+	{
+	public:
+		static void InitSceneGraph(entt::registry& registry);
+
+		static void UpdateWorldTransforms(entt::registry& registry);
+
+		static void AddChild(entt::registry& registry, entt::entity parent, entt::entity child);
+		static void Unparent(entt::registry& registry, entt::entity child);
+
+		static void MarkDirty(entt::registry& registry, entt::entity entity);
+
+		template<typename Func>
+		static void EachChild(entt::registry& registry, entt::entity entity, Func func)
+		{
+			const FRelationship& componentRel = registry.get<FRelationship>(entity);
+			entt::entity currentEntt = componentRel.mFirstChild;
+
+			for (uint32 ChildId = 0; ChildId < componentRel.mNumChildren; ++ChildId)
+			{
+				std::invoke(func, currentEntt);
+
+				const FRelationship& currentRel = registry.get<FRelationship>(currentEntt);
+				currentEntt = currentRel.mNext;
+			}
+		}
+	};
 } // Turbo

@@ -201,7 +201,7 @@ namespace Turbo
 		TRACE_ZONE_SCOPED_N("Render Scene")
 
 		FWorld* world = gEngine->GetWorld();
-		world->UpdateWorldTransforms();
+		FSceneGraph::UpdateWorldTransforms(world->mRegistry);
 
 		auto mainCameraView = world->mRegistry.view<FCamera>();
 		if (mainCameraView.begin() == mainCameraView.end())

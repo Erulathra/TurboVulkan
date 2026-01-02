@@ -45,7 +45,7 @@ entt::entity CreatePivot(FWorld& world, entt::entity parent, float offset, float
 	registry.emplace<FRelationship>(entity);
 	if (parent != entt::null)
 	{
-		world.AddChild(parent, entity);
+		FSceneGraph::AddChild(registry, parent, entity);
 	}
 
 	// initialize components
