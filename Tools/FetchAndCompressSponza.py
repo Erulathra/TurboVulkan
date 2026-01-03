@@ -6,8 +6,6 @@ import time
 import pathlib
 import json
 
-import rich
-
 from urllib.request import urlretrieve
 
 EXTERNAL_DIR = "../Content/External"
@@ -30,14 +28,17 @@ SPONZA_BASE_GLTF_SRC = f"{SPONZA_BASE}/NewSponza_Main_glTF_003.gltf"
 SPONZA_BASE_GLTF_DST = f"{SPONZA_BASE}/SponzaCompressed.gltf"
 
 last_report_time = 0
+
+
 def show_download_progress(block_num, block_size, total_size):
     global last_report_time
 
     if time.perf_counter() - last_report_time > 1.:
-        downloaded_mib = block_num * block_size / 2.**20
-        total_mib =total_size / 2.**20
+        downloaded_mib = block_num * block_size / 2. ** 20
+        total_mib = total_size / 2. ** 20
         print(f"Downloading {downloaded_mib / total_mib * 100.:.2f}% [{downloaded_mib:.2f}MiB/{total_mib:.2f}MiB]")
         last_report_time = time.perf_counter()
+
 
 def fetch_compressonator():
     if platform.system() == "Linux":
@@ -60,6 +61,7 @@ def fetch_compressonator():
     else:
         print("TODO: Implement for windows")
 
+
 def fetch_sponza():
     if os.path.exists(SPONZA_BASE):
         return
@@ -72,6 +74,7 @@ def fetch_sponza():
         sponzaArchive.extractall(os.path.join(SPONZA_BASE, ".."))
 
     os.remove(SPONZA_BASE_ARCHIVE)
+
 
 def group_textures_by_type(texture_files: list[str]):
     result = {
@@ -95,35 +98,38 @@ def group_textures_by_type(texture_files: list[str]):
 
     return result
 
-def run_compressonator(args: str, input:str, output:str):
+
+def run_compressonator(dst_format: str, input: str, output: str):
     if os.path.exists(output):
         return
 
-    os.system(COMPRESSONATOR_CLI_LINUX + " -EncodeWith GPU -mipsize 4 " + args + " " + os.path.abspath(input) + " " + os.path.abspath(output))
+    os.system(f"{COMPRESSONATOR_CLI_LINUX} -EncodeWith HPC -mipsize 4 -fd {dst_format} {os.path.abspath(input)} {os.path.abspath(output)}")
+
 
 def get_dst_texture_path(src_path):
     base_name = pathlib.Path(src_path).stem + ".dds"
     return os.path.join(SPONZA_BASE_TEXTURES_DST, base_name)
 
-def convert_textures(grouped_textures):
 
+def convert_textures(grouped_textures):
     if not os.path.exists(SPONZA_BASE_TEXTURES_DST):
         os.mkdir(SPONZA_BASE_TEXTURES_DST)
 
     for base_color in grouped_textures["BaseColor"]:
-        run_compressonator("-fd BC1", os.path.join(SPONZA_BASE_TEXTURES_SRC, base_color), get_dst_texture_path(base_color))
+        run_compressonator("BC1", os.path.join(SPONZA_BASE_TEXTURES_SRC, base_color), get_dst_texture_path(base_color))
 
     for metalness in grouped_textures["Metalness"]:
-        run_compressonator("-fd BC4", os.path.join(SPONZA_BASE_TEXTURES_SRC, metalness), get_dst_texture_path(metalness))
+        run_compressonator("BC4", os.path.join(SPONZA_BASE_TEXTURES_SRC, metalness), get_dst_texture_path(metalness))
 
     for roughness in grouped_textures["Roughness"]:
-        run_compressonator("-fd BC4", os.path.join(SPONZA_BASE_TEXTURES_SRC, roughness), get_dst_texture_path(roughness))
+        run_compressonator("BC4", os.path.join(SPONZA_BASE_TEXTURES_SRC, roughness), get_dst_texture_path(roughness))
 
     for combined in grouped_textures["CombinedRoughnessAndMetalness"]:
-        run_compressonator("-fd BC1", os.path.join(SPONZA_BASE_TEXTURES_SRC, combined), get_dst_texture_path(combined))
+        run_compressonator("BC1", os.path.join(SPONZA_BASE_TEXTURES_SRC, combined), get_dst_texture_path(combined))
 
     for opacity in grouped_textures["Opacity"]:
-        run_compressonator("-fd BC4", os.path.join(SPONZA_BASE_TEXTURES_SRC, opacity), get_dst_texture_path(opacity))
+        run_compressonator("BC4", os.path.join(SPONZA_BASE_TEXTURES_SRC, opacity), get_dst_texture_path(opacity))
+
 
 def convert_gltf():
     with open(SPONZA_BASE_GLTF_SRC, 'r') as f:
@@ -137,6 +143,7 @@ def convert_gltf():
 
     with open(SPONZA_BASE_GLTF_DST, 'w') as f:
         json.dump(gltf, f, indent=4)
+
 
 def main():
     fetch_compressonator()
