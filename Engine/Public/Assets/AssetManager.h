@@ -1,19 +1,26 @@
 #pragma once
 
-#include "StaticMesh.h"
+#include "Assets/StaticMesh.h"
+#include "Assets/AssetManagerHelpers.h"
 #include "Core/DataStructures/GenPoolGrowable.h"
+#include "Core/DataStructures/ManualPoolGrowable.h"
 
 DECLARE_LOG_CATEGORY(LogAssetManager, Display, Display)
 DECLARE_LOG_CATEGORY(LogMeshLoading, Display, Display)
 DECLARE_LOG_CATEGORY(LogTextureLoading, Display, Display)
 
+namespace fastgltf
+{
+	class Asset;
+}
+
 namespace Turbo
 {
+	class FBuffer;
 	class FTexture;
+	struct FMesh;
 	class FGPUDevice;
 
-	// Replace with something more robust
-	constexpr uint32 kMaxMeshes = 1024;
 
 	class FAssetManager final
 	{
@@ -28,7 +35,9 @@ namespace Turbo
 
 		/** Mesh interface */
 	public:
-		[[nodiscard]] THandle<FMesh> LoadMesh(FName path, bool bLevelAsset = true);
+		[[nodiscard]] THandle<FMesh> LoadMesh(FName assetPath, const FMeshLoadSettings& meshLoadSettings = FMeshLoadSettings());
+		[[nodiscard]] THandle<FMesh> LoadMeshGLTF(FName assetPath, const FMeshLoadSettings& meshLoadSettings, fastgltf::Asset& loadedAsset);
+
 		void UnloadMesh(THandle<FMesh> meshHandle);
 
 		[[nodiscard]] FMesh* AccessMesh(THandle<FMesh> handle) { return mMeshPool.Access(handle); }
@@ -50,12 +59,12 @@ namespace Turbo
 
 	private:
 		template<typename AssetType>
-		THandle<AssetType> FindCachedAsset(FName path)
+		THandle<AssetType> FindCachedAsset(uint32 hash)
 		{
-			if (auto foundIt = mAssetCache.find(path);
+			if (auto foundIt = mAssetCache.find(hash);
 				foundIt != mAssetCache.end())
 			{
-				TURBO_LOG(LogAssetManager, Display, "Cache hit! ({})", path.ToString())
+				TURBO_LOG(LogAssetManager, Display, "Asset manager cache hit!")
 				return THandle<AssetType>(foundIt->second);
 			}
 
@@ -66,7 +75,9 @@ namespace Turbo
 		TGenPoolGrowable<FMesh> mMeshPool;
 		THandle<FBuffer> mMeshPointersPool;
 
-		entt::dense_map<FName, FHandle> mAssetCache;
+		TManualPoolGrowable<FTextureAsset> mTexturePool;
+
+		entt::dense_map<uint32, FHandle> mAssetCache;
 
 	public:
 		friend class FEngine;

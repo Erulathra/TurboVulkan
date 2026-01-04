@@ -1,4 +1,6 @@
 #pragma once
+
+#include "Assets/AssetManagerHelpers.h"
 #include "Graphics/GraphicsCore.h"
 
 namespace Turbo
@@ -21,6 +23,7 @@ namespace Turbo
 		uint32 mVertexCount = 0;
 
 		FName mName;
+		FAssetHash mAssetHash;
 	};
 
 	struct FMeshPointers final

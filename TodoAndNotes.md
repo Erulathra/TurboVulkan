@@ -10,6 +10,9 @@ to rewrite whole destruction proces to only store handles. They are cheap to acc
 order. It would simplify destruction process and move some computation overhead to one place. Moreover, it would resolve
 problem of double freeing the memory when resource is enqueued to destroy but the handle is still valid.
 
+### [TODO] Split gpu resources to hot and cold data
+To better utilize cache it would be great to split resource structures into cold and hot data structures.
+
 ### Mapped memory vs staging buffers
 I thought that staging buffers would be much faster than mapped memory but according to this and my few benchmarks for
 material uniforms mapped memory is much faster. __For assets staging buffer is still used to reduce memory footprint.__

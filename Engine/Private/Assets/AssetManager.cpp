@@ -11,7 +11,17 @@
 
 #include "dds.hpp"
 #include "Assets/GLTFHelpers.h"
+#include "Core/CoreUtils.h"
+#include "Core/Utils/StringUtils.h"
 #include "World/World.h"
+
+namespace
+{
+	void LogGLTFError(std::string_view message, fastgltf::Error error)
+	{
+		TURBO_LOG(LogMeshLoading, Error, "{} Error: {} Message: {}", message, fastgltf::getErrorName(error), fastgltf::getErrorMessage(error));
+	}
+}
 
 namespace Turbo
 {
@@ -19,11 +29,6 @@ namespace Turbo
 	constexpr std::string_view kNormalName = "NORMAL";
 	constexpr std::string_view kUVName = "TEXCOORD_0";
 	constexpr std::string_view kColorName = "COLOR_0";
-
-	void LogGLTFError(std::string_view message, fastgltf::Error error)
-	{
-		TURBO_LOG(LogMeshLoading, Error, "{} Error: {} Message: {}", message, fastgltf::getErrorName(error), fastgltf::getErrorMessage(error));
-	}
 
 	template<typename T>
 	void LoadComponentBuffer( const fastgltf::Asset& meshAsset, THandle<FBuffer>& outBuffer, FDeviceAddress& outDeviceAddress, std::string_view attributeName)
@@ -75,52 +80,68 @@ namespace Turbo
 		gpu.DestroyBuffer(mMeshPointersPool);
 	}
 
-	THandle<FMesh> FAssetManager::LoadMesh(FName path, bool bLevelAsset)
+	THandle<FMesh> FAssetManager::LoadMesh(FName assetPath, const FMeshLoadSettings& meshLoadSettings)
 	{
-		if (THandle<FMesh> cachedAsset = FindCachedAsset<FMesh>(path))
+		FAssetHash assetHash = 0;
+		CoreUtils::HashCombine(assetHash, assetPath, meshLoadSettings.mMeshIndex, meshLoadSettings.mSubMeshIndex);
+		if (THandle<FMesh> cachedAsset = FindCachedAsset<FMesh>(assetHash))
 		{
 			return cachedAsset;
 		}
 
-		// This method is as much naive as it can be, but for now it should last.
-		TURBO_LOG(LogMeshLoading, Info, "Loading GLTF mesh. ({})", path.ToString())
-
-		std::vector<byte> meshBytes;
-		FileSystem::LoadAssetData(path, meshBytes);
-
-		FTurboGLTFDataBuffer dataBuffer = FTurboGLTFDataBuffer::Load(path);
-
-		fastgltf::Parser parser;
-		fastgltf::Expected<fastgltf::Asset> meshAsset = parser.loadGltf(dataBuffer, path.ToCString(), fastgltf::Options::GenerateMeshIndices);
-		if (meshAsset.error() != fastgltf::Error::None)
+		std::filesystem::path fsPath(assetPath.ToString());
+		const std::filesystem::path fileExtension = fsPath.extension();
+		if (fileExtension == ".gltf" || fileExtension == ".glb")
 		{
-			LogGLTFError("Parsing error.", meshAsset.error());
-			return {};
+			// This method is as much naive as it can be, but for now it should last.
+			TURBO_LOG(LogMeshLoading, Info, "Loading GLTF mesh. ({})", assetPath.ToString())
+
+			FTurboGLTFDataBuffer dataBuffer = FTurboGLTFDataBuffer::Load(fsPath.string());
+
+			fastgltf::Parser parser;
+			fastgltf::Expected<fastgltf::Asset> meshAsset = parser.loadGltf(dataBuffer, assetPath.ToCString(), fastgltf::Options::GenerateMeshIndices);
+			if (meshAsset.error() != fastgltf::Error::None)
+			{
+				LogGLTFError("Parsing error.", meshAsset.error());
+				return {};
+			}
+
+			return LoadMeshGLTF(assetPath, meshLoadSettings, meshAsset.get());
 		}
 
-		TURBO_CHECK_MSG(meshAsset->meshes.size() == 1, "Only one mesh per file is supported");
-		TURBO_CHECK_MSG(meshAsset->meshes.front().primitives.size() == 1, "Only one submesh is supported");
+		TURBO_LOG(LogMeshLoading, Error, "Unsupported mesh format: {}", fileExtension.string());
+		return {};
+	}
+
+	THandle<FMesh> FAssetManager::LoadMeshGLTF(FName assetPath, const FMeshLoadSettings& meshLoadSettings, fastgltf::Asset& loadedAsset)
+	{
+		FAssetHash assetHash = 0;
+		CoreUtils::HashCombine(assetHash, assetPath, meshLoadSettings.mMeshIndex, meshLoadSettings.mSubMeshIndex);
+		if (THandle<FMesh> cachedAsset = FindCachedAsset<FMesh>(assetHash))
+		{
+			return cachedAsset;
+		}
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
-
-		fastgltf::Mesh& gltfMesh = meshAsset->meshes.front();
-		const uint32 subMeshId = 0;
+		fastgltf::Mesh& gltfMesh = loadedAsset.meshes[meshLoadSettings.mMeshIndex];
 
 		THandle<FMesh> meshHandle = mMeshPool.Acquire();
-		FMesh* subMesh = mMeshPool.Access(meshHandle);
-		subMesh->mName = path;
+		FMesh* mesh = mMeshPool.Access(meshHandle);
+		mesh->mName = assetPath;
+		mesh->mAssetHash = assetHash;
 
-		fastgltf::Primitive& glftSubMesh = gltfMesh.primitives[subMeshId];
+		fastgltf::Primitive& glftSubMesh = gltfMesh.primitives[meshLoadSettings.mSubMeshIndex];
 
 		TURBO_CHECK(glftSubMesh.indicesAccessor)
 		{
-			const fastgltf::Accessor& indicesAccessor = meshAsset->accessors[glftSubMesh.indicesAccessor.value()];
+			TURBO_CHECK(glftSubMesh.indicesAccessor.has_value())
+			const fastgltf::Accessor& indicesAccessor = loadedAsset.accessors[glftSubMesh.indicesAccessor.value()];
 
 			std::vector<uint32> indices;
 			indices.reserve(indicesAccessor.count);
-			subMesh->mVertexCount = indicesAccessor.count;
+			mesh->mVertexCount = indicesAccessor.count;
 
-			fastgltf::iterateAccessor<uint32>(meshAsset.get(), indicesAccessor, [&](uint32 index)
+			fastgltf::iterateAccessor<uint32>(loadedAsset, indicesAccessor, [&](uint32 index)
 			{
 				indices.push_back(index);
 			});
@@ -132,17 +153,17 @@ namespace Turbo
 				indices.size() * sizeof(uint32)
 			);
 			bufferBuilder.SetData(indices.data());
-			bufferBuilder.SetName(FName(fmt::format("{}_INDICES", meshAsset->meshes.front().name)));
+			bufferBuilder.SetName(FName(fmt::format("{}_INDICES", loadedAsset.meshes.front().name)));
 
-			subMesh->mIndicesBuffer = gpu.CreateBuffer(bufferBuilder);
+			mesh->mIndicesBuffer = gpu.CreateBuffer(bufferBuilder);
 		}
 
 		FMeshPointers meshPointers = {};
 
-		LoadComponentBuffer<glm::vec3>(meshAsset.get(), subMesh->mPositionBuffer, meshPointers.mPositionBuffer, kPositionName);
-		LoadComponentBuffer<glm::vec3>(meshAsset.get(), subMesh->mNormalBuffer, meshPointers.mNormalBuffer, kNormalName);
-		LoadComponentBuffer<glm::vec2>(meshAsset.get(), subMesh->mUVBuffer, meshPointers.mUVBuffer, kUVName);
-		LoadComponentBuffer<glm::vec4>(meshAsset.get(), subMesh->mColorBuffer, meshPointers.mColorBuffer, kColorName);
+		LoadComponentBuffer<glm::vec3>(loadedAsset, mesh->mPositionBuffer, meshPointers.mPositionBuffer, kPositionName);
+		LoadComponentBuffer<glm::vec3>(loadedAsset, mesh->mNormalBuffer, meshPointers.mNormalBuffer, kNormalName);
+		LoadComponentBuffer<glm::vec2>(loadedAsset, mesh->mUVBuffer, meshPointers.mUVBuffer, kUVName);
+		LoadComponentBuffer<glm::vec4>(loadedAsset, mesh->mColorBuffer, meshPointers.mColorBuffer, kColorName);
 
 		gpu.ImmediateSubmit(FOnImmediateSubmit::CreateLambda([&](FCommandBuffer& cmd)
 		{
@@ -168,12 +189,12 @@ namespace Turbo
 			gpu.DestroyBuffer(stagingBuffer);
 		}));
 
-		if (bLevelAsset)
+		if (meshLoadSettings.mbLevelAsset)
 		{
 			gEngine->GetWorld()->mRuntimeLevel.mLoadedMeshes.push_back(meshHandle);
 		}
 
-		mAssetCache[path] = meshHandle;
+		mAssetCache[assetHash] = meshHandle;
 		return meshHandle;
 	}
 
@@ -216,20 +237,22 @@ namespace Turbo
 			}
 		}
 
-		mAssetCache.erase(mesh->mName);
+		mAssetCache.erase(mesh->mAssetHash);
 		mMeshPool.Release(meshHandle);
 	}
 
 	THandle<FTexture> FAssetManager::LoadTexture(FName path, bool bSRGB, bool bLevelAsset)
 	{
 		THandle<FTexture> result = {};
+		FAssetHash assetHash = 0;
+		CoreUtils::HashCombine(assetHash, path, bSRGB);
 
-		if (THandle<FTexture> cachedAsset = FindCachedAsset<FTexture>(path))
+		if (THandle<FTexture> cachedAsset = FindCachedAsset<FTexture>(assetHash))
 		{
 			return cachedAsset;
 		}
 
-		std::filesystem::path fsPath{path.ToString()};
+		const std::filesystem::path fsPath{path.ToString()};
 		if (fsPath.extension() == ".dds")
 		{
 			result = LoadDDS(path, bSRGB);
@@ -237,7 +260,10 @@ namespace Turbo
 
 		if (result)
 		{
-			mAssetCache[path] = result;
+			FTextureAsset& textureAsset = mTexturePool.Access(result);
+			textureAsset.mAssetHash = assetHash;
+
+			mAssetCache[assetHash] = result;
 		}
 
 		if (bLevelAsset)
@@ -260,7 +286,7 @@ namespace Turbo
 			return;
 		}
 
-		mAssetCache.erase(texture->mName);
+		mAssetCache.erase(mTexturePool.Access(handle).mAssetHash);
 		gpu.DestroyTexture(handle);
 	}
 

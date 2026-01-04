@@ -23,14 +23,6 @@ namespace Turbo
 		virtual Turbo::FName GetName() override;
 
 		/** IService Interface end */
-	private:
-		void ShuffleColors();
-
-	private:
-		entt::entity mSunEntity;
-
-		THandle<FTexture> mCatTexture;
-		THandle<FSampler> mSampler;
 	};
 
 }

@@ -61,6 +61,12 @@ CPMAddPackage(
 
 CPMAddPackage("gh:spnda/fastgltf@0.9.0")
 CPMAddPackage("gh:skypjack/entt@3.15.0")
+
+CPMAddPackage(
+        GITHUB_REPOSITORY "skypjack/entt"
+        GIT_TAG "v3.15.0"
+        OPTIONS "ENTT_INCLUDE_NATVIS ON"
+)
 CPMAddPackage("gh:spnda/dds_image#6af8726")
 
 add_subdirectory(Slang)

@@ -10,7 +10,7 @@ FCommonPushConstants pc;
 struct VSOut
 {
     float4 position : SV_Position;
-    float3 color;
+    uint triangleId;
 }
 
 struct PSOut
@@ -25,12 +25,13 @@ void vsMain(in uint vertexId : SV_VertexID, out VSOut vsOut)
 	const float4 modelPosition = float4(mesh.positionBuffer[vertexId], 1.f);
     vsOut.position = mul(modelPosition, pc.modelToProj);
 
-    uint seed;
-    vsOut.color = RandomColor(int(trunc(float(vertexId) / 3.f)), seed);
+    vsOut.triangleId = uint(trunc(vertexId / 3));
 }
 
 [shader("pixel")]
 void psMain(in VSOut vsOut, out PSOut psOut)
 {
-    psOut.color = float4(vsOut.color, 1.f);
+    const uint hash = WangHash(vsOut.triangleId);
+    const float3 color = HSVToRGB(float3(float(hash) / float(0xFFFFFFFF), 1.f, 1.f));
+    psOut.color = float4(color, 1.f);
 }

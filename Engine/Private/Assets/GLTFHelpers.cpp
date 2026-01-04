@@ -2,13 +2,12 @@
 
 #include "Core/FileSystem.h"
 
-Turbo::FTurboGLTFDataBuffer Turbo::FTurboGLTFDataBuffer::Load(FName path)
+Turbo::FTurboGLTFDataBuffer Turbo::FTurboGLTFDataBuffer::Load(std::string_view path)
 {
 	FTurboGLTFDataBuffer result;
-	FileSystem::LoadAssetData(path, result.mBytes);
+	FileSystem::LoadData(path, result.mBytes);
 
-	constexpr size_t kSimdJsonPadding = 64;
-	result.mBytes.resize(result.mBytes.size() + kSimdJsonPadding);
+	result.mBytes.resize(result.mBytes.size() + kDataPadding);
 
 	return result;
 }

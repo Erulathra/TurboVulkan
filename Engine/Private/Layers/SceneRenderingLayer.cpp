@@ -1,6 +1,7 @@
 #include "Layers/SceneRenderingLayer.h"
 
 #include "Assets/AssetManager.h"
+#include "Assets/StaticMesh.h"
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
 #include "Graphics/GeometryBuffer.h"

@@ -9,6 +9,8 @@ namespace Turbo
 	class FCamera;
 	struct FMesh;
 
+	struct FSpawnedByLevelTag {};
+
 	struct FRuntimeLevel
 	{
 		std::vector<THandle<FMesh>> mLoadedMeshes;

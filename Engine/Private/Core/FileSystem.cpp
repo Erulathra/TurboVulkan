@@ -5,7 +5,12 @@ namespace Turbo
 {
 	void FileSystem::LoadAssetData(FName filePath, std::vector<byte>& outData)
 	{
-		std::ifstream file(filePath.ToCString(), std::ios::in | std::ios::binary | std::ios::ate);
+		LoadData(filePath.ToString(), outData);
+	}
+
+	void FileSystem::LoadData(std::string_view filePath, std::vector<byte>& outData)
+	{
+		std::ifstream file(std::string(filePath), std::ios::in | std::ios::binary | std::ios::ate);
 		TURBO_CHECK(file.is_open() && file.good())
 
 		outData.resize(file.tellg());
