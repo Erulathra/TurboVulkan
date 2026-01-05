@@ -8,9 +8,6 @@ namespace Turbo
 	class FBuffer;
 	struct FMaterial;
 
-	// TODO: Think about better memory layout
-	static constexpr uint32 kMaxSubMeshesPerMesh = 15;
-
 	struct FMesh final
 	{
 		THandle<FBuffer> mIndicesBuffer = {};

@@ -2,7 +2,6 @@
 
 #include "Assets/GLTFHelpers.h"
 #include "Assets/MaterialManager.h"
-#include "Core/FileSystem.h"
 #include "World/MeshComponent.h"
 #include "World/World.h"
 
@@ -19,12 +18,21 @@ namespace
 
 namespace Turbo
 {
+	constexpr uint32 kMaxSubMeshesPerMesh = 32;
+
+	struct FSceneMeshNodeData
+	{
+		std::array<THandle<FMesh>, kMaxSubMeshesPerMesh> mSubMeshes;
+		uint32 mNumSubmeshes = 0;
+	};
+
 	void FGLTFSceneLoader::LoadGLTFScene(FWorld& world, FName path)
 	{
 		TURBO_LOG(LogGLTFSceneLoader, Info, "Loading {} scene using gltf scene loader.", path)
 
 		FTurboGLTFDataBuffer dataBuffer = FTurboGLTFDataBuffer::Load(path.ToString());
 
+		// Load gltf material
 		fastgltf::Parser parser;
 		fastgltf::Expected<fastgltf::Asset> gltfAsset = parser.loadGltf(
 			dataBuffer,
@@ -38,25 +46,7 @@ namespace Turbo
 			return;
 		}
 
-		const std::filesystem::path assetDirectory = std::filesystem::path(path.ToString()).parent_path();
-		for (int bufferId = 0; bufferId < gltfAsset->buffers.size(); ++bufferId)
-		{
-			fastgltf::Buffer& buffer = gltfAsset->buffers[bufferId];
-			if (std::holds_alternative<fastgltf::sources::URI>(buffer.data))
-			{
-				const fastgltf::sources::URI bufferURI = std::get<fastgltf::sources::URI>(buffer.data);
-				const std::filesystem::path relativeBufferPath = assetDirectory / bufferURI.uri.path();
-
-				std::vector<byte> bufferData;
-				FileSystem::LoadData(relativeBufferPath.string(), bufferData);
-
-				fastgltf::sources::Vector vectorSource = {
-					std::move(bufferData)
-				};
-
-				buffer.data = std::move(vectorSource);
-			}
-		}
+		GLTF::LoadExternalBuffers(gltfAsset.get(), path.ToString());
 
 		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 
@@ -66,28 +56,47 @@ namespace Turbo
 		THandle<FMaterial> materialHandle = materialManager.LoadMaterial<void, void>(pipelineBuilder, 1);
 		THandle<FMaterial::Instance> materialInstanceHandle = materialManager.CreateMaterialInstance(materialHandle);
 
+		// Load all meshes and submeshes
+		std::vector<FSceneMeshNodeData> meshes;
+		meshes.resize(gltfAsset->meshes.size());
+		for (uint32 meshId = 0; meshId < gltfAsset->meshes.size(); ++meshId)
+		{
+			const fastgltf::Mesh& gltfMesh = gltfAsset->meshes[meshId];
+			FSceneMeshNodeData& meshData = meshes[meshId];
+
+			meshData.mNumSubmeshes = gltfMesh.primitives.size();
+			TURBO_CHECK(meshData.mNumSubmeshes < kMaxSubMeshesPerMesh)
+
+			for (uint32 subMeshId = 0; subMeshId < meshData.mNumSubmeshes; ++subMeshId)
+			{
+				FMeshLoadSettings meshLoadSettings = {
+					.mMeshIndex = meshId,
+					.mSubMeshIndex = subMeshId
+				};
+				meshData.mSubMeshes[subMeshId] = assetManager.LoadMeshGLTF(path, meshLoadSettings, gltfAsset.get());
+			}
+		}
+
+		// Create node entities
 		std::vector<entt::entity> nodeEntities;
 		nodeEntities.reserve(gltfAsset->nodes.size());
 
-		// TODO: load meshes and textures ahead of time
-
-		// Setup nodes
 		for (const fastgltf::Node& node : gltfAsset->nodes)
 		{
 			entt::entity nodeEntity = world.mRegistry.create();
-			nodeEntities.push_back(nodeEntity);
-
 			world.mRegistry.emplace<FSpawnedByLevelTag>(nodeEntity);
 			world.mRegistry.emplace<FRelationship>(nodeEntity);
-			FTransform& transform = world.mRegistry.emplace<FTransform>(nodeEntity);
 
+			nodeEntities.push_back(nodeEntity);
+
+			FTransform& transform = world.mRegistry.emplace<FTransform>(nodeEntity);
 			TURBO_CHECK(std::holds_alternative<fastgltf::TRS>(node.transform))
 			{
 				const fastgltf::TRS& trs = std::get<fastgltf::TRS>(node.transform);
 
-				transform.mPosition[0] = trs.scale[0];
-				transform.mPosition[1] = trs.scale[1];
-				transform.mPosition[2] = trs.scale[2];
+				transform.mPosition[0] = trs.translation[0];
+				transform.mPosition[1] = trs.translation[1];
+				transform.mPosition[2] = trs.translation[2];
 
 				transform.mRotation[0] = trs.rotation[0];
 				transform.mRotation[1] = trs.rotation[1];
@@ -101,15 +110,31 @@ namespace Turbo
 
 			if (node.meshIndex.has_value())
 			{
-				FMeshComponent& meshComponent = world.mRegistry.emplace<FMeshComponent>(nodeEntity);
-				meshComponent.mMaterial = materialHandle;
-				meshComponent.mMaterialInstance = materialInstanceHandle;
+				const FSceneMeshNodeData& meshNodeData = meshes[node.meshIndex.value()];
 
-				FMeshLoadSettings meshLoadSettings = {
-					.mMeshIndex = static_cast<uint32>(node.meshIndex.value())
-				};
+				if (meshNodeData.mNumSubmeshes == 1)
+				{
+					FMeshComponent& meshComponent = world.mRegistry.emplace<FMeshComponent>(nodeEntity);
+					meshComponent.mMaterial = materialHandle;
+					meshComponent.mMaterialInstance = materialInstanceHandle;
 
-				meshComponent.mMesh = assetManager.LoadMeshGLTF(path, meshLoadSettings, gltfAsset.get());
+					meshComponent.mMesh = meshNodeData.mSubMeshes[0];
+				}
+				else
+				{
+					for (uint32 subMeshId = 0; subMeshId < meshNodeData.mNumSubmeshes; ++subMeshId)
+					{
+						const entt::entity meshEntity = world.mRegistry.create();
+						world.mRegistry.emplace<FSpawnedByLevelTag>(meshEntity);
+						world.mRegistry.emplace<FRelationship>(meshEntity);
+						FSceneGraph::AddChild(world.mRegistry, nodeEntity, meshEntity);
+
+						FMeshComponent& meshComponent = world.mRegistry.emplace<FMeshComponent>(meshEntity);
+						meshComponent.mMaterial = materialHandle;
+						meshComponent.mMaterialInstance = materialInstanceHandle;
+						meshComponent.mMesh = meshNodeData.mSubMeshes[subMeshId];
+					}
+				}
 			}
 		}
 

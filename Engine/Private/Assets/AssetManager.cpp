@@ -31,10 +31,10 @@ namespace Turbo
 	constexpr std::string_view kColorName = "COLOR_0";
 
 	template<typename T>
-	void LoadComponentBuffer( const fastgltf::Asset& meshAsset, THandle<FBuffer>& outBuffer, FDeviceAddress& outDeviceAddress, std::string_view attributeName)
+	void LoadComponentBuffer( const fastgltf::Asset& meshAsset, const FMeshLoadSettings& meshLoadSettings, THandle<FBuffer>& outBuffer, FDeviceAddress& outDeviceAddress, std::string_view attributeName)
 	{
-		const fastgltf::Mesh& gltfMesh = meshAsset.meshes.front();
-		const fastgltf::Primitive& gltfSubmesh = gltfMesh.primitives.front();
+		const fastgltf::Mesh& gltfMesh = meshAsset.meshes[meshLoadSettings.mMeshIndex];
+		const fastgltf::Primitive& gltfSubmesh = gltfMesh.primitives[meshLoadSettings.mSubMeshIndex];
 
 		if (auto attribute = gltfSubmesh.findAttribute(attributeName);
 			attribute != gltfSubmesh.attributes.cend())
@@ -106,6 +106,8 @@ namespace Turbo
 				return {};
 			}
 
+			GLTF::LoadExternalBuffers(meshAsset.get(), assetPath.ToString());
+
 			return LoadMeshGLTF(assetPath, meshLoadSettings, meshAsset.get());
 		}
 
@@ -124,17 +126,15 @@ namespace Turbo
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		fastgltf::Mesh& gltfMesh = loadedAsset.meshes[meshLoadSettings.mMeshIndex];
+		fastgltf::Primitive& glftSubMesh = gltfMesh.primitives[meshLoadSettings.mSubMeshIndex];
 
 		THandle<FMesh> meshHandle = mMeshPool.Acquire();
 		FMesh* mesh = mMeshPool.Access(meshHandle);
 		mesh->mName = assetPath;
 		mesh->mAssetHash = assetHash;
 
-		fastgltf::Primitive& glftSubMesh = gltfMesh.primitives[meshLoadSettings.mSubMeshIndex];
-
-		TURBO_CHECK(glftSubMesh.indicesAccessor)
+		TURBO_CHECK(glftSubMesh.indicesAccessor.has_value())
 		{
-			TURBO_CHECK(glftSubMesh.indicesAccessor.has_value())
 			const fastgltf::Accessor& indicesAccessor = loadedAsset.accessors[glftSubMesh.indicesAccessor.value()];
 
 			std::vector<uint32> indices;
@@ -160,10 +160,10 @@ namespace Turbo
 
 		FMeshPointers meshPointers = {};
 
-		LoadComponentBuffer<glm::vec3>(loadedAsset, mesh->mPositionBuffer, meshPointers.mPositionBuffer, kPositionName);
-		LoadComponentBuffer<glm::vec3>(loadedAsset, mesh->mNormalBuffer, meshPointers.mNormalBuffer, kNormalName);
-		LoadComponentBuffer<glm::vec2>(loadedAsset, mesh->mUVBuffer, meshPointers.mUVBuffer, kUVName);
-		LoadComponentBuffer<glm::vec4>(loadedAsset, mesh->mColorBuffer, meshPointers.mColorBuffer, kColorName);
+		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mPositionBuffer, meshPointers.mPositionBuffer, kPositionName);
+		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mNormalBuffer, meshPointers.mNormalBuffer, kNormalName);
+		LoadComponentBuffer<glm::vec2>(loadedAsset, meshLoadSettings, mesh->mUVBuffer, meshPointers.mUVBuffer, kUVName);
+		LoadComponentBuffer<glm::vec4>(loadedAsset, meshLoadSettings, mesh->mColorBuffer, meshPointers.mColorBuffer, kColorName);
 
 		gpu.ImmediateSubmit(FOnImmediateSubmit::CreateLambda([&](FCommandBuffer& cmd)
 		{

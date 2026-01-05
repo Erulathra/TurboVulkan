@@ -5,6 +5,19 @@
 
 namespace Turbo
 {
+	void FMaterialManager::Init(FGPUDevice& gpuDevice)
+	{
+
+	}
+
+	void FMaterialManager::Destroy(FGPUDevice& gpuDevice)
+	{
+		for (const auto& [key, value] : mMaterialToMaterialInstanceMap)
+		{
+			DestroyMaterial(key);
+		}
+	}
+
 	FPipelineBuilder FMaterialManager::CreateOpaquePipeline(std::string_view shaderName)
 	{
 		FPipelineBuilder pipelineBuilder = {};

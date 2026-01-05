@@ -47,21 +47,23 @@ namespace Turbo
 				entitiesToProcessBack++;
 
 				const FRelationship& relationship = transformView.get<FRelationship>(dirtyEntity);
-				const FTransform& local = transformView.get<FTransform>(dirtyEntity);
-				FWorldTransform& world = transformView.get<FWorldTransform>(dirtyEntity);
 
-				const glm::mat4 localMatrix = FMath::CreateTransform(local.mPosition, local.mRotation, local.mScale);
-
-				if (relationship.mParent == entt::null)
+				if (const FTransform* local = registry.try_get<FTransform>(dirtyEntity))
 				{
-					world.mTransform = localMatrix;
-				}
-				else
-				{
-					const FWorldTransform& parentWorld = transformView.get<FWorldTransform>(relationship.mParent);
-					world.mTransform = parentWorld.mTransform * localMatrix;
-				}
+					FWorldTransform& world = transformView.get<FWorldTransform>(dirtyEntity);
 
+					const glm::mat4 localMatrix = FMath::CreateTransform(local->mPosition, local->mRotation, local->mScale);
+
+					if (relationship.mParent == entt::null)
+					{
+						world.mTransform = localMatrix;
+					}
+					else
+					{
+						const FWorldTransform& parentWorld = transformView.get<FWorldTransform>(relationship.mParent);
+						world.mTransform = parentWorld.mTransform * localMatrix;
+					}
+				}
 				EachChild(registry, dirtyEntity, [&](entt::entity child)
 				{
 					if (processedEntities.insert(child).second)

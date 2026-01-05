@@ -70,9 +70,11 @@ namespace Turbo
 	{
 		TRACE_ZONE_SCOPED()
 
+		entt::registry& registry = world->mRegistry;
+
 		{
 			TRACE_ZONE_SCOPED_N("Sort drawcalls/entities")
-			world->mRegistry.sort<FMeshComponent>(
+			registry.sort<FMeshComponent>(
 				[]( const FMeshComponent& lhs, const FMeshComponent& rhs) -> bool
 				{
 					if (lhs.mMaterial.GetIndex() == rhs.mMaterial.GetIndex())
@@ -108,7 +110,7 @@ namespace Turbo
 			cmd.SetViewport(FViewport::FromSize(geometryBuffer.GetResolution()));
 			cmd.SetScissor(FRect2DInt::FromSize(geometryBuffer.GetResolution()));
 
-			const auto meshTransformView = world->mRegistry.view<FMeshComponent, FWorldTransform>();
+			const auto meshView = registry.view<FMeshComponent>();
 
 			const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 			const FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
@@ -124,13 +126,28 @@ namespace Turbo
 			FCounterType numDrawCalls = 0;
 			FCounterType numPipelineSwitches = 0;
 #endif // WITH_PROFILER
-			for (const entt::entity& entity : meshTransformView)
+			for (const entt::entity& entity : meshView)
 			{
 				TRACE_ZONE_SCOPED_N("Render entity")
 				TRACE_GPU_SCOPED(gpu, cmd, "Render entity");
 
-				const FWorldTransform& worldTransform = meshTransformView.get<FWorldTransform>(entity);
-				const FMeshComponent& meshComponent = meshTransformView.get<FMeshComponent>(entity);
+				glm::mat4 worldTransform = {1.f};
+				const FMeshComponent& meshComponent = registry.get<FMeshComponent>(entity);
+
+				{
+					TRACE_ZONE_SCOPED_N("Find world transform")
+
+					if (FWorldTransform* worldTransformComp = registry.try_get<FWorldTransform>(entity))
+					{
+						TRACE_ZONE_SCOPED_N("Access world transform")
+						worldTransform = worldTransformComp->mTransform;
+					}
+					else if (FRelationship* relationship = registry.try_get<FRelationship>(entity))
+					{
+						TRACE_ZONE_SCOPED_N("Access parent transform")
+						worldTransform = registry.get<FWorldTransform>(relationship->mParent).mTransform;
+					}
+				}
 
 				if (meshComponent.mMaterial != materialHandle)
 				{
@@ -161,8 +178,8 @@ namespace Turbo
 				}
 
 				FMaterial::PushConstants pushConstants = {};
-				pushConstants.mModelToProj = mViewData.mWorldToProjection * worldTransform.mTransform;
-				pushConstants.mModelToView = mViewData.mViewMatrix * worldTransform.mTransform;
+				pushConstants.mModelToProj = mViewData.mWorldToProjection * worldTransform;
+				pushConstants.mModelToView = mViewData.mViewMatrix * worldTransform;
 				pushConstants.mInvModelToView = glm::float3x3(glm::transpose(glm::inverse(pushConstants.mModelToView)));
 
 				pushConstants.mViewData = viewDataDeviceAddress;

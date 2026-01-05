@@ -49,6 +49,8 @@ namespace Turbo
 
 	public:
 		FMaterialManager() = default;
+		void Init(FGPUDevice& gpuDevice);
+		void Destroy(FGPUDevice& gpuDevice);
 
 	public:
 		static FPipelineBuilder CreateOpaquePipeline(std::string_view shaderName);

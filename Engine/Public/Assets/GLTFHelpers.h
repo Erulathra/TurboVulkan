@@ -22,4 +22,9 @@ namespace Turbo
 		std::vector<byte> mBytes;
 		size_t readBytesNum = 0;
 	};
+
+	namespace GLTF
+	{
+		void LoadExternalBuffers(fastgltf::Asset& asset, const std::filesystem::path& assetPath);
+	}
 }

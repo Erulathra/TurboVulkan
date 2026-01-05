@@ -68,6 +68,8 @@ namespace Turbo
 		assetManager.Init(gpu);
 
 		entt::locator<FMaterialManager>::emplace<FMaterialManager>();
+		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+		materialManager.Init(gpu);
 
 		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::emplace(&gpu);
 		geometryBuffer.Init(window.GetFrameBufferSize());
@@ -243,6 +245,7 @@ namespace Turbo
 
 		entt::locator<FGeometryBuffer>::value().Destroy();
 		entt::locator<FAssetManager>::value().Destroy(gpu);
+		entt::locator<FMaterialManager>::value().Destroy(gpu);
 
 		gpu.Shutdown();
 		entt::locator<FGeometryBuffer>::reset();
