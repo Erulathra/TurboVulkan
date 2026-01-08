@@ -1195,11 +1195,16 @@ namespace Turbo
 		const vk::SemaphoreSubmitInfo waitSemaphore = VkInit::SemaphoreSubmitInfo(frameData.mImageAcquiredSemaphore, vk::PipelineStageFlagBits2::eColorAttachmentOutput);
 		const vk::SemaphoreSubmitInfo signalSemaphore = VkInit::SemaphoreSubmitInfo(submitSemaphore, vk::PipelineStageFlagBits2::eAllGraphics);
 		const vk::SubmitInfo2 submitInfo = VkInit::SubmitInfo(bufferSubmitInfo, &signalSemaphore, &waitSemaphore);
+		TRACE_ZONE(QueueSubmit, "Vulkan Queue Submit")
 		CHECK_VULKAN_HPP(mVkQueue.submit2(1, &submitInfo, frameData.mCommandBufferExecutedFence));
+		TRACE_ZONE_END(QueueSubmit)
 
 		// Present swapchain texture
 		const vk::PresentInfoKHR presentInfo = VkInit::PresentInfo(mVkSwapchain, submitSemaphore, mCurrentSwapchainImageIndex);
+
+		TRACE_ZONE(VKPresent, "Vulkan Present Frame")
 		const vk::Result presentResult = mVkQueue.presentKHR(&presentInfo);
+		TRACE_ZONE_END(VKPresent)
 
 		if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
 		{

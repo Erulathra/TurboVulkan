@@ -151,6 +151,8 @@ namespace Turbo
 
 				if (meshComponent.mMaterial != materialHandle)
 				{
+					TRACE_ZONE_SCOPED_N("Bind Material")
+
 					materialHandle = meshComponent.mMaterial;
 					const FMaterial* material = materialManager.AccessMaterial(materialHandle);
 
@@ -164,6 +166,8 @@ namespace Turbo
 
 				if (meshComponent.mMaterialInstance != materialInstanceHandle)
 				{
+					TRACE_ZONE_SCOPED_N("Bind Material Instance")
+
 					materialInstanceHandle = meshComponent.mMaterialInstance;
 					const FMaterial::Instance* materialInstance = materialManager.AccessInstance(materialInstanceHandle);
 					TURBO_CHECK(materialInstance->material == materialHandle)
@@ -171,6 +175,8 @@ namespace Turbo
 
 				if (meshComponent.mMesh != meshHandle)
 				{
+					TRACE_ZONE_SCOPED_N("Bind index buffer")
+
 					meshHandle = meshComponent.mMesh;
 					mesh = assetManager.AccessMesh(meshHandle);
 
