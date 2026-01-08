@@ -52,9 +52,8 @@ namespace Turbo
 
 		/** TODO: Remove this with proper material */
 		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
-		FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("MeshTestMaterial.slang");
-		THandle<FMaterial> materialHandle = materialManager.LoadMaterial<void, void>(pipelineBuilder, 1);
-		THandle<FMaterial::Instance> materialInstanceHandle = materialManager.CreateMaterialInstance(materialHandle);
+		THandle<FMaterial> materialHandle = materialManager.GetMaterial(EngineMaterials::TriangleTest);
+		THandle<FMaterial::Instance> materialInstanceHandle = {};
 
 		// Load all meshes and submeshes
 		std::vector<FSceneMeshNodeData> meshes;
@@ -117,7 +116,6 @@ namespace Turbo
 					FMeshComponent& meshComponent = world.mRegistry.emplace<FMeshComponent>(nodeEntity);
 					meshComponent.mMaterial = materialHandle;
 					meshComponent.mMaterialInstance = materialInstanceHandle;
-
 					meshComponent.mMesh = meshNodeData.mSubMeshes[0];
 				}
 				else

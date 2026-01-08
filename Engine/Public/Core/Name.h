@@ -22,7 +22,7 @@ namespace Turbo
 		friend bool operator==(const FName& lhs, const FName& rhs) { return lhs.mStringId == rhs.mStringId; }
 		friend bool operator!=(const FName& lhs, const FName& rhs) { return !(lhs == rhs); }
 
-		[[nodiscard]] bool IsNone();
+		[[nodiscard]] bool IsNone() const;
 
 		[[nodiscard]] std::string_view ToString() const;
 		[[nodiscard]] cstring ToCString() const;

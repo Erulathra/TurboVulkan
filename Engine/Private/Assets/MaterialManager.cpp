@@ -5,9 +5,12 @@
 
 namespace Turbo
 {
+
 	void FMaterialManager::Init(FGPUDevice& gpuDevice)
 	{
-
+		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+		FPipelineBuilder pipelineBuilder = CreateOpaquePipeline("MeshTestMaterial.slang");
+		materialManager.LoadMaterial<void, void>(FName("MeshTriangleTest"), pipelineBuilder, 0);
 	}
 
 	void FMaterialManager::Destroy(FGPUDevice& gpuDevice)
@@ -43,6 +46,7 @@ namespace Turbo
 	}
 
 	THandle<FMaterial> FMaterialManager::LoadMaterial(
+		FName materialName,
 		const FPipelineBuilder& pipelineBuilder,
 		size_t materialDataSize,
 		size_t perInstanceDataSize,
@@ -59,7 +63,7 @@ namespace Turbo
 		material->mDataBuffer = {};
 		material->mMaterialDataSize = materialDataSize;
 		material->mPerInstanceDataSize = perInstanceDataSize;
-		material->mMaxInstances = maxInstances;
+		material->mMaxInstances = perInstanceDataSize > 0 ? maxInstances : 1;
 
 		const size_t targetBufferSize = materialDataSize + perInstanceDataSize * maxInstances;
 		if (targetBufferSize > 0)
@@ -84,7 +88,21 @@ namespace Turbo
 
 		mMaterialToAvailableIndexesMap[materialHandle] = std::move(availableIndexes);
 
+		TURBO_CHECK(mMaterialNameLookUp.find(materialName) == mMaterialNameLookUp.end())
+		mMaterialNameLookUp[materialName] = materialHandle;
+
 		return materialHandle;
+	}
+
+	THandle<FMaterial> FMaterialManager::GetMaterial(FName materialName)
+	{
+		if (auto foundIt = mMaterialNameLookUp.find(materialName);
+			foundIt != mMaterialNameLookUp.end())
+		{
+			return foundIt->second;
+		}
+
+		return {};
 	}
 
 	THandle<FMaterial::Instance> FMaterialManager::CreateMaterialInstance(THandle<FMaterial> materialHandle)
@@ -133,12 +151,14 @@ namespace Turbo
 
 	FDeviceAddress FMaterialManager::GetMaterialInstanceAddress(const FGPUDevice& gpu, THandle<FMaterial::Instance> instanceHandle) const
 	{
-		const FMaterial::Instance* instance = mMaterialInstancePool.Access(instanceHandle);
-		const FMaterial* material = mMaterialPool.Access(instance->material);
-		if (material->mDataBuffer.IsValid())
+		if (const FMaterial::Instance* instance = mMaterialInstancePool.Access(instanceHandle))
 		{
-			const FBuffer* uniformBuffer = gpu.AccessBuffer(material->mDataBuffer);
-			return uniformBuffer->GetDeviceAddress() + CalculateInstanceByteOffset(*material, instance->mUniformBufferIndex);
+			if (const FMaterial* material = mMaterialPool.Access(instance->material);
+				material->mDataBuffer.IsValid())
+			{
+				const FBuffer* uniformBuffer = gpu.AccessBuffer(material->mDataBuffer);
+				return uniformBuffer->GetDeviceAddress() + CalculateInstanceByteOffset(*material, instance->mUniformBufferIndex);
+			}
 		}
 
 		return kNullDeviceAddress;

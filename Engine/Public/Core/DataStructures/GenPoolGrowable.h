@@ -88,8 +88,13 @@ namespace Turbo
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
+			if (!handle.IsValid())
+			{
+				return nullptr;
+			}
+
 			const FHandle::GenerationType currentGeneration = mGenerations[handle.GetIndex()];
-			if (handle.IsValid() && handle.GetIndex() < mData.size() && handle.GetGeneration() == currentGeneration)
+			if (handle.GetIndex() < mData.size() && handle.GetGeneration() == currentGeneration)
 			{
 				return &mData[handle.GetIndex()];
 			}

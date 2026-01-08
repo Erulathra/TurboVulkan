@@ -12,6 +12,11 @@ namespace Turbo
 	class FPipeline;
 	class FCommandBuffer;
 
+	namespace EngineMaterials
+	{
+		inline FName TriangleTest = FName("MeshTriangleTest");
+	}
+
 	struct FMaterial final
 	{
 		using FUniformBufferIndex = uint32;
@@ -57,20 +62,23 @@ namespace Turbo
 
 	public:
 		template<typename MaterialDataType, typename PerInstanceDataType>
-		THandle<FMaterial> LoadMaterial(FPipelineBuilder& pipelineBuilder, size_t maxInstances)
+		THandle<FMaterial> LoadMaterial(FName materialName, FPipelineBuilder& pipelineBuilder, size_t maxInstances = 1)
 		{
 			constexpr size_t materialDataSize = CoreUtils::SizeofOrZero<MaterialDataType>();
 			constexpr size_t perInstanceDataSize = CoreUtils::SizeofOrZero<PerInstanceDataType>();
 
-			return LoadMaterial(pipelineBuilder, materialDataSize, perInstanceDataSize, maxInstances);
+			return LoadMaterial(materialName, pipelineBuilder, materialDataSize, perInstanceDataSize, maxInstances);
 		}
 
 		THandle<FMaterial> LoadMaterial(
+			FName materialName,
 			const FPipelineBuilder& pipelineBuilder,
 			size_t materialDataSize,
 			size_t perInstanceDataSize,
 			size_t maxInstances
 		);
+
+		THandle<FMaterial> GetMaterial(FName materialName);
 
 		THandle<FMaterial::Instance> CreateMaterialInstance(THandle<FMaterial> materialHandle);
 
@@ -108,6 +116,8 @@ namespace Turbo
 		using FAvailableIndexes = std::vector<uint32>;
 		using FMaterialToAvailableIndexes = entt::dense_map<THandle<FMaterial>, FAvailableIndexes>;
 		FMaterialToAvailableIndexes mMaterialToAvailableIndexesMap;
+
+		entt::dense_map<FName, THandle<FMaterial>> mMaterialNameLookUp;
 	};
 
 	template <typename PerInstanceData>

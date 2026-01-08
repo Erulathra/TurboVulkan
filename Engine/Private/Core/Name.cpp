@@ -29,13 +29,16 @@ namespace Turbo {
 		return newId;
 	}
 
-	FName::FName() : mStringId(kNameNone.mStringId) { }
+	FName::FName() : mStringId(kNameNone.mStringId)
+	{
+		static_assert(sizeof(FName) == 4);
+	}
 	FName::FName(std::string_view string)
 	{
 		mStringId = TryRegisterName(string);
 	}
 
-	bool FName::IsNone()
+	bool FName::IsNone() const
 	{
 		return *this == kNameNone;
 	}
