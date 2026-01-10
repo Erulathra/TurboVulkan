@@ -1,5 +1,6 @@
 #include "Assets/MaterialManager.h"
 
+#include "Assets/EngineMaterials.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 
@@ -8,9 +9,7 @@ namespace Turbo
 
 	void FMaterialManager::Init(FGPUDevice& gpuDevice)
 	{
-		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
-		FPipelineBuilder pipelineBuilder = CreateOpaquePipeline("MeshTestMaterial.slang");
-		materialManager.LoadMaterial<void, void>(FName("MeshTriangleTest"), pipelineBuilder, 0);
+		EngineMaterials::InitEngineMaterials();
 	}
 
 	void FMaterialManager::Destroy(FGPUDevice& gpuDevice)

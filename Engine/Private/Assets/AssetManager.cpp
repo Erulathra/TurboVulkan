@@ -334,7 +334,7 @@ namespace Turbo
 				break;
 
 			default:
-				TURBO_UNINPLEMENTED()
+				// If format doesn't have srgb alternative, just skip it.
 			}
 		}
 

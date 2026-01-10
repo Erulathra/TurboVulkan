@@ -12,11 +12,6 @@ namespace Turbo
 	class FPipeline;
 	class FCommandBuffer;
 
-	namespace EngineMaterials
-	{
-		inline FName TriangleTest = FName("MeshTriangleTest");
-	}
-
 	struct FMaterial final
 	{
 		using FUniformBufferIndex = uint32;
