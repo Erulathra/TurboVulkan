@@ -18,7 +18,8 @@ namespace Turbo
 
 		void Reserve(FHandle::IndexType numElements)
 		{
-			mData.resize(numElements);
+			const uint32 targetSize = glm::max(numElements, static_cast<FHandle::IndexType>(mData.size() * 2));
+			mData.resize(targetSize);
 		}
 
 		T& Access(FHandle atIndex)
@@ -26,9 +27,9 @@ namespace Turbo
 			const uint32 handleIndex = atIndex.GetIndex();
 			TURBO_CHECK(handleIndex)
 
-			if (mData.size() < handleIndex)
+			if (mData.size() <= handleIndex)
 			{
-				Reserve(handleIndex);
+				Reserve(handleIndex + 1);
 			}
 
 			return mData[handleIndex];
