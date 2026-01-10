@@ -8,14 +8,21 @@ FCommonPushConstants pc;
 
 struct MaterialData
 {
-    uint texture;
-	uint sampler;
+    uint baseColorSampler;
+    uint metalicRoughnessSampler;
+    uint normalSampler;
 }
 
 struct InstanceData
 {
-    float3 color;
-	float emissive;
+    uint baseColorTexture;
+    uint metalicRoughnessTexture;
+    uint normalTexture;
+
+    float normalScale;
+    float4 baseColorFactor;
+    float metalicFactor;
+    float roughnessFactor;
 }
 
 struct VSOut
@@ -50,21 +57,10 @@ void psMain(in VSOut vsOut, out PSOut psOut)
     const Ptr<InstanceData> instance = Ptr<InstanceData>(pc.materialInstance);
     const Ptr<MaterialData> material = Ptr<MaterialData>(pc.materialData);
 
-    const float3 sunWorldPos = float3(0.f);
-    const float3 sunPos = mul(float4(sunWorldPos, 1.f), pc.viewData.mViewMatrix).xyz;
+    Texture2D<float3> texture = texturePool[instance.baseColorTexture];
+    SamplerState sampler = samplerPool[material.baseColorSampler];
 
-    const float ambientLight = 0.1f + instance.emissive;
+    const float3 baseColor = instance.baseColorFactor.rgb * texture.Sample(sampler, vsOut.uv);
 
-    const float3 sunDir = normalize(vsOut.viewPosition - sunPos);
-
-    float lightIntensity = ambientLight + max(0.f, dot(vsOut.viewNormal, -sunDir));
-    lightIntensity = saturate(lightIntensity);
-
-    Texture2D<float3> texture = texturePool[material.texture];
-    SamplerState sampler = samplerPool[material.sampler];
-
-    const float3 baseColor = instance.color * texture.Sample(sampler, vsOut.uv);
-    const float3 colorLightPass = baseColor * lightIntensity;
-
-    psOut.color = float4(colorLightPass, 1.f);
+    psOut.color = float4(baseColor, 1.f);
 }

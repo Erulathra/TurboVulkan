@@ -18,6 +18,11 @@ using uint64 = std::uint64_t;
 
 using cstring = const char*;
 
+constexpr std::byte operator""_B(unsigned long long x)
+{
+	return static_cast<std::byte>(x);
+}
+
 namespace Turbo
 {
 	template<typename T>

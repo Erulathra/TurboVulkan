@@ -1,6 +1,7 @@
 #include "Core/Engine.h"
 
 #include "Assets/AssetManager.h"
+#include "Assets/EngineResources.h"
 #include "Assets/MaterialManager.h"
 #include "Core/CoreTimer.h"
 #include "Core/Window.h"
@@ -67,9 +68,14 @@ namespace Turbo
 		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 		assetManager.Init(gpu);
 
+		EngineResources::InitEngineSamplers();
+		EngineResources::InitEngineTextures();
+
 		entt::locator<FMaterialManager>::emplace<FMaterialManager>();
 		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 		materialManager.Init(gpu);
+
+		EngineMaterials::InitEngineMaterials();
 
 		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::emplace(&gpu);
 		geometryBuffer.Init(window.GetFrameBufferSize());
@@ -246,6 +252,8 @@ namespace Turbo
 		entt::locator<FGeometryBuffer>::value().Destroy();
 		entt::locator<FAssetManager>::value().Destroy(gpu);
 		entt::locator<FMaterialManager>::value().Destroy(gpu);
+
+		EngineResources::DestroyEngineResources();
 
 		gpu.Shutdown();
 		entt::locator<FGeometryBuffer>::reset();

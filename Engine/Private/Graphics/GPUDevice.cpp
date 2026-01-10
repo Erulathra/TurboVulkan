@@ -200,6 +200,7 @@ namespace Turbo
 		TURBO_CHECK(handle)
 
 		FTexture* texture = AccessTexture(handle);
+
 		InitVulkanTexture(builder, handle, texture);
 
 		mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, handle);
@@ -1503,6 +1504,35 @@ namespace Turbo
 		CHECK_VULKAN_RESULT(texture->mVkImageView, mVkDevice.createImageView(viewCreateInfo));
 
 		SetResourceName(texture->mVkImageView, builder.mName);
+	}
+
+	void FGPUDevice::UploadTextureUsingStagingBuffer(THandle<FTexture> handle, std::span<const byte> data)
+	{
+		// Create staging buffer
+		const FBufferBuilder stagingBufferBuilder = FBufferBuilder::CreateStagingBuffer(data.size());
+
+		const THandle<FBuffer> stagingBuffer = CreateBuffer(stagingBufferBuilder);
+		void* stagingMappedAddress = AccessBuffer(stagingBuffer)->GetMappedAddress();
+		std::memcpy(stagingMappedAddress, data.data(), data.size_bytes());
+
+		// copy buffer to image
+		ImmediateSubmit(FOnImmediateSubmit::CreateLambda(
+				[&](FCommandBuffer& cmd)
+				{
+					cmd.BufferBarrier(
+						stagingBuffer,
+						vk::AccessFlagBits2::eHostWrite,
+						vk::PipelineStageFlagBits2::eHost,
+						vk::AccessFlagBits2::eTransferRead,
+						vk::PipelineStageFlagBits2::eTransfer
+						);
+					cmd.TransitionImage(handle, vk::ImageLayout::eTransferDstOptimal);
+					cmd.CopyBufferToTexture(stagingBuffer, handle, 0, 0);
+					cmd.TransitionImage(handle, vk::ImageLayout::eShaderReadOnlyOptimal);
+				})
+		);
+
+		DestroyBuffer(stagingBuffer);
 	}
 
 	void FGPUDevice::DestroyBufferImmediate(const FBufferDestroyer& destroyer)

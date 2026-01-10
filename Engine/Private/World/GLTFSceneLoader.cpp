@@ -1,5 +1,6 @@
 #include "World/GLTFSceneLoader.h"
 
+#include "Assets/EngineResources.h"
 #include "Assets/GLTFHelpers.h"
 #include "Assets/MaterialManager.h"
 #include "World/MeshComponent.h"
@@ -7,6 +8,7 @@
 
 #include "fastgltf/core.hpp"
 #include "fastgltf/tools.hpp"
+#include "Graphics/GPUDevice.h"
 
 namespace
 {
@@ -23,12 +25,14 @@ namespace Turbo
 	struct FSceneMeshNodeData
 	{
 		std::array<THandle<FMesh>, kMaxSubMeshesPerMesh> mSubMeshes;
+		std::array<THandle<FMaterial::Instance>, kMaxSubMeshesPerMesh> mMaterials;
 		uint32 mNumSubmeshes = 0;
 	};
 
 	void FGLTFSceneLoader::LoadGLTFScene(FWorld& world, FName path)
 	{
 		TURBO_LOG(LogGLTFSceneLoader, Info, "Loading {} scene using gltf scene loader.", path)
+		const std::filesystem::path baseAssetPath = std::filesystem::path(path.ToString()).parent_path();
 
 		FTurboGLTFDataBuffer dataBuffer = FTurboGLTFDataBuffer::Load(path.ToString());
 
@@ -36,7 +40,7 @@ namespace Turbo
 		fastgltf::Parser parser;
 		fastgltf::Expected<fastgltf::Asset> gltfAsset = parser.loadGltf(
 			dataBuffer,
-			path.ToCString(),
+			path.ToString(),
 			fastgltf::Options::GenerateMeshIndices | fastgltf::Options::DecomposeNodeMatrices
 		);
 
@@ -50,18 +54,95 @@ namespace Turbo
 
 		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 
-		/** TODO: Remove this with proper material */
+		// Load Textures
+		std::vector<THandle<FTexture>> loadedTextures;
+		loadedTextures.reserve(gltfAsset->textures.size());
+		for (uint32 textureId = 0; textureId < gltfAsset->textures.size(); ++textureId)
+		{
+			const fastgltf::Texture& gltfTexture = gltfAsset->textures[textureId];
+			if (gltfTexture.imageIndex.has_value())
+			{
+				const fastgltf::Image& gltfImage = gltfAsset->images[gltfTexture.imageIndex.value()];
+				if (std::holds_alternative<fastgltf::sources::URI>(gltfImage.data))
+				{
+					const fastgltf::sources::URI& uri = std::get<fastgltf::sources::URI>(gltfImage.data);
+
+					const std::filesystem::path texturePath = baseAssetPath / uri.uri.path();
+					THandle<FTexture> textureHandle = assetManager.LoadTexture(FName(texturePath.string()));
+					loadedTextures.push_back(textureHandle);
+				}
+			}
+		}
+
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
-		THandle<FMaterial> materialHandle = materialManager.GetMaterial(EngineMaterials::TriangleTest);
-		THandle<FMaterial::Instance> materialInstanceHandle = {};
+		THandle<FMaterial> opaqueMaterial = materialManager.GetMaterial(EngineMaterials::kOpaqueBasePass);
+		std::vector<THandle<FMaterial::Instance>> materialInstanceHandles;
+		materialInstanceHandles.reserve(gltfAsset->materials.size());
+
+		// Load and submit Materials
+		gpu.ImmediateSubmit(
+			FOnImmediateSubmit::CreateLambda(
+				[&](FCommandBuffer& cmd)
+				{
+					for (const fastgltf::Material& gltfMaterial : gltfAsset->materials)
+					{
+						if (gltfMaterial.alphaMode != fastgltf::AlphaMode::Opaque)
+						{
+							// We don't support transparent materials for now
+							TURBO_LOG(LogGLTFSceneLoader, Warn, "Unimplemented material. Skipping...")
+							materialInstanceHandles.emplace_back();
+							continue;
+						}
+
+						const fastgltf::PBRData& pbrData = gltfMaterial.pbrData;
+
+						THandle<FMaterial::Instance> materialInstanceHandle = materialManager.CreateMaterialInstance(opaqueMaterial);
+						EngineMaterials::FBasePassInstanceData instanceData = {};
+
+						if (pbrData.baseColorTexture.has_value())
+						{
+							instanceData.mBaseColorTexture = loadedTextures[pbrData.baseColorTexture.value().textureIndex].GetIndex();
+						}
+						else
+						{
+							instanceData.mBaseColorTexture = EngineResources::GetWhiteTexture().GetIndex();
+						}
+
+						if (pbrData.metallicRoughnessTexture.has_value())
+						{
+							instanceData.mMetalicRoughnessTexture = loadedTextures[pbrData.metallicRoughnessTexture.value().textureIndex].GetIndex();
+						}
+
+						if (gltfMaterial.normalTexture.has_value())
+						{
+							instanceData.mNormalTexture = loadedTextures[gltfMaterial.normalTexture.value().textureIndex].GetIndex();
+							instanceData.mNormalScale = gltfMaterial.normalTexture.value().scale;
+						}
+
+						instanceData.mBaseColorFactor = glm::float4{
+							pbrData.baseColorFactor[0],
+							pbrData.baseColorFactor[1],
+							pbrData.baseColorFactor[2],
+							pbrData.baseColorFactor[3],
+						};
+
+						instanceData.mMetalicFactor = pbrData.metallicFactor;
+						instanceData.mRoughnessFactor = pbrData.roughnessFactor;
+
+						materialManager.UpdateMaterialInstance<EngineMaterials::FBasePassInstanceData>(cmd, materialInstanceHandle, &instanceData);
+						materialInstanceHandles.push_back(materialInstanceHandle);
+					}
+				})
+		);
 
 		// Load all meshes and submeshes
 		std::vector<FSceneMeshNodeData> meshes;
-		meshes.resize(gltfAsset->meshes.size());
+		meshes.reserve(gltfAsset->meshes.size());
 		for (uint32 meshId = 0; meshId < gltfAsset->meshes.size(); ++meshId)
 		{
 			const fastgltf::Mesh& gltfMesh = gltfAsset->meshes[meshId];
-			FSceneMeshNodeData& meshData = meshes[meshId];
+			FSceneMeshNodeData& meshData = meshes.emplace_back();
 
 			meshData.mNumSubmeshes = gltfMesh.primitives.size();
 			TURBO_CHECK(meshData.mNumSubmeshes < kMaxSubMeshesPerMesh)
@@ -73,6 +154,9 @@ namespace Turbo
 					.mSubMeshIndex = subMeshId
 				};
 				meshData.mSubMeshes[subMeshId] = assetManager.LoadMeshGLTF(path, meshLoadSettings, gltfAsset.get());
+
+				const fastgltf::Primitive& gltfPrimitive = gltfMesh.primitives[subMeshId];
+				meshData.mMaterials[subMeshId] = materialInstanceHandles[gltfPrimitive.materialIndex.value()];
 			}
 		}
 
@@ -113,23 +197,35 @@ namespace Turbo
 
 				if (meshNodeData.mNumSubmeshes == 1)
 				{
+					// todo: remove this when translucent and masked materials will be ready
+					if (meshNodeData.mMaterials[0].IsValid() == false)
+					{
+						continue;
+					}
+
 					FMeshComponent& meshComponent = world.mRegistry.emplace<FMeshComponent>(nodeEntity);
-					meshComponent.mMaterial = materialHandle;
-					meshComponent.mMaterialInstance = materialInstanceHandle;
+					meshComponent.mMaterial = opaqueMaterial;
+					meshComponent.mMaterialInstance = meshNodeData.mMaterials[0];
 					meshComponent.mMesh = meshNodeData.mSubMeshes[0];
 				}
 				else
 				{
 					for (uint32 subMeshId = 0; subMeshId < meshNodeData.mNumSubmeshes; ++subMeshId)
 					{
+						// todo: remove this when translucent and masked materials will be ready
+						if (meshNodeData.mMaterials[subMeshId].IsValid() == false)
+						{
+							continue;
+						}
+
 						const entt::entity meshEntity = world.mRegistry.create();
 						world.mRegistry.emplace<FSpawnedByLevelTag>(meshEntity);
 						world.mRegistry.emplace<FRelationship>(meshEntity);
 						FSceneGraph::AddChild(world.mRegistry, nodeEntity, meshEntity);
 
 						FMeshComponent& meshComponent = world.mRegistry.emplace<FMeshComponent>(meshEntity);
-						meshComponent.mMaterial = materialHandle;
-						meshComponent.mMaterialInstance = materialInstanceHandle;
+						meshComponent.mMaterial = opaqueMaterial;
+						meshComponent.mMaterialInstance = meshNodeData.mMaterials[subMeshId];
 						meshComponent.mMesh = meshNodeData.mSubMeshes[subMeshId];
 					}
 				}

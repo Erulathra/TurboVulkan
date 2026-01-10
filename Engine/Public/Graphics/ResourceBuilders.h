@@ -56,12 +56,11 @@ namespace Turbo
 	public:
 		FTextureBuilder& Init(vk::Format format, ETextureType type, ETextureFlags flags = ETextureFlags::Default)
 			{ mFormat = format; mType = type; mFlags = flags;  return *this; }
-		FTextureBuilder& SetSize(glm::ivec3 size) { mWidth = size.x; mHeight = size.y; mDepth = size.z; return *this; }
+		FTextureBuilder& SetSize(glm::uint3 size) { mWidth = size.x; mHeight = size.y; mDepth = size.z; return *this; }
 		FTextureBuilder& SetNumMips(uint8 numMips) { mNumMips = numMips; return *this; }
 
 		FTextureBuilder& SetName(FName name) { mName = name; return *this; }
 
-	private:
 		uint16 mWidth = 1;
 		uint16 mHeight = 1;
 		uint16 mDepth = 1;

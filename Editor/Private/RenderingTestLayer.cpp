@@ -22,7 +22,7 @@ void FRenderingTestLayer::Start()
 	TRACE_ZONE_SCOPED()
 
 	FWorld* world = gEngine->GetWorld();
-	world->OpenLevel(FName("Content/External/main_sponza/NewSponza_Main_glTF_003.gltf"));
+	world->OpenLevel(FName("Content/External/main_sponza/SponzaCompressed.gltf"));
 }
 
 void FRenderingTestLayer::Shutdown()

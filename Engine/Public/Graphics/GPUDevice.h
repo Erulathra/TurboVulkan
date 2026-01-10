@@ -18,6 +18,7 @@ namespace Turbo
 
 	constexpr size_t kTexturePoolSize = 1024;
 	constexpr size_t kSamplerPoolSize = 128;
+	constexpr uint32 kInvalidBinding = std::numeric_limits<uint32>::max();
 
 	class FBufferedFrameData final
 	{
@@ -129,6 +130,11 @@ namespace Turbo
 
 		/** Destroy immediate end */
 
+		/** Resource helpers */
+	public:
+		void UploadTextureUsingStagingBuffer(THandle<FTexture> handle, std::span<const byte> data);
+
+		/** Resource helpers end */
 
 		/** Vulkan Getters */
 	public:

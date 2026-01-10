@@ -1,6 +1,5 @@
 #include "Assets/MaterialManager.h"
 
-#include "Assets/EngineMaterials.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 
@@ -9,7 +8,6 @@ namespace Turbo
 
 	void FMaterialManager::Init(FGPUDevice& gpuDevice)
 	{
-		EngineMaterials::InitEngineMaterials();
 	}
 
 	void FMaterialManager::Destroy(FGPUDevice& gpuDevice)
