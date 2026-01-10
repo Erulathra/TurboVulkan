@@ -130,6 +130,9 @@ def convert_textures(grouped_textures):
     for opacity in grouped_textures["Opacity"]:
         run_compressonator("BC4", os.path.join(SPONZA_BASE_TEXTURES_SRC, opacity), get_dst_texture_path(opacity))
 
+    for normal in grouped_textures["Normal"]:
+        run_compressonator("BC5", os.path.join(SPONZA_BASE_TEXTURES_SRC, normal), get_dst_texture_path(normal))
+
 
 def convert_gltf():
     with open(SPONZA_BASE_GLTF_SRC, 'r') as f:
