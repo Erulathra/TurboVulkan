@@ -34,6 +34,7 @@ namespace Turbo
 	{
 		void InitEngineSamplers();
 		void InitEngineTextures();
+		void LoadPlaceholderTexture();
 
 		void DestroyEngineResources();
 
@@ -41,5 +42,13 @@ namespace Turbo
 
 		THandle<FTexture> GetWhiteTexture();
 		THandle<FTexture> GetBlackTexture();
+		THandle<FTexture> GetPlaceholderTexture();
+
+		void GenerateCheckerboardTextureData(
+			byte* outBytes,
+			glm::uint2 size,
+			std::span<const byte> onValue,
+			std::span<const byte> offValue
+		);
 	}
 }

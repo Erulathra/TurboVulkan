@@ -1,4 +1,6 @@
 #include "Assets/EngineResources.h"
+
+#include "Assets/AssetManager.h"
 #include "Assets/MaterialManager.h"
 
 namespace Turbo
@@ -9,6 +11,7 @@ namespace Turbo
 
 		THandle<FTexture> gWhiteTexture;
 		THandle<FTexture> gBlackTexture;
+		THandle<FTexture> gPlaceholderTexture;
 	}
 
 	namespace EngineMaterials
@@ -75,6 +78,12 @@ namespace Turbo
 			gpu.UploadTextureUsingStagingBuffer( gBlackTexture, blackBytes);
 		}
 
+		void LoadPlaceholderTexture()
+		{
+			FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+			gPlaceholderTexture = assetManager.LoadTexture(FName("Content/Textures/Engine/T_Placeholder.dds"), true, false);
+		}
+
 		void DestroyEngineResources()
 		{
 			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
@@ -82,6 +91,7 @@ namespace Turbo
 
 			gpu.DestroyTexture(gWhiteTexture);
 			gpu.DestroyTexture(gBlackTexture);
+			gpu.DestroyTexture(gPlaceholderTexture);
 		}
 
 		THandle<FSampler> GetDefaultLinearSampler()
@@ -97,6 +107,32 @@ namespace Turbo
 		THandle<FTexture> GetBlackTexture()
 		{
 			return gBlackTexture;
+		}
+
+		THandle<FTexture> GetPlaceholderTexture()
+		{
+			return gPlaceholderTexture;
+		}
+
+		void GenerateCheckerboardTextureData(byte* outBytes, glm::uint2 size, std::span<const byte> onValue, std::span<const byte> offValue)
+		{
+			const uint32 bytesPerPixel = onValue.size();
+			const glm::uint2 halfSize = size / glm::uint2(2, 2);
+			TURBO_CHECK(onValue.size() == offValue.size())
+
+			for (uint32 y = 0; y < size.y; ++y)
+			{
+				for (uint32 x = 0; x < size.x; ++x)
+				{
+					const uint32 byteIndex = (y * size.x + x) * bytesPerPixel;
+					for (uint32 pixelByteOffset = 0; pixelByteOffset < bytesPerPixel; ++pixelByteOffset)
+					{
+						byte& targetByte = *(outBytes + byteIndex + pixelByteOffset);
+						const bool bPixelOn = x > halfSize.x ^ y > halfSize.y;
+						targetByte = bPixelOn ? onValue[pixelByteOffset] : offValue[pixelByteOffset];
+					}
+				}
+			}
 		}
 	}
 }

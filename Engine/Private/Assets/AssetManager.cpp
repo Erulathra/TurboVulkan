@@ -10,6 +10,7 @@
 #include "fastgltf/tools.hpp"
 
 #include "dds.hpp"
+#include "Assets/EngineResources.h"
 #include "Assets/GLTFHelpers.h"
 #include "Core/CoreUtils.h"
 #include "Core/Utils/StringUtils.h"
@@ -73,6 +74,8 @@ namespace Turbo
 			.SetName(FName("MeshPointer"));
 
 		mMeshPointersPool = gpu.CreateBuffer(bufferBuilder);
+
+		EngineResources::LoadPlaceholderTexture();
 	}
 
 	void FAssetManager::Destroy(FGPUDevice& gpu) const
@@ -264,14 +267,14 @@ namespace Turbo
 			textureAsset.mAssetHash = assetHash;
 
 			mAssetCache[assetHash] = result;
+
+			if (bLevelAsset)
+			{
+				gEngine->GetWorld()->mRuntimeLevel.mLoadedTextures.push_back(result);
+			}
 		}
 
-		if (bLevelAsset)
-		{
-			gEngine->GetWorld()->mRuntimeLevel.mLoadedTextures.push_back(result);
-		}
-
-		return result;
+		return result.IsValid() ? result : EngineResources::GetPlaceholderTexture();
 	}
 
 	void FAssetManager::UnloadTexture(THandle<FTexture> handle)
@@ -298,7 +301,11 @@ namespace Turbo
 		TURBO_LOG(LogTextureLoading, Info, "Loading {} using DDS loader.", path.ToString());
 
 		std::vector<byte> meshBytes;
-		FileSystem::LoadAssetData(path, meshBytes);
+		if (FileSystem::LoadAssetData(path, meshBytes) == false)
+		{
+			TURBO_LOG(LogTextureLoading, Error, "Cannot load {} file.", path.ToString());
+			return result;
+		}
 
 		dds::Image image;
 		if (const dds::ReadResult readResult = dds::readImage(reinterpret_cast<uint8*>(meshBytes.data()), meshBytes.size(), &image);
