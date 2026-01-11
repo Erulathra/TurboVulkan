@@ -1,8 +1,13 @@
 #pragma once
+
+#include "MaterialManager.h"
 #include "Graphics/GPUDevice.h"
 
 namespace Turbo
 {
+	struct FMaterial;
+	struct FMesh;
+
 	namespace EngineMaterials
 	{
 		inline const FName kTriangleTest = FName("MeshTriangleTest");
@@ -34,7 +39,8 @@ namespace Turbo
 	{
 		void InitEngineSamplers();
 		void InitEngineTextures();
-		void LoadPlaceholderTexture();
+		void LoadPlaceholders();
+		void LoadPlaceholderMesh();
 
 		void DestroyEngineResources();
 
@@ -43,6 +49,10 @@ namespace Turbo
 		THandle<FTexture> GetWhiteTexture();
 		THandle<FTexture> GetBlackTexture();
 		THandle<FTexture> GetPlaceholderTexture();
+
+		THandle<FMesh> GetPlaceholderMesh();
+
+		THandle<FMaterial> GetPlaceholderMaterial();
 
 		void GenerateCheckerboardTextureData(
 			byte* outBytes,

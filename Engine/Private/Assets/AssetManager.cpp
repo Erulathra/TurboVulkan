@@ -75,7 +75,7 @@ namespace Turbo
 
 		mMeshPointersPool = gpu.CreateBuffer(bufferBuilder);
 
-		EngineResources::LoadPlaceholderTexture();
+		EngineResources::LoadPlaceholders();
 	}
 
 	void FAssetManager::Destroy(FGPUDevice& gpu) const

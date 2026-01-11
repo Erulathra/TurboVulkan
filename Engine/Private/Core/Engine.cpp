@@ -249,11 +249,11 @@ namespace Turbo
 
 		mWorld->UnloadLevel();
 
+		EngineResources::DestroyEngineResources();
+
 		entt::locator<FGeometryBuffer>::value().Destroy();
 		entt::locator<FAssetManager>::value().Destroy(gpu);
 		entt::locator<FMaterialManager>::value().Destroy(gpu);
-
-		EngineResources::DestroyEngineResources();
 
 		gpu.Shutdown();
 		entt::locator<FGeometryBuffer>::reset();

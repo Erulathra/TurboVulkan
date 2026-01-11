@@ -1,10 +1,13 @@
 #include "imgui.h"
 #include "RenderingTestLayer.h"
 
+#include "Assets/EngineResources.h"
+#include "Assets/MaterialManager.h"
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/ResourceBuilders.h"
+#include "World/MeshComponent.h"
 #include "World/World.h"
 
 using namespace Turbo;
@@ -23,6 +26,14 @@ void FRenderingTestLayer::Start()
 
 	FWorld* world = gEngine->GetWorld();
 	world->OpenLevel(FName("Content/External/main_sponza/SponzaCompressed.gltf"));
+
+	FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+	THandle<FMaterial> materialHandle = materialManager.GetMaterial(EngineMaterials::kTriangleTest);
+
+	entt::entity errorEntity = world->mRegistry.create();
+	world->mRegistry.emplace<FTransform>(errorEntity);
+	FMeshComponent& meshComponent = world->mRegistry.emplace<FMeshComponent>(errorEntity);
+	meshComponent.mMaterial = materialHandle;
 }
 
 void FRenderingTestLayer::Shutdown()

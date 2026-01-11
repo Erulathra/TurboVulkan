@@ -12,6 +12,10 @@ namespace Turbo
 		THandle<FTexture> gWhiteTexture;
 		THandle<FTexture> gBlackTexture;
 		THandle<FTexture> gPlaceholderTexture;
+
+		THandle<FMesh> gPlaceholderMesh;
+
+		THandle<FMaterial> gPlaceholderMaterial;
 	}
 
 	namespace EngineMaterials
@@ -78,10 +82,11 @@ namespace Turbo
 			gpu.UploadTextureUsingStagingBuffer( gBlackTexture, blackBytes);
 		}
 
-		void LoadPlaceholderTexture()
+		void LoadPlaceholders()
 		{
 			FAssetManager& assetManager = entt::locator<FAssetManager>::value();
-			gPlaceholderTexture = assetManager.LoadTexture(FName("Content/Textures/Engine/T_Placeholder.dds"), true, false);
+			gPlaceholderTexture = assetManager.LoadTexture(FName("Content/Engine/T_Placeholder.dds"), true, false);
+			gPlaceholderMesh = assetManager.LoadMesh(FName("Content/Engine/SM_ErrorMesh.glb"), FMeshLoadSettings{.mbLevelAsset = false});
 		}
 
 		void DestroyEngineResources()
@@ -92,6 +97,9 @@ namespace Turbo
 			gpu.DestroyTexture(gWhiteTexture);
 			gpu.DestroyTexture(gBlackTexture);
 			gpu.DestroyTexture(gPlaceholderTexture);
+
+			FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+			assetManager.UnloadMesh(gPlaceholderMesh);
 		}
 
 		THandle<FSampler> GetDefaultLinearSampler()
@@ -112,6 +120,16 @@ namespace Turbo
 		THandle<FTexture> GetPlaceholderTexture()
 		{
 			return gPlaceholderTexture;
+		}
+
+		THandle<FMesh> GetPlaceholderMesh()
+		{
+			return gPlaceholderMesh;
+		}
+
+		THandle<FMaterial> GetPlaceholderMaterial()
+		{
+			return gPlaceholderMaterial;
 		}
 
 		void GenerateCheckerboardTextureData(byte* outBytes, glm::uint2 size, std::span<const byte> onValue, std::span<const byte> offValue)

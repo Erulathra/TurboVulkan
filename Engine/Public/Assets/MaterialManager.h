@@ -73,7 +73,7 @@ namespace Turbo
 			size_t maxInstances
 		);
 
-		THandle<FMaterial> GetMaterial(FName materialName);
+		[[nodiscard]] THandle<FMaterial> GetMaterial(FName materialName);
 
 		THandle<FMaterial::Instance> CreateMaterialInstance(THandle<FMaterial> materialHandle);
 

@@ -1,6 +1,7 @@
 #include "Layers/SceneRenderingLayer.h"
 
 #include "Assets/AssetManager.h"
+#include "Assets/EngineResources.h"
 #include "Assets/StaticMesh.h"
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
@@ -73,10 +74,22 @@ namespace Turbo
 		entt::registry& registry = world->mRegistry;
 
 		{
+			// todo: Introduce indexes and precompute those values into them. (we can use also a radix sort here)
 			TRACE_ZONE_SCOPED_N("Sort drawcalls/entities")
 			registry.sort<FMeshComponent>(
 				[]( const FMeshComponent& lhs, const FMeshComponent& rhs) -> bool
 				{
+					// Move invalid mesh / material to end
+					if (rhs.mMesh.IsValid() == false || lhs.mMesh.IsValid() == false)
+					{
+						return lhs.mMesh.IsValid() < rhs.mMesh.IsValid();
+					}
+
+					if (rhs.mMaterial.IsValid() == false || lhs.mMaterial.IsValid() == false)
+					{
+						return lhs.mMaterial.IsValid() < rhs.mMaterial.IsValid();
+					}
+
 					if (lhs.mMaterial.GetIndex() == rhs.mMaterial.GetIndex())
 					{
 						if (lhs.mMaterialInstance.GetIndex() == rhs.mMaterialInstance.GetIndex())
@@ -117,8 +130,10 @@ namespace Turbo
 
 			THandle<FMaterial> materialHandle;
 			THandle<FMaterial::Instance> materialInstanceHandle;
-			THandle<FMesh> meshHandle;
-			const FMesh* mesh = {};
+			THandle<FMesh> meshHandle = EngineResources::GetPlaceholderMesh();
+			const FMesh* mesh = assetManager.AccessMesh(meshHandle);
+
+			THandle<FBuffer> boundIndexBuffer = {};
 
 			FDeviceAddress viewDataDeviceAddress = gpu.AccessBuffer(mViewDataUniformBuffer)->GetDeviceAddress();
 
@@ -169,8 +184,17 @@ namespace Turbo
 					TRACE_ZONE_SCOPED_N("Bind Material Instance")
 
 					materialInstanceHandle = meshComponent.mMaterialInstance;
-					const FMaterial::Instance* materialInstance = materialManager.AccessInstance(materialInstanceHandle);
-					TURBO_CHECK(materialInstance->material == materialHandle)
+
+					if (materialInstanceHandle.IsValid())
+					{
+						const FMaterial::Instance* materialInstance = materialManager.AccessInstance(materialInstanceHandle);
+						TURBO_CHECK(materialInstance->material == materialHandle)
+					}
+					else
+					{
+						const FMaterial* material = materialManager.AccessMaterial(materialHandle);
+						TURBO_CHECK(material->mPerInstanceDataSize == 0)
+					}
 				}
 
 				if (meshComponent.mMesh != meshHandle)
@@ -180,7 +204,17 @@ namespace Turbo
 					meshHandle = meshComponent.mMesh;
 					mesh = assetManager.AccessMesh(meshHandle);
 
-					cmd.BindIndexBuffer(mesh->mIndicesBuffer);
+					if (mesh == nullptr)
+					{
+						meshHandle = EngineResources::GetPlaceholderMesh();
+						mesh = assetManager.AccessMesh(EngineResources::GetPlaceholderMesh());
+					}
+
+					if (boundIndexBuffer != mesh->mIndicesBuffer)
+					{
+						cmd.BindIndexBuffer(mesh->mIndicesBuffer);
+						boundIndexBuffer = mesh->mIndicesBuffer;
+					}
 				}
 
 				FMaterial::PushConstants pushConstants = {};
