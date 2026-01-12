@@ -24,7 +24,7 @@ namespace Turbo
 		{
 			FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 			FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("MeshTestMaterial.slang");
-			materialManager.LoadMaterial<void, void>(kTriangleTest, pipelineBuilder, 0);
+			gPlaceholderMaterial = materialManager.LoadMaterial<void, void>(kTriangleTest, pipelineBuilder, 0);
 
 			pipelineBuilder = FMaterialManager::CreateOpaquePipeline("OpaqueBasePass.slang");
 			const THandle<FMaterial> basePassMat = materialManager.LoadMaterial<FBasePassMaterialData, FBasePassInstanceData>(
@@ -46,6 +46,11 @@ namespace Turbo
 						materialManager.UpdateMaterialData<FBasePassMaterialData>(cmd, basePassMat, &matData);
 					})
 			);
+		}
+
+		THandle<FMaterial> GetPlaceholderMaterial()
+		{
+			return gPlaceholderMaterial;
 		}
 	}
 
@@ -125,11 +130,6 @@ namespace Turbo
 		THandle<FMesh> GetPlaceholderMesh()
 		{
 			return gPlaceholderMesh;
-		}
-
-		THandle<FMaterial> GetPlaceholderMaterial()
-		{
-			return gPlaceholderMaterial;
 		}
 
 		void GenerateCheckerboardTextureData(byte* outBytes, glm::uint2 size, std::span<const byte> onValue, std::span<const byte> offValue)

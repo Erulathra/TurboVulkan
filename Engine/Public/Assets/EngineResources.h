@@ -33,6 +33,8 @@ namespace Turbo
 			float mMetalicFactor = 0.f;
 			float mRoughnessFactor = 1.f;
 		};
+
+		THandle<FMaterial> GetPlaceholderMaterial();
 	}
 
 	namespace EngineResources
@@ -51,8 +53,6 @@ namespace Turbo
 		THandle<FTexture> GetPlaceholderTexture();
 
 		THandle<FMesh> GetPlaceholderMesh();
-
-		THandle<FMaterial> GetPlaceholderMaterial();
 
 		void GenerateCheckerboardTextureData(
 			byte* outBytes,

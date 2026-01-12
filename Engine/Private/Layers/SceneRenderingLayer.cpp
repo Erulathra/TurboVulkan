@@ -128,12 +128,13 @@ namespace Turbo
 			const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 			const FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
-			THandle<FMaterial> materialHandle;
+			THandle<FMaterial> materialHandle = EngineMaterials::GetPlaceholderMaterial();
 			THandle<FMaterial::Instance> materialInstanceHandle;
 			THandle<FMesh> meshHandle = EngineResources::GetPlaceholderMesh();
 			const FMesh* mesh = assetManager.AccessMesh(meshHandle);
 
 			THandle<FBuffer> boundIndexBuffer = {};
+			THandle<FPipeline> boundPipeline = {};
 
 			FDeviceAddress viewDataDeviceAddress = gpu.AccessBuffer(mViewDataUniformBuffer)->GetDeviceAddress();
 
@@ -166,41 +167,50 @@ namespace Turbo
 
 				if (meshComponent.mMaterial != materialHandle)
 				{
-					TRACE_ZONE_SCOPED_N("Bind Material")
-
 					materialHandle = meshComponent.mMaterial;
 					const FMaterial* material = materialManager.AccessMaterial(materialHandle);
 
-					cmd.BindPipeline(material->mPipeline);
-					cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
+					if (material == nullptr)
+					{
+						materialHandle = EngineMaterials::GetPlaceholderMaterial();
+						material = materialManager.AccessMaterial(materialHandle);
+						materialInstanceHandle = THandle<FMaterial::Instance>();
+					}
+
+					if (material->mPipeline != boundPipeline)
+					{
+						TRACE_ZONE_SCOPED_N("Bind Material")
+
+						cmd.BindPipeline(material->mPipeline);
+						cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
+					}
 
 #if WITH_PROFILER
 					numPipelineSwitches++;
 #endif // WITH_PROFILER
 				}
 
-				if (meshComponent.mMaterialInstance != materialInstanceHandle)
+				if (meshComponent.mMaterial.IsValid() && meshComponent.mMaterialInstance != materialInstanceHandle)
 				{
-					TRACE_ZONE_SCOPED_N("Bind Material Instance")
-
 					materialInstanceHandle = meshComponent.mMaterialInstance;
 
-					if (materialInstanceHandle.IsValid())
+					if (materialHandle.IsValid())
 					{
-						const FMaterial::Instance* materialInstance = materialManager.AccessInstance(materialInstanceHandle);
-						TURBO_CHECK(materialInstance->material == materialHandle)
-					}
-					else
-					{
-						const FMaterial* material = materialManager.AccessMaterial(materialHandle);
-						TURBO_CHECK(material->mPerInstanceDataSize == 0)
+						if (materialInstanceHandle.IsValid())
+						{
+							const FMaterial::Instance* materialInstance = materialManager.AccessInstance(materialInstanceHandle);
+							TURBO_CHECK(materialInstance->material == materialHandle)
+						}
+						else
+						{
+							const FMaterial* material = materialManager.AccessMaterial(materialHandle);
+							TURBO_CHECK(material->mPerInstanceDataSize == 0)
+						}
 					}
 				}
 
 				if (meshComponent.mMesh != meshHandle)
 				{
-					TRACE_ZONE_SCOPED_N("Bind index buffer")
-
 					meshHandle = meshComponent.mMesh;
 					mesh = assetManager.AccessMesh(meshHandle);
 
@@ -212,6 +222,8 @@ namespace Turbo
 
 					if (boundIndexBuffer != mesh->mIndicesBuffer)
 					{
+						TRACE_ZONE_SCOPED_N("Bind index buffer")
+
 						cmd.BindIndexBuffer(mesh->mIndicesBuffer);
 						boundIndexBuffer = mesh->mIndicesBuffer;
 					}
