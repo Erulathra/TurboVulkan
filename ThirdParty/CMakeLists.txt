@@ -68,5 +68,6 @@ CPMAddPackage(
         OPTIONS "ENTT_INCLUDE_NATVIS ON"
 )
 CPMAddPackage("gh:spnda/dds_image#6af8726")
+CPMAddPackage("gh:dougbinks/enkiTS#d0e74e1")
 
 add_subdirectory(Slang)

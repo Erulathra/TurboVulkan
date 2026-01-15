@@ -1,5 +1,6 @@
 #include "Core/Engine.h"
 
+#include "TaskScheduler.h"
 #include "Assets/AssetManager.h"
 #include "Assets/EngineResources.h"
 #include "Assets/MaterialManager.h"
@@ -51,6 +52,16 @@ namespace Turbo
 		FCoreTimer& coreTimer = entt::locator<FCoreTimer>::value();
 		coreTimer.Init();
 
+		// Additional thread for io tasks
+		enki::TaskSchedulerConfig taskSchedulerConfig;
+		taskSchedulerConfig.numTaskThreadsToCreate += 1;
+
+		entt::locator<enki::TaskScheduler>::emplace();
+		enki::TaskScheduler& taskScheduler = entt::locator<enki::TaskScheduler>::value();
+		taskScheduler.Initialize(taskSchedulerConfig);
+
+		entt::locator<FAsyncLoadingManager>::emplace();
+
 		entt::locator<FGPUDevice>::reset(new FGPUDevice());
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 
@@ -63,6 +74,12 @@ namespace Turbo
 
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpu.Init(gpuDeviceBuilder);
+
+		mIOThread.threadNum = taskScheduler.GetNumTaskThreads() - 1;
+		mIOTask.threadNum = taskScheduler.GetNumTaskThreads() - 1;
+
+		taskScheduler.AddPinnedTask(&mIOThread);
+		taskScheduler.AddPinnedTask(&mIOTask);
 
 		entt::locator<FAssetManager>::emplace<FAssetManager>();
 		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
@@ -238,6 +255,9 @@ namespace Turbo
 	{
 		TURBO_LOG(LogEngine, Info, "Begin exit sequence.");
 
+		entt::locator<enki::TaskScheduler>::value().WaitforAllAndShutdown();
+		entt::locator<enki::TaskScheduler>::reset();
+
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		gpu.WaitIdle();
 
@@ -267,6 +287,8 @@ namespace Turbo
 
 		entt::locator<FWindow>::reset();
 		entt::locator<FGPUDevice>::reset();
+
+		entt::locator<enki::TaskScheduler>::reset();
 	}
 
 	void FEngine::RequestExit(EExitCode InExitCode)

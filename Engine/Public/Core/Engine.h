@@ -1,6 +1,12 @@
 #pragma once
 #include "Window.h"
+#include "Assets/IOThread.h"
 #include "Input/Input.h"
+
+namespace enki
+{
+	class TaskScheduler;
+}
 
 namespace Turbo
 {
@@ -44,6 +50,12 @@ namespace Turbo
 		TSharedPtr<FWorld> mWorld;
 
 		/** Services end */
+
+		/** IO Thread */
+	private:
+		FIOThread mIOThread;
+		FIOTask mIOTask;
+		/** IO Thread end */
 
 	public:
 		~FEngine();
