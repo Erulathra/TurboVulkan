@@ -45,7 +45,7 @@ namespace Turbo
 			mVkInstance,
 			mVkPhysicalDevice,
 			mVkDevice,
-			mVkQueue,
+			mVkGraphicsQueue,
 			mImmediateCommandsBuffer.get(),
 			VULKAN_HPP_DEFAULT_DISPATCHER.vkGetInstanceProcAddr,
 			VULKAN_HPP_DEFAULT_DISPATCHER.vkGetDeviceProcAddr
@@ -891,13 +891,20 @@ namespace Turbo
 
 		mVkDevice = buildDeviceResult.value();
 
-		vkb::Result<VkQueue> getQueueResult = buildDeviceResult->get_queue(vkb::QueueType::graphics);
-		TURBO_CHECK_MSG(getQueueResult, "Queue query failed. Reason: {}", getQueueResult.error().message())
-		mVkQueue = getQueueResult.value();
+		auto GetQueue = [&](vkb::QueueType queueType, vk::Queue& OutQueue, uint32& OutFamilyIndex)
+		{
+			vkb::Result<VkQueue> getQueueResult = buildDeviceResult->get_queue(queueType);
+			TURBO_CHECK_MSG(getQueueResult, "{} Queue query failed. Reason: {}", magic_enum::enum_name(queueType), getQueueResult.error().message())
+			OutQueue = getQueueResult.value();
 
-		vkb::Result<uint32> getQueueIndexResult = buildDeviceResult->get_queue_index(vkb::QueueType::graphics);
-		TURBO_CHECK_MSG(getQueueIndexResult, "Queue family query failed. Reason: {}", getQueueIndexResult.error().message())
-		mVkQueueFamilyIndex = getQueueIndexResult.value();
+			vkb::Result<uint32> getQueueIndexResult = buildDeviceResult->get_queue_index(queueType);
+			TURBO_CHECK_MSG(getQueueIndexResult, "{} Queue family query failed. Reason: {}", magic_enum::enum_name(queueType), getQueueIndexResult.error().message())
+			OutFamilyIndex = getQueueIndexResult.value();
+		};
+
+		GetQueue(vkb::QueueType::graphics, mVkGraphicsQueue, mVkGraphicsQueueFamilyIndex);
+		GetQueue(vkb::QueueType::compute, mVkComputeQueue, mVkComputeQueueFamilyIndex);
+		GetQueue(vkb::QueueType::transfer, mVkTransferQueue, mVkTransferQueueFamilyIndex);
 
 		TURBO_CHECK_MSG(
 			buildDeviceResult->get_queue_index(vkb::QueueType::graphics).value() == buildDeviceResult->get_queue_index(vkb::QueueType::present).value(),
@@ -1023,7 +1030,7 @@ namespace Turbo
 	vk::CommandPool FGPUDevice::CreateCommandPool(vk::CommandPoolCreateFlags createFlags)
 	{
 		vk::CommandPoolCreateInfo createInfo = {};
-		createInfo.setQueueFamilyIndex(mVkQueueFamilyIndex);
+		createInfo.setQueueFamilyIndex(mVkGraphicsQueueFamilyIndex);
 		createInfo.setFlags(createFlags);
 
 		vk::CommandPool pool;
@@ -1197,14 +1204,14 @@ namespace Turbo
 		const vk::SemaphoreSubmitInfo signalSemaphore = VkInit::SemaphoreSubmitInfo(submitSemaphore, vk::PipelineStageFlagBits2::eAllGraphics);
 		const vk::SubmitInfo2 submitInfo = VkInit::SubmitInfo(bufferSubmitInfo, &signalSemaphore, &waitSemaphore);
 		TRACE_ZONE(QueueSubmit, "Vulkan Queue Submit")
-		CHECK_VULKAN_HPP(mVkQueue.submit2(1, &submitInfo, frameData.mCommandBufferExecutedFence));
+		CHECK_VULKAN_HPP(mVkGraphicsQueue.submit2(1, &submitInfo, frameData.mCommandBufferExecutedFence));
 		TRACE_ZONE_END(QueueSubmit)
 
 		// Present swapchain texture
 		const vk::PresentInfoKHR presentInfo = VkInit::PresentInfo(mVkSwapchain, submitSemaphore, mCurrentSwapchainImageIndex);
 
 		TRACE_ZONE(VKPresent, "Vulkan Present Frame")
-		const vk::Result presentResult = mVkQueue.presentKHR(&presentInfo);
+		const vk::Result presentResult = mVkGraphicsQueue.presentKHR(&presentInfo);
 		TRACE_ZONE_END(VKPresent)
 
 		if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
@@ -1333,7 +1340,7 @@ namespace Turbo
 
 			{
 				TRACE_ZONE_SCOPED_N("Queue submit")
-				CHECK_VULKAN_HPP(mVkQueue.submit2(1, &submitInfo, mImmediateCommandsFence));
+				CHECK_VULKAN_HPP(mVkGraphicsQueue.submit2(1, &submitInfo, mImmediateCommandsFence));
 			}
 
 			{

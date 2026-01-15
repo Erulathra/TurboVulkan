@@ -141,7 +141,7 @@ namespace Turbo
 		[[nodiscard]] vk::Instance GetVkInstance() const { return mVkInstance; }
 		[[nodiscard]] vk::PhysicalDevice GetVkPhysicalDevice() const { return mVkPhysicalDevice; }
 		[[nodiscard]] vk::Device GetVkDevice() const { return mVkDevice; }
-		[[nodiscard]] vk::Queue GetVkQueue() const { return mVkQueue; }
+		[[nodiscard]] vk::Queue GetVkQueue() const { return mVkGraphicsQueue; }
 
 		/** Vulkan Getters end */
 
@@ -245,8 +245,15 @@ namespace Turbo
 		vk::PhysicalDeviceProperties mPhysicalDeviceProperties = {};
 
 		vk::Device mVkDevice = nullptr;
-		vk::Queue mVkQueue = nullptr;
-		uint32 mVkQueueFamilyIndex = std::numeric_limits<uint32>::max();
+
+		vk::Queue mVkGraphicsQueue = nullptr;
+		uint32 mVkGraphicsQueueFamilyIndex = std::numeric_limits<uint32>::max();
+
+		vk::Queue mVkTransferQueue = nullptr;
+		uint32 mVkTransferQueueFamilyIndex = std::numeric_limits<uint32>::max();
+
+		vk::Queue mVkComputeQueue = nullptr;
+		uint32 mVkComputeQueueFamilyIndex = std::numeric_limits<uint32>::max();
 
 		vk::DescriptorPool mVkDescriptorPool = nullptr;
 
