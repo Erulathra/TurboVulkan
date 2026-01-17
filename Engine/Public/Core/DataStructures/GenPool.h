@@ -4,7 +4,9 @@
 
 namespace Turbo
 {
-	template<typename HotType, typename ColdType, FHandle::IndexType size>
+	struct FDummyColdType {};
+
+	template<typename HotType, FHandle::IndexType size, typename ColdType = FDummyColdType>
 		requires (size < FHandle::kMaxIndex)
 	class TGenPool
 	{
@@ -90,7 +92,8 @@ namespace Turbo
 
 		ColdType* AccessCold(THandle<HotType> handle)
 		{
-			TRACE_ZONE_SCOPED_N("Access Resource by handle")
+			static_assert(std::is_same_v<ColdType, FDummyColdType> == false);
+			TRACE_ZONE_SCOPED_N("Access Resource Cold Data by handle")
 
 			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
 			{
@@ -105,7 +108,8 @@ namespace Turbo
 
 		const HotType* AccessCold(THandle<HotType> handle) const
 		{
-			TRACE_ZONE_SCOPED_N("Access Resource by handle")
+			static_assert(std::is_same_v<ColdType, FDummyColdType> == false);
+			TRACE_ZONE_SCOPED_N("Access Resource Cold Data by handle")
 
 			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
 			{
@@ -119,8 +123,10 @@ namespace Turbo
 		}
 
 	private:
+		constexpr static size_t kColdDataArraySize = size * (std::is_same_v<FDummyColdType, ColdType> ? 0 : 1);
+
 		std::array<HotType, size> mHotData;
-		std::array<ColdType, size> mColdData;
+		std::array<ColdType, kColdDataArraySize> mColdData;
 		std::array<FHandle::GenerationType, size> mGenerations;
 		std::array<FHandle::IndexType, size> mFreeIndices;
 
@@ -128,11 +134,11 @@ namespace Turbo
 		FHandle::IndexType mUsedIndices = 0;
 	};
 
-	template<typename HotType, typename ColdType, FHandle::IndexType size>
+	template<typename HotType, FHandle::IndexType size, typename ColdType = FDummyColdType>
 		requires (size < FHandle::kMaxIndex)
 	class TPoolHeap
 	{
-		using TPoolType = TGenPool<HotType, ColdType, size>;
+		using TPoolType = TGenPool<HotType, size, ColdType>;
 	public:
 		TPoolHeap() { mPoolPtr = MakeUnique<TPoolType>(); }
 		TPoolType* operator->() { return mPoolPtr.get(); }

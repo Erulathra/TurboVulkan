@@ -12,6 +12,7 @@ DECLARE_LOG_CATEGORY(LogGPUDevice, Info, Display)
 
 namespace Turbo
 {
+	struct FDummyColdType;
 	class FWindow;
 
 	DECLARE_DELEGATE(FOnImmediateSubmit, FCommandBuffer&);
@@ -223,14 +224,14 @@ namespace Turbo
 
 		/** Resource pools */
 	private:
-		TPoolHeap<FBuffer, FBufferCold, 4096> mBufferPool;
-		TPoolHeap<FTexture, FTextureCold, kTexturePoolSize> mTexturePool;
-		TPoolHeap<FSampler, bool, kSamplerPoolSize> mSamplerPool;
-		TPoolHeap<FPipeline, bool, 128> mPipelinePool;
-		TPoolHeap<FDescriptorSetLayout, bool, 128> mDescriptorSetLayoutPool;
-		TPoolHeap<FDescriptorPool, bool, 16> mDescriptorPoolPool;
-		TPoolHeap<FDescriptorSet, bool, 256> mDescriptorSetPool;
-		TPoolHeap<FShaderState, bool, 128> mShaderStatePool;
+		TPoolHeap<FBuffer, 4096, FBufferCold> mBufferPool;
+		TPoolHeap<FTexture, kTexturePoolSize, FTextureCold> mTexturePool;
+		TPoolHeap<FSampler, kSamplerPoolSize> mSamplerPool;
+		TPoolHeap<FPipeline, 128> mPipelinePool;
+		TPoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
+		TPoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;
+		TPoolHeap<FDescriptorSet, 256> mDescriptorSetPool;
+		TPoolHeap<FShaderState, 128> mShaderStatePool;
 
 		/** Resource pools end */
 
