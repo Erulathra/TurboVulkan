@@ -51,12 +51,6 @@ namespace Turbo
 
 		/** Services end */
 
-		/** IO Thread */
-	private:
-		FIOThread mIOThread;
-		FIOTask mIOTask;
-		/** IO Thread end */
-
 	public:
 		~FEngine();
 

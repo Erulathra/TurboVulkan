@@ -29,6 +29,7 @@ namespace Turbo
 	void FEngine::Init()
 	{
 		InitLogger();
+
 		Random::SetRandomSeed();
 
 		// TURBO_LOG(LOG_ENGINE, Info, "Creating engine instance.");
@@ -74,12 +75,6 @@ namespace Turbo
 
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpu.Init(gpuDeviceBuilder);
-
-		mIOThread.threadNum = taskScheduler.GetNumTaskThreads() - 1;
-		mIOTask.threadNum = taskScheduler.GetNumTaskThreads() - 1;
-
-		taskScheduler.AddPinnedTask(&mIOThread);
-		taskScheduler.AddPinnedTask(&mIOTask);
 
 		entt::locator<FAssetManager>::emplace<FAssetManager>();
 		FAssetManager& assetManager = entt::locator<FAssetManager>::value();

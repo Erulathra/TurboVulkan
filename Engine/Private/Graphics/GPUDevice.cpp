@@ -62,7 +62,7 @@ namespace Turbo
 		const vk::FenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
 		CHECK_VULKAN_RESULT(mImmediateCommandsFence, mVkDevice.createFence(fenceCreateInfo));
 
-		mImmediateCommandsPool = CreateCommandPool(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+		mImmediateCommandsPool = CreateCommandPool(mVkGraphicsQueueFamilyIndex, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 		const static FName immediateCommandBuffer = FName("ImmediateGPUCommands");
 		mImmediateCommandsBuffer = CreateCommandBuffer(mImmediateCommandsPool, immediateCommandBuffer);
 	}
@@ -893,11 +893,19 @@ namespace Turbo
 
 		auto GetQueue = [&](vkb::QueueType queueType, vk::Queue& OutQueue, uint32& OutFamilyIndex)
 		{
-			vkb::Result<VkQueue> getQueueResult = buildDeviceResult->get_queue(queueType);
+			vkb::Result<VkQueue> getQueueResult = buildDeviceResult->get_dedicated_queue(queueType);
+			if (getQueueResult.has_value() == false)
+			{
+				getQueueResult = buildDeviceResult->get_queue(queueType);
+			}
 			TURBO_CHECK_MSG(getQueueResult, "{} Queue query failed. Reason: {}", magic_enum::enum_name(queueType), getQueueResult.error().message())
 			OutQueue = getQueueResult.value();
 
-			vkb::Result<uint32> getQueueIndexResult = buildDeviceResult->get_queue_index(queueType);
+			vkb::Result<uint32> getQueueIndexResult = buildDeviceResult->get_dedicated_queue_index(queueType);
+			if (getQueueIndexResult.has_value() == false)
+			{
+				getQueueIndexResult = buildDeviceResult->get_queue_index(queueType);
+			}
 			TURBO_CHECK_MSG(getQueueIndexResult, "{} Queue family query failed. Reason: {}", magic_enum::enum_name(queueType), getQueueIndexResult.error().message())
 			OutFamilyIndex = getQueueIndexResult.value();
 		};
@@ -906,9 +914,13 @@ namespace Turbo
 		GetQueue(vkb::QueueType::compute, mVkComputeQueue, mVkComputeQueueFamilyIndex);
 		GetQueue(vkb::QueueType::transfer, mVkTransferQueue, mVkTransferQueueFamilyIndex);
 
+		const uint32 presentQueueFamily = buildDeviceResult->get_queue_index(vkb::QueueType::present).value();
+
 		TURBO_CHECK_MSG(
-			buildDeviceResult->get_queue_index(vkb::QueueType::graphics).value() == buildDeviceResult->get_queue_index(vkb::QueueType::present).value(),
-			"Kurevsko nie dobre novinky."
+			mVkGraphicsQueueFamilyIndex == presentQueueFamily,
+			"Graphics queue family ({}) is different than present queue family ({}).",
+			mVkGraphicsQueueFamilyIndex,
+			presentQueueFamily
 		)
 
 		return buildDeviceResult.value();
@@ -1020,17 +1032,17 @@ namespace Turbo
 			CHECK_VULKAN_RESULT(frameData.mCommandBufferExecutedFence, mVkDevice.createFence(fenceCreateInfo));
 			CHECK_VULKAN_RESULT(frameData.mImageAcquiredSemaphore, mVkDevice.createSemaphore(semaphoreCreateInfo));
 
-			frameData.mCommandPool = CreateCommandPool();
+			frameData.mCommandPool = CreateCommandPool(mVkGraphicsQueueFamilyIndex);
 			frameData.mCommandBuffer = CreateCommandBuffer(frameData.mCommandPool, FName(fmt::format("Frame{}", frameDataId)));
 
 			frameData.mDescriptorPoolHandle = CreateDescriptorPool(descriptorPoolBuilder);
 		}
 	}
 
-	vk::CommandPool FGPUDevice::CreateCommandPool(vk::CommandPoolCreateFlags createFlags)
+	vk::CommandPool FGPUDevice::CreateCommandPool(uint32 queueFamilyIndex, vk::CommandPoolCreateFlags createFlags)
 	{
 		vk::CommandPoolCreateInfo createInfo = {};
-		createInfo.setQueueFamilyIndex(mVkGraphicsQueueFamilyIndex);
+		createInfo.setQueueFamilyIndex(queueFamilyIndex);
 		createInfo.setFlags(createFlags);
 
 		vk::CommandPool pool;

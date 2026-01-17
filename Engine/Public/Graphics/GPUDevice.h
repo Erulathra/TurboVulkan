@@ -99,6 +99,9 @@ namespace Turbo
 		THandle<FDescriptorSet> CreateDescriptorSet(const FDescriptorSetBuilder& builder);
 		THandle<FShaderState> CreateShaderState(const FShaderStateBuilder& builder);
 
+		vk::CommandPool CreateCommandPool(uint32 queueFamilyIndex, vk::CommandPoolCreateFlags createFlags = {});
+		TUniquePtr<FCommandBuffer> CreateCommandBuffer(vk::CommandPool commandPool, FName name = FName());
+
 		/** Resource creation end */
 
 		/** Other resource related methods */
@@ -143,6 +146,10 @@ namespace Turbo
 		[[nodiscard]] vk::Device GetVkDevice() const { return mVkDevice; }
 		[[nodiscard]] vk::Queue GetVkQueue() const { return mVkGraphicsQueue; }
 
+		[[nodiscard]] uint32 GetGraphicsQueueFamily() const { return mVkGraphicsQueueFamilyIndex; }
+		[[nodiscard]] uint32 GetComputeQueueFamily() const { return mVkComputeQueueFamilyIndex; }
+		[[nodiscard]] uint32 GetTransferQueueFamily() const { return mVkTransferQueueFamilyIndex; }
+
 		/** Vulkan Getters end */
 
 #if WITH_PROFILER
@@ -158,8 +165,6 @@ namespace Turbo
 		vkb::Swapchain CreateSwapchain();
 		void CreateVulkanMemoryAllocator();
 		void CreateFrameDatas();
-		vk::CommandPool CreateCommandPool(vk::CommandPoolCreateFlags createFlags = {});
-		TUniquePtr<FCommandBuffer> CreateCommandBuffer(vk::CommandPool commandPool, FName name = FName());
 
 		void InitializeImmediateCommands();
 

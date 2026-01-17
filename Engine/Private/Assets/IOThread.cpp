@@ -23,9 +23,25 @@ namespace Turbo
 		}
 	}
 
+	void FAsyncLoadingManager::Init(FGPUDevice& gpu)
+	{
+#if 0
+		mVkCommandPool = gpu.CreateCommandPool(gpu.GetTransferQueueFamily(), vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+		mCommandBuffer = gpu.CreateCommandBuffer(mVkCommandPool, FName("IOCommandBuffer"));
+#endif
+	}
+
+	void FAsyncLoadingManager::Shutdown(FGPUDevice& gpu)
+	{
+	}
+
 	void FAsyncLoadingManager::Update()
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		TURBO_LOG(LogTemp, Info, "IO THREAD WORK...")
+	}
+
+	void FAsyncLoadingManager::RequestTextureLoading(const FTextureLoadingRequest& textureLoadingRequest)
+	{
+		std::scoped_lock scopedLock(mTextureRequestStackCS);
+		mTextureRequestStack.push_back(textureLoadingRequest);
 	}
 }

@@ -1,41 +1,45 @@
 #include "Core/Name.h"
 
 namespace Turbo {
-	using FNameHashMapType = std::unordered_map<std::string /** name */, FNameId /* id */>;
-	using FNameLookUpTableType = std::vector<std::string>;
+	using FNameHashMapType = entt::dense_map<size_t /* nameStringHash */, FNameId /* id */>;
+	using FNameLookUpTableType = std::deque<std::string>;
 
-	TUniquePtr<FNameHashMapType> gNameHashMap;
-	TUniquePtr<FNameLookUpTableType> gNameLookUp;
-
-	uint32 TryRegisterName(std::string_view name)
+	void FName::TryRegisterName(FName& outName, std::string_view sourceString)
 	{
-		const std::string nameAsString(name);
+		static FNameHashMapType gNameHashMap = {};
+		static FNameLookUpTableType gNameLookUp = {};
+		static std::mutex gNameLookUpCS;
 
-		if (!gNameHashMap)
+		const std::size_t sourceStringHash = std::hash<std::string_view>{}(sourceString);
+
+		std::scoped_lock scopedLock(gNameLookUpCS);
+		if (const auto foundNameIt = gNameHashMap.find(sourceStringHash);
+			foundNameIt != gNameHashMap.end())
 		{
-			gNameHashMap = std::make_unique<FNameHashMapType>();
-			gNameLookUp = std::make_unique<FNameLookUpTableType>();
+			outName.mStringId = foundNameIt->second;
+			outName.mStringPtr = &gNameLookUp[foundNameIt->second];
+
+			return;
 		}
 
-		if (const auto foundNameIt = gNameHashMap->find(nameAsString); foundNameIt != gNameHashMap->end())
-		{
-			return foundNameIt->second;
-		}
+		const FNameId newId = gNameHashMap.size();
 
-		const FNameId newId = gNameHashMap->size();
-		(*gNameHashMap)[nameAsString] = newId;
-		gNameLookUp->push_back(nameAsString);
+		gNameHashMap[sourceStringHash] = newId;
+		gNameLookUp.emplace_back(sourceString);
 
-		return newId;
+		outName.mStringId = newId;
+		outName.mStringPtr = &gNameLookUp.back();
 	}
 
-	FName::FName() : mStringId(kNameNone.mStringId)
+	FName::FName()
+		: mStringId(kNameNone.mStringId)
+		, mStringPtr(kNameNone.mStringPtr)
 	{
-		static_assert(sizeof(FName) == 4);
 	}
+
 	FName::FName(std::string_view string)
 	{
-		mStringId = TryRegisterName(string);
+		TryRegisterName(*this, string);
 	}
 
 	bool FName::IsNone() const
@@ -45,13 +49,12 @@ namespace Turbo {
 
 	std::string_view FName::ToString() const
 	{
-		TURBO_CHECK(gNameLookUp->size() > mStringId);
-		return (*gNameLookUp)[mStringId];
+		return *mStringPtr;
 	}
 
 	cstring FName::ToCString() const
 	{
-		TURBO_CHECK(gNameLookUp->size() > mStringId);
-		return (*gNameLookUp)[mStringId].c_str();
+		return mStringPtr->c_str();
 	}
+
 } // Turbo

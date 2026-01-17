@@ -10,8 +10,8 @@ namespace Turbo
 		FName();
 		explicit FName(std::string_view string);
 
-		FName(const FName& other) : mStringId(other.mStringId) { }
-		FName(FName&& other) noexcept : mStringId(other.mStringId) { }
+		FName(const FName& other) : mStringId(other.mStringId), mStringPtr(other.mStringPtr) { }
+		FName(FName&& other) noexcept : mStringId(other.mStringId), mStringPtr(other.mStringPtr) { }
 
 		FName& operator=(const FName& other)
 		{
@@ -28,14 +28,17 @@ namespace Turbo
 		[[nodiscard]] cstring ToCString() const;
 
 	private:
+		static void TryRegisterName(FName& outName, std::string_view sourceString);
+
+	private:
 		FNameId mStringId;
+		std::string* mStringPtr;
 
 	public:
 		friend class std::hash<FName>;
 	};
 
 	static const FName kNameNone = FName("none");
-
 } // Turbo
 
 template <>
@@ -43,7 +46,7 @@ struct std::hash<Turbo::FName>
 {
 	std::size_t operator()(const Turbo::FName& name) const noexcept
 	{
-		return hash<Turbo::FNameId>()(name.mStringId);
+		return name.mStringId;
 	}
 };
 
