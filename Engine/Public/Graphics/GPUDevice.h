@@ -74,6 +74,7 @@ namespace Turbo
 		[[nodiscard]] FTexture* AccessTexture(THandle<FTexture> handle) { return mTexturePool->Access(handle); }
 		[[nodiscard]] FTextureCold* AccessTextureCold(THandle<FTexture> handle) { return mTexturePool->AccessCold(handle); }
 		[[nodiscard]] FSampler* AccessSampler(THandle<FSampler> handle) { return mSamplerPool->Access(handle); }
+		[[nodiscard]] FSamplerCold* AccessSamplerCold(THandle<FSampler> handle) { return mSamplerPool->AccessCold(handle); }
 		[[nodiscard]] FPipeline* AccessPipeline(THandle<FPipeline> handle) { return mPipelinePool->Access(handle); }
 		[[nodiscard]] FDescriptorPool* AccessDescriptorPool(THandle<FDescriptorPool> handle) { return mDescriptorPoolPool->Access(handle); }
 		[[nodiscard]] FDescriptorSetLayout* AccessDescriptorSetLayout(THandle<FDescriptorSetLayout> handle) { return mDescriptorSetLayoutPool->Access(handle); }
@@ -226,7 +227,7 @@ namespace Turbo
 	private:
 		TPoolHeap<FBuffer, 4096, FBufferCold> mBufferPool;
 		TPoolHeap<FTexture, kTexturePoolSize, FTextureCold> mTexturePool;
-		TPoolHeap<FSampler, kSamplerPoolSize> mSamplerPool;
+		TPoolHeap<FSampler, kSamplerPoolSize, FSamplerCold> mSamplerPool;
 		TPoolHeap<FPipeline, 128> mPipelinePool;
 		TPoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
 		TPoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;

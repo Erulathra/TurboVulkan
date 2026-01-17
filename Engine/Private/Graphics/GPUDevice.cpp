@@ -219,21 +219,22 @@ namespace Turbo
 		TURBO_CHECK(handle);
 
 		FSampler* sampler = AccessSampler(handle);
-		sampler->mAddressModeU = builder.mAddressModeU;
-		sampler->mAddressModeV = builder.mAddressModeV;
-		sampler->mAddressModeW = builder.mAddressModeW;
-		sampler->mMinFilter = builder.mMinFilter;
-		sampler->mMagFilter = builder.mMagFilter;
-		sampler->mMipFilter = builder.mMipFilter;
-		sampler->mName = builder.mName;
+		FSamplerCold* samplerCold = AccessSamplerCold(handle);
+		samplerCold->mAddressModeU = builder.mAddressModeU;
+		samplerCold->mAddressModeV = builder.mAddressModeV;
+		samplerCold->mAddressModeW = builder.mAddressModeW;
+		samplerCold->mMinFilter = builder.mMinFilter;
+		samplerCold->mMagFilter = builder.mMagFilter;
+		samplerCold->mMipFilter = builder.mMipFilter;
+		samplerCold->mName = builder.mName;
 
 		vk::SamplerCreateInfo createInfo = {};
-		createInfo.addressModeU = sampler->mAddressModeU;
-		createInfo.addressModeV = sampler->mAddressModeV;
-		createInfo.addressModeW = sampler->mAddressModeW;
-		createInfo.minFilter = sampler->mMinFilter;
-		createInfo.magFilter = sampler->mMagFilter;
-		createInfo.mipmapMode = sampler->mMipFilter;
+		createInfo.addressModeU = samplerCold->mAddressModeU;
+		createInfo.addressModeV = samplerCold->mAddressModeV;
+		createInfo.addressModeW = samplerCold->mAddressModeW;
+		createInfo.minFilter = samplerCold->mMinFilter;
+		createInfo.magFilter = samplerCold->mMagFilter;
+		createInfo.mipmapMode = samplerCold->mMipFilter;
 		createInfo.minLod = 0;
 		createInfo.maxLod = vk::LodClampNone;
 
@@ -742,7 +743,10 @@ namespace Turbo
 		const FSampler* sampler = AccessSampler(handle);
 		TURBO_CHECK(sampler)
 
-		TURBO_LOG(LogGPUDevice, Display, "Destroying {} sampler.", sampler->mName);
+#if TURBO_BUILD_DEVELOPMENT
+		const FSamplerCold* samplerCold = AccessSamplerCold(handle);
+		TURBO_LOG(LogGPUDevice, Display, "Destroying {} sampler.", samplerCold->mName);
+#endif // TURBO_BUILD_DEVELOPMENT
 
 		FSamplerDestroyer destroyer = {};
 		destroyer.mHandle = handle;

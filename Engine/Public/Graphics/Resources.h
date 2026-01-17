@@ -4,12 +4,6 @@
 #include "Core/DataStructures/ArrayHeap.h"
 #include "Graphics/GraphicsCore.h"
 
-#define RESOURCE_BODY()					\
-	public:								\
-		friend class FGPUDevice;		\
-		friend class FCommandBuffer;	\
-	private:
-
 #define DESTROYER_BODY()				\
 	public:								\
 		friend class FGPUDevice;
@@ -72,7 +66,7 @@ namespace Turbo
 
 	class FBufferDestroyer final : IDestroyer
 	{
-		RESOURCE_BODY()
+		DESTROYER_BODY()
 	public:
 		virtual void Destroy(FGPUDevice& GPUDevice) override;
 
@@ -82,13 +76,13 @@ namespace Turbo
 		THandle<FBuffer> mHandle;
 	};
 
-	class FSampler final
+	struct FSampler final
 	{
-		RESOURCE_BODY()
-
-	private:
 		vk::Sampler mVkSampler = nullptr;
+	};
 
+	struct FSamplerCold
+	{
 		vk::Filter mMinFilter = vk::Filter::eNearest;
 		vk::Filter mMagFilter = vk::Filter::eNearest;
 		vk::SamplerMipmapMode mMipFilter = vk::SamplerMipmapMode::eNearest;
@@ -149,11 +143,8 @@ namespace Turbo
 		THandle<FTexture> mHandle = {};
 	};
 
-	class FShaderState final
+	struct FShaderState final
 	{
-		RESOURCE_BODY()
-
-	private:
 		std::array<vk::PipelineShaderStageCreateInfo, kMaxShaderStages> mShaderStageCrateInfo;
 
 		FName mName;
@@ -186,11 +177,8 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FDescriptorSetLayout final
+	struct FDescriptorSetLayout final
 	{
-		RESOURCE_BODY()
-
-	private:
 		vk::DescriptorSetLayout mVkLayout = nullptr;
 		TArrayHeap<vk::DescriptorSetLayoutBinding, kMaxDescriptorsPerSet> mVkBindings;
 		TArrayHeap<FBinding, kMaxDescriptorsPerSet> mBindings;
@@ -200,26 +188,19 @@ namespace Turbo
 		THandle<FDescriptorSetLayout> mHandle = {};
 	};
 
-	class FDescriptorPool;
+	struct FDescriptorPool;
 
-	class FDescriptorSet final
+	struct FDescriptorSet final
 	{
-		RESOURCE_BODY()
-
-	private:
 		vk::DescriptorSet mVkDescriptorSet = nullptr;
 
 		THandle<FDescriptorPool> mOwnerPool = {};
 	};
 
-	class FDescriptorPool final
+	struct FDescriptorPool
 	{
-		RESOURCE_BODY()
-
-	public:
 		[[nodiscard]] vk::DescriptorPool GetDescriptorPool() const { return mVkDescriptorPool; }
 
-	private:
 		vk::DescriptorPool mVkDescriptorPool;
 		std::vector<THandle<FDescriptorSet>> mDescriptorSets;
 
@@ -250,11 +231,8 @@ namespace Turbo
 		THandle<FDescriptorPool> mhandle;
 	};
 
-	class FPipeline final
+	struct FPipeline final
 	{
-		RESOURCE_BODY()
-
-	private:
 		vk::Pipeline mVkPipeline = nullptr;
 		vk::PipelineLayout mVkLayout = nullptr;
 
@@ -264,12 +242,6 @@ namespace Turbo
 
 		std::array<THandle<FDescriptorSetLayout>, kMaxDescriptorSetLayouts> mDescriptorLayoutsHandles;
 		uint32 mNumActiveLayouts = 0;
-
-#if 0
-		FDepthStencilBuilder mDepthStencil;
-		FBlendStateBuilder mBlendState;
-		FRasterizationBuilder mRasterization;
-#endif
 
 		THandle<FPipeline> mHandle = {};
 		bool mbGraphicsPipeline = true;
