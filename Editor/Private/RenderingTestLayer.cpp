@@ -38,12 +38,20 @@ void FRenderingTestLayer::Shutdown()
 void FRenderingTestLayer::ShowImGuiWindow()
 {
 	ImGui::Begin("Rendering test");
-	ImGui::Text("Frame time: %f, FPS: %f", FCoreTimer::DeltaTime(), 1.f / FCoreTimer::DeltaTime());
 
 	constexpr uint32 frameTimeHistorySize = 256;
 	static float frameTimeHistory[frameTimeHistorySize];
 
 	frameTimeHistory[FCoreTimer::TickIndex() % frameTimeHistorySize] = static_cast<float>(FCoreTimer::DeltaTime());
+
+	float AvgFrameTime = 0;
+	for (float frameTime : frameTimeHistory)
+	{
+		AvgFrameTime += frameTime;
+	}
+	AvgFrameTime /= frameTimeHistorySize;
+
+	ImGui::Text("Frame time: %f, FPS: %f", AvgFrameTime, 1.f / AvgFrameTime);
 
 	ImGui::PlotHistogram(
 		"Frame time graph",
