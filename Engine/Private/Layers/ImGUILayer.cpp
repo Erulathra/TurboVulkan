@@ -54,7 +54,8 @@ namespace Turbo
 		initInfo.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
 
 		const FTexture* presentTexture = gpu.AccessTexture(gpu.GetPresentImage());
-		VkFormat presentTextureFormat = static_cast<VkFormat>(presentTexture->GetFormat());
+		const FTextureCold* presentTextureCold = gpu.AccessTextureCold(gpu.GetPresentImage());
+		VkFormat presentTextureFormat = static_cast<VkFormat>(presentTextureCold->GetFormat());
 		initInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats = &presentTextureFormat;
 
 		initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;

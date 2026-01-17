@@ -70,6 +70,7 @@ namespace Turbo
 	public:
 		[[nodiscard]] FBuffer* AccessBuffer(THandle<FBuffer> handle) { return mBufferPool->Access(handle); }
 		[[nodiscard]] FTexture* AccessTexture(THandle<FTexture> handle) { return mTexturePool->Access(handle); }
+		[[nodiscard]] FTextureCold* AccessTextureCold(THandle<FTexture> handle) { return mTexturePool->AccessCold(handle); }
 		[[nodiscard]] FSampler* AccessSampler(THandle<FSampler> handle) { return mSamplerPool->Access(handle); }
 		[[nodiscard]] FPipeline* AccessPipeline(THandle<FPipeline> handle) { return mPipelinePool->Access(handle); }
 		[[nodiscard]] FDescriptorPool* AccessDescriptorPool(THandle<FDescriptorPool> handle) { return mDescriptorPoolPool->Access(handle); }
@@ -199,7 +200,7 @@ namespace Turbo
 
 		/** Creation helpers */
 	private:
-		void InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture);
+		void InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture, FTextureCold* textureCold);
 
 		/** Creation helpers end */
 
@@ -221,14 +222,14 @@ namespace Turbo
 
 		/** Resource pools */
 	private:
-		TPoolHeap<FBuffer, 4096> mBufferPool;
-		TPoolHeap<FTexture, kTexturePoolSize> mTexturePool;
-		TPoolHeap<FSampler, kSamplerPoolSize> mSamplerPool;
-		TPoolHeap<FPipeline, 128> mPipelinePool;
-		TPoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
-		TPoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;
-		TPoolHeap<FDescriptorSet, 256> mDescriptorSetPool;
-		TPoolHeap<FShaderState, 128> mShaderStatePool;
+		TPoolHeap<FBuffer, bool, 4096> mBufferPool;
+		TPoolHeap<FTexture, FTextureCold, kTexturePoolSize> mTexturePool;
+		TPoolHeap<FSampler, bool, kSamplerPoolSize> mSamplerPool;
+		TPoolHeap<FPipeline, bool, 128> mPipelinePool;
+		TPoolHeap<FDescriptorSetLayout, bool, 128> mDescriptorSetLayoutPool;
+		TPoolHeap<FDescriptorPool, bool, 16> mDescriptorPoolPool;
+		TPoolHeap<FDescriptorSet, bool, 256> mDescriptorSetPool;
+		TPoolHeap<FShaderState, bool, 128> mShaderStatePool;
 
 		/** Resource pools end */
 

@@ -200,8 +200,9 @@ namespace Turbo
 		TURBO_CHECK(handle)
 
 		FTexture* texture = AccessTexture(handle);
+		FTextureCold* textureCold = AccessTextureCold(handle);
 
-		InitVulkanTexture(builder, handle, texture);
+		InitVulkanTexture(builder, handle, texture, textureCold);
 
 		mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, handle);
 
@@ -569,6 +570,7 @@ namespace Turbo
 				case vk::DescriptorType::eStorageImage:
 					{
 						const FTexture* texture = AccessTexture(THandle<FTexture>(resource));
+						const FTextureCold* textureCold = AccessTextureCold(THandle<FTexture>(resource));
 
 						vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
 						imageInfo.imageView = texture->mVkImageView;
@@ -576,7 +578,7 @@ namespace Turbo
 						if (binding.mType == vk::DescriptorType::eSampledImage)
 						{
 							imageInfo.imageLayout =
-								TextureFormat::HasDepthOrStencil(texture->mFormat)
+								TextureFormat::HasDepthOrStencil(textureCold->mFormat)
 									? vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal
 									: vk::ImageLayout::eReadOnlyOptimal;
 						}
@@ -717,7 +719,10 @@ namespace Turbo
 		const FTexture* texture = AccessTexture(handle);
 		TURBO_CHECK(texture)
 
-		TURBO_LOG(LogGPUDevice, Display, "Destroying {} texture.", texture->mName);
+#if TURBO_BUILD_DEVELOPMENT
+		const FTextureCold* textureCold = AccessTextureCold(handle);
+		TURBO_LOG(LogGPUDevice, Display, "Destroying {} texture.", textureCold->mName);
+#endif // TURBO_BUILD_DEVELOPMENT
 
 		FTextureDestroyer destroyer = {};
 		destroyer.mHandle = handle;
@@ -974,20 +979,22 @@ namespace Turbo
 		{
 			THandle<FTexture> handle = mTexturePool->Acquire();
 			FTexture* texture = mTexturePool->Access(handle);
+			FTextureCold* textureCold = mTexturePool->AccessCold(handle);
 			*texture = {};
 			texture->mVkImage = builtImages[imageId];
 			texture->mVkImageView = builtImageViews[imageId];
-			texture->mFormat = mVkSurfaceFormat.format;
 
-			texture->mWidth = frameBufferSize.x;
-			texture->mHeight = frameBufferSize.y;
+			textureCold->mFormat = mVkSurfaceFormat.format;
 
-			texture->mHandle = handle;
+			textureCold->mWidth = frameBufferSize.x;
+			textureCold->mHeight = frameBufferSize.y;
+
+			textureCold->mHandle = handle;
 
 			static const std::array<FName, kMaxSwapChainImages> swapChainTextureNames = CreateSwapChainTexturesNames();
-			texture->mName = swapChainTextureNames[imageId];
-			SetResourceName(texture->mVkImage, texture->mName);
-			SetResourceName(texture->mVkImageView, texture->mName);
+			textureCold->mName = swapChainTextureNames[imageId];
+			SetResourceName(texture->mVkImage, textureCold->mName);
+			SetResourceName(texture->mVkImageView, textureCold->mName);
 
 			mSwapChainTextures[imageId] = handle;
 
@@ -1199,8 +1206,6 @@ namespace Turbo
 
 		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 		const THandle<FTexture> swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
-
-		frameData.mCommandBuffer->TransitionImage(swapChainTexture, vk::ImageLayout::ePresentSrcKHR);
 
 		TRACE_GPU_COLLECT(mTraceGpuCtx, frameData.mCommandBuffer);
 
@@ -1452,19 +1457,19 @@ namespace Turbo
 		++mRenderedFrames;
 	}
 
-	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture)
+	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture, FTextureCold* textureCold)
 	{
 		*texture = {};
 
-		texture->mFormat = builder.mFormat;
+		textureCold->mFormat = builder.mFormat;
 
-		texture->mWidth = builder.mWidth;
-		texture->mHeight = builder.mHeight;
-		texture->mDepth = builder.mDepth;
-		texture->mNumMips = builder.mNumMips;
+		textureCold->mWidth = builder.mWidth;
+		textureCold->mHeight = builder.mHeight;
+		textureCold->mDepth = builder.mDepth;
+		textureCold->mNumMips = builder.mNumMips;
 
-		texture->mHandle = handle;
-		texture->mName = builder.mName;
+		textureCold->mHandle = handle;
+		textureCold->mName = builder.mName;
 
 		vk::ImageCreateInfo imageCreateInfo = {};
 		imageCreateInfo.format = builder.mFormat;
@@ -1508,7 +1513,7 @@ namespace Turbo
 			std::tie(texture->mVkImage, texture->mImageAllocation) = allocationResult;
 		}
 
-		SetResourceName(texture->mVkImage, texture->mName);
+		SetResourceName(texture->mVkImage, textureCold->mName);
 
 		vk::ImageViewCreateInfo viewCreateInfo = {};
 		viewCreateInfo.image = texture->mVkImage;
@@ -1545,9 +1550,9 @@ namespace Turbo
 						vk::AccessFlagBits2::eTransferRead,
 						vk::PipelineStageFlagBits2::eTransfer
 						);
-					cmd.TransitionImage(handle, vk::ImageLayout::eTransferDstOptimal);
+					cmd.TransitionImage(handle, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 					cmd.CopyBufferToTexture(stagingBuffer, handle, 0, 0);
-					cmd.TransitionImage(handle, vk::ImageLayout::eShaderReadOnlyOptimal);
+					cmd.TransitionImage(handle, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 				})
 		);
 

@@ -4,7 +4,7 @@
 
 namespace Turbo
 {
-	template<typename T, FHandle::IndexType size>
+	template<typename HotType, typename ColdType, FHandle::IndexType size>
 		requires (size < FHandle::kMaxIndex)
 	class TGenPool
 	{
@@ -31,13 +31,13 @@ namespace Turbo
 			}
 		}
 
-		THandle<T> Acquire()
+		THandle<HotType> Acquire()
 		{
 			TURBO_CHECK_MSG(mFreeIndicesHead < size, "No more resources left!")
 
 			FHandle::IndexType newIndex = mFreeIndices[mFreeIndicesHead];
 
-			THandle<T> NewHandle {};
+			THandle<HotType> NewHandle {};
 			NewHandle.mIndexAndGen = FHandle::CreateIndex(newIndex, mGenerations[newIndex]);
 			TURBO_CHECK_MSG(NewHandle.GetGeneration() < FHandle::kMaxGeneration, "No more resource generations left!")
 
@@ -47,7 +47,7 @@ namespace Turbo
 			return NewHandle;
 		}
 
-		void Release(THandle<T> handle)
+		void Release(THandle<HotType> handle)
 		{
 			TURBO_CHECK(mUsedIndices > 0)
 
@@ -58,30 +58,60 @@ namespace Turbo
 			++mGenerations[handle.GetIndex()];
 		}
 
-		T* Access(THandle<T> handle)
+		HotType* Access(THandle<HotType> handle)
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
-			if (handle.IsValid() && handle.GetIndex() < mData.size())
+			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
 			{
 				if (handle.GetGeneration() == mGenerations[handle.GetIndex()])
 				{
-					return &mData[handle.GetIndex()];
+					return &mHotData[handle.GetIndex()];
 				}
 			}
 
 			return nullptr;
 		}
 
-		const T* Access(THandle<T> handle) const
+		const HotType* Access(THandle<HotType> handle) const
 		{
 			TRACE_ZONE_SCOPED_N("Access Resource by handle")
 
-			if (handle.IsValid() && handle.GetIndex() < mData.size())
+			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
 			{
 				if (handle.GetGeneration() == mGenerations[handle.GetIndex()])
 				{
-					return &mData[handle.GetIndex()];
+					return &mHotData[handle.GetIndex()];
+				}
+			}
+
+			return nullptr;
+		}
+
+		ColdType* AccessCold(THandle<HotType> handle)
+		{
+			TRACE_ZONE_SCOPED_N("Access Resource by handle")
+
+			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
+			{
+				if (handle.GetGeneration() == mGenerations[handle.GetIndex()])
+				{
+					return &mColdData[handle.GetIndex()];
+				}
+			}
+
+			return nullptr;
+		}
+
+		const HotType* AccessCold(THandle<HotType> handle) const
+		{
+			TRACE_ZONE_SCOPED_N("Access Resource by handle")
+
+			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
+			{
+				if (handle.GetGeneration() == mGenerations[handle.GetIndex()])
+				{
+					return &mColdData[handle.GetIndex()];
 				}
 			}
 
@@ -89,8 +119,8 @@ namespace Turbo
 		}
 
 	private:
-
-		std::array<T, size> mData;
+		std::array<HotType, size> mHotData;
+		std::array<ColdType, size> mColdData;
 		std::array<FHandle::GenerationType, size> mGenerations;
 		std::array<FHandle::IndexType, size> mFreeIndices;
 
@@ -98,11 +128,11 @@ namespace Turbo
 		FHandle::IndexType mUsedIndices = 0;
 	};
 
-	template<typename T, FHandle::IndexType size>
+	template<typename HotType, typename ColdType, FHandle::IndexType size>
 		requires (size < FHandle::kMaxIndex)
 	class TPoolHeap
 	{
-		using TPoolType = TGenPool<T, size>;
+		using TPoolType = TGenPool<HotType, ColdType, size>;
 	public:
 		TPoolHeap() { mPoolPtr = MakeUnique<TPoolType>(); }
 		TPoolType* operator->() { return mPoolPtr.get(); }

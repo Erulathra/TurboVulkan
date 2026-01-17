@@ -27,13 +27,8 @@ void FRenderingTestLayer::Start()
 	FWorld* world = gEngine->GetWorld();
 	world->OpenLevel(FName("Content/External/main_sponza/SponzaCompressed.gltf"));
 
-	// FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
-	// THandle<FMaterial> materialHandle = materialManager.GetMaterial(EngineMaterials::kTriangleTest);
-
 	entt::entity errorEntity = world->mRegistry.create();
 	world->mRegistry.emplace<FTransform>(errorEntity);
-	FMeshComponent& meshComponent = world->mRegistry.emplace<FMeshComponent>(errorEntity);
-	// meshComponent.mMaterial = materialHandle;
 }
 
 void FRenderingTestLayer::Shutdown()

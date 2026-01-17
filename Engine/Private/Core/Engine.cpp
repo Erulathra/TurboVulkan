@@ -182,7 +182,13 @@ namespace Turbo
 			FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 
 			FCommandBuffer& cmd = gpu.GetCommandBuffer();
+
+			const THandle<FTexture>& colorTexture = geometryBuffer.GetColor();
+			cmd.TransitionImage(colorTexture, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
 			cmd.ClearImage(geometryBuffer.GetColor());
+
+			cmd.TransitionImage(colorTexture, vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
+			cmd.TransitionImage(geometryBuffer.GetDepth(), vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal);
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
@@ -206,8 +212,9 @@ namespace Turbo
 				}
 			}
 
-			geometryBuffer.BlitResultToTexture(cmd, gpu.GetPresentImage());
-			THandle<FTexture> presentImage = gpu.GetPresentImage();
+			const THandle<FTexture> presentImage = gpu.GetPresentImage();
+			cmd.TransitionImage(presentImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+			geometryBuffer.BlitResultToTexture(cmd, presentImage);
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")
@@ -221,6 +228,7 @@ namespace Turbo
 				}
 			}
 
+			cmd.TransitionImage(presentImage, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
 			gpu.PresentFrame();
 		}
 

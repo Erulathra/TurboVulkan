@@ -42,15 +42,10 @@ namespace Turbo
 		return *this;
 	}
 
-	void FCommandBuffer::TransitionImage(THandle<FTexture> textureHandle, vk::ImageLayout newLayout)
+	void FCommandBuffer::TransitionImage(THandle<FTexture> textureHandle, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
 	{
 		FTexture* texture = mGpu->AccessTexture(textureHandle);
 		TURBO_CHECK(texture)
-
-		if (texture->mCurrentLayout == newLayout)
-		{
-			return;
-		}
 
 		vk::ImageMemoryBarrier2 imageBarrier{};
 		imageBarrier.setSrcStageMask(vk::PipelineStageFlagBits2::eAllCommands);
@@ -58,7 +53,7 @@ namespace Turbo
 		imageBarrier.setDstStageMask(vk::PipelineStageFlagBits2::eAllCommands);
 		imageBarrier.setDstAccessMask(vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead);
 
-		imageBarrier.setOldLayout(texture->mCurrentLayout);
+		imageBarrier.setOldLayout(oldLayout);
 		imageBarrier.setNewLayout(newLayout);
 
 		const vk::ImageAspectFlags aspectFlags = newLayout == vk::ImageLayout::eDepthAttachmentOptimal ? vk::ImageAspectFlagBits::eDepth : vk::ImageAspectFlagBits::eColor;
@@ -102,8 +97,6 @@ namespace Turbo
 
 	void FCommandBuffer::ClearImage(THandle<FTexture> textureHandle, glm::vec4 color)
 	{
-		TransitionImage(textureHandle, vk::ImageLayout::eGeneral);
-
 		FTexture* texture = mGpu->AccessTexture(textureHandle);
 		TURBO_CHECK(texture)
 
@@ -184,7 +177,8 @@ namespace Turbo
 	{
 		const FBuffer* srcBuffer = mGpu->AccessBuffer(src);
 		const FTexture* dstTexture = mGpu->AccessTexture(dst);
-		const glm::int2 texSize = dstTexture->GetSize2D();
+		const FTextureCold* dstTextureCold = mGpu->AccessTextureCold(dst);
+		const glm::int2 texSize = dstTextureCold->GetSize2D();
 		const glm::int2 mipSize = glm::int2(texSize.x >> mipIndex, texSize.y >> mipIndex);
 
 		vk::ImageSubresourceLayers imageSubresource = {};
@@ -264,10 +258,11 @@ namespace Turbo
 		for (uint32 attachmentIndex = 0; attachmentIndex < renderingAttachments.mNumColorAttachments; ++attachmentIndex)
 		{
 			const FTexture* attachmentTexture = mGpu->AccessTexture(renderingAttachments.mColorAttachments[attachmentIndex]);
+			const FTextureCold* attachmentTextureCold = mGpu->AccessTextureCold(renderingAttachments.mColorAttachments[attachmentIndex]);
 			TURBO_CHECK(attachmentTexture)
 
-			TURBO_CHECK(attachmentIndex == 0 || attachmentSize == attachmentTexture->GetSize2D())
-			attachmentSize = attachmentTexture->GetSize2D();
+			TURBO_CHECK(attachmentIndex == 0 || attachmentSize == attachmentTextureCold->GetSize2D())
+			attachmentSize = attachmentTextureCold->GetSize2D();
 
 			vk::RenderingAttachmentInfo& attachmentInfo = colorAttachments[attachmentIndex];
 			attachmentInfo = vk::RenderingAttachmentInfo();
@@ -286,7 +281,6 @@ namespace Turbo
 			const FTexture* depthTexture = mGpu->AccessTexture(renderingAttachments.mDepthAttachment);
 			TURBO_CHECK(depthTexture)
 
-			TURBO_CHECK(attachmentSize == depthTexture->GetSize2D())
 			depthAttachmentInfo.imageView = depthTexture->mVkImageView;
 			depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 			depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
@@ -359,6 +353,7 @@ namespace Turbo
 	void FCommandBuffer::PushConstants_Internal(void* pushConstants, uint32 size)
 	{
 		const FPipeline* currentPipeline = mGpu->AccessPipeline(mCurrentPipeline);
+		TURBO_CHECK(currentPipeline)
 
 		vk::ShaderStageFlags stageFlagBits = vk::ShaderStageFlagBits::eCompute;
 		if (currentPipeline->mbGraphicsPipeline)

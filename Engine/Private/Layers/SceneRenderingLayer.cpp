@@ -112,9 +112,6 @@ namespace Turbo
 			const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
 			const THandle<FTexture> dephtImageHandle = geometryBuffer.GetDepth();
 
-			cmd.TransitionImage(drawImageHandle, vk::ImageLayout::eColorAttachmentOptimal);
-			cmd.TransitionImage(dephtImageHandle, vk::ImageLayout::eDepthAttachmentOptimal);
-
 			FRenderingAttachments renderingAttachments;
 			renderingAttachments.AddColorAttachment(drawImageHandle);
 			renderingAttachments.SetDepthAttachment(dephtImageHandle);

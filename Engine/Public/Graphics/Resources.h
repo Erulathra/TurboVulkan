@@ -112,19 +112,21 @@ namespace Turbo
 		THandle<FSampler> mHandle;
 	};
 
-	class FTexture final
+	struct FTexture
 	{
-		RESOURCE_BODY()
-	public:
+		vk::Image mVkImage = nullptr;
+		vk::ImageView mVkImageView = nullptr;
+		vma::Allocation mImageAllocation = nullptr;
+		vk::ImageLayout mCurrentLayout = vk::ImageLayout::eUndefined;
+	};
+
+	struct FTextureCold
+	{
 		[[nodiscard]] glm::int2 GetSize2D() const { return glm::ivec2{mWidth, mHeight}; }
 		[[nodiscard]] glm::int2 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
 
-		vk::Image mVkImage = nullptr;
-		vk::ImageView mVkImageView = nullptr;
 		vk::Format mFormat = vk::Format::eUndefined;
-		vk::ImageLayout mCurrentLayout = vk::ImageLayout::eUndefined;
-		vma::Allocation mImageAllocation = nullptr;
 
 		uint16 mWidth = 1;
 		uint16 mHeight = 1;
@@ -132,7 +134,6 @@ namespace Turbo
 		uint8 mNumMips = 1;
 
 		THandle<FTexture> mHandle = {};
-
 		FName mName = {};
 	};
 

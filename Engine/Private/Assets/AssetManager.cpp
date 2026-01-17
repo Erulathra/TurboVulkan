@@ -404,7 +404,7 @@ namespace Turbo
 		gpu.ImmediateSubmit(FOnImmediateSubmit::CreateLambda(
 				[&](FCommandBuffer& cmd)
 				{
-					cmd.TransitionImage(result, vk::ImageLayout::eTransferDstOptimal);
+					cmd.TransitionImage(result, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 
 					uint32 bufferOffset = 0;
 					for (uint32 mipIndex = 0; mipIndex < image.numMips; ++mipIndex)
@@ -415,7 +415,7 @@ namespace Turbo
 						bufferOffset += numMipBytes;
 					}
 
-					cmd.TransitionImage(result, vk::ImageLayout::eShaderReadOnlyOptimal);
+					cmd.TransitionImage(result, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 				})
 		);
 

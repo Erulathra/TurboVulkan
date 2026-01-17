@@ -16,6 +16,7 @@ namespace Turbo
 		FName& operator=(const FName& other)
 		{
 			mStringId = other.mStringId;
+			mStringPtr = other.mStringPtr;
 			return *this;
 		}
 

@@ -42,7 +42,7 @@ namespace Turbo
 	class FCommandBuffer
 	{
 	public:
-		void TransitionImage(THandle<FTexture> textureHandle, vk::ImageLayout newLayout);
+		void TransitionImage(THandle<FTexture> textureHandle, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 
 	public:
 		void BufferBarrier(
