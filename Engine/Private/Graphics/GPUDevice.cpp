@@ -117,12 +117,14 @@ namespace Turbo
 #endif
 
 		FBuffer* buffer = AccessBuffer(handle);
-		buffer->mName = builder.mName;
+		FBufferCold* bufferCold = AccessBufferCold(handle);
 		buffer->mDeviceSize = builder.mSize;
-		buffer->mUsageFlags = builder.mUsageFlags;
+
+		bufferCold->mName = builder.mName;
+		bufferCold->mUsageFlags = builder.mUsageFlags;
 
 		vk::BufferCreateInfo createInfo = {};
-		createInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress | buffer->mUsageFlags;
+		createInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress | bufferCold->mUsageFlags;
 		createInfo.size = buffer->mDeviceSize;
 
 		vma::AllocationCreateInfo allocationCreateInfo = {};
@@ -139,21 +141,21 @@ namespace Turbo
 		CHECK_VULKAN_RESULT(allocationResult, mVmaAllocator.createBuffer(createInfo, allocationCreateInfo, allocationInfo));
 
 		buffer->mVkBuffer = allocationResult.first;
-		buffer->mAllocation = allocationResult.second;
+		bufferCold->mAllocation = allocationResult.second;
 
 		vk::BufferDeviceAddressInfo deviceAddressInfo = {};
 		deviceAddressInfo.buffer = buffer->mVkBuffer;
 		buffer->mDeviceAddress = mVkDevice.getBufferAddress(deviceAddressInfo);
 		TURBO_CHECK(buffer->mDeviceAddress != 0)
 
-		SetResourceName(buffer->mVkBuffer, buffer->mName);
+		SetResourceName(buffer->mVkBuffer, bufferCold->mName);
 
 		if (any(builder.mBufferFlags & EBufferFlags::CreateMapped))
 		{
 			buffer->mMappedAddress = allocationInfo.pMappedData;
 		}
 
-		const vk::MemoryPropertyFlags& allocationMemoryProperties = mVmaAllocator.getAllocationMemoryProperties(buffer->mAllocation);
+		const vk::MemoryPropertyFlags& allocationMemoryProperties = mVmaAllocator.getAllocationMemoryProperties(bufferCold->mAllocation);
 
 		if (builder.mInitialData)
 		{
@@ -161,7 +163,7 @@ namespace Turbo
 			{
 				TRACE_ZONE_SCOPED_N("Copy mapped")
 
-				mVmaAllocator.copyMemoryToAllocation(builder.mInitialData, buffer->mAllocation, 0, builder.mSize);
+				mVmaAllocator.copyMemoryToAllocation(builder.mInitialData, bufferCold->mAllocation, 0, builder.mSize);
 			}
 			else // Use staging buffer
 			{
@@ -701,14 +703,15 @@ namespace Turbo
 	void FGPUDevice::DestroyBuffer(THandle<FBuffer> handle)
 	{
 		const FBuffer* buffer = AccessBuffer(handle);
+		const FBufferCold* bufferCold = AccessBufferCold(handle);
 		TURBO_CHECK(buffer);
 
-		TURBO_LOG(LogGPUDevice, Display, "Destroying {} buffer.", buffer->mName);
+		TURBO_LOG(LogGPUDevice, Display, "Destroying {} buffer.", bufferCold->mName);
 
 		FBufferDestroyer destroyer;
 		destroyer.mHandle = handle;
 		destroyer.mVkBuffer = buffer->mVkBuffer;
-		destroyer.mAllocation = buffer->mAllocation;
+		destroyer.mAllocation = bufferCold->mAllocation;
 
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);

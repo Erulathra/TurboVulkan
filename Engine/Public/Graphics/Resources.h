@@ -46,25 +46,24 @@ namespace Turbo
 
 	/** Vulkan object abstractions */
 
-	class FBuffer final
+	struct FBuffer
 	{
-		RESOURCE_BODY()
-
-	public:
 		[[nodiscard]] void* GetMappedAddress() const { return mMappedAddress; }
 		[[nodiscard]] FDeviceAddress GetDeviceAddress() const { return mDeviceAddress; }
-		[[nodiscard]] FName GetName() const { return mName; }
 		[[nodiscard]] vk::DeviceSize GetSize() const { return mDeviceSize; }
 
-	private:
 		vk::Buffer mVkBuffer = nullptr;
-		vma::Allocation mAllocation = nullptr;
 
-		vk::BufferUsageFlags mUsageFlags = {};
 		vk::DeviceSize mDeviceSize = {};
 
 		FDeviceAddress mDeviceAddress = {};
 		void* mMappedAddress = nullptr;
+	};
+
+	struct FBufferCold
+	{
+		vma::Allocation mAllocation = nullptr;
+		vk::BufferUsageFlags mUsageFlags = {};
 
 		THandle<FBuffer> mHandle = {};
 

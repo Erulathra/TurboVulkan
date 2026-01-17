@@ -69,6 +69,7 @@ namespace Turbo
 		/** Resource accessors */
 	public:
 		[[nodiscard]] FBuffer* AccessBuffer(THandle<FBuffer> handle) { return mBufferPool->Access(handle); }
+		[[nodiscard]] FBufferCold* AccessBufferCold(THandle<FBuffer> handle) { return mBufferPool->AccessCold(handle); }
 		[[nodiscard]] FTexture* AccessTexture(THandle<FTexture> handle) { return mTexturePool->Access(handle); }
 		[[nodiscard]] FTextureCold* AccessTextureCold(THandle<FTexture> handle) { return mTexturePool->AccessCold(handle); }
 		[[nodiscard]] FSampler* AccessSampler(THandle<FSampler> handle) { return mSamplerPool->Access(handle); }
@@ -222,7 +223,7 @@ namespace Turbo
 
 		/** Resource pools */
 	private:
-		TPoolHeap<FBuffer, bool, 4096> mBufferPool;
+		TPoolHeap<FBuffer, FBufferCold, 4096> mBufferPool;
 		TPoolHeap<FTexture, FTextureCold, kTexturePoolSize> mTexturePool;
 		TPoolHeap<FSampler, bool, kSamplerPoolSize> mSamplerPool;
 		TPoolHeap<FPipeline, bool, 128> mPipelinePool;
