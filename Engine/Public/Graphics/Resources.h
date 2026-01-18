@@ -45,6 +45,7 @@ namespace Turbo
 		[[nodiscard]] void* GetMappedAddress() const { return mMappedAddress; }
 		[[nodiscard]] FDeviceAddress GetDeviceAddress() const { return mDeviceAddress; }
 		[[nodiscard]] vk::DeviceSize GetSize() const { return mDeviceSize; }
+		[[nodiscard]] bool IsValid() const { return  mVkBuffer != nullptr; }
 
 		vk::Buffer mVkBuffer = nullptr;
 
@@ -110,7 +111,6 @@ namespace Turbo
 		vk::Image mVkImage = nullptr;
 		vk::ImageView mVkImageView = nullptr;
 		vma::Allocation mImageAllocation = nullptr;
-		vk::ImageLayout mCurrentLayout = vk::ImageLayout::eUndefined;
 	};
 
 	struct FTextureCold

@@ -65,7 +65,6 @@ namespace Turbo
 		dependencyInfo.setPImageMemoryBarriers(&imageBarrier);
 
 		mVkCommandBuffer.pipelineBarrier2(dependencyInfo);
-		texture->mCurrentLayout = newLayout;
 	}
 
 	void FCommandBuffer::BufferBarrier(
