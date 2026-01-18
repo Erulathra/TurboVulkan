@@ -33,7 +33,7 @@ namespace Turbo
 
 	public:
 		FBufferBuilder& Reset() { mSize = 0; mInitialData = nullptr; return *this; }
-		FBufferBuilder& Init(vk::BufferUsageFlags usageFlags, EBufferFlags bufferFlags, uint32 size)
+		FBufferBuilder& Init(vk::BufferUsageFlags usageFlags, EBufferFlags bufferFlags, size_t size)
 			{ mUsageFlags = usageFlags; mBufferFlags = bufferFlags; mSize = size; return *this; }
 		FBufferBuilder& SetData(const void* data) { mInitialData = data; return *this; }
 
@@ -42,7 +42,7 @@ namespace Turbo
 	private:
 		vk::BufferUsageFlags mUsageFlags = {};
 		EBufferFlags mBufferFlags = EBufferFlags::None;
-		uint32 mSize = 0;
+		size_t mSize = 0;
 
 		const void* mInitialData = nullptr;
 

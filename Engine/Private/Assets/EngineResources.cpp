@@ -90,7 +90,7 @@ namespace Turbo
 		void LoadPlaceholders()
 		{
 			FAssetManager& assetManager = entt::locator<FAssetManager>::value();
-			gPlaceholderTexture = assetManager.LoadTexture(FName("Content/Engine/T_Placeholder.dds"), true, false);
+			gPlaceholderTexture = assetManager.LoadTexture(FName("Content/Engine/T_Placeholder.dds"), {true, false});
 			gPlaceholderMesh = assetManager.LoadMesh(FName("Content/Engine/SM_ErrorMesh.glb"), FMeshLoadSettings{.mbLevelAsset = false});
 		}
 

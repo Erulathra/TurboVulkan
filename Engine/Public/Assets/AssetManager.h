@@ -49,11 +49,11 @@ namespace Turbo
 
 		/** Texture interface */
 	public:
-		[[nodiscard]] THandle<FTexture> LoadTexture(FName path, bool bSRGB = true, bool bLevelAsset = true);
+		[[nodiscard]] THandle<FTexture> LoadTexture(FName path, const FTextureLoadingSettings& loadingSettings = {});
 		void UnloadTexture(THandle<FTexture> handle);
 
 	private:
-		THandle<FTexture> LoadDDS(FName path, bool bSRGB = true);
+		THandle<FTexture> LoadDDS(FName path, const FTextureLoadingSettings& loadingSettings);
 
 		/** Texture interface end */
 

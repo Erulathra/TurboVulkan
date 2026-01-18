@@ -244,11 +244,12 @@ namespace Turbo
 		mMeshPool.Release(meshHandle);
 	}
 
-	THandle<FTexture> FAssetManager::LoadTexture(FName path, bool bSRGB, bool bLevelAsset)
+
+	THandle<FTexture> FAssetManager::LoadTexture(FName path, const FTextureLoadingSettings& loadingSettings)
 	{
 		THandle<FTexture> result = {};
 		FAssetHash assetHash = 0;
-		CoreUtils::HashCombine(assetHash, path, bSRGB);
+		CoreUtils::HashCombine(assetHash, path, loadingSettings.mbSRGB);
 
 		if (THandle<FTexture> cachedAsset = FindCachedAsset<FTexture>(assetHash))
 		{
@@ -258,7 +259,7 @@ namespace Turbo
 		const std::filesystem::path fsPath{path.ToString()};
 		if (fsPath.extension() == ".dds")
 		{
-			result = LoadDDS(path, bSRGB);
+			result = LoadDDS(path, loadingSettings);
 		}
 
 		if (result)
@@ -268,7 +269,7 @@ namespace Turbo
 
 			mAssetCache[assetHash] = result;
 
-			if (bLevelAsset)
+			if (loadingSettings.mbLevelAsset)
 			{
 				gEngine->GetWorld()->mRuntimeLevel.mLoadedTextures.push_back(result);
 			}
@@ -293,7 +294,7 @@ namespace Turbo
 		gpu.DestroyTexture(handle);
 	}
 
-	THandle<FTexture> FAssetManager::LoadDDS(FName path, bool bSRGB)
+	THandle<FTexture> FAssetManager::LoadDDS(FName path, const FTextureLoadingSettings& loadingSettings)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -317,7 +318,7 @@ namespace Turbo
 
 		vk::Format imageFormat = static_cast<vk::Format>(dds::getVulkanFormat(image.format, image.supportsAlpha));
 
-		if (bSRGB)
+		if (loadingSettings.mbSRGB)
 		{
 			switch (imageFormat)
 			{
