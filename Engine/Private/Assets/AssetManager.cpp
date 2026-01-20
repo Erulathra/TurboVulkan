@@ -299,7 +299,7 @@ namespace Turbo
 		TRACE_ZONE_SCOPED()
 
 		THandle<FTexture> result = {};
-		TURBO_LOG(LogTextureLoading, Info, "Loading {} using DDS loader.", path.ToString());
+		TURBO_LOG(LogTextureLoading, Info, "Loading {} loader.", path.ToString());
 
 		std::vector<byte> meshBytes;
 		if (FileSystem::LoadAssetData(path, meshBytes) == false)

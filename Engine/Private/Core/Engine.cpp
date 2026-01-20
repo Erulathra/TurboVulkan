@@ -61,8 +61,6 @@ namespace Turbo
 		enki::TaskScheduler& taskScheduler = entt::locator<enki::TaskScheduler>::value();
 		taskScheduler.Initialize(taskSchedulerConfig);
 
-		entt::locator<FAsyncLoadingManager>::emplace();
-
 		entt::locator<FGPUDevice>::reset(new FGPUDevice());
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 
@@ -76,15 +74,10 @@ namespace Turbo
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpu.Init(gpuDeviceBuilder);
 
-		entt::locator<FAssetManager>::emplace<FAssetManager>();
-		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+		FAssetManager& assetManager = entt::locator<FAssetManager>::emplace<FAssetManager>();
 		assetManager.Init(gpu);
 
-		EngineResources::InitEngineSamplers();
-		EngineResources::InitEngineTextures();
-
-		entt::locator<FMaterialManager>::emplace<FMaterialManager>();
-		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+		FMaterialManager& materialManager = entt::locator<FMaterialManager>::emplace<FMaterialManager>();
 		materialManager.Init(gpu);
 
 		EngineMaterials::InitEngineMaterials();

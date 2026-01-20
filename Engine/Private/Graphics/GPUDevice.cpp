@@ -1,6 +1,7 @@
 #include "Graphics/GPUDevice.h"
 
 #include "VkBootstrap.h"
+#include "Assets/EngineResources.h"
 #include "Core/Engine.h"
 
 #include "Core/Window.h"
@@ -32,11 +33,17 @@ namespace Turbo
 		const vkb::PhysicalDevice selectedPhysicalDevice = SelectPhysicalDevice(builtInstance);
 		const vkb::Device device = CreateDevice(selectedPhysicalDevice);
 		VULKAN_HPP_DEFAULT_DISPATCHER.init(mVkDevice);
-		CreateSwapchain();
+
 		CreateVulkanMemoryAllocator();
-		CreateFrameDatas();
 
 		InitializeImmediateCommands();
+
+		EngineResources::InitEngineSamplers();
+		EngineResources::InitEngineTextures();
+
+		InitializeBindlessResources();
+
+		IShaderCompiler::Get().Init();
 
 #if WITH_PROFILER
 		CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(mImmediateCommandsPool));
@@ -52,9 +59,8 @@ namespace Turbo
 		);
 #endif // WITH_PROFILER
 
-		IShaderCompiler::Get().Init();
-
-		InitializeBindlessResources();
+		CreateSwapchain();
+		CreateFrameDatas();
 	}
 
 	void FGPUDevice::InitializeImmediateCommands()
@@ -69,6 +75,8 @@ namespace Turbo
 
 	void FGPUDevice::InitializeBindlessResources()
 	{
+		TURBO_LOG(LogGPUDevice, Info, "Initializing bindless resources")
+
 		FDescriptorPoolBuilder descriptorPoolBuilder;
 		descriptorPoolBuilder
 			.SetMaxSets(1)
@@ -100,6 +108,13 @@ namespace Turbo
 			.SetName(FName("BindlessResources"));
 
 		mBindlessResourcesSet = CreateDescriptorSet(descriptorSetBuilder);
+
+		mBindlessResourcesToUpdate.reserve(kTexturePoolSize);
+
+		for (uint32 textureBindId = 0; textureBindId < kTexturePoolSize; ++textureBindId)
+		{
+			mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, textureBindId, EngineResources::GetBlackTexture());
+		}
 	}
 
 	THandle<FBuffer> FGPUDevice::CreateBuffer(const FBufferBuilder& builder)
@@ -206,7 +221,11 @@ namespace Turbo
 
 		InitVulkanTexture(builder, handle, texture, textureCold);
 
-		mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, handle);
+		if (builder.mbBindTexture)
+		{
+			mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, handle.GetIndex(), handle);
+			texture->mBindIndex = handle.GetIndex();
+		}
 
 		return handle;
 	}
@@ -247,7 +266,7 @@ namespace Turbo
 		CHECK_VULKAN_RESULT(sampler->mVkSampler, mVkDevice.createSampler(createInfo));
 		SetResourceName(sampler->mVkSampler, builder.mName);
 
-		mBindlessResourcesToUpdate.emplace_back(EResourceType::Sampler, handle);
+		mBindlessResourcesToUpdate.emplace_back(EResourceType::Sampler, handle.GetIndex(), handle);
 
 		return handle;
 	}
@@ -1270,7 +1289,7 @@ namespace Turbo
 
 		for (const FBindlessResourceUpdateRequest& request : mBindlessResourcesToUpdate)
 		{
-			writeDescriptorSet.dstArrayElement = request.mHandle.GetIndex();;
+			writeDescriptorSet.dstArrayElement = request.mBindingIndex;;
 
 			switch (request.mType)
 			{

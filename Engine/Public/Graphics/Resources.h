@@ -29,13 +29,8 @@ namespace Turbo
 	struct FBindlessResourceUpdateRequest
 	{
 		EResourceType mType = EResourceType::None;
+		uint32 mBindingIndex = std::numeric_limits<uint32>::max();
 		FHandle mHandle = FHandle();
-
-		FBindlessResourceUpdateRequest(EResourceType resource, const FHandle& resourceHandle)
-			: mType(resource)
-			, mHandle(resourceHandle)
-		{
-		}
 	};
 
 	/** Vulkan object abstractions */
@@ -111,6 +106,7 @@ namespace Turbo
 		vk::Image mVkImage = nullptr;
 		vk::ImageView mVkImageView = nullptr;
 		vma::Allocation mImageAllocation = nullptr;
+		uint32 mBindIndex = std::numeric_limits<uint32>::max();
 	};
 
 	struct FTextureCold

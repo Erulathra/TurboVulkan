@@ -49,6 +49,13 @@ namespace Turbo
 		FName mName;
 	};
 
+	enum class EDummyTextureType
+	{
+		Black,
+		White,
+		Normal
+	};
+
 	class FTextureBuilder final
 	{
 		BUILDER_BODY()
@@ -58,6 +65,7 @@ namespace Turbo
 			{ mFormat = format; mType = type; mFlags = flags;  return *this; }
 		FTextureBuilder& SetSize(glm::uint3 size) { mWidth = size.x; mHeight = size.y; mDepth = size.z; return *this; }
 		FTextureBuilder& SetNumMips(uint8 numMips) { mNumMips = numMips; return *this; }
+		FTextureBuilder& SetBindTexture(bool bBindTexture) { mbBindTexture = bBindTexture; return *this; }
 
 		FTextureBuilder& SetName(FName name) { mName = name; return *this; }
 
@@ -69,6 +77,8 @@ namespace Turbo
 
 		vk::Format mFormat = vk::Format::eUndefined;
 		ETextureType mType = ETextureType::Texture2D;
+
+		bool mbBindTexture = true;
 
 		FName mName;
 	};

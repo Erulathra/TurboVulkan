@@ -18,4 +18,10 @@ namespace Turbo
 	{
 		FAssetHash mAssetHash;
 	};
+
+	struct FTextureLoadingSettings
+	{
+		bool mbSRGB : 1 = true;
+		bool mbLevelAsset : 1 = true;
+	};
 }

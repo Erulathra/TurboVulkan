@@ -1,6 +1,5 @@
 #pragma once
 #include "Window.h"
-#include "Assets/IOThread.h"
 #include "Input/Input.h"
 
 namespace enki
