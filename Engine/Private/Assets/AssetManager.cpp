@@ -131,9 +131,11 @@ namespace Turbo
 		fastgltf::Mesh& gltfMesh = loadedAsset.meshes[meshLoadSettings.mMeshIndex];
 		fastgltf::Primitive& glftSubMesh = gltfMesh.primitives[meshLoadSettings.mSubMeshIndex];
 
+		const std::filesystem::path filePath(assetPath.ToString());
+
 		THandle<FMesh> meshHandle = mMeshPool.Acquire();
 		FMesh* mesh = mMeshPool.Access(meshHandle);
-		mesh->mName = assetPath;
+		mesh->mName = FName(fmt::format("{}_I{}_S{}", filePath.filename().string(), meshLoadSettings.mMeshIndex, meshLoadSettings.mSubMeshIndex));
 		mesh->mAssetHash = assetHash;
 
 		TURBO_CHECK(glftSubMesh.indicesAccessor.has_value())

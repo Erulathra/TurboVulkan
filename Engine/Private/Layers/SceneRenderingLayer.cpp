@@ -14,6 +14,20 @@
 
 namespace Turbo
 {
+	struct FDrawCall
+	{
+		glm::float4x4 mWorldTransform = glm::float4x4(1.f);
+
+		THandle<FMesh> mMesh = {};
+		THandle<FMaterial> mMaterial = {};
+		THandle<FMaterial::Instance> mMaterialInstance = {};
+
+		uint64 mDrawCallHash = std::numeric_limits<uint64>::max();
+
+		glm::float3 mBoundsMin = {};
+		glm::float3 mBoundsMax = {};
+	};
+
 	void FSceneRenderingLayer::Start()
 	{
 		FBufferBuilder viewDataBufferBuilder;
@@ -73,35 +87,113 @@ namespace Turbo
 
 		entt::registry& registry = world->mRegistry;
 
+		entt::storage<FDrawCall> drawCalls;
+		using FDrawCallIt = entt::storage<FDrawCall>::iterator;
+
+		struct FMaterialBucket
 		{
-			// todo: Introduce indexes and precompute those values into them. (we can use also a radix sort here)
-			TRACE_ZONE_SCOPED_N("Sort drawcalls/entities")
-			registry.sort<FMeshComponent>(
-				[]( const FMeshComponent& lhs, const FMeshComponent& rhs) -> bool
+			THandle<FMaterial> mTargetMaterial = {};
+			FDrawCallIt mStartIt = {};
+			FDrawCallIt mEndIt = {};
+		};
+
+		std::vector<FMaterialBucket> materialBuckets;
+
+		{
+			TRACE_ZONE_SCOPED_N("Prepare drawcalls")
+
+			const auto meshView = registry.view<FMeshComponent>();
+
+			{
+				TRACE_ZONE_SCOPED_N("Reserve storage")
+				drawCalls.reserve(meshView.storage()->size());
+
+				for (entt::entity entity : meshView)
 				{
-					// Move invalid mesh / material to end
-					if (rhs.mMesh.IsValid() == false || lhs.mMesh.IsValid() == false)
-					{
-						return lhs.mMesh.IsValid() < rhs.mMesh.IsValid();
-					}
+					drawCalls.emplace(entity);
+				}
+			}
 
-					if (rhs.mMaterial.IsValid() == false || lhs.mMaterial.IsValid() == false)
-					{
-						return lhs.mMaterial.IsValid() < rhs.mMaterial.IsValid();
-					}
+			{
+				TRACE_ZONE_SCOPED_N("Calculate transforms")
 
-					if (lhs.mMaterial.GetIndex() == rhs.mMaterial.GetIndex())
-					{
-						if (lhs.mMaterialInstance.GetIndex() == rhs.mMaterialInstance.GetIndex())
-						{
-							return lhs.mMesh.GetIndex() < rhs.mMesh.GetIndex();
-						}
+				const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 
-						return lhs.mMaterialInstance.GetIndex() < rhs.mMaterialInstance.GetIndex();
-					}
+				const auto meshTransformView = registry.view<FMeshComponent, FWorldTransform>();
+				for (entt::entity entity : meshTransformView)
+				{
+					FWorldTransform& worldTransformComp = meshTransformView.get<FWorldTransform>(entity);
+					drawCalls.get(entity).mWorldTransform = worldTransformComp.mTransform;
 
-					return lhs.mMaterial.GetIndex() < rhs.mMaterial.GetIndex();
-				});
+					FMeshComponent& mesh = meshTransformView.get<FMeshComponent>(entity);
+					const FName name = assetManager.AccessMesh(mesh.mMesh)->mName;
+					TURBO_LOG(LogTemp, Info, "WorldTransform Path: {}, Index {}", name, mesh.mMesh.GetIndex());
+				}
+
+				const auto meshRelationView = registry.view<FMeshComponent, FRelationship>(entt::exclude<FWorldTransform>);
+				for (entt::entity entity : meshRelationView)
+				{
+					const FRelationship& relationship = meshRelationView.get<FRelationship>(entity);
+					drawCalls.get(entity).mWorldTransform = registry.get<FWorldTransform>(relationship.mParent).mTransform;
+				}
+			}
+
+			{
+				TRACE_ZONE_SCOPED_N("Fill draw calls")
+				for (entt::entity entity : meshView)
+				{
+					const FMeshComponent& meshComponent = meshView.get<FMeshComponent>(entity);
+
+					FDrawCall& currentDrawCall = drawCalls.get(entity);
+					currentDrawCall.mMesh = meshComponent.mMesh;
+					currentDrawCall.mMaterial = meshComponent.mMaterial;
+					currentDrawCall.mMaterialInstance = meshComponent.mMaterialInstance;
+
+					constexpr uint64 kMaterialMask = 0xFFFF000000000000;
+					constexpr uint64 kMaterialInstanceMask = 0x0000FFFF00000000;
+					constexpr uint64 kMeshMask = 0x00000000FFFF0000;
+
+					TURBO_CHECK(currentDrawCall.mMaterial.GetIndex() < 1 << std::popcount(kMaterialMask))
+					TURBO_CHECK(currentDrawCall.mMaterial.GetIndex() < 1 << std::popcount(kMaterialInstanceMask))
+					TURBO_CHECK(currentDrawCall.mMaterial.GetIndex() < 1 << std::popcount(kMeshMask))
+
+					currentDrawCall.mDrawCallHash =
+						static_cast<uint64>(currentDrawCall.mMaterial.GetIndex()) << std::countr_zero(kMaterialMask)
+						| static_cast<uint64>(currentDrawCall.mMaterialInstance.GetIndex()) << std::countr_zero(kMaterialInstanceMask)
+						| static_cast<uint64>(currentDrawCall.mMesh.GetIndex()) << std::countr_zero(kMeshMask);
+				}
+			}
+		}
+
+		{
+			TRACE_ZONE_SCOPED_N("Sort draw calls")
+			drawCalls.sort([&](entt::entity left, const entt::entity& right)
+			{
+				return drawCalls.get(left).mDrawCallHash < drawCalls.get(right).mDrawCallHash;
+			});
+		}
+
+		{
+			materialBuckets.emplace_back();
+			FMaterialBucket& currentBucket = materialBuckets.front();
+			currentBucket.mTargetMaterial = drawCalls.begin()->mMaterial;
+			currentBucket.mStartIt = drawCalls.begin();
+
+			TRACE_ZONE_SCOPED_N("Create material buckets")
+			for (FDrawCallIt drawCallIt = drawCalls.begin(); drawCallIt != drawCalls.end(); ++drawCallIt)
+			{
+				if (drawCallIt->mMaterial != currentBucket.mTargetMaterial)
+				{
+					currentBucket.mEndIt = drawCallIt;
+
+					materialBuckets.emplace_back();
+					currentBucket = materialBuckets.front();
+					currentBucket.mTargetMaterial = drawCallIt->mMaterial;
+					currentBucket.mStartIt = drawCallIt;
+				}
+			}
+
+			currentBucket.mEndIt = drawCalls.end();
 		}
 
 		{
@@ -120,18 +212,12 @@ namespace Turbo
 			cmd.SetViewport(FViewport::FromSize(geometryBuffer.GetResolution()));
 			cmd.SetScissor(FRect2DInt::FromSize(geometryBuffer.GetResolution()));
 
-			const auto meshView = registry.view<FMeshComponent>();
-
 			const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 			const FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
-			THandle<FMaterial> materialHandle = EngineMaterials::GetPlaceholderMaterial();
 			THandle<FMaterial::Instance> materialInstanceHandle;
 			THandle<FMesh> meshHandle = EngineResources::GetPlaceholderMesh();
 			const FMesh* mesh = assetManager.AccessMesh(meshHandle);
-
-			THandle<FBuffer> boundIndexBuffer = {};
-			THandle<FPipeline> boundPipeline = {};
 
 			FDeviceAddress viewDataDeviceAddress = gpu.AccessBuffer(mViewDataUniformBuffer)->GetDeviceAddress();
 
@@ -139,114 +225,62 @@ namespace Turbo
 			FCounterType numDrawCalls = 0;
 			FCounterType numPipelineSwitches = 0;
 #endif // WITH_PROFILER
-			for (const entt::entity& entity : meshView)
+			for (const FMaterialBucket& materialBucket : materialBuckets)
 			{
-				TRACE_ZONE_SCOPED_N("Render entity")
-				TRACE_GPU_SCOPED(gpu, cmd, "Render entity");
-
-				glm::mat4 worldTransform = {1.f};
-				const FMeshComponent& meshComponent = registry.get<FMeshComponent>(entity);
-
 				{
-					TRACE_ZONE_SCOPED_N("Find world transform")
+					TRACE_ZONE_SCOPED_N("Bind Material")
 
-					if (FWorldTransform* worldTransformComp = registry.try_get<FWorldTransform>(entity))
-					{
-						TRACE_ZONE_SCOPED_N("Access world transform")
-						worldTransform = worldTransformComp->mTransform;
-					}
-					else if (FRelationship* relationship = registry.try_get<FRelationship>(entity))
-					{
-						TRACE_ZONE_SCOPED_N("Access parent transform")
-						worldTransform = registry.get<FWorldTransform>(relationship->mParent).mTransform;
-					}
-				}
-
-				if (meshComponent.mMaterial != materialHandle)
-				{
-					materialHandle = meshComponent.mMaterial;
-					const FMaterial* material = materialManager.AccessMaterial(materialHandle);
-
-					if (material == nullptr)
-					{
-						materialHandle = EngineMaterials::GetPlaceholderMaterial();
-						material = materialManager.AccessMaterial(materialHandle);
-						materialInstanceHandle = THandle<FMaterial::Instance>();
-					}
-
-					if (material->mPipeline != boundPipeline)
-					{
-						TRACE_ZONE_SCOPED_N("Bind Material")
-
-						cmd.BindPipeline(material->mPipeline);
-						cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
-					}
+					const FMaterial* material = materialManager.AccessMaterial(materialBucket.mTargetMaterial);
+					cmd.BindPipeline(material->mPipeline);
+					cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
 
 #if WITH_PROFILER
 					numPipelineSwitches++;
 #endif // WITH_PROFILER
 				}
 
-				if (meshComponent.mMaterial.IsValid() && meshComponent.mMaterialInstance != materialInstanceHandle)
+				for (FDrawCallIt drawCallIt = materialBucket.mStartIt; drawCallIt != materialBucket.mEndIt; ++drawCallIt)
 				{
-					materialInstanceHandle = meshComponent.mMaterialInstance;
+					TRACE_ZONE_SCOPED_N("Render entity")
+					TRACE_GPU_SCOPED(gpu, cmd, "Render entity");
 
-					if (materialHandle.IsValid())
+					if (drawCallIt->mMaterialInstance != materialInstanceHandle)
 					{
-						if (materialInstanceHandle.IsValid())
-						{
-							const FMaterial::Instance* materialInstance = materialManager.AccessInstance(materialInstanceHandle);
-							TURBO_CHECK(materialInstance->material == materialHandle)
-						}
-						else
-						{
-							const FMaterial* material = materialManager.AccessMaterial(materialHandle);
-							TURBO_CHECK(material->mPerInstanceDataSize == 0)
-						}
-					}
-				}
-
-				if (meshComponent.mMesh != meshHandle)
-				{
-					meshHandle = meshComponent.mMesh;
-					mesh = assetManager.AccessMesh(meshHandle);
-
-					if (mesh == nullptr)
-					{
-						meshHandle = EngineResources::GetPlaceholderMesh();
-						mesh = assetManager.AccessMesh(EngineResources::GetPlaceholderMesh());
+						materialInstanceHandle = drawCallIt->mMaterialInstance;
 					}
 
-					if (boundIndexBuffer != mesh->mIndicesBuffer)
+					if (drawCallIt->mMesh != meshHandle)
 					{
 						TRACE_ZONE_SCOPED_N("Bind index buffer")
 
+						meshHandle = drawCallIt->mMesh;
+						mesh = assetManager.AccessMesh(meshHandle);
+
 						cmd.BindIndexBuffer(mesh->mIndicesBuffer);
-						boundIndexBuffer = mesh->mIndicesBuffer;
 					}
-				}
 
-				FMaterial::PushConstants pushConstants = {};
-				pushConstants.mModelToProj = mViewData.mWorldToProjection * worldTransform;
-				pushConstants.mModelToView = mViewData.mViewMatrix * worldTransform;
-				pushConstants.mInvModelToView = glm::float3x3(glm::transpose(glm::inverse(pushConstants.mModelToView)));
+					FMaterial::PushConstants pushConstants = {};
+					pushConstants.mModelToProj = mViewData.mWorldToProjection * drawCallIt->mWorldTransform;
+					pushConstants.mModelToView = mViewData.mViewMatrix * drawCallIt->mWorldTransform;
+					pushConstants.mInvModelToView = glm::float3x3(glm::transpose(glm::inverse(pushConstants.mModelToView)));
 
-				pushConstants.mViewData = viewDataDeviceAddress;
-				pushConstants.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, materialInstanceHandle);
-				pushConstants.mMaterialData = materialManager.GetMaterialDataAddress(gpu, materialHandle);
-				pushConstants.mMeshData = assetManager.GetMeshPointersAddress(gpu, meshHandle);
-				pushConstants.mSceneData = kNullDeviceAddress;
+					pushConstants.mViewData = viewDataDeviceAddress;
+					pushConstants.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, materialInstanceHandle);
+					pushConstants.mMaterialData = materialManager.GetMaterialDataAddress(gpu, materialBucket.mTargetMaterial);
+					pushConstants.mMeshData = assetManager.GetMeshPointersAddress(gpu, meshHandle);
+					pushConstants.mSceneData = kNullDeviceAddress;
 
-				if (mesh != nullptr)
-				{
-					TRACE_ZONE_SCOPED_N("Draw Indexed")
+					if (mesh != nullptr)
+					{
+						TRACE_ZONE_SCOPED_N("Draw Indexed")
 
-					cmd.PushConstants(pushConstants);
-					cmd.DrawIndexed(mesh->mVertexCount);
+						cmd.PushConstants(pushConstants);
+						cmd.DrawIndexed(mesh->mVertexCount);
 
 #if WITH_PROFILER
-					numDrawCalls++;
+						numDrawCalls++;
 #endif // WITH_PROFILER
+					}
 				}
 			}
 
@@ -260,7 +294,6 @@ namespace Turbo
 			TRACE_PLOT_CONFIGURE(kPipelineSwitchesName, EPlotFormat::Number, true, true, 0xFFFF00)
 			TRACE_PLOT(kPipelineSwitchesName, numPipelineSwitches)
 		}
-
 	}
 
 	void FSceneRenderingLayer::RenderScene(FGPUDevice& gpu, FCommandBuffer& cmd)
