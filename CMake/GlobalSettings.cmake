@@ -72,17 +72,23 @@ endfunction()
 set(BUILD_TYPE false CACHE STRING "Build type")
 
 string(COMPARE EQUAL "${BUILD_TYPE}" "Development" TURBO_BUILD_DEVELOPMENT)
+string(COMPARE EQUAL "${BUILD_TYPE}" "Test" TURBO_BUILD_TEST)
 string(COMPARE EQUAL "${BUILD_TYPE}" "Shipping" TURBO_BUILD_SHIPPING)
 
 # In case when BUILD_TYPE is missing set build type to development
-if (NOT ${TURBO_BUILD_SHIPPING} AND NOT ${TURBO_BUILD_DEVELOPMENT})
+if (NOT ${TURBO_BUILD_SHIPPING} AND NOT ${TURBO_BUILD_DEVELOPMENT} AND NOT ${TURBO_BUILD_TEST})
     turbo_message(STATUS "BUILD_TYPE argument is missing. Setting build type to DEVELOPMENT")
     set(TURBO_BUILD_DEVELOPMENT 1)
 else ()
     turbo_message(STATUS "Set BUILD_TYPE to ${BUILD_TYPE}")
 endif()
 
-SET(WITH_PROFILER ${TURBO_BUILD_DEVELOPMENT})
+if (NOT ${TURBO_BUILD_SHIPPING})
+    SET(WITH_PROFILER 1)
+else ()
+    SET(WITH_PROFILER 0)
+endif ()
+
 turbo_message(STATUS "Set WITH_PROFILER to ${WITH_PROFILER}")
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)

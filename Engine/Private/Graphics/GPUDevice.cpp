@@ -1182,7 +1182,7 @@ namespace Turbo
 
 		if (mVkInstance)
 		{
-#if TURBO_BUILD_DEVELOPMENT
+#if WITH_VALIDATION_LAYERS
 			mVkInstance.destroyDebugUtilsMessengerEXT(mVkDebugUtilsMessenger);
 #endif // TURBO_BUILD_SHIPPING
 			mVkInstance.destroy();

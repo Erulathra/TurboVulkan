@@ -21,7 +21,7 @@ namespace Turbo
 	};
 }
 
-#if TURBO_BUILD_DEVELOPMENT
+#if TURBO_BUILD_DEVELOPMENT || TURBO_BUILD_TEST
 #define LOG_VERBOSITY 0
 #else
 #define LOG_VERBOSITY 3
@@ -43,7 +43,7 @@ namespace Turbo
 	template<typename LogCategoryType>
 	LogVerbosity GetLogCategoryDynamicVerbosity()
 	{
-#if TURBO_BUILD_DEVELOPMENT
+#if TURBO_BUILD_DEVELOPMENT || TURBO_BUILD_TEST
 		const entt::hashed_string CategoryName = GetLogCategoryName<LogCategoryType>();
 		if (auto it = gLogVerbosityMap.find(CategoryName.value());
 			it != gLogVerbosityMap.end())
