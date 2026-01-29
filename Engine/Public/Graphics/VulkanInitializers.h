@@ -7,7 +7,6 @@ namespace Turbo {
 	{
 		[[nodiscard]] vk::CommandPoolCreateInfo CommandPoolCreateInfo(uint32 queueFamilyIndex, vk::CommandPoolCreateFlags flags = {});
 		[[nodiscard]] vk::CommandBufferAllocateInfo BufferAllocateInfo(const vk::CommandPool& commandPool, uint32 bufferCount = 1);
-		[[nodiscard]] vk::CommandBufferBeginInfo BufferBeginInfo(const vk::CommandBufferUsageFlags flags = {});
 
 		[[nodiscard]] vk::FenceCreateInfo FenceCreateInfo(vk::FenceCreateFlags flags = {});
 		[[nodiscard]] vk::SemaphoreCreateInfo SemaphoreCreateInfo(vk::SemaphoreCreateFlags flags = {});

@@ -55,7 +55,6 @@ namespace Turbo
 
 		// Additional thread for io tasks
 		enki::TaskSchedulerConfig taskSchedulerConfig;
-		taskSchedulerConfig.numTaskThreadsToCreate += 1;
 
 		entt::locator<enki::TaskScheduler>::emplace();
 		enki::TaskScheduler& taskScheduler = entt::locator<enki::TaskScheduler>::value();
@@ -174,7 +173,7 @@ namespace Turbo
 		{
 			FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 
-			FCommandBuffer& cmd = gpu.GetCommandBuffer();
+			FCommandBuffer& cmd = gpu.GetMainCommandBuffer();
 
 			const THandle<FTexture>& colorTexture = geometryBuffer.GetColor();
 			cmd.TransitionImage(colorTexture, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);

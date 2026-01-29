@@ -21,20 +21,16 @@ namespace Turbo
 	constexpr size_t kSamplerPoolSize = 128;
 	constexpr uint32 kInvalidBinding = std::numeric_limits<uint32>::max();
 
-	class FBufferedFrameData final
+	struct FBufferedFrameData final
 	{
 		vk::Fence mCommandBufferExecutedFence = nullptr;
 		vk::Semaphore mImageAcquiredSemaphore = nullptr;
 
-		vk::CommandPool mCommandPool = nullptr;
+		std::array<vk::CommandPool, kMaxRenderingThreads> mVkCommandPools;
 
-		TUniquePtr<FCommandBuffer> mCommandBuffer;
-		THandle<FDescriptorPool> mDescriptorPoolHandle;
+		TUniquePtr<FCommandBuffer> mMainCommandBuffer;
 
 		FDestroyQueue mDestroyQueue;
-
-	public:
-		friend class FGPUDevice;
 	};
 
 	class FGPUDevice final
@@ -50,18 +46,21 @@ namespace Turbo
 		bool BeginFrame();
 		bool PresentFrame();
 
-		FCommandBuffer& GetCommandBuffer() { return *mFrameDatas[mBufferedFrameIndex].mCommandBuffer.get(); }
-		THandle<FDescriptorPool> GetFrameDescriptorPool() { return mFrameDatas[mBufferedFrameIndex].mDescriptorPoolHandle; }
+		[[nodiscard]] const FBufferedFrameData& GetFrameData(uint32 index) const { return mFrameDatas[index]; }
+		[[nodiscard]] vk::CommandPool GetCommandPool() const;
+		[[nodiscard]] FCommandBuffer& GetMainCommandBuffer() const;
 
-		THandle<FDescriptorSet> GetBindlessResourcesSet() { return mBindlessResourcesSet; }
-
-		THandle<FTexture> GetPresentImage() { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
+		[[nodiscard]] THandle<FDescriptorSet> GetBindlessResourcesSet() const { return mBindlessResourcesSet; }
+		[[nodiscard]] THandle<FTexture> GetPresentImage() const { return mSwapChainTextures[mCurrentSwapchainImageIndex]; }
 
 		void WaitIdle() const;
 
 		void ImmediateSubmit(const FOnImmediateSubmit& immediateSubmitDelegate);
 
-		uint32 GetNumRenderedFrames() const { return mRenderedFrames; }
+		[[nodiscard]] uint32 GetBufferedFrameId() const { return mBufferedFrameId; }
+		[[nodiscard]] uint32 GetNumRenderedFrames() const { return mRenderedFrames; }
+		[[nodiscard]] uint32 GetNumBufferedFrames() const { return kMaxBufferedFrames; }
+		[[nodiscard]] uint32 GetNumRenderingThreads() const { return mNumRenderingThreads; }
 
 		void RequestSwapChainResize() { mbRequestedSwapchainResize = true; }
 
@@ -104,7 +103,7 @@ namespace Turbo
 		THandle<FShaderState> CreateShaderState(const FShaderStateBuilder& builder);
 
 		vk::CommandPool CreateCommandPool(uint32 queueFamilyIndex, vk::CommandPoolCreateFlags createFlags = {});
-		TUniquePtr<FCommandBuffer> CreateCommandBuffer(vk::CommandPool commandPool, FName name = FName());
+		TUniquePtr<FCommandBuffer> CreateCommandBuffer(const FCommandBufferBuilder& builder);
 
 		/** Resource creation end */
 
@@ -289,10 +288,12 @@ namespace Turbo
 		/** Swapchain end */
 
 		/** Frame handing */
+		uint32 mNumRenderingThreads = 1;
+
 		std::array<FBufferedFrameData, kMaxBufferedFrames> mFrameDatas;
 
 		/** Note that this is an index of buffered frame */
-		uint32 mBufferedFrameIndex = 0;
+		uint32 mBufferedFrameId = 0;
 		/** Note that this is an index of rendered frame (from Init) */
 		uint32 mRenderedFrames = 0;
 

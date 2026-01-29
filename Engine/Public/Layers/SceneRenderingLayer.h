@@ -8,8 +8,9 @@ DECLARE_LOG_CATEGORY(LogSceneRendering, Display, Display)
 
 namespace Turbo
 {
-	class FBuffer;
+	struct FBuffer;
 	struct FMaterial;
+	class FCommandBuffer;
 
 	// Replace with growable buffer
 	constexpr size_t kNumAllocatedMaterialInstances = 512;

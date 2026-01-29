@@ -27,17 +27,6 @@ namespace Turbo {
 		return result;
 	}
 
-	vk::CommandBufferBeginInfo VulkanInitializers::BufferBeginInfo(const vk::CommandBufferUsageFlags flags)
-	{
-		vk::CommandBufferBeginInfo result{};
-		result.setPNext(nullptr);
-
-		result.setPInheritanceInfo(nullptr);
-		result.setFlags(flags);
-
-		return result;
-	}
-
 	vk::FenceCreateInfo VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlags flags)
 	{
 		vk::FenceCreateInfo result{};

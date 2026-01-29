@@ -10,7 +10,9 @@ namespace Turbo
 	void FCommandBuffer::Begin()
 	{
 		mbRecording = true;
-		vk::CommandBufferBeginInfo beginInfo = VkInit::BufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+		vk::CommandBufferBeginInfo beginInfo = {};
+		beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+
 		CHECK_VULKAN_HPP(mVkCommandBuffer.begin(beginInfo));
 	}
 

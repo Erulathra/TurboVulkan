@@ -439,7 +439,7 @@ namespace Turbo
 		FPipelineBuilder& SetName(FName name) { mName = name; return *this; }
 
 	public:
-		FName GetName() const { return mName; }
+		[[nodiscard]] FName GetName() const { return mName; }
 
 	private:
 		FRasterizationBuilder mRasterizationBuilder;
@@ -456,6 +456,13 @@ namespace Turbo
 		vk::PrimitiveTopology mTopology = vk::PrimitiveTopology::eTriangleList;
 
 		FName mName = FName();
+	};
+
+	struct FCommandBufferBuilder
+	{
+		vk::CommandPool mVkCommandPool = nullptr;
+		bool bPrimaryBuffer = true;
+		FName mName = {};
 	};
 
 }

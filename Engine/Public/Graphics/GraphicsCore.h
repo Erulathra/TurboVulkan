@@ -17,6 +17,8 @@ namespace Turbo
 	inline constexpr uint32 kMaxSwapChainImages = 5;
 	inline constexpr uint32 kMaxBufferedFrames = 2;
 
+	inline constexpr uint32 kMaxRenderingThreads = 16;
+
 	// In theory VK supports up to 16, but I want to save some memory.
 	inline constexpr uint8 kMaxDescriptorSetLayouts = 4;
 	inline constexpr uint32 kMaxDescriptorSets = 4;

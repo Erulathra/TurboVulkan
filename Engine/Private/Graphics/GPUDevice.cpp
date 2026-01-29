@@ -1,5 +1,6 @@
 #include "Graphics/GPUDevice.h"
 
+#include "TaskScheduler.h"
 #include "VkBootstrap.h"
 #include "Assets/EngineResources.h"
 #include "Core/Engine.h"
@@ -16,6 +17,10 @@ namespace Turbo
 	void FGPUDevice::Init(const FGPUDeviceBuilder& gpuDeviceBuilder)
 	{
 		TURBO_LOG(LogGPUDevice, Info, "Initializing GPU Device.");
+
+		const enki::TaskScheduler& taskScheduler = entt::locator<enki::TaskScheduler>::value();
+		mNumRenderingThreads = glm::min(kMaxRenderingThreads, taskScheduler.GetNumTaskThreads());
+		TURBO_LOG(LogGPUDevice, Info, "Num rendering threads: {}", mNumRenderingThreads);
 
 		FWindow& window = entt::locator<FWindow>::value();
 		window.InitForVulkan();
@@ -47,7 +52,6 @@ namespace Turbo
 
 #if WITH_PROFILER
 		CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(mImmediateCommandsPool));
-		mImmediateCommandsBuffer->Reset();
 		mTraceGpuCtx = TRACE_CREATE_GPU_CTX(
 			mVkInstance,
 			mVkPhysicalDevice,
@@ -69,8 +73,10 @@ namespace Turbo
 		CHECK_VULKAN_RESULT(mImmediateCommandsFence, mVkDevice.createFence(fenceCreateInfo));
 
 		mImmediateCommandsPool = CreateCommandPool(mVkGraphicsQueueFamilyIndex, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-		const static FName immediateCommandBuffer = FName("ImmediateGPUCommands");
-		mImmediateCommandsBuffer = CreateCommandBuffer(mImmediateCommandsPool, immediateCommandBuffer);
+		mImmediateCommandsBuffer = CreateCommandBuffer({
+			.mVkCommandPool = mImmediateCommandsPool,
+			.mName = FName("ImmediateGPUCommands")
+		});
 	}
 
 	void FGPUDevice::InitializeBindlessResources()
@@ -733,7 +739,7 @@ namespace Turbo
 		destroyer.mVkBuffer = buffer->mVkBuffer;
 		destroyer.mAllocation = bufferCold->mAllocation;
 
-		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
@@ -753,7 +759,7 @@ namespace Turbo
 		destroyer.mImageView = texture->mVkImageView;
 		destroyer.mImageAllocation = texture->mImageAllocation;
 
-		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
@@ -771,7 +777,7 @@ namespace Turbo
 		destroyer.mHandle = handle;
 		destroyer.mVkSampler = sampler->mVkSampler;
 
-		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
@@ -785,7 +791,7 @@ namespace Turbo
 		destroyer.mLayout = pipeline->mVkLayout;
 		destroyer.mHandle = handle;
 
-		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 
 		DestroyShaderState(pipeline->mShaderState);
@@ -800,7 +806,7 @@ namespace Turbo
 		destroyer.mVkDescriptorPool = descriptorPool->mVkDescriptorPool;
 		destroyer.mhandle = handle;
 
-		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
@@ -813,7 +819,7 @@ namespace Turbo
 		destroyer.mVkLayout = layout->mVkLayout;
 		destroyer.mHandle = layout->mHandle;
 
-		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
@@ -831,7 +837,7 @@ namespace Turbo
 			destroyer.mModules[shaderId] = shaderState->mShaderStageCrateInfo[shaderId].module;
 		}
 
-		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
@@ -1055,9 +1061,6 @@ namespace Turbo
 		const vk::FenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
 		const vk::SemaphoreCreateInfo semaphoreCreateInfo = VulkanInitializers::SemaphoreCreateInfo();
 
-		FDescriptorPoolBuilder descriptorPoolBuilder;
-		descriptorPoolBuilder.SetMaxSets(128);
-
 		for (uint32 frameDataId = 0; frameDataId < mFrameDatas.size(); ++frameDataId)
 		{
 			FBufferedFrameData& frameData = mFrameDatas[frameDataId];
@@ -1065,10 +1068,15 @@ namespace Turbo
 			CHECK_VULKAN_RESULT(frameData.mCommandBufferExecutedFence, mVkDevice.createFence(fenceCreateInfo));
 			CHECK_VULKAN_RESULT(frameData.mImageAcquiredSemaphore, mVkDevice.createSemaphore(semaphoreCreateInfo));
 
-			frameData.mCommandPool = CreateCommandPool(mVkGraphicsQueueFamilyIndex);
-			frameData.mCommandBuffer = CreateCommandBuffer(frameData.mCommandPool, FName(fmt::format("Frame{}", frameDataId)));
+			for (uint32 threadId = 0; threadId < mNumRenderingThreads; ++threadId)
+			{
+				frameData.mVkCommandPools[threadId] = CreateCommandPool(mVkGraphicsQueueFamilyIndex);
+			}
 
-			frameData.mDescriptorPoolHandle = CreateDescriptorPool(descriptorPoolBuilder);
+			frameData.mMainCommandBuffer = CreateCommandBuffer({
+				.mVkCommandPool = frameData.mVkCommandPools[0],
+				.mName = FName(fmt::format("Frame{}", frameDataId))
+			});
 		}
 	}
 
@@ -1084,25 +1092,21 @@ namespace Turbo
 		return pool;
 	}
 
-	TUniquePtr<FCommandBuffer> FGPUDevice::CreateCommandBuffer(vk::CommandPool commandPool, FName name)
+	TUniquePtr<FCommandBuffer> FGPUDevice::CreateCommandBuffer(const FCommandBufferBuilder& builder)
 	{
 		vk::CommandBufferAllocateInfo allocateInfo = {};
-		allocateInfo.setCommandPool(commandPool);
-		allocateInfo.setCommandBufferCount(1);
-		allocateInfo.setLevel(vk::CommandBufferLevel::ePrimary);
+		allocateInfo.commandPool = builder.mVkCommandPool;
+		allocateInfo.commandBufferCount = 1;
+		allocateInfo.level = builder.bPrimaryBuffer ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary;
 
 		std::vector<vk::CommandBuffer> commandBuffers;
 		CHECK_VULKAN_RESULT(commandBuffers, mVkDevice.allocateCommandBuffers(allocateInfo));
 
-		TUniquePtr<FCommandBuffer> result = std::make_unique<FCommandBuffer>();
+		TUniquePtr<FCommandBuffer> result = MakeUnique<FCommandBuffer>();
 		result->mGpu = this;
 		result->mVkCommandBuffer = commandBuffers.front();
-		result->Reset();
 
-		if (!name.IsNone())
-		{
-			SetResourceName(result->mVkCommandBuffer, name);
-		}
+		SetResourceName(result->mVkCommandBuffer, builder.mName);
 
 		return result;
 	}
@@ -1194,7 +1198,7 @@ namespace Turbo
 			ResizeSwapChain();
 		}
 
-		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 
 		// Wait for previous frame fence, and reset it
 		const vk::Fence renderCompleteFence = frameData.mCommandBufferExecutedFence;
@@ -1217,11 +1221,12 @@ namespace Turbo
 
 		CHECK_VULKAN_HPP(mVkDevice.resetFences({renderCompleteFence}));
 
-		CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(frameData.mCommandPool));
-		frameData.mCommandBuffer->Reset();
-		frameData.mCommandBuffer->Begin();
+		for (uint32 threadId = 0; threadId < mNumRenderingThreads; ++threadId)
+		{
+			CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(frameData.mVkCommandPools[threadId]));
+		}
 
-		ResetDescriptorPool(frameData.mDescriptorPoolHandle);
+		frameData.mMainCommandBuffer->Begin();
 
 		return true;
 	}
@@ -1230,19 +1235,19 @@ namespace Turbo
 	{
 		TRACE_ZONE_SCOPED()
 
-		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameIndex];
+		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		const THandle<FTexture> swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
 
-		TRACE_GPU_COLLECT(mTraceGpuCtx, frameData.mCommandBuffer);
+		TRACE_GPU_COLLECT(mTraceGpuCtx, frameData.mMainCommandBuffer);
 
-		frameData.mCommandBuffer->End();
+		frameData.mMainCommandBuffer->End();
 
 		UpdateBindlessResources();
 
 		// Submit command buffer
 		const vk::Semaphore submitSemaphore = mSubmitSemaphores[mCurrentSwapchainImageIndex];
 
-		const vk::CommandBufferSubmitInfo bufferSubmitInfo = frameData.mCommandBuffer->CreateSubmitInfo();
+		const vk::CommandBufferSubmitInfo bufferSubmitInfo = frameData.mMainCommandBuffer->CreateSubmitInfo();
 		const vk::SemaphoreSubmitInfo waitSemaphore = VkInit::SemaphoreSubmitInfo(frameData.mImageAcquiredSemaphore, vk::PipelineStageFlagBits2::eColorAttachmentOutput);
 		const vk::SemaphoreSubmitInfo signalSemaphore = VkInit::SemaphoreSubmitInfo(submitSemaphore, vk::PipelineStageFlagBits2::eAllGraphics);
 		const vk::SubmitInfo2 submitInfo = VkInit::SubmitInfo(bufferSubmitInfo, &signalSemaphore, &waitSemaphore);
@@ -1267,6 +1272,17 @@ namespace Turbo
 		AdvanceFrameCounters();
 
 		return true;
+	}
+
+	vk::CommandPool FGPUDevice::GetCommandPool() const
+	{
+		const enki::TaskScheduler& taskScheduler = entt::locator<enki::TaskScheduler>::value();
+		return mFrameDatas[mBufferedFrameId].mVkCommandPools[taskScheduler.GetThreadNum()];
+	}
+
+	FCommandBuffer& FGPUDevice::GetMainCommandBuffer() const
+	{
+		return *mFrameDatas[mBufferedFrameId].mMainCommandBuffer;
 	}
 
 	void FGPUDevice::UpdateBindlessResources()
@@ -1373,7 +1389,6 @@ namespace Turbo
 			CHECK_VULKAN_HPP(mVkDevice.resetFences({mImmediateCommandsFence}));
 			CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(mImmediateCommandsPool));
 
-			mImmediateCommandsBuffer->Reset();
 			mImmediateCommandsBuffer->Begin();
 			immediateSubmitDelegate.Execute(*mImmediateCommandsBuffer);
 			mImmediateCommandsBuffer->End();
@@ -1420,11 +1435,6 @@ namespace Turbo
 
 		for (FBufferedFrameData& frameData : mFrameDatas)
 		{
-			if (frameData.mDescriptorPoolHandle)
-			{
-				DestroyDescriptorPool(frameData.mDescriptorPoolHandle);
-			}
-
 			if (frameData.mCommandBufferExecutedFence)
 			{
 				mVkDevice.destroyFence(frameData.mCommandBufferExecutedFence);
@@ -1437,10 +1447,10 @@ namespace Turbo
 				frameData.mImageAcquiredSemaphore = nullptr;
 			}
 
-			if (frameData.mCommandPool)
+			for (int renderThreadId = 0; renderThreadId < mNumRenderingThreads; ++renderThreadId)
 			{
-				CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(frameData.mCommandPool));
-				mVkDevice.destroyCommandPool(frameData.mCommandPool);
+				CHECK_VULKAN_HPP(mVkDevice.resetCommandPool(frameData.mVkCommandPools[renderThreadId]));
+				mVkDevice.destroyCommandPool(frameData.mVkCommandPools[renderThreadId]);
 			}
 		}
 
@@ -1478,7 +1488,7 @@ namespace Turbo
 	void FGPUDevice::AdvanceFrameCounters()
 	{
 		TURBO_CHECK(mNumSwapChainImages > 0)
-		mBufferedFrameIndex = (mBufferedFrameIndex + 1) % kMaxBufferedFrames;
+		mBufferedFrameId = (mBufferedFrameId + 1) % kMaxBufferedFrames;
 
 		++mRenderedFrames;
 	}

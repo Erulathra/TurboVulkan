@@ -1,5 +1,6 @@
 #include "Layers/SceneRenderingLayer.h"
 
+#include "../../../cmake-build-shipping/_deps/enkits-src/src/TaskScheduler.h"
 #include "Assets/AssetManager.h"
 #include "Assets/EngineResources.h"
 #include "Assets/StaticMesh.h"
@@ -86,6 +87,7 @@ namespace Turbo
 		TRACE_ZONE_SCOPED()
 
 		entt::registry& registry = world->mRegistry;
+		const uint32 frameId = gpu.GetBufferedFrameId();
 
 		entt::storage<FDrawCall> drawCalls;
 		using FDrawCallIt = entt::storage<FDrawCall>::iterator;
@@ -124,10 +126,6 @@ namespace Turbo
 				{
 					FWorldTransform& worldTransformComp = meshTransformView.get<FWorldTransform>(entity);
 					drawCalls.get(entity).mWorldTransform = worldTransformComp.mTransform;
-
-					FMeshComponent& mesh = meshTransformView.get<FMeshComponent>(entity);
-					const FName name = assetManager.AccessMesh(mesh.mMesh)->mName;
-					TURBO_LOG(LogTemp, Info, "WorldTransform Path: {}, Index {}", name, mesh.mMesh.GetIndex());
 				}
 
 				const auto meshRelationView = registry.view<FMeshComponent, FRelationship>(entt::exclude<FWorldTransform>);
@@ -222,7 +220,6 @@ namespace Turbo
 			FDeviceAddress viewDataDeviceAddress = gpu.AccessBuffer(mViewDataUniformBuffer)->GetDeviceAddress();
 
 #if WITH_PROFILER
-			FCounterType numDrawCalls = 0;
 			FCounterType numPipelineSwitches = 0;
 #endif // WITH_PROFILER
 			for (const FMaterialBucket& materialBucket : materialBuckets)
@@ -276,10 +273,6 @@ namespace Turbo
 
 						cmd.PushConstants(pushConstants);
 						cmd.DrawIndexed(mesh->mVertexCount);
-
-#if WITH_PROFILER
-						numDrawCalls++;
-#endif // WITH_PROFILER
 					}
 				}
 			}
@@ -288,7 +281,7 @@ namespace Turbo
 
 			static const cstring kDrawCallPlotName = "Draw calls";
 			TRACE_PLOT_CONFIGURE(kDrawCallPlotName, EPlotFormat::Number, true, true, 0xFF00FF)
-			TRACE_PLOT(kDrawCallPlotName, numDrawCalls)
+			TRACE_PLOT(kDrawCallPlotName, static_cast<int64>(drawCalls.size()))
 
 			static const cstring kPipelineSwitchesName = "Pipeline switches";
 			TRACE_PLOT_CONFIGURE(kPipelineSwitchesName, EPlotFormat::Number, true, true, 0xFFFF00)
