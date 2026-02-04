@@ -33,7 +33,8 @@ namespace Turbo
 	using FDeviceAddress = vk::DeviceAddress;
 	inline constexpr FDeviceAddress kNullDeviceAddress = 0;
 
-	inline constexpr vk::DeviceSize kMaxUniformBufferSize = 65536;
+	using FDeviceSize = vk::DeviceSize;
+	inline constexpr FDeviceSize kMaxUniformBufferSize = 65536;
 }
 
 /** Constants end */
