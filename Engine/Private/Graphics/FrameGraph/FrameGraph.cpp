@@ -1,6 +1,7 @@
 #include "Graphics/FrameGraph/FrameGraph.h"
 
 #include "Graphics/CommandBuffer.h"
+#include "Graphics/GPUDevice.h"
 #include "Graphics/VulkanInitializers.h"
 
 namespace Turbo
@@ -87,15 +88,15 @@ namespace Turbo
 		   : vk::PipelineStageFlagBits2::eFragmentShader;
 	};
 
-	inline vk::ImageSubresourceRange FindSubresourceRange(const FRGTextureInfo& textureInfo)
+	inline vk::ImageSubresourceRange FindSubresourceRange(vk::Format format)
 	{
 		vk::ImageAspectFlags aspectFlags = {};
 
-		if (TextureFormat::HasDepth(textureInfo.mFormat))
+		if (TextureFormat::HasDepth(format))
 		{
 			aspectFlags |= vk::ImageAspectFlagBits::eDepth;
 
-			if (TextureFormat::HasStencil(textureInfo.mFormat))
+			if (TextureFormat::HasStencil(format))
 			{
 				aspectFlags |= vk::ImageAspectFlagBits::eStencil;
 			}
@@ -152,7 +153,7 @@ namespace Turbo
 			std::vector<FRGResourceHandle> writeOnlyResources;
 			entt::dense_set<FRGResourceHandle> readWriteResources;
 
-			std::vector<vk::ImageMemoryBarrier2>& passImageBarriers = mPerPassImageBarriers[passId];
+			std::vector<FRGImageMemoryBarrier>& passImageBarriers = mPerPassImageBarriers[passId];
 
 			for (FRGResourceHandle write : pass.mTextureWrites)
 			{
@@ -185,20 +186,16 @@ namespace Turbo
 				if (srcData.mAccess != EResourceAccess::Read
 					|| srcData.mLayout != ETextureLayout::ReadOnly)
 				{
-					vk::ImageMemoryBarrier2& newBarrier = passImageBarriers.emplace_back();
-					newBarrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-					newBarrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-					newBarrier.subresourceRange = FindSubresourceRange(mTextures[read.GetIndex()]);
+					FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
+					newBarrier.mOldLayout = srcData.mLayout;
+					newBarrier.mNewLayout = ETextureLayout::ReadOnly;
 
-					newBarrier.oldLayout = ToVkImageLayout(srcData.mLayout);
-					newBarrier.newLayout = ToVkImageLayout(ETextureLayout::ReadOnly);
+					newBarrier.mSrcStageMask = FindSrcStageMask(srcData.mLastUseType);
+					newBarrier.mDstStageMask = FindDstStageMask(pass.mPassType);
 
-					newBarrier.srcStageMask = FindSrcStageMask(srcData.mLastUseType);
-					newBarrier.dstStageMask = FindDstStageMask(pass.mPassType);
+					newBarrier.mSrcAccessMask = FindSrcAccessMask(srcData.mAccess, pass.mPassType);
 
-					newBarrier.srcAccessMask = FindSrcAccessMask(srcData.mAccess, pass.mPassType);
-
-					newBarrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead;
+					newBarrier.mDstAccessMask = vk::AccessFlagBits2::eShaderRead;
 
 					srcData.mLastUseType = pass.mPassType;
 					srcData.mAccess = EResourceAccess::Read;
@@ -208,44 +205,40 @@ namespace Turbo
 
 			for (FRGResourceHandle write : writeOnlyResources)
 			{
-				vk::ImageMemoryBarrier2& newBarrier = passImageBarriers.emplace_back();
-				newBarrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-				newBarrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-				newBarrier.subresourceRange = FindSubresourceRange(mTextures[write.GetIndex()]);
-
-				newBarrier.dstStageMask = FindDstStageMask(pass.mPassType);
+				FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
+				newBarrier.mDstStageMask = FindDstStageMask(pass.mPassType);
 
 				if (auto srcData = resourceData.find(write);
 					srcData != resourceData.end())
 				{
-					newBarrier.oldLayout = ToVkImageLayout(srcData->second.mLayout);
-					newBarrier.srcAccessMask = FindSrcAccessMask(srcData->second.mAccess, pass.mPassType);
-					newBarrier.srcStageMask = FindSrcStageMask(srcData->second.mLastUseType);
+					newBarrier.mOldLayout = srcData->second.mLayout;
+					newBarrier.mSrcAccessMask = FindSrcAccessMask(srcData->second.mAccess, pass.mPassType);
+					newBarrier.mSrcStageMask = FindSrcStageMask(srcData->second.mLastUseType);
 				}
 				else
 				{
 					// This pass creates new texture
-					newBarrier.oldLayout = vk::ImageLayout::eUndefined;
-					newBarrier.srcAccessMask = vk::AccessFlagBits2::eMemoryWrite;
-					newBarrier.srcStageMask =  vk::PipelineStageFlagBits2::eNone;
+					newBarrier.mOldLayout = ETextureLayout::Undefined;
+					newBarrier.mSrcAccessMask = vk::AccessFlagBits2::eMemoryWrite;
+					newBarrier.mSrcStageMask =  vk::PipelineStageFlagBits2::eNone;
 				}
 
 				if (pass.mPassType == EPassType::Compute)
 				{
-					newBarrier.newLayout = vk::ImageLayout::eGeneral;
-					newBarrier.dstAccessMask = vk::AccessFlagBits2::eShaderWrite;
+					newBarrier.mNewLayout = ETextureLayout::General;
+					newBarrier.mDstAccessMask = vk::AccessFlagBits2::eShaderWrite;
 				}
 				else
 				{
 					if (pass.mDepthStencilAttachment == write)
 					{
-						newBarrier.newLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-						newBarrier.dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+						newBarrier.mNewLayout = ETextureLayout::DepthStencilAttachment;
+						newBarrier.mDstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
 					}
 					else
 					{
-						newBarrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
-						newBarrier.dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+						newBarrier.mNewLayout = ETextureLayout::ColorAttachment;
+						newBarrier.mDstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
 					}
 
 				}
@@ -253,33 +246,30 @@ namespace Turbo
 				FResourceState& currentData = resourceData[write];
 				currentData.mLastUseType = pass.mPassType;
 				currentData.mAccess = EResourceAccess::Write;
-				currentData.mLayout = FromVkImageLayout(newBarrier.newLayout);
+				currentData.mLayout = newBarrier.mNewLayout;
 			}
 
 			for (FRGResourceHandle readWrite : readWriteResources)
 			{
 				TURBO_CHECK(pass.mPassType != EPassType::Graphics)
 
-				vk::ImageMemoryBarrier2& newBarrier = passImageBarriers.emplace_back();
-				newBarrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-				newBarrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-				newBarrier.subresourceRange = FindSubresourceRange(mTextures[readWrite.GetIndex()]);
+				FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
 
 				auto foundSrcData = resourceData.find(readWrite);
 				TURBO_CHECK_MSG(foundSrcData != resourceData.end(), "Pass tries to read non existent resource")
 
 				FResourceState& srcData = foundSrcData->second;
-				newBarrier.srcStageMask = FindSrcStageMask(srcData.mLastUseType);
-				newBarrier.dstStageMask = FindDstStageMask(pass.mPassType);
+				newBarrier.mSrcStageMask = FindSrcStageMask(srcData.mLastUseType);
+				newBarrier.mDstStageMask = FindDstStageMask(pass.mPassType);
 
-				newBarrier.srcAccessMask = FindSrcAccessMask(srcData.mAccess, pass.mPassType);
-				newBarrier.dstAccessMask =
+				newBarrier.mSrcAccessMask = FindSrcAccessMask(srcData.mAccess, pass.mPassType);
+				newBarrier.mDstAccessMask =
 					pass.mPassType == EPassType::Compute
 						? vk::AccessFlagBits2::eShaderWrite
 						: vk::AccessFlagBits2::eColorAttachmentWrite;
 
-				newBarrier.oldLayout = ToVkImageLayout(srcData.mLayout);
-				newBarrier.newLayout = vk::ImageLayout::eGeneral;
+				newBarrier.mOldLayout = srcData.mLayout;
+				newBarrier.mNewLayout = ETextureLayout::General;
 
 				srcData.mLastUseType = pass.mPassType;
 				srcData.mAccess = EResourceAccess::ReadWrite;
@@ -309,17 +299,53 @@ namespace Turbo
 			{
 				if (renderResources.mTextures[resource.GetIndex()].IsValid() == false)
 				{
-					// create texture
+					// TODO: create texture
 				}
 			}
 
 			// Add barrier
+			FRGPassImageBarriers& passImageBarriers = mPerPassImageBarriers[passId];
+
+			std::vector<vk::ImageMemoryBarrier2> imageBarriers;
+			imageBarriers.reserve(passImageBarriers.size());
+
+			for (const FRGImageMemoryBarrier& rgBarrier : passImageBarriers)
+			{
+				THandle<FTexture> textureHandle = renderResources.mTextures[rgBarrier.mTexture.GetIndex()];
+				const FTexture* texture = gpu.AccessTexture(textureHandle);
+				const FTextureCold* textureCold = gpu.AccessTextureCold(textureHandle);
+				TURBO_CHECK(texture)
+
+				vk::ImageMemoryBarrier2& vkBarrier = imageBarriers.emplace_back();
+				vkBarrier.srcStageMask = rgBarrier.mSrcStageMask;
+				vkBarrier.srcAccessMask = rgBarrier.mSrcAccessMask;
+				vkBarrier.dstStageMask = rgBarrier.mDstStageMask;
+				vkBarrier.dstAccessMask = rgBarrier.mDstAccessMask;
+				vkBarrier.oldLayout = ToVkImageLayout(rgBarrier.mOldLayout);
+				vkBarrier.newLayout = ToVkImageLayout(rgBarrier.mNewLayout);
+				vkBarrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+				vkBarrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+				vkBarrier.image = texture->mVkImage;
+				vkBarrier.subresourceRange = FindSubresourceRange(textureCold->mFormat);
+			}
+
 			vk::DependencyInfo dependencyInfo = {};
-			dependencyInfo.imageMemoryBarrierCount = mPerPassImageBarriers[passId].size();
-			dependencyInfo.pImageMemoryBarriers = mPerPassImageBarriers[passId].data();
+			dependencyInfo.imageMemoryBarrierCount = imageBarriers.size();
+			dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
+
+			cmd.PipelineBarrier(dependencyInfo);
 
 			TURBO_CHECK(pass.mExecutePass.IsBound());
 			pass.mExecutePass.Execute(gpu, cmd, renderResources);
+
+			// Destroy unused textures
+			for (FRGResourceHandle resource : mAllResources)
+			{
+				if (mResourceLifetimes[resource].mLastPass == passId)
+				{
+					// TODO: Destroy texture
+				}
+			}
 		}
 	}
 } // Turbo

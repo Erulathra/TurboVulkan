@@ -165,16 +165,16 @@ namespace Turbo
 
 	struct FRGImageMemoryBarrier
 	{
-		ETextureLayout oldLayout = ETextureLayout::Undefined;
-		ETextureLayout newLayout = ETextureLayout::Undefined;
+		ETextureLayout mOldLayout = ETextureLayout::Undefined;
+		ETextureLayout mNewLayout = ETextureLayout::Undefined;
 
-		vk::PipelineStageFlags2 srcStageMask = vk::PipelineStageFlagBits2::eAllCommands;
-		vk::PipelineStageFlags2 dstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+		vk::PipelineStageFlags2 mSrcStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+		vk::PipelineStageFlags2 mDstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
 
-		vk::AccessFlags2 srcAccessMask = vk::AccessFlagBits2::eMemoryWrite;
-		vk::AccessFlags2 dstAccessMask = vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead;
+		vk::AccessFlags2 mSrcAccessMask = vk::AccessFlagBits2::eMemoryWrite;
+		vk::AccessFlags2 mDstAccessMask = vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead;
 
-		FRGResourceHandle texture = {};
+		FRGResourceHandle mTexture = {};
 	};
 
 	struct FRGResourceLifetime
@@ -226,7 +226,8 @@ namespace Turbo
 	public:
 		std::vector<FRGPassInfo> mRenderPasses;
 
-		std::vector<std::vector<FRGImageMemoryBarrier>> mPerPassImageBarriers;
+		using FRGPassImageBarriers = std::vector<FRGImageMemoryBarrier>;
+		std::vector<FRGPassImageBarriers> mPerPassImageBarriers;
 
 		std::vector<FRGTextureInfo> mTextures;
 		entt::dense_map<FRGResourceHandle, FRGResourceLifetime> mResourceLifetimes;

@@ -69,6 +69,11 @@ namespace Turbo
 		mVkCommandBuffer.pipelineBarrier2(dependencyInfo);
 	}
 
+	void FCommandBuffer::PipelineBarrier(const vk::DependencyInfo& dependencyInfo)
+	{
+		mVkCommandBuffer.pipelineBarrier2(dependencyInfo);
+	}
+
 	void FCommandBuffer::BufferBarrier(
 		THandle<FBuffer> bufferHandle,
 		vk::AccessFlags2 srcAccessMask,

@@ -43,6 +43,7 @@ namespace Turbo
 	{
 	public:
 		void TransitionImage(THandle<FTexture> textureHandle, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+		void PipelineBarrier(const vk::DependencyInfo& dependencyInfo);
 
 	public:
 		void BufferBarrier(
