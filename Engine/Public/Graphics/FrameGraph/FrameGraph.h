@@ -39,28 +39,19 @@ namespace Turbo
 
 	struct FRGResourceHandle
 	{
-		static constexpr uint32 kTypeMask = 0xC0000000;
-		static constexpr uint32 kVersionMask = 0x3FFF0000;
-		static constexpr uint32 kIndexMask = 0x0000FFFF;
+		static constexpr uint32 kTypeMask = 0xF0000000;
+		static constexpr uint32 kIndexMask = 0x0FFFFFFF;
 		static constexpr uint32 kInvalidHandle = 0xFFFFFFFF;
 
 		FRGResourceHandle() = default;
-		FRGResourceHandle(ERGResourceType type, uint32 index, uint32 version = 0)
+		FRGResourceHandle(ERGResourceType type, uint32 index)
 		{
 			mHandle = static_cast<uint32>(type) << std::countl_zero(kTypeMask)
-				| version << std::countl_zero(kVersionMask)
 				| index << std::countl_zero(kIndexMask);
-		}
-
-		[[nodiscard]] FRGResourceHandle IncrementVersion() const
-		{
-			FRGResourceHandle result = FRGResourceHandle(GetType(), GetIndex(), GetVersion() + 1);
-			return result;
 		}
 
 		[[nodiscard]] bool IsValid() const { return mHandle != kInvalidHandle; }
 		[[nodiscard]] ERGResourceType GetType() const { return static_cast<ERGResourceType>((mHandle & kTypeMask) >> std::countr_zero(kTypeMask)); }
-		[[nodiscard]] uint32 GetVersion() const { return (mHandle & kVersionMask) >> std::countr_zero(kVersionMask); }
 		[[nodiscard]] uint32 GetIndex() const { return (mHandle & kIndexMask) >> std::countr_zero(kIndexMask); }
 
 		uint32 mHandle = kInvalidHandle;
@@ -75,7 +66,19 @@ namespace Turbo
 			return !(lhs == rhs);
 		}
 	};
+}
 
+template<>
+struct std::hash<Turbo::FRGResourceHandle>
+{
+	size_t operator()(Turbo::FRGResourceHandle handle) const noexcept
+	{
+		return static_cast<uint64>(handle.mHandle) << 32;
+	}
+};
+
+namespace Turbo
+{
 	struct FRGTextureInfo
 	{
 		uint16 mWidth = 1;
@@ -94,17 +97,90 @@ namespace Turbo
 		FName mName = {};
 	};
 
-	struct FRGTextureReadInfo
+	enum class EPassType
 	{
-		FRGResourceHandle mHandle = {};
-		vk::ImageLayout mTargetLayout = vk::ImageLayout::eUndefined;
+		Graphics,
+		Compute,
 	};
 
-	enum class ECommandQueueType
+	enum class ETextureLayout
 	{
-		Main,
-		AsyncCompute,
-		AsyncTransfer
+		Undefined,
+		General,
+		ReadOnly,
+
+		ColorAttachment,
+		DepthStencilAttachment
+	};
+
+	constexpr vk::ImageLayout ToVkImageLayout(ETextureLayout layout)
+	{
+		switch (layout)
+		{
+		case ETextureLayout::Undefined:
+			return vk::ImageLayout::eUndefined;
+		case ETextureLayout::General:
+			return vk::ImageLayout::eGeneral;
+		case ETextureLayout::ReadOnly:
+			return vk::ImageLayout::eReadOnlyOptimal;
+		case ETextureLayout::ColorAttachment:
+			return vk::ImageLayout::eColorAttachmentOptimal;
+		case ETextureLayout::DepthStencilAttachment:
+			return vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		default: ;
+		}
+
+		TURBO_UNINPLEMENTED();
+		return vk::ImageLayout::eUndefined;
+	}
+
+	constexpr ETextureLayout FromVkImageLayout(vk::ImageLayout layout)
+	{
+		switch (layout)
+		{
+		case vk::ImageLayout::eUndefined:
+			return ETextureLayout::Undefined;
+		case vk::ImageLayout::eGeneral:
+			return ETextureLayout::General;
+		case vk::ImageLayout::eReadOnlyOptimal:
+			return ETextureLayout::ReadOnly;
+		case vk::ImageLayout::eColorAttachmentOptimal:
+			return ETextureLayout::ColorAttachment;
+		case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+			return ETextureLayout::DepthStencilAttachment;
+		default: ;
+		}
+
+		TURBO_UNINPLEMENTED();
+		return ETextureLayout::Undefined;
+	}
+
+	enum class EResourceAccess
+	{
+		Read,
+		Write,
+		ReadWrite,
+		Create
+	};
+
+	struct FRGImageMemoryBarrier
+	{
+		ETextureLayout oldLayout = ETextureLayout::Undefined;
+		ETextureLayout newLayout = ETextureLayout::Undefined;
+
+		vk::PipelineStageFlags2 srcStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+		vk::PipelineStageFlags2 dstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+
+		vk::AccessFlags2 srcAccessMask = vk::AccessFlagBits2::eMemoryWrite;
+		vk::AccessFlags2 dstAccessMask = vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead;
+
+		FRGResourceHandle texture = {};
+	};
+
+	struct FRGResourceLifetime
+	{
+		uint16 mFirstPass = UINT16_MAX;
+		uint16 mLastPass = 0;
 	};
 
 	DECLARE_DELEGATE(FRGSetupPassDelegate, FRenderGraphBuilder&, FRGPassInfo& );
@@ -113,28 +189,20 @@ namespace Turbo
 	struct FRGPassInfo
 	{
 		FRGResourceHandle CreateTexture(const FRGTextureInfo& textureInfo);
-		FRGResourceHandle ReadTexture(FRGResourceHandle texture, vk::ImageLayout targetLayout);
+		FRGResourceHandle ReadTexture(FRGResourceHandle texture);
 		FRGResourceHandle WriteTexture(FRGResourceHandle texture);
 
 		FRGResourceHandle AddAttachment(FRGResourceHandle texture, uint32 mAttachmentIndex);
 		FRGResourceHandle SetDepthStencilAttachment(FRGResourceHandle texture);
 
-		FRGResourceHandle CreateBuffer(const FRGBufferInfo& bufferInfo);
-		FRGResourceHandle ReadBuffer(FRGResourceHandle handle);
-		FRGResourceHandle WriteBuffer(FRGResourceHandle handle);
-
 	public:
-		std::vector<FRGResourceHandle> mTextureCreations;
-		std::vector<FRGTextureReadInfo> mTextureReads;
+		std::vector<FRGResourceHandle> mTextureReads;
 		std::vector<FRGResourceHandle> mTextureWrites;
-
-		std::vector<FRGResourceHandle> mBufferReads;
-		std::vector<FRGResourceHandle> mBufferWrites;
 
 		std::array<FRGResourceHandle, kMaxColorAttachments> mColorAttachments;
 		FRGResourceHandle mDepthStencilAttachment = {};
 
-		ECommandQueueType mCommandQueue = ECommandQueueType::Main;
+		EPassType mPassType = EPassType::Graphics;
 
 		FRGExecutePassDelegate mExecutePass;
 
@@ -146,7 +214,6 @@ namespace Turbo
 	struct FRenderResources
 	{
 		std::vector<THandle<FTexture>> mTextures;
-		std::vector<THandle<FBuffer>> mBuffers;
 	};
 
 	struct FRenderGraphBuilder
@@ -154,26 +221,14 @@ namespace Turbo
 		FRGPassInfo& AddPass(FName passName, const FRGSetupPassDelegate& setup, FRGExecutePassDelegate execute);
 
 		void Compile();
-		void Run();
-
-		void CompileSynchronization();
+		void Execute(FGPUDevice& gpu, FCommandBuffer& cmd);
 
 	public:
 		std::vector<FRGPassInfo> mRenderPasses;
 
-
+		std::vector<std::vector<FRGImageMemoryBarrier>> mPerPassImageBarriers;
 
 		std::vector<FRGTextureInfo> mTextures;
-		std::vector<FRGBufferInfo> mBuffers;
+		entt::dense_map<FRGResourceHandle, FRGResourceLifetime> mResourceLifetimes;
 	};
 } // Turbo
-
-template<>
-struct std::hash<Turbo::FRGResourceHandle>
-{
-	size_t operator()(Turbo::FRGResourceHandle handle) const noexcept
-	{
-		return static_cast<uint64>(handle.mHandle) << 32
-			| static_cast<uint64>(handle.mOwner.mIndex);
-	}
-};
