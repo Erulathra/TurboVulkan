@@ -200,6 +200,7 @@ namespace Turbo
 		std::vector<FRGResourceHandle> mTextureWrites;
 
 		std::array<FRGResourceHandle, kMaxColorAttachments> mColorAttachments;
+		uint32 mNumColorAttachments = 0;
 		FRGResourceHandle mDepthStencilAttachment = {};
 
 		EPassType mPassType = EPassType::Graphics;

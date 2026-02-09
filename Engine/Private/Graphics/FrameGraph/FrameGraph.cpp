@@ -285,23 +285,26 @@ namespace Turbo
 		FRenderResources renderResources = {};
 		renderResources.mTextures.resize(mTextures.size());
 
+		// Allocate resources
+		for (uint32 textureId = 0; textureId < mTextures.size(); ++textureId)
+		{
+			const FRGTextureInfo textureInfo = mTextures[textureId];
+
+			FTextureBuilder builder = {
+				.mWidth = textureInfo.mWidth,
+				.mHeight = textureInfo.mHeight,
+				.mFlags = ETextureFlags::RenderTarget | ETextureFlags::StorageImage,
+				.mFormat = textureInfo.mFormat,
+				.mType = ETextureType::Texture2D,
+				.mName = textureInfo.mName
+			};
+			renderResources.mTextures[textureId] = gpu.CreateTexture(builder);
+		}
+
+
 		for (uint16 passId = 0; passId < mRenderPasses.size(); ++passId)
 		{
 			const FRGPassInfo& pass = mRenderPasses[passId];
-
-			std::vector<FRGResourceHandle> mAllResources;
-			mAllResources.reserve(pass.mTextureWrites.size() + pass.mTextureReads.size());
-			mAllResources.append_range(pass.mTextureReads);
-			mAllResources.append_range(pass.mTextureWrites);
-
-			// Create uninitialized resources
-			for (FRGResourceHandle resource : mAllResources)
-			{
-				if (renderResources.mTextures[resource.GetIndex()].IsValid() == false)
-				{
-					// TODO: create texture
-				}
-			}
 
 			// Add barrier
 			FRGPassImageBarriers& passImageBarriers = mPerPassImageBarriers[passId];
@@ -335,17 +338,49 @@ namespace Turbo
 
 			cmd.PipelineBarrier(dependencyInfo);
 
+			if (pass.mPassType == EPassType::Graphics)
+			{
+				FRenderingAttachments renderingAttachments;
+
+				// Bind color attachments
+				for (uint32 attachmentId = 0; attachmentId < pass.mNumColorAttachments; ++attachmentId)
+				{
+					const FRGResourceHandle attachmentResource = pass.mColorAttachments[attachmentId];
+					renderingAttachments.AddColorAttachment(renderResources.mTextures[attachmentResource.GetIndex()]);
+				}
+
+				// Bind depth stencil attachment (if valid)
+				if (pass.mDepthStencilAttachment.IsValid())
+				{
+					renderingAttachments.SetDepthAttachment(renderResources.mTextures[pass.mDepthStencilAttachment.GetIndex()]);
+				}
+
+				const FRGResourceHandle mainTextureHandle =
+					pass.mNumColorAttachments > 0
+						? pass.mColorAttachments[0]
+						: pass.mDepthStencilAttachment;
+
+				const FRGTextureInfo textureInfo = mTextures[mainTextureHandle.GetIndex()];
+				const glm::ivec2 outputSize = glm::ivec2(textureInfo.mWidth, textureInfo.mHeight);
+
+				cmd.BeginRendering(renderingAttachments);
+				cmd.SetViewport(FViewport::FromSize(outputSize));
+				cmd.SetScissor(FRect2DInt::FromSize(outputSize));
+			}
+
 			TURBO_CHECK(pass.mExecutePass.IsBound());
 			pass.mExecutePass.Execute(gpu, cmd, renderResources);
 
-			// Destroy unused textures
-			for (FRGResourceHandle resource : mAllResources)
+			if (pass.mPassType == EPassType::Graphics)
 			{
-				if (mResourceLifetimes[resource].mLastPass == passId)
-				{
-					// TODO: Destroy texture
-				}
+				cmd.EndRendering();
 			}
+		}
+
+		// Destroy resources
+		for (THandle<FTexture> textureHandle : renderResources.mTextures)
+		{
+			gpu.DestroyTexture(textureHandle);
 		}
 	}
 } // Turbo
