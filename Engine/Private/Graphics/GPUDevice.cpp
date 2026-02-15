@@ -389,7 +389,7 @@ namespace Turbo
 			pipelineCreateInfo.pColorBlendState = &colorBlending;
 
 			// Depth Stencil
-			// TODO: better depht handling
+			// TODO: better depth handling
 			vk::PipelineDepthStencilStateCreateInfo depthStencil = {};
 			depthStencil.depthWriteEnable = builder.mDepthStencilBuilder.mbEnableWriteDepth ? vk::True : vk::False;
 			depthStencil.depthTestEnable = builder.mDepthStencilBuilder.mbEnableDepthTest ? vk::True : vk::False;
@@ -979,14 +979,14 @@ namespace Turbo
 		TURBO_CHECK(mVkWindowSurface)
 
 		const FWindow& window = entt::locator<FWindow>::value();
-		const glm::ivec2& frameBufferSize = window.GetFrameBufferSize();
-		TURBO_LOG(LogGPUDevice, Info, "Creating swapchain of size: {}", frameBufferSize);
+		mFramebufferSize = window.GetFrameBufferSize();
+		TURBO_LOG(LogGPUDevice, Info, "Creating swapchain of size: {}", mFramebufferSize);
 
 		vkb::SwapchainBuilder swapchainBuilder {mVkPhysicalDevice, mVkDevice, mVkWindowSurface};
 		vkb::Result<vkb::Swapchain> buildSwapchainResult = swapchainBuilder
 			.set_desired_present_mode(static_cast<VkPresentModeKHR>(GetBestPresentMode()))
 			.set_desired_format(vk::SurfaceFormatKHR{ vk::Format::eB8G8R8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear })
-			.set_desired_extent(frameBufferSize.x, frameBufferSize.y)
+			.set_desired_extent(mFramebufferSize.x, mFramebufferSize.y)
 			.add_image_usage_flags( static_cast<VkImageUsageFlags>(vk::ImageUsageFlagBits::eTransferDst))
 			.build();
 
@@ -1018,8 +1018,8 @@ namespace Turbo
 
 			textureCold->mFormat = mVkSurfaceFormat.format;
 
-			textureCold->mWidth = frameBufferSize.x;
-			textureCold->mHeight = frameBufferSize.y;
+			textureCold->mWidth = mFramebufferSize.x;
+			textureCold->mHeight = mFramebufferSize.y;
 
 			textureCold->mHandle = handle;
 
@@ -1141,10 +1141,6 @@ namespace Turbo
 		DestroySwapChain();
 		CreateSwapchain();
 
-		const FWindow& window = entt::locator<FWindow>::value();
-		const glm::ivec2& frameBufferSize = window.GetFrameBufferSize();
-		entt::locator<FGeometryBuffer>::value().Resize(frameBufferSize);
-
 		mbRequestedSwapchainResize = false;
 	}
 
@@ -1236,18 +1232,18 @@ namespace Turbo
 		TRACE_ZONE_SCOPED()
 
 		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
-		const THandle<FTexture> swapChainTexture = mSwapChainTextures[mCurrentSwapchainImageIndex];
 
-		TRACE_GPU_COLLECT(mTraceGpuCtx, frameData.mMainCommandBuffer);
+		FCommandBuffer& cmd = *frameData.mMainCommandBuffer;
+		TRACE_GPU_COLLECT(mTraceGpuCtx, cmd);
 
-		frameData.mMainCommandBuffer->End();
+		cmd.End();
 
 		UpdateBindlessResources();
 
 		// Submit command buffer
 		const vk::Semaphore submitSemaphore = mSubmitSemaphores[mCurrentSwapchainImageIndex];
 
-		const vk::CommandBufferSubmitInfo bufferSubmitInfo = frameData.mMainCommandBuffer->CreateSubmitInfo();
+		const vk::CommandBufferSubmitInfo bufferSubmitInfo = cmd.CreateSubmitInfo();
 		const vk::SemaphoreSubmitInfo waitSemaphore = VkInit::SemaphoreSubmitInfo(frameData.mImageAcquiredSemaphore, vk::PipelineStageFlagBits2::eColorAttachmentOutput);
 		const vk::SemaphoreSubmitInfo signalSemaphore = VkInit::SemaphoreSubmitInfo(submitSemaphore, vk::PipelineStageFlagBits2::eAllGraphics);
 		const vk::SubmitInfo2 submitInfo = VkInit::SubmitInfo(bufferSubmitInfo, &signalSemaphore, &waitSemaphore);
@@ -1269,7 +1265,10 @@ namespace Turbo
 		}
 
 		CHECK_VULKAN_HPP_MSG(presentResult, "Cannot present swapchain image.");
-		AdvanceFrameCounters();
+
+		TURBO_CHECK(mNumSwapChainImages > 0)
+		mBufferedFrameId = (mBufferedFrameId + 1) % kMaxBufferedFrames;
+		++mRenderedFrames;
 
 		return true;
 	}
@@ -1483,14 +1482,6 @@ namespace Turbo
 		mBindlessResourcesLayout.Reset();
 		mBindlessResourcesPool.Reset();
 		mBindlessResourcesSet.Reset();
-	}
-
-	void FGPUDevice::AdvanceFrameCounters()
-	{
-		TURBO_CHECK(mNumSwapChainImages > 0)
-		mBufferedFrameId = (mBufferedFrameId + 1) % kMaxBufferedFrames;
-
-		++mRenderedFrames;
 	}
 
 	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture, FTextureCold* textureCold)

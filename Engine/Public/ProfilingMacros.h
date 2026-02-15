@@ -28,8 +28,9 @@ using FTraceGPUCtx = TracyVkCtx;
 	TracyVkContext(INSTANCE, PHYSICAL_DEVICE, DEVICE, QUEUE, (COMMAND_BUFFER)->GetVkCommandBuffer(), INSTANCE_PROC_ADDR, DEVICE_PROC_ADDR)
 
 #define TRACE_DESTROY_GPU_CTX(CTX) TracyVkDestroy(CTX)
-#define TRACE_GPU_COLLECT(CTX, COMMAND_BUFFER) TracyVkCollect(CTX, (COMMAND_BUFFER)->GetVkCommandBuffer())
+#define TRACE_GPU_COLLECT(CTX, COMMAND_BUFFER) TracyVkCollect(CTX, (COMMAND_BUFFER).GetVkCommandBuffer())
 
+#define TRACE_GPU_SCOPED(GPU, COMMAND_BUFFER, NAME) TracyVkZone((GPU).GetTraceGpuCtx(), (COMMAND_BUFFER).GetVkCommandBuffer(), NAME);
 #define TRACE_GPU_SCOPED(GPU, COMMAND_BUFFER, NAME) TracyVkZone((GPU).GetTraceGpuCtx(), (COMMAND_BUFFER).GetVkCommandBuffer(), NAME);
 
 #define TRACE_MARK_FRAME() tracy::Profiler::SendFrameMark( nullptr )

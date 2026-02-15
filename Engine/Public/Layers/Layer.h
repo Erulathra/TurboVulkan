@@ -1,10 +1,12 @@
 #pragma once
 #include "Event.h"
 #include "Core/Delegate.h"
-#include "Graphics/Resources.h"
+#include "Graphics/FrameGraph/FrameGraph.h"
+#include "Graphics/FrameGraph/FrameGraphHelpers.h"
 
 namespace Turbo
 {
+	struct FRGResourceHandle;
 	class FCommandBuffer;
 	class FGPUDevice;
 
@@ -23,9 +25,9 @@ namespace Turbo
 		virtual void BeginTick(double deltaTime) {};
 		virtual void EndTick(double deltaTime) {};
 
-		virtual void PostBeginFrame(FGPUDevice& gpu, FCommandBuffer& cmd) {};
-		virtual void RenderScene(FGPUDevice& gpu, FCommandBuffer& cmd) {};
-		virtual void BeginPresentingFrame(FGPUDevice& gpu, FCommandBuffer& cmd, THandle<FTexture> presentImage) {};
+		virtual void PostBeginFrame(FRenderGraphBuilder& graphBuilder) {};
+		virtual void RenderScene(FRenderGraphBuilder& graphBuilder) {};
+		virtual void BeginPresentingFrame(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentImage) {};
 
 		virtual bool ShouldTick() { return false; };
 		virtual bool ShouldRender() { return false; };

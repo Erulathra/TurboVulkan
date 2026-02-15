@@ -57,6 +57,7 @@ namespace Turbo
 
 		void ImmediateSubmit(const FOnImmediateSubmit& immediateSubmitDelegate);
 
+		[[nodiscard]] glm::uint2 GetFrameBufferSize() const { return mFramebufferSize; }
 		[[nodiscard]] uint32 GetBufferedFrameId() const { return mBufferedFrameId; }
 		[[nodiscard]] uint32 GetNumRenderedFrames() const { return mRenderedFrames; }
 		[[nodiscard]] uint32 GetNumBufferedFrames() const { return kMaxBufferedFrames; }
@@ -195,7 +196,6 @@ namespace Turbo
 
 		/** Rendering interface */
 	private:
-		void AdvanceFrameCounters();
 		void UpdateBindlessResources();
 
 		/** Rendering interface end */
@@ -224,8 +224,8 @@ namespace Turbo
 
 		/** Resource pools */
 	private:
-		TPoolHeap<FBuffer, 4096, FBufferCold> mBufferPool;
-		TPoolHeap<FTexture, kTexturePoolSize, FTextureCold> mTexturePool;
+		TPoolHeap<FBuffer, 4096, FBufferCold, true> mBufferPool;
+		TPoolHeap<FTexture, kTexturePoolSize, FTextureCold, true> mTexturePool;
 		TPoolHeap<FSampler, kSamplerPoolSize, FSamplerCold> mSamplerPool;
 		TPoolHeap<FPipeline, 128> mPipelinePool;
 		TPoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
@@ -278,6 +278,7 @@ namespace Turbo
 
 		std::array<THandle<FTexture>, kMaxSwapChainImages> mSwapChainTextures;
 		std::array<vk::Semaphore, kMaxSwapChainImages> mSubmitSemaphores;
+		glm::uint2 mFramebufferSize = glm::uint2(0);
 
 		uint32 mNumSwapChainImages = 0;
 		/** Note that this is an index of swap chain image */

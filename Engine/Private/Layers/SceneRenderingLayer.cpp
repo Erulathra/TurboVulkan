@@ -84,6 +84,7 @@ namespace Turbo
 
 	void FSceneRenderingLayer::RenderMeshes(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world)
 	{
+#if 0
 		TRACE_ZONE_SCOPED()
 
 		entt::registry& registry = world->mRegistry;
@@ -287,10 +288,12 @@ namespace Turbo
 			TRACE_PLOT_CONFIGURE(kPipelineSwitchesName, EPlotFormat::Number, true, true, 0xFFFF00)
 			TRACE_PLOT(kPipelineSwitchesName, numPipelineSwitches)
 		}
+#endif
 	}
 
-	void FSceneRenderingLayer::RenderScene(FGPUDevice& gpu, FCommandBuffer& cmd)
+	void FSceneRenderingLayer::RenderScene(FRenderGraphBuilder& graphBuilder)
 	{
+#if 0
 		TRACE_ZONE_SCOPED_N("Render Scene")
 
 		FWorld* world = gEngine->GetWorld();
@@ -305,6 +308,7 @@ namespace Turbo
 
 		UpdateViewData(gpu, cmd, world);
 		RenderMeshes(gpu, cmd, world);
+#endif
 	}
 
 	bool FSceneRenderingLayer::ShouldRender()

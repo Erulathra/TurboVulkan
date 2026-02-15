@@ -488,8 +488,6 @@ namespace Turbo
 
 	class FDelegateBase
 	{
-		GENERATED_BODY_MINIMAL(FDelegateBase)
-
 	public:
 		//Default constructor
 		constexpr FDelegateBase() noexcept
@@ -753,8 +751,6 @@ namespace Turbo
 	template <EDelegateExecutionOrder ExecutionOrder, typename... Args>
 	class TMulticastDelegate : public FDelegateBase
 	{
-		GENERATED_BODY_MINIMAL(TMulticastDelegate, FDelegateBase)
-
 	public:
 		using DelegateT = TDelegate<void, Args...>;
 
@@ -815,7 +811,7 @@ namespace Turbo
 
 		void Clear() override
 		{
-			Super::Clear();
+			FDelegateBase::Clear();
 
 			RemoveAll();
 		}

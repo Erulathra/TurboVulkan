@@ -81,8 +81,7 @@ namespace Turbo
 
 		EngineMaterials::InitEngineMaterials();
 
-		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::emplace(&gpu);
-		geometryBuffer.Init(window.GetFrameBufferSize());
+		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::emplace();
 
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
 		inputSystem.Init();
@@ -157,9 +156,9 @@ namespace Turbo
 
 		{
 			TRACE_ZONE_SCOPED_N("Services: End Tick")
-			for (auto layerIt = layerStack.rbegin(); layerIt != layerStack.rend(); ++layerIt)
+			for (const TSharedPtr<ILayer>& layerIt : std::ranges::reverse_view(layerStack))
 			{
-				if (ILayer* layer = layerIt->get();
+				if (ILayer* layer = layerIt.get();
 					layer->ShouldTick())
 				{
 					layer->EndTick(deltaTime);
@@ -171,16 +170,18 @@ namespace Turbo
 
 		if (gpu.BeginFrame())
 		{
-			FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
-
 			FCommandBuffer& cmd = gpu.GetMainCommandBuffer();
+			FRenderGraphBuilder graphBuilder;
 
-			const THandle<FTexture>& colorTexture = geometryBuffer.GetColor();
-			cmd.TransitionImage(colorTexture, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
-			cmd.ClearImage(geometryBuffer.GetColor());
+			FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
+			geometryBuffer.Init(graphBuilder, gpu.GetFrameBufferSize());
 
-			cmd.TransitionImage(colorTexture, vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
-			cmd.TransitionImage(geometryBuffer.GetDepth(), vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal);
+			const THandle<FTexture> presentHandle = gpu.GetPresentImage();
+			FRGResourceHandle presentRes = graphBuilder.RegisterExternalTexture(
+				presentHandle,
+				ETextureLayout::Undefined,
+				ETextureLayout::PresentSrc
+			);
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
@@ -188,7 +189,7 @@ namespace Turbo
 				{
 					if (layer->ShouldRender())
 					{
-						layer->PostBeginFrame(gpu, cmd);
+						layer->PostBeginFrame(graphBuilder);
 					}
 				}
 			}
@@ -199,28 +200,29 @@ namespace Turbo
 				{
 					if (layer->ShouldRender())
 					{
-						layer->RenderScene(gpu, cmd);
+						layer->RenderScene(graphBuilder);
 					}
 				}
 			}
 
-			const THandle<FTexture> presentImage = gpu.GetPresentImage();
-			cmd.TransitionImage(presentImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
-			geometryBuffer.BlitResultToTexture(cmd, presentImage);
+			// TODO: enable me
+			// geometryBuffer.BlitToPresent(graphBuilder, presentRes);
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")
-				for (auto layerIt = layerStack.rbegin(); layerIt != layerStack.rend(); ++layerIt)
+				for (const TSharedPtr<ILayer>& layerIt : std::ranges::reverse_view(layerStack))
 				{
-					if (ILayer* layer = layerIt->get();
+					if (ILayer* layer = layerIt.get();
 						layer->ShouldRender())
 					{
-						layer->BeginPresentingFrame(gpu, cmd, presentImage);
+						layer->BeginPresentingFrame(graphBuilder, presentRes);
 					}
 				}
 			}
 
-			cmd.TransitionImage(presentImage, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
+			graphBuilder.Compile();
+			graphBuilder.Execute(gpu, cmd);
+
 			gpu.PresentFrame();
 		}
 
@@ -266,7 +268,6 @@ namespace Turbo
 
 		EngineResources::DestroyEngineResources();
 
-		entt::locator<FGeometryBuffer>::value().Destroy();
 		entt::locator<FAssetManager>::value().Destroy(gpu);
 		entt::locator<FMaterialManager>::value().Destroy(gpu);
 

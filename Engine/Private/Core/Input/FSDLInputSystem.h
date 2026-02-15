@@ -10,8 +10,6 @@ namespace Turbo
 {
 	class FSDLInputSystem final : public IInputSystem
 	{
-		GENERATED_BODY(FSDLInputSystem, IInputSystem)
-
 	private:
 		FSDLInputSystem() = default;
 

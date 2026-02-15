@@ -21,7 +21,8 @@ namespace Turbo
 
 	FName FImGuiLayer::GetName()
 	{
-		return mClassName;
+		static FName Name("ImGUILayer");
+		return Name;
 	}
 
 	void FImGuiLayer::Start()
@@ -104,16 +105,26 @@ namespace Turbo
 		ImGui::Render();
 	}
 
-	void FImGuiLayer::BeginPresentingFrame(FGPUDevice& gpu, FCommandBuffer& cmd, THandle<FTexture> PresentImage)
+	void FImGuiLayer::BeginPresentingFrame(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentImage)
 	{
-		TRACE_ZONE_SCOPED()
-		TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGui");
+		ILayer::BeginPresentingFrame(graphBuilder, presentImage);
 
-		FRenderingAttachments renderingAttachments;
-		renderingAttachments.AddColorAttachment(PresentImage);
-
-		cmd.BeginRendering(renderingAttachments);
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.GetVkCommandBuffer());
-		cmd.EndRendering();
+		static FName ImGUIPassName("RenderImGUI");
+		graphBuilder.AddPass(
+			ImGUIPassName,
+			FRGSetupPassDelegate::CreateLambda(
+				[&](FRGPassInfo& passInfo)
+				{
+					passInfo.mPassType = EPassType::Graphics;
+					passInfo.AddAttachment(presentImage, 0);
+				}),
+			FRGExecutePassDelegate::CreateLambda(
+				[](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+				{
+					TRACE_ZONE_SCOPED_N("Rendering ImGui")
+					TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGUI")
+					ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.GetVkCommandBuffer());
+				})
+			);
 	}
 } // Turbo

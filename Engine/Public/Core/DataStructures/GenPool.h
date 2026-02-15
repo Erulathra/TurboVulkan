@@ -6,7 +6,7 @@ namespace Turbo
 {
 	struct FDummyColdType {};
 
-	template<typename HotType, FHandle::IndexType size, typename ColdType = FDummyColdType>
+	template<typename HotType, FHandle::IndexType size, typename ColdType = FDummyColdType, bool bAllowGenReuse = false>
 		requires (size < FHandle::kMaxIndex)
 	class TGenPool
 	{
@@ -57,7 +57,15 @@ namespace Turbo
 			--mUsedIndices;
 
 			mFreeIndices[mFreeIndicesHead] = handle.GetIndex();
-			++mGenerations[handle.GetIndex()];
+
+			if constexpr (bAllowGenReuse)
+			{
+				mGenerations[handle.GetIndex()] = (mGenerations[handle.GetIndex()] + 1) % FHandle::kMaxGeneration;
+			}
+			else
+			{
+				++mGenerations[handle.GetIndex()];
+			}
 		}
 
 		HotType* Access(THandle<HotType> handle)
@@ -134,11 +142,11 @@ namespace Turbo
 		FHandle::IndexType mUsedIndices = 0;
 	};
 
-	template<typename HotType, FHandle::IndexType size, typename ColdType = FDummyColdType>
+	template<typename HotType, FHandle::IndexType size, typename ColdType = FDummyColdType, bool bAllowGenReuse = false>
 		requires (size < FHandle::kMaxIndex)
 	class TPoolHeap
 	{
-		using TPoolType = TGenPool<HotType, size, ColdType>;
+		using TPoolType = TGenPool<HotType, size, ColdType, bAllowGenReuse>;
 	public:
 		TPoolHeap() { mPoolPtr = MakeUnique<TPoolType>(); }
 		TPoolType* operator->() { return mPoolPtr.get(); }

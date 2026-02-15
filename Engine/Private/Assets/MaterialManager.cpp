@@ -37,7 +37,7 @@ namespace Turbo
 
 		pipelineBuilder.GetPipelineRendering()
 			.AddColorAttachment(FGeometryBuffer::kColorFormat)
-			.SetDepthAttachment(FGeometryBuffer::kDepthFormat);
+			.SetDepthAttachment(FGeometryBuffer::kDepthStencilFormat);
 
 		return pipelineBuilder;
 	}

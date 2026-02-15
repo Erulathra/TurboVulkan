@@ -74,8 +74,6 @@ namespace Turbo
 
 	class IInputSystem
 	{
-		GENERATED_BODY(IInputSystem)
-
 	public:
 		virtual ~IInputSystem() = default;
 

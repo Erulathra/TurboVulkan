@@ -141,31 +141,6 @@ constexpr bool any (ENUM_TYPE lhs) noexcept { return static_cast<INTEGER_TYPE>(l
 	CLASS_NAME(CLASS_NAME const&) = delete;				\
 	CLASS_NAME& operator=(CLASS_NAME const&) = delete;	\
 
-#define EXPAND(X) X
-#define GET_MACRO_TWO_VARIANTS(_1, _2, NAME, ...) NAME
-#define GENERATED_BODY(...) EXPAND( GET_MACRO_TWO_VARIANTS(__VA_ARGS__, GENERATED_BODY_2, GENERATED_BODY_1)(__VA_ARGS__) )
-
-#define GENERATED_BODY_MINIMAL(...) EXPAND( GET_MACRO_TWO_VARIANTS(__VA_ARGS__, GENERATED_BODY_MINIMAL_2, GENERATED_BODY_MINIMAL_1)(__VA_ARGS__) )
-
-#define GENERATED_BODY_MINIMAL_1(THIS_CLASS)						\
-private:															\
-	using ThisClass = THIS_CLASS;
-
-#define GENERATED_BODY_MINIMAL_2(THIS_CLASS, SUPER_CLASS)			\
-private:															\
-	using ThisClass = THIS_CLASS;									\
-	using Super = SUPER_CLASS;
-
-#define GENERATED_BODY_1(THIS_CLASS)								\
-public:																\
-	static inline const FName mClassName =  FName (#THIS_CLASS);	\
-GENERATED_BODY_MINIMAL(THIS_CLASS)
-
-#define GENERATED_BODY_2(THIS_CLASS, SUPER_CLASS)					\
-public:																\
-	static inline const FName mClassName =  FName (#THIS_CLASS);	\
-GENERATED_BODY_MINIMAL(THIS_CLASS, SUPER_CLASS)
-
 #if WITH_PROFILER
 
 #endif

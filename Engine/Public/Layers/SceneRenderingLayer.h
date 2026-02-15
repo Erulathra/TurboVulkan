@@ -27,7 +27,7 @@ namespace Turbo
 			return name;
 		}
 
-		virtual void RenderScene(FGPUDevice& gpu, FCommandBuffer& cmd) override;
+		virtual void RenderScene(FRenderGraphBuilder& graphBuilder) override;
 		virtual bool ShouldRender() override;
 
 	private:

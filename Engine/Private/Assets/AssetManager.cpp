@@ -16,6 +16,7 @@
 #include "Core/Utils/StringUtils.h"
 #include "World/World.h"
 
+
 namespace
 {
 	void LogGLTFError(std::string_view message, fastgltf::Error error)

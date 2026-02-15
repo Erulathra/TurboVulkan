@@ -9,10 +9,10 @@ namespace Turbo
 	void FSDLInputSystem::Init()
 	{
 		FWindow& SDLWindow = entt::locator<FWindow>::value();
-		SDLWindow.BindKeyboardEvent(FOnSDLKeyboardEvent::CreateRaw(this, &ThisClass::HandleSDLKeyboardEvent));
-		SDLWindow.BindMouseButtonEvent(FOnSDLMouseButtonEvent::CreateRaw(this, &ThisClass::HandleSDLMouseButtonEvent));
-		SDLWindow.BindMouseMotionEvent(FOnSDLMouseMotionEvent::CreateRaw(this, &ThisClass::HandleSDLMouseMotionEvent));
-		SDLWindow.BindMouseWheelEvent(FOnSDLMouseWheelEvent::CreateRaw(this, &ThisClass::HandleSDLMouseWheelEvent));
+		SDLWindow.BindKeyboardEvent(FOnSDLKeyboardEvent::CreateRaw(this, &FSDLInputSystem::HandleSDLKeyboardEvent));
+		SDLWindow.BindMouseButtonEvent(FOnSDLMouseButtonEvent::CreateRaw(this, &FSDLInputSystem::HandleSDLMouseButtonEvent));
+		SDLWindow.BindMouseMotionEvent(FOnSDLMouseMotionEvent::CreateRaw(this, &FSDLInputSystem::HandleSDLMouseMotionEvent));
+		SDLWindow.BindMouseWheelEvent(FOnSDLMouseWheelEvent::CreateRaw(this, &FSDLInputSystem::HandleSDLMouseWheelEvent));
 	}
 
 	void FSDLInputSystem::Destroy()

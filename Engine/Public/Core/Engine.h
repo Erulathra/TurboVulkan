@@ -36,8 +36,6 @@ namespace Turbo
 
 	class FEngine
 	{
-		GENERATED_BODY(FEngine)
-
 	private:
 		explicit FEngine();
 
