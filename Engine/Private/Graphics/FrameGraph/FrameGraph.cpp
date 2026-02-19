@@ -221,8 +221,6 @@ namespace Turbo
 						readWriteResources.insert(read);
 						break;
 					}
-
-					writeOnlyResources.push_back(write);
 				}
 			}
 
@@ -231,6 +229,14 @@ namespace Turbo
 				if (readWriteResources.contains(read) == false)
 				{
 					readOnlyResources.push_back(read);
+				}
+			}
+
+			for (FRGResourceHandle write : pass.mTextureWrites)
+			{
+				if (readWriteResources.contains(write) == false)
+				{
+					writeOnlyResources.push_back(write);
 				}
 			}
 
@@ -244,6 +250,7 @@ namespace Turbo
 					|| srcData.mLayout != ETextureLayout::ReadOnly)
 				{
 					FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
+					newBarrier.mTexture = read;
 					newBarrier.mOldLayout = srcData.mLayout;
 					newBarrier.mNewLayout = ETextureLayout::ReadOnly;
 
@@ -262,6 +269,7 @@ namespace Turbo
 			for (FRGResourceHandle write : writeOnlyResources)
 			{
 				FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
+				newBarrier.mTexture = write;
 				newBarrier.mDstStageMask = FindStageMask(pass.mPassType);
 				newBarrier.mDstAccessMask = FindAccessMask(EResourceAccess::Write);
 
@@ -308,6 +316,7 @@ namespace Turbo
 				TURBO_CHECK(pass.mPassType != EPassType::Compute)
 
 				FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
+				newBarrier.mTexture = readWrite;
 
 				auto foundSrcData = resourceData.find(readWrite);
 				TURBO_CHECK_MSG(foundSrcData != resourceData.end(), "Pass tries to read non existent resource")
@@ -354,6 +363,7 @@ namespace Turbo
 	void FRenderGraphBuilder::Execute(FGPUDevice& gpu, FCommandBuffer& cmd)
 	{
 		TRACE_ZONE_SCOPED()
+		TURBO_LOG(LogRenderGraph, Display, "Executing render graph");
 
 		FRenderResources renderResources = {};
 		renderResources.mTextures.reserve(mTextures.size() + mExternalTextures.size());
@@ -373,18 +383,29 @@ namespace Turbo
 			};
 
 			const FRGResourceHandle handle(ERGResourceType::Texture, textureId, false);
-			renderResources.mTextures.emplace(handle, gpu.CreateTexture(builder));
+			const THandle<FTexture> texture = gpu.CreateTexture(builder);
+			TURBO_CHECK(texture)
+
+			renderResources.mTextures.emplace(handle, texture);
+
+			TURBO_LOG(LogRenderGraph, Display, "Allocating texture: {}", textureInfo.mName);
 		}
 
 		for (uint32 externalTextureId = 0; externalTextureId < mExternalTextures.size(); ++externalTextureId)
 		{
+			const THandle<FTexture> texture = mExternalTextures[externalTextureId].mTextureHandle;
+			TURBO_CHECK(texture)
+
 			const FRGResourceHandle handle(ERGResourceType::Texture, externalTextureId, true);
-			renderResources.mTextures.emplace(handle, mExternalTextures[externalTextureId].mTextureHandle);
+			renderResources.mTextures.emplace(handle, texture);
+
+			TURBO_LOG(LogRenderGraph, Display, "Registering external texture: {}", mExternalTextures[externalTextureId].mTextureInfo.mName);
 		}
 
 		for (uint32 passId = 0; passId < mRenderPasses.size(); ++passId)
 		{
 			const FRGPassInfo& pass = mRenderPasses[passId];
+			TURBO_LOG(LogRenderGraph, Display, "Begin render pass: {}", pass.mName);
 
 			// Add barrier
 			FRGPassImageBarriers& passImageBarriers = mPerPassImageBarriers[passId];
@@ -394,8 +415,15 @@ namespace Turbo
 
 			for (const FRGImageMemoryBarrier& rgBarrier : passImageBarriers)
 			{
-				THandle<FTexture> textureHandle = renderResources.mTextures[rgBarrier.mTexture];
+				THandle<FTexture> textureHandle = renderResources.mTextures.at(rgBarrier.mTexture);
 				imageBarriers.push_back(rgBarrier.ToVkImageBarrier(gpu, textureHandle));
+
+				TURBO_LOG(
+					LogRenderGraph, Display, "[Image Barrier] Texture: {}; {} -> {}",
+					gpu.AccessTextureCold(textureHandle)->mName,
+					magic_enum::enum_name(rgBarrier.mOldLayout),
+					magic_enum::enum_name(rgBarrier.mNewLayout)
+				);
 			}
 
 			vk::DependencyInfo dependencyInfo = {};
@@ -414,14 +442,25 @@ namespace Turbo
 					if (pass.mColorAttachments[attachmentId].IsValid())
 					{
 						const FRGResourceHandle attachmentResource = pass.mColorAttachments[attachmentId];
-						renderingAttachments.AddColorAttachment(renderResources.mTextures[attachmentResource]);
+						renderingAttachments.AddColorAttachment(renderResources.mTextures.at(attachmentResource));
+
+						TURBO_LOG(
+							LogRenderGraph, Display, "[GraphicsPass] Bind {} as color attachment {}",
+							gpu.AccessTextureCold(renderResources.mTextures.at(attachmentResource))->mName,
+							attachmentId
+						);
 					}
 				}
 
 				// Bind depth stencil attachment (if valid)
 				if (pass.mDepthStencilAttachment.IsValid())
 				{
-					renderingAttachments.SetDepthAttachment(renderResources.mTextures[pass.mDepthStencilAttachment]);
+					renderingAttachments.SetDepthAttachment(renderResources.mTextures.at(pass.mDepthStencilAttachment));
+
+					TURBO_LOG(
+						LogRenderGraph, Display, "[GraphicsPass] Bind {} as depth attachment",
+						gpu.AccessTextureCold(renderResources.mTextures[pass.mDepthStencilAttachment])->mName
+					);
 				}
 
 				const FRGResourceHandle mainTextureHandle =
@@ -440,13 +479,18 @@ namespace Turbo
 				cmd.BeginRendering(renderingAttachments);
 				cmd.SetViewport(FViewport::FromSize(outputSize));
 				cmd.SetScissor(FRect2DInt::FromSize(outputSize));
+
+				TURBO_LOG(LogRenderGraph, Display, "[GraphicsPass] Begin rendering. Viewport: {} Scissors: {}", outputSize, outputSize);
 			}
 
 			TURBO_CHECK(pass.mExecutePass.IsBound());
+
+			TURBO_LOG(LogRenderGraph, Display, "Execute: {}", pass.mName);
 			pass.mExecutePass.Execute(gpu, cmd, renderResources);
 
 			if (pass.mPassType == EPassType::Graphics)
 			{
+				TURBO_LOG(LogRenderGraph, Display, "[GraphicsPass] End rendering.");
 				cmd.EndRendering();
 			}
 
@@ -459,17 +503,26 @@ namespace Turbo
 			auto foundIt = renderResources.mTextures.find(handle);
 			TURBO_CHECK(foundIt != renderResources.mTextures.end())
 
+			TURBO_LOG(LogRenderGraph, Display, "Destroying texture: {}", gpu.AccessTextureCold(foundIt->second)->mName);
 			gpu.DestroyTexture(foundIt->second);
 		}
 
 		// Transition external resources to their target layouts
+		TURBO_LOG(LogRenderGraph, Display, "Final external resources barrier.");
 		std::vector<vk::ImageMemoryBarrier2> imageBarriers;
 		imageBarriers.reserve(mExternalResourcesBarriers.size());
 
 		for (const FRGImageMemoryBarrier& rgBarrier : mExternalResourcesBarriers)
 		{
-			THandle<FTexture> textureHandle = renderResources.mTextures[rgBarrier.mTexture];
+			const THandle<FTexture> textureHandle = renderResources.mTextures.at(rgBarrier.mTexture);
 			imageBarriers.push_back(rgBarrier.ToVkImageBarrier(gpu, textureHandle));
+
+			TURBO_LOG(
+				LogRenderGraph, Display, "[Image Barrier] Texture: {}; {} -> {}",
+				gpu.AccessTextureCold(textureHandle)->mName,
+				magic_enum::enum_name(rgBarrier.mOldLayout),
+				magic_enum::enum_name(rgBarrier.mNewLayout)
+			);
 		}
 
 		vk::DependencyInfo dependencyInfo = {};

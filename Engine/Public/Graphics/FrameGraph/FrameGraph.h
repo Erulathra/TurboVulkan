@@ -4,6 +4,8 @@
 #include "Graphics/GraphicsCore.h"
 #include "Graphics/FrameGraph/FrameGraphHelpers.h"
 
+DECLARE_LOG_CATEGORY(LogRenderGraph, Info, Display)
+
 namespace Turbo
 {
 	struct FRenderResources;
