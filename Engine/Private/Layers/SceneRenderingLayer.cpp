@@ -1,6 +1,5 @@
 #include "Layers/SceneRenderingLayer.h"
 
-#include "../../../cmake-build-shipping/_deps/enkits-src/src/TaskScheduler.h"
 #include "Assets/AssetManager.h"
 #include "Assets/EngineResources.h"
 #include "Assets/StaticMesh.h"

@@ -35,13 +35,7 @@ function(setup_project_directory TARGET)
             ${CMAKE_CURRENT_BINARY_DIR}/Content
     )
 
-    add_custom_command(
-            TARGET ${TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E create_symlink
-            ${CMAKE_SOURCE_DIR}/Content
-            ${CMAKE_CURRENT_BINARY_DIR}/Content
-    )
-
+    file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/Saved)
     add_custom_command(
             TARGET ${TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E create_symlink
