@@ -48,7 +48,7 @@ namespace Turbo
 		gpu.DestroyBuffer(mViewDataUniformBuffer);
 	}
 
-	void FSceneRenderingLayer::UpdateViewData(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world)
+	void FSceneRenderingLayer::UpdateViewData(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world, FViewData& viewData)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -61,17 +61,17 @@ namespace Turbo
 		const FCameraCache& cameraCache = mainCameraView.get<FCameraCache>(mainCameraEntity);
 		const FWorldTransform& cameraTransform = mainCameraView.get<FWorldTransform>(mainCameraEntity);
 
-		mViewData.mProjectionMatrix = cameraCache.mProjectionMatrix;
-		mViewData.mViewMatrix = glm::inverse(cameraTransform.mTransform);
-		mViewData.mWorldToProjection = mViewData.mProjectionMatrix * mViewData.mViewMatrix;
+		viewData.mProjectionMatrix = cameraCache.mProjectionMatrix;
+		viewData.mViewMatrix = glm::inverse(cameraTransform.mTransform);
+		viewData.mWorldToProjection = viewData.mProjectionMatrix * viewData.mViewMatrix;
 
-		mViewData.mTime = FCoreTimer::TimeFromEngineStart();
-		mViewData.mWorldTime = FCoreTimer::TimeFromEngineStart();
-		mViewData.mDeltaTime = FCoreTimer::DeltaTime();
-		mViewData.mFrameIndex = gpu.GetNumRenderedFrames();
+		viewData.mTime = FCoreTimer::TimeFromEngineStart();
+		viewData.mWorldTime = FCoreTimer::TimeFromEngineStart();
+		viewData.mDeltaTime = FCoreTimer::DeltaTime();
+		viewData.mFrameIndex = gpu.GetNumRenderedFrames();
 
 		FBuffer* viewDataBuffer = gpu.AccessBuffer(mViewDataUniformBuffer);
-		std::memcpy(viewDataBuffer->GetMappedAddress(), &mViewData, sizeof(FViewData));
+		std::memcpy(viewDataBuffer->GetMappedAddress(), &viewData, sizeof(FViewData));
 		cmd.BufferBarrier(
 			mViewDataUniformBuffer,
 			vk::AccessFlagBits2::eHostWrite,
@@ -81,9 +81,8 @@ namespace Turbo
 		);
 	}
 
-	void FSceneRenderingLayer::RenderMeshes(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world)
+	void FSceneRenderingLayer::RenderMeshes(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world, const FViewData& viewData)
 	{
-#if 0
 		TRACE_ZONE_SCOPED()
 
 		entt::registry& registry = world->mRegistry;
@@ -197,19 +196,6 @@ namespace Turbo
 		{
 			TRACE_ZONE_SCOPED_N("Render meshes")
 
-			const FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
-
-			const THandle<FTexture> drawImageHandle = geometryBuffer.GetColor();
-			const THandle<FTexture> dephtImageHandle = geometryBuffer.GetDepth();
-
-			FRenderingAttachments renderingAttachments;
-			renderingAttachments.AddColorAttachment(drawImageHandle);
-			renderingAttachments.SetDepthAttachment(dephtImageHandle);
-
-			cmd.BeginRendering(renderingAttachments);
-			cmd.SetViewport(FViewport::FromSize(geometryBuffer.GetResolution()));
-			cmd.SetScissor(FRect2DInt::FromSize(geometryBuffer.GetResolution()));
-
 			const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 			const FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
@@ -257,8 +243,8 @@ namespace Turbo
 					}
 
 					FMaterial::PushConstants pushConstants = {};
-					pushConstants.mModelToProj = mViewData.mWorldToProjection * drawCallIt->mWorldTransform;
-					pushConstants.mModelToView = mViewData.mViewMatrix * drawCallIt->mWorldTransform;
+					pushConstants.mModelToProj = viewData.mWorldToProjection * drawCallIt->mWorldTransform;
+					pushConstants.mModelToView = viewData.mViewMatrix * drawCallIt->mWorldTransform;
 					pushConstants.mInvModelToView = glm::float3x3(glm::transpose(glm::inverse(pushConstants.mModelToView)));
 
 					pushConstants.mViewData = viewDataDeviceAddress;
@@ -277,8 +263,6 @@ namespace Turbo
 				}
 			}
 
-			cmd.EndRendering();
-
 			static const cstring kDrawCallPlotName = "Draw calls";
 			TRACE_PLOT_CONFIGURE(kDrawCallPlotName, EPlotFormat::Number, true, true, 0xFF00FF)
 			TRACE_PLOT(kDrawCallPlotName, static_cast<int64>(drawCalls.size()))
@@ -287,12 +271,10 @@ namespace Turbo
 			TRACE_PLOT_CONFIGURE(kPipelineSwitchesName, EPlotFormat::Number, true, true, 0xFFFF00)
 			TRACE_PLOT(kPipelineSwitchesName, numPipelineSwitches)
 		}
-#endif
 	}
 
 	void FSceneRenderingLayer::RenderScene(FRenderGraphBuilder& graphBuilder)
 	{
-#if 0
 		TRACE_ZONE_SCOPED_N("Render Scene")
 
 		FWorld* world = gEngine->GetWorld();
@@ -305,9 +287,32 @@ namespace Turbo
 			return;
 		}
 
-		UpdateViewData(gpu, cmd, world);
-		RenderMeshes(gpu, cmd, world);
-#endif
+		graphBuilder.AddPass(
+			FName("GeometryPass"),
+			FRGSetupPassDelegate::CreateLambda(
+				[&](FRGPassInfo& passInfo)
+				{
+					passInfo.mPassType = EPassType::Graphics;
+
+					FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
+					passInfo.AddAttachment(geometryBuffer.mColor, 0);
+					passInfo.SetDepthStencilAttachment(geometryBuffer.mDepth);
+				}),
+			FRGExecutePassDelegate::CreateLambda(
+				// todo: Capturing this is dangerous, but before adding buffer support to render graph, It is necessary.
+				[this](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+				{
+					TRACE_ZONE_SCOPED_N("Rendering ImGui")
+					TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGUI")
+
+					FWorld* world = gEngine->GetWorld();
+
+					FViewData viewData;
+					UpdateViewData(gpu, cmd, world, viewData);
+					RenderMeshes(gpu, cmd, world, viewData);
+				})
+		);
+
 	}
 
 	bool FSceneRenderingLayer::ShouldRender()

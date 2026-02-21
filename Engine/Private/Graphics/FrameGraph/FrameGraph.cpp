@@ -142,6 +142,7 @@ namespace Turbo
 		case EPassType::Undefined:
 			return vk::PipelineStageFlagBits2::eAllCommands;
 		case EPassType::Graphics:
+			// todo: We need to detect here is attachment color or depth type.
 			return vk::PipelineStageFlagBits2::eColorAttachmentOutput;
 		case EPassType::Compute:
 			return vk::PipelineStageFlagBits2::eComputeShader;
@@ -285,6 +286,8 @@ namespace Turbo
 					newBarrier.mOldLayout = ETextureLayout::Undefined;
 					newBarrier.mSrcAccessMask = vk::AccessFlagBits2::eNone;
 					newBarrier.mSrcStageMask = vk::PipelineStageFlagBits2::eNone;
+
+					resourceData[write] = {};
 				}
 
 				switch (pass.mPassType)
@@ -304,7 +307,7 @@ namespace Turbo
 					TURBO_UNINPLEMENTED()
 				}
 
-				FResourceState& currentData = resourceData[write];
+				FResourceState& currentData = resourceData.at(write);
 				currentData.mLastUseType = pass.mPassType;
 				currentData.mAccess = EResourceAccess::Write;
 				currentData.mLayout = newBarrier.mNewLayout;

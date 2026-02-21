@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Delegate.h"
+#include "Core/Allocators/StackAllocator.h"
 #include "Graphics/GraphicsCore.h"
 #include "Graphics/FrameGraph/FrameGraphHelpers.h"
 
@@ -51,6 +52,8 @@ namespace Turbo
 
 	struct FRenderGraphBuilder
 	{
+		static constexpr uint32 kPerFrameStackSize = 4 * Constants::kKibi;
+
 		DELETE_COPY(FRenderGraphBuilder)
 		FRenderGraphBuilder() = default;
 
@@ -63,6 +66,12 @@ namespace Turbo
 		void Compile();
 		void Execute(FGPUDevice& gpu, FCommandBuffer& cmd);
 
+		template <typename PODType>
+		PODType& AllocatePOD()
+		{
+			return *mAllocator.Allocate<PODType>();
+		}
+
 	public:
 		std::vector<FRGPassInfo> mRenderPasses;
 
@@ -74,5 +83,7 @@ namespace Turbo
 		std::vector<FRGExternalTextureInfo> mExternalTextures;
 
 		entt::dense_map<FRGResourceHandle, FRGResourceLifetime> mResourceLifetimes;
+
+		FStackAllocator mAllocator = FStackAllocator(kPerFrameStackSize);
 	};
 } // Turbo

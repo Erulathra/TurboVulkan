@@ -31,11 +31,10 @@ namespace Turbo
 		virtual bool ShouldRender() override;
 
 	private:
-		void UpdateViewData(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world);
-		void RenderMeshes(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world);
+		void UpdateViewData(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world, FViewData& viewData);
+		void RenderMeshes(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world, const FViewData& viewData);
 
 	private:
-		FViewData mViewData;
 		THandle<FBuffer> mViewDataUniformBuffer;
 	};
 } // Turbo
