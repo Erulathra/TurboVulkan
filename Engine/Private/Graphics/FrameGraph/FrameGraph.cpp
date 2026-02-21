@@ -126,7 +126,6 @@ namespace Turbo
 			return vk::AccessFlagBits2::eMemoryRead;
 		case EResourceAccess::Create:
 		case EResourceAccess::Write:
-			return vk::AccessFlagBits2::eMemoryWrite;
 		case EResourceAccess::ReadWrite:
 			return vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead;
 		default: ;
