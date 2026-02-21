@@ -8,8 +8,8 @@ import json
 
 from urllib.request import urlretrieve
 
-EXTERNAL_DIR = "../Content/External"
-CACHE_DIR = "Cache"
+EXTERNAL_DIR = f"{os.path.dirname(__file__)}/../Content/External"
+CACHE_DIR = f"{os.path.dirname(__file__)}/Cache"
 
 COMPRESSONATOR_CLI_VERSION = "4.5.52"
 COMPRESSONATOR_CLI_DIR = f"{CACHE_DIR}/compressonatorcli"
@@ -149,6 +149,13 @@ def convert_gltf():
 
 
 def main():
+    # Create cache dir if it doesn't't exists.
+    if not os.path.exists(CACHE_DIR):
+        os.mkdir(CACHE_DIR)
+
+    if not os.path.exists(EXTERNAL_DIR):
+        os.mkdir(EXTERNAL_DIR)
+
     fetch_compressonator()
     fetch_sponza()
 
