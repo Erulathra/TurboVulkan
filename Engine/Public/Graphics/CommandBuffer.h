@@ -13,19 +13,14 @@ namespace Turbo
 
 	struct FRenderingAttachments final
 	{
-	public:
 		FRenderingAttachments& Reset();
 
 		FRenderingAttachments& AddColorAttachment(THandle<FTexture> textureHandle);
 		FRenderingAttachments& SetDepthAttachment(THandle<FTexture> textureHandle);
 
-	private:
 		uint32 mNumColorAttachments = 0;
 		std::array<THandle<FTexture>, 8> mColorAttachments = {};
 		THandle<FTexture> mDepthAttachment = {};
-
-	public:
-		friend class FCommandBuffer;
 	};
 
 	struct FCopyBufferInfo

@@ -25,7 +25,6 @@ namespace Turbo
 		FRGResourceHandle ReadTexture(FRGResourceHandle texture);
 		FRGResourceHandle WriteTexture(FRGResourceHandle texture);
 
-
 		FRGResourceHandle AddAttachment(FRGResourceHandle texture, uint32 mAttachmentIndex);
 		FRGResourceHandle SetDepthStencilAttachment(FRGResourceHandle texture);
 
@@ -64,6 +63,9 @@ namespace Turbo
 		FRGPassInfo& AddPass(FName passName, const FRGSetupPassDelegate& setup, FRGExecutePassDelegate&& execute);
 
 		void Compile();
+		void CompileResourceLifeTimes();
+		void CompileTextureSynchronization();
+
 		void Execute(FGPUDevice& gpu, FCommandBuffer& cmd);
 
 		template <typename PODType>
@@ -71,6 +73,8 @@ namespace Turbo
 		{
 			return *mAllocator.Allocate<PODType>();
 		}
+
+		vk::Format GetTextureFormat(FRGResourceHandle resourceHandle) const;
 
 	public:
 		std::vector<FRGPassInfo> mRenderPasses;

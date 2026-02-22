@@ -68,10 +68,12 @@ namespace Turbo
 		viewData.mTime = FCoreTimer::TimeFromEngineStart();
 		viewData.mWorldTime = FCoreTimer::TimeFromEngineStart();
 		viewData.mDeltaTime = FCoreTimer::DeltaTime();
-		viewData.mFrameIndex = gpu.GetNumRenderedFrames();
+		viewData.mFrameIndex = static_cast<int32>(gpu.GetNumRenderedFrames());
 
-		FBuffer* viewDataBuffer = gpu.AccessBuffer(mViewDataUniformBuffer);
+		const FBuffer* viewDataBuffer = gpu.AccessBuffer(mViewDataUniformBuffer);
 		std::memcpy(viewDataBuffer->GetMappedAddress(), &viewData, sizeof(FViewData));
+
+#if 1 // This barrier is unnecessary
 		cmd.BufferBarrier(
 			mViewDataUniformBuffer,
 			vk::AccessFlagBits2::eHostWrite,
@@ -79,6 +81,7 @@ namespace Turbo
 			vk::AccessFlagBits2::eShaderRead,
 			vk::PipelineStageFlagBits2::eVertexShader
 		);
+#endif
 	}
 
 	void FSceneRenderingLayer::RenderMeshes(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world, const FViewData& viewData)
@@ -312,7 +315,6 @@ namespace Turbo
 					RenderMeshes(gpu, cmd, world, viewData);
 				})
 		);
-
 	}
 
 	bool FSceneRenderingLayer::ShouldRender()

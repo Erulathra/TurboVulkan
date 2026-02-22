@@ -167,9 +167,7 @@ namespace Turbo
 	enum class EResourceAccess
 	{
 		Read,
-		Write,
 		ReadWrite,
-		Create
 	};
 
 	struct FRGTextureInfo
@@ -181,7 +179,7 @@ namespace Turbo
 
 		FName mName = {};
 
-		bool IsValid() const;
+		[[nodiscard]] bool IsValid() const;
 	};
 
 	struct FRGExternalTextureInfo

@@ -124,66 +124,44 @@ namespace Turbo
 		{
 		case EResourceAccess::Read:
 			return vk::AccessFlagBits2::eMemoryRead;
-		case EResourceAccess::Create:
-		case EResourceAccess::Write:
 		case EResourceAccess::ReadWrite:
 			return vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead;
-		default: ;
+		default:
 			TURBO_UNINPLEMENTED()
 		}
 
 		std::unreachable();
 	};
 
-	inline vk::PipelineStageFlags2 FindStageMask(EPassType passType)
+	inline vk::PipelineStageFlags2 FindStageMask(EPassType passType, vk::Format format)
 	{
 		switch (passType)
 		{
 		case EPassType::Undefined:
 			return vk::PipelineStageFlagBits2::eAllCommands;
 		case EPassType::Graphics:
-			// todo: We need to detect here is attachment color or depth type.
-			return vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+			return TextureFormat::HasDepth(format)
+				       ? vk::PipelineStageFlagBits2::eEarlyFragmentTests
+				       : vk::PipelineStageFlagBits2::eColorAttachmentOutput;
 		case EPassType::Compute:
 			return vk::PipelineStageFlagBits2::eComputeShader;
 		case EPassType::Transfer:
 			return vk::PipelineStageFlagBits2::eTransfer;
-		default: ;
+		default:
 			TURBO_UNINPLEMENTED()
 		}
 
 		std::unreachable();
 	};
 
-	void FRenderGraphBuilder::Compile()
+	void FRenderGraphBuilder::CompileTextureSynchronization()
 	{
-		TRACE_ZONE_SCOPED()
-
-		// Compile lifetimes
-		for (uint16 passId = 0; passId < mRenderPasses.size(); ++passId)
-		{
-			const FRGPassInfo& pass = mRenderPasses[passId];
-			for (FRGResourceHandle write : pass.mTextureWrites)
-			{
-				FRGResourceLifetime& lifetime = mResourceLifetimes[write];
-				lifetime.mFirstPass = glm::min(lifetime.mFirstPass, passId);
-				lifetime.mLastPass = glm::max(lifetime.mFirstPass, passId);
-			}
-
-			for (FRGResourceHandle read : pass.mTextureReads)
-			{
-				FRGResourceLifetime& lifetime = mResourceLifetimes[read];
-				lifetime.mFirstPass = glm::min(lifetime.mFirstPass, passId);
-				lifetime.mLastPass = glm::max(lifetime.mFirstPass, passId);
-			}
-		}
-
-		// Compile synchronization
 		struct FResourceState
 		{
 			EPassType mLastUseType = EPassType::Graphics;
-			EResourceAccess mAccess = EResourceAccess::Create;
+			EResourceAccess mAccess = EResourceAccess::ReadWrite;
 			ETextureLayout mLayout = ETextureLayout::Undefined;
+			vk::Format mFormat = vk::Format::eUndefined;
 		};
 
 		entt::dense_map<FRGResourceHandle, FResourceState> resourceData;
@@ -194,8 +172,9 @@ namespace Turbo
 			FRGResourceHandle resourceHandle(ERGResourceType::Texture, externalTextureId, true);
 			resourceData[resourceHandle] = {
 				.mLastUseType = EPassType::Undefined,
-				.mAccess = EResourceAccess::Write,
-				.mLayout = mExternalTextures[externalTextureId].mInitialLayout
+				.mAccess = EResourceAccess::ReadWrite,
+				.mLayout = mExternalTextures[externalTextureId].mInitialLayout,
+				.mFormat = mExternalTextures[externalTextureId].mTextureInfo.mFormat
 			};
 		}
 
@@ -206,37 +185,16 @@ namespace Turbo
 		{
 			const FRGPassInfo& pass = mRenderPasses[passId];
 
+			std::vector<FRGResourceHandle> readWriteResources = pass.mTextureWrites;
 			std::vector<FRGResourceHandle> readOnlyResources;
-			std::vector<FRGResourceHandle> writeOnlyResources;
-			entt::dense_set<FRGResourceHandle> readWriteResources;
 
 			std::vector<FRGImageMemoryBarrier>& passImageBarriers = mPerPassImageBarriers[passId];
 
-			for (FRGResourceHandle write : pass.mTextureWrites)
-			{
-				for (FRGResourceHandle read : pass.mTextureReads)
-				{
-					if (read == write)
-					{
-						readWriteResources.insert(read);
-						break;
-					}
-				}
-			}
-
 			for (FRGResourceHandle read : pass.mTextureReads)
 			{
-				if (readWriteResources.contains(read) == false)
+				if (std::ranges::find(readWriteResources, read) == readWriteResources.end())
 				{
 					readOnlyResources.push_back(read);
-				}
-			}
-
-			for (FRGResourceHandle write : pass.mTextureWrites)
-			{
-				if (readWriteResources.contains(write) == false)
-				{
-					writeOnlyResources.push_back(write);
 				}
 			}
 
@@ -245,17 +203,16 @@ namespace Turbo
 				auto foundSrcData = resourceData.find(read);
 				TURBO_CHECK_MSG(foundSrcData != resourceData.end(), "Pass tries to read non existent resource")
 
-				FResourceState& srcData = foundSrcData->second;
-				if (srcData.mAccess != EResourceAccess::Read
-					|| srcData.mLayout != ETextureLayout::ReadOnly)
+				if (FResourceState& srcData = foundSrcData->second;
+					srcData.mAccess != EResourceAccess::Read || srcData.mLayout != ETextureLayout::ReadOnly)
 				{
 					FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
 					newBarrier.mTexture = read;
 					newBarrier.mOldLayout = srcData.mLayout;
 					newBarrier.mNewLayout = ETextureLayout::ReadOnly;
 
-					newBarrier.mSrcStageMask = FindStageMask(srcData.mLastUseType);
-					newBarrier.mDstStageMask = FindStageMask(pass.mPassType);
+					newBarrier.mSrcStageMask = FindStageMask(srcData.mLastUseType, srcData.mFormat);
+					newBarrier.mDstStageMask = FindStageMask(pass.mPassType, srcData.mFormat);
 
 					newBarrier.mSrcAccessMask = FindAccessMask(srcData.mAccess);
 					newBarrier.mDstAccessMask = vk::AccessFlagBits2::eShaderRead;
@@ -266,19 +223,18 @@ namespace Turbo
 				}
 			}
 
-			for (FRGResourceHandle write : writeOnlyResources)
+			for (FRGResourceHandle write : readWriteResources)
 			{
 				FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
 				newBarrier.mTexture = write;
-				newBarrier.mDstStageMask = FindStageMask(pass.mPassType);
-				newBarrier.mDstAccessMask = FindAccessMask(EResourceAccess::Write);
+				newBarrier.mDstAccessMask = FindAccessMask(EResourceAccess::ReadWrite);
 
-				if (auto srcData = resourceData.find(write);
-					srcData != resourceData.end())
+				if (auto srcDataIt = resourceData.find(write);
+					srcDataIt != resourceData.end())
 				{
-					newBarrier.mOldLayout = srcData->second.mLayout;
-					newBarrier.mSrcAccessMask = FindAccessMask(srcData->second.mAccess);
-					newBarrier.mSrcStageMask = FindStageMask(srcData->second.mLastUseType);
+					newBarrier.mOldLayout = srcDataIt->second.mLayout;
+					newBarrier.mSrcAccessMask = FindAccessMask(srcDataIt->second.mAccess);
+					newBarrier.mSrcStageMask = FindStageMask(srcDataIt->second.mLastUseType, srcDataIt->second.mFormat);
 				}
 				else
 				{
@@ -287,7 +243,9 @@ namespace Turbo
 					newBarrier.mSrcAccessMask = vk::AccessFlagBits2::eNone;
 					newBarrier.mSrcStageMask = vk::PipelineStageFlagBits2::eNone;
 
-					resourceData[write] = {};
+					resourceData[write] = {
+						.mFormat = GetTextureFormat(write)
+					};
 				}
 
 				switch (pass.mPassType)
@@ -308,37 +266,15 @@ namespace Turbo
 				}
 
 				FResourceState& currentData = resourceData.at(write);
+				newBarrier.mDstStageMask = FindStageMask(pass.mPassType, currentData.mFormat);
+
 				currentData.mLastUseType = pass.mPassType;
-				currentData.mAccess = EResourceAccess::Write;
+				currentData.mAccess = EResourceAccess::ReadWrite;
 				currentData.mLayout = newBarrier.mNewLayout;
-			}
-
-			for (FRGResourceHandle readWrite : readWriteResources)
-			{
-				TURBO_CHECK(pass.mPassType != EPassType::Compute)
-
-				FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
-				newBarrier.mTexture = readWrite;
-
-				auto foundSrcData = resourceData.find(readWrite);
-				TURBO_CHECK_MSG(foundSrcData != resourceData.end(), "Pass tries to read non existent resource")
-
-				FResourceState& srcData = foundSrcData->second;
-				newBarrier.mSrcStageMask = FindStageMask(srcData.mLastUseType);
-				newBarrier.mDstStageMask = FindStageMask(pass.mPassType);
-
-				newBarrier.mSrcAccessMask = FindAccessMask(srcData.mAccess);
-				newBarrier.mDstAccessMask = FindAccessMask(EResourceAccess::ReadWrite);
-
-				newBarrier.mOldLayout = srcData.mLayout;
-				newBarrier.mNewLayout = ETextureLayout::General;
-
-				srcData.mLastUseType = pass.mPassType;
-				srcData.mAccess = EResourceAccess::ReadWrite;
-				srcData.mLayout = ETextureLayout::General;
 			}
 		}
 
+		// Add final exterior resources barriers
 		for (uint32 externalTextureId = 0; externalTextureId < mExternalTextures.size(); ++externalTextureId)
 		{
 			FRGResourceHandle resourceHandle(ERGResourceType::Texture, externalTextureId, true);
@@ -348,8 +284,8 @@ namespace Turbo
 				FResourceState& srcData = foundSrcData->second;
 
 				FRGImageMemoryBarrier& newBarrier = mExternalResourcesBarriers.emplace_back();
-				newBarrier.mSrcStageMask = FindStageMask(srcData.mLastUseType);
-				newBarrier.mDstStageMask = FindStageMask(EPassType::Undefined);
+				newBarrier.mSrcStageMask = FindStageMask(srcData.mLastUseType, srcData.mFormat);
+				newBarrier.mDstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
 
 				newBarrier.mSrcAccessMask = FindAccessMask(srcData.mAccess);
 				newBarrier.mDstAccessMask = FindAccessMask(EResourceAccess::ReadWrite);
@@ -360,6 +296,36 @@ namespace Turbo
 				newBarrier.mTexture = resourceHandle;
 			}
 		}
+	}
+
+	void FRenderGraphBuilder::CompileResourceLifeTimes()
+	{
+		for (uint16 passId = 0; passId < mRenderPasses.size(); ++passId)
+		{
+			const FRGPassInfo& pass = mRenderPasses[passId];
+			for (FRGResourceHandle write : pass.mTextureWrites)
+			{
+				FRGResourceLifetime& lifetime = mResourceLifetimes[write];
+				lifetime.mFirstPass = glm::min(lifetime.mFirstPass, passId);
+				lifetime.mLastPass = glm::max(lifetime.mFirstPass, passId);
+			}
+
+			for (FRGResourceHandle read : pass.mTextureReads)
+			{
+				FRGResourceLifetime& lifetime = mResourceLifetimes[read];
+				lifetime.mFirstPass = glm::min(lifetime.mFirstPass, passId);
+				lifetime.mLastPass = glm::max(lifetime.mFirstPass, passId);
+			}
+		}
+	}
+
+	void FRenderGraphBuilder::Compile()
+	{
+		TRACE_ZONE_SCOPED()
+
+		// Compile lifetimes
+		CompileResourceLifeTimes();
+		CompileTextureSynchronization();
 	}
 
 	void FRenderGraphBuilder::Execute(FGPUDevice& gpu, FCommandBuffer& cmd)
@@ -374,6 +340,7 @@ namespace Turbo
 		for (uint32 textureId = 0; textureId < mTextures.size(); ++textureId)
 		{
 			const FRGTextureInfo& textureInfo = mTextures[textureId];
+			TURBO_LOG(LogRenderGraph, Display, "Allocating texture: {}", textureInfo.mName);
 
 			FTextureBuilder builder = {
 				.mWidth = textureInfo.mWidth,
@@ -389,8 +356,6 @@ namespace Turbo
 			TURBO_CHECK(texture)
 
 			renderResources.mTextures.emplace(handle, texture);
-
-			TURBO_LOG(LogRenderGraph, Display, "Allocating texture: {}", textureInfo.mName);
 		}
 
 		for (uint32 externalTextureId = 0; externalTextureId < mExternalTextures.size(); ++externalTextureId)
@@ -532,5 +497,14 @@ namespace Turbo
 		dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
 
 		cmd.PipelineBarrier(dependencyInfo);
+	}
+
+	vk::Format FRenderGraphBuilder::GetTextureFormat(FRGResourceHandle resourceHandle) const
+	{
+		TURBO_CHECK(resourceHandle.GetType() == ERGResourceType::Texture)
+
+		return resourceHandle.IsExternal()
+			       ? mExternalTextures[resourceHandle.GetIndex()].mTextureInfo.mFormat
+			       : mTextures[resourceHandle.GetIndex()].mFormat;
 	}
 } // Turbo
