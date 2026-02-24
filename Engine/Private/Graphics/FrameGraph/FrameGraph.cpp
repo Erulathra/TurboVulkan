@@ -209,13 +209,19 @@ namespace Turbo
 					FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
 					newBarrier.mTexture = read;
 					newBarrier.mOldLayout = srcData.mLayout;
-					newBarrier.mNewLayout = ETextureLayout::ReadOnly;
+					newBarrier.mNewLayout =
+						pass.mPassType == EPassType::Transfer
+							? ETextureLayout::TransferSrc
+							: ETextureLayout::ReadOnly;
 
 					newBarrier.mSrcStageMask = FindStageMask(srcData.mLastUseType, srcData.mFormat);
 					newBarrier.mDstStageMask = FindStageMask(pass.mPassType, srcData.mFormat);
 
 					newBarrier.mSrcAccessMask = FindAccessMask(srcData.mAccess);
-					newBarrier.mDstAccessMask = vk::AccessFlagBits2::eShaderRead;
+					newBarrier.mDstAccessMask =
+						pass.mPassType == EPassType::Transfer
+							? vk::AccessFlagBits2::eTransferRead
+							: vk::AccessFlagBits2::eShaderRead;
 
 					srcData.mLastUseType = pass.mPassType;
 					srcData.mAccess = EResourceAccess::Read;
@@ -409,7 +415,14 @@ namespace Turbo
 					if (pass.mColorAttachments[attachmentId].IsValid())
 					{
 						const FRGResourceHandle attachmentResource = pass.mColorAttachments[attachmentId];
-						renderingAttachments.AddColorAttachment(renderResources.mTextures.at(attachmentResource));
+
+						const FAttachment attachmentInfo = {
+							.mTexture = renderResources.mTextures.at(attachmentResource),
+							.mLoadOp = std::ranges::contains(pass.mTextureReads, attachmentResource) ? ELoadOp::Load : ELoadOp::Clear,
+							.mStoreOp = EStoreOp::Store,
+							.mClearColor = EClearColor::TransparentBlack
+						};
+						renderingAttachments.AddColorAttachment(attachmentInfo);
 
 						TURBO_LOG(
 							LogRenderGraph, Display, "[GraphicsPass] Bind {} as color attachment {}",
@@ -422,7 +435,13 @@ namespace Turbo
 				// Bind depth stencil attachment (if valid)
 				if (pass.mDepthStencilAttachment.IsValid())
 				{
-					renderingAttachments.SetDepthAttachment(renderResources.mTextures.at(pass.mDepthStencilAttachment));
+					const FAttachment attachmentInfo = {
+						.mTexture = renderResources.mTextures.at(pass.mDepthStencilAttachment),
+						.mLoadOp = std::ranges::contains(pass.mTextureReads, pass.mDepthStencilAttachment) ? ELoadOp::Load : ELoadOp::Clear,
+						.mStoreOp = EStoreOp::Store,
+						.mClearColor = EClearColor::Zero
+					};
+					renderingAttachments.SetDepthAttachment(attachmentInfo);
 
 					TURBO_LOG(
 						LogRenderGraph, Display, "[GraphicsPass] Bind {} as depth attachment",

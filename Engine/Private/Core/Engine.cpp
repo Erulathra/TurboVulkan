@@ -205,8 +205,7 @@ namespace Turbo
 				}
 			}
 
-			// TODO: enable me
-			// geometryBuffer.BlitToPresent(graphBuilder, presentRes);
+			geometryBuffer.BlitToPresent(graphBuilder, presentRes);
 
 			{
 				TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")

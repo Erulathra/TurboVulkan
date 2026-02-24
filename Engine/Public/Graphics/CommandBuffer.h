@@ -11,16 +11,57 @@ namespace Turbo
 {
 	class FGPUDevice;
 
+	enum class EClearColor : uint8
+	{
+		TransparentBlack, // {0, 0, 0, 0}
+		OpaqueBlack, // {0, 0, 0, 1}
+		TransparentWhite, // {1, 1, 1, 0}
+		OpaqueWhite, // {1, 1, 1, 1}
+
+		Zero = OpaqueBlack,
+		One = OpaqueWhite
+	};
+
+	enum class ELoadOp : uint8
+	{
+		Load,
+		Clear,
+		DontCare
+	};
+
+	enum class EStoreOp : uint8
+	{
+		Store,
+		DontCare
+	};
+
+	struct FAttachment
+	{
+		THandle<FTexture> mTexture = {};
+		ELoadOp mLoadOp = ELoadOp::Load;
+		EStoreOp mStoreOp = EStoreOp::Store;
+		EClearColor mClearColor = EClearColor::Zero;
+	};
+
 	struct FRenderingAttachments final
 	{
 		FRenderingAttachments& Reset();
 
-		FRenderingAttachments& AddColorAttachment(THandle<FTexture> textureHandle);
-		FRenderingAttachments& SetDepthAttachment(THandle<FTexture> textureHandle);
+		FRenderingAttachments& AddColorAttachment(const FAttachment& attachment)
+		{
+			mColorAttachments[mNumColorAttachments++] = attachment;
+			return *this;
+		}
+
+		FRenderingAttachments& SetDepthAttachment(const FAttachment& attachment)
+		{
+			mDepthAttachment = attachment;
+			return *this;
+		}
 
 		uint32 mNumColorAttachments = 0;
-		std::array<THandle<FTexture>, 8> mColorAttachments = {};
-		THandle<FTexture> mDepthAttachment = {};
+		std::array<FAttachment, kMaxColorAttachments> mColorAttachments = {};
+		FAttachment mDepthAttachment = {};
 	};
 
 	struct FCopyBufferInfo
@@ -101,4 +142,70 @@ namespace Turbo
 	public:
 		friend class FGPUDevice;
 	};
+
+	constexpr vk::AttachmentLoadOp ToVkLoadOp(ELoadOp loadOp)
+	{
+		switch (loadOp)
+		{
+		case ELoadOp::Load:
+			return vk::AttachmentLoadOp::eLoad;
+		case ELoadOp::Clear:
+			return vk::AttachmentLoadOp::eClear;
+		case ELoadOp::DontCare:
+			return vk::AttachmentLoadOp::eDontCare;
+		default:
+			TURBO_UNINPLEMENTED()
+		}
+
+		return vk::AttachmentLoadOp::eNone;
+	}
+
+	constexpr vk::AttachmentStoreOp ToVkStoreOp(EStoreOp storeOp)
+	{
+		switch (storeOp)
+		{
+		case EStoreOp::Store:
+			return vk::AttachmentStoreOp::eStore;
+		case EStoreOp::DontCare:
+			return vk::AttachmentStoreOp::eDontCare;
+		default:
+			TURBO_UNINPLEMENTED();
+		}
+
+		return vk::AttachmentStoreOp::eNone;
+	}
+
+	constexpr vk::ClearValue ToVkColorClearValue(EClearColor clearColor)
+	{
+		switch (clearColor)
+		{
+		case EClearColor::TransparentBlack:
+			return vk::ClearValue{{0.f, 0.f, 0.f, 0.f}};
+		case EClearColor::OpaqueBlack:
+			return vk::ClearValue{{0.f, 0.f, 0.f, 1.f}};
+		case EClearColor::TransparentWhite:
+			return vk::ClearValue{{1.f, 1.f, 1.f, 0.f}};
+		case EClearColor::OpaqueWhite:
+			return vk::ClearValue{{1.f, 1.f, 1.f, 1.f}};
+		default:
+			TURBO_UNINPLEMENTED();
+		}
+
+		return {};
+	}
+
+	constexpr vk::ClearValue ToVkDepthClearValue(EClearColor clearColor)
+	{
+		switch (clearColor)
+		{
+		case EClearColor::Zero:
+			return vk::ClearValue{0.f};
+		case EClearColor::One:
+			return vk::ClearValue{1.f};
+		default:
+			TURBO_UNINPLEMENTED();
+		}
+
+		return {};
+	}
 } // Turbo

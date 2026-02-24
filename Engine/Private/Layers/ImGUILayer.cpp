@@ -117,6 +117,7 @@ namespace Turbo
 				{
 					passInfo.mPassType = EPassType::Graphics;
 					passInfo.AddAttachment(presentImage, 0);
+					passInfo.ReadTexture(presentImage);
 				}),
 			FRGExecutePassDelegate::CreateLambda(
 				[](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)

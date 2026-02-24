@@ -87,7 +87,7 @@ namespace Turbo
 		vk::SamplerAddressMode mAddressModeV = vk::SamplerAddressMode::eRepeat;
 		vk::SamplerAddressMode mAddressModeW = vk::SamplerAddressMode::eRepeat;
 
-		FName mName;
+		FName mName = {};
 	};
 
 	class FSamplerDestroyer final : IDestroyer
@@ -112,7 +112,7 @@ namespace Turbo
 	struct FTextureCold
 	{
 		[[nodiscard]] glm::int2 GetSize2D() const { return glm::ivec2{mWidth, mHeight}; }
-		[[nodiscard]] glm::int2 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
+		[[nodiscard]] glm::int3 GetSize() const { return glm::ivec3{mWidth, mHeight, mDepth}; }
 		[[nodiscard]] vk::Format GetFormat() const { return mFormat; }
 
 		vk::Format mFormat = vk::Format::eUndefined;

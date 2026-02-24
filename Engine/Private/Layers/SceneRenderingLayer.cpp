@@ -73,7 +73,7 @@ namespace Turbo
 		const FBuffer* viewDataBuffer = gpu.AccessBuffer(mViewDataUniformBuffer);
 		std::memcpy(viewDataBuffer->GetMappedAddress(), &viewData, sizeof(FViewData));
 
-#if 1 // This barrier is unnecessary
+#if 0 // This barrier is unnecessary
 		cmd.BufferBarrier(
 			mViewDataUniformBuffer,
 			vk::AccessFlagBits2::eHostWrite,
@@ -120,8 +120,6 @@ namespace Turbo
 
 			{
 				TRACE_ZONE_SCOPED_N("Calculate transforms")
-
-				const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 
 				const auto meshTransformView = registry.view<FMeshComponent, FWorldTransform>();
 				for (entt::entity entity : meshTransformView)

@@ -29,21 +29,6 @@ namespace Turbo
 		return *this;
 	}
 
-	FRenderingAttachments& FRenderingAttachments::AddColorAttachment(THandle<FTexture> textureHandle)
-	{
-		mColorAttachments[mNumColorAttachments] = textureHandle;
-		++mNumColorAttachments;
-
-		return *this;
-	}
-
-	FRenderingAttachments& FRenderingAttachments::SetDepthAttachment(THandle<FTexture> textureHandle)
-	{
-		mDepthAttachment = textureHandle;
-
-		return *this;
-	}
-
 	void FCommandBuffer::TransitionImage(THandle<FTexture> textureHandle, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
 	{
 		FTexture* texture = mGpu->AccessTexture(textureHandle);
@@ -257,43 +242,48 @@ namespace Turbo
 		renderingInfo.layerCount = 1;
 
 		std::array<vk::RenderingAttachmentInfo, 8> colorAttachments;
-		vk::RenderingAttachmentInfo depthAttachmentInfo;
+		vk::RenderingAttachmentInfo vkDepthAttachmentInfo;
 
 		glm::ivec2 attachmentSize;
 
 		for (uint32 attachmentIndex = 0; attachmentIndex < renderingAttachments.mNumColorAttachments; ++attachmentIndex)
 		{
-			const FTexture* attachmentTexture = mGpu->AccessTexture(renderingAttachments.mColorAttachments[attachmentIndex]);
-			const FTextureCold* attachmentTextureCold = mGpu->AccessTextureCold(renderingAttachments.mColorAttachments[attachmentIndex]);
+			const FAttachment& attachment = renderingAttachments.mColorAttachments[attachmentIndex];
+
+			const FTexture* attachmentTexture = mGpu->AccessTexture(attachment.mTexture);
+			const FTextureCold* attachmentTextureCold = mGpu->AccessTextureCold(attachment.mTexture);
 			TURBO_CHECK(attachmentTexture)
 
 			TURBO_CHECK(attachmentIndex == 0 || attachmentSize == attachmentTextureCold->GetSize2D())
 			attachmentSize = attachmentTextureCold->GetSize2D();
 
-			vk::RenderingAttachmentInfo& attachmentInfo = colorAttachments[attachmentIndex];
-			attachmentInfo = vk::RenderingAttachmentInfo();
-			attachmentInfo.imageView = attachmentTexture->mVkImageView;
-			attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
-			attachmentInfo.loadOp = vk::AttachmentLoadOp::eLoad;
-			attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
+			vk::RenderingAttachmentInfo& vkAttachmentInfo = colorAttachments[attachmentIndex];
+			vkAttachmentInfo = vk::RenderingAttachmentInfo();
+			vkAttachmentInfo.imageView = attachmentTexture->mVkImageView;
+			vkAttachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+			vkAttachmentInfo.loadOp = ToVkLoadOp(attachment.mLoadOp);
+			vkAttachmentInfo.storeOp = ToVkStoreOp(attachment.mStoreOp);
+			vkAttachmentInfo.clearValue = ToVkColorClearValue(attachment.mClearColor);
 		}
 
 		renderingInfo.renderArea.extent = VulkanConverters::ToExtent2D(attachmentSize);
 		renderingInfo.pColorAttachments = colorAttachments.data();
 		renderingInfo.colorAttachmentCount = renderingAttachments.mNumColorAttachments;
 
-		if (renderingAttachments.mDepthAttachment.IsValid())
+		if (renderingAttachments.mDepthAttachment.mTexture.IsValid())
 		{
-			const FTexture* depthTexture = mGpu->AccessTexture(renderingAttachments.mDepthAttachment);
+			const FAttachment& attachment = renderingAttachments.mDepthAttachment;
+
+			const FTexture* depthTexture = mGpu->AccessTexture(attachment.mTexture);
 			TURBO_CHECK(depthTexture)
 
-			depthAttachmentInfo.imageView = depthTexture->mVkImageView;
-			depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
-			depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
-			depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
-			depthAttachmentInfo.clearValue.depthStencil.depth = 0.f;
+			vkDepthAttachmentInfo.imageView = depthTexture->mVkImageView;
+			vkDepthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+			vkDepthAttachmentInfo.loadOp = ToVkLoadOp(attachment.mLoadOp);
+			vkDepthAttachmentInfo.storeOp = ToVkStoreOp(attachment.mStoreOp);
+			vkDepthAttachmentInfo.clearValue = ToVkDepthClearValue(attachment.mClearColor);
 
-			renderingInfo.pDepthAttachment = &depthAttachmentInfo;
+			renderingInfo.pDepthAttachment = &vkDepthAttachmentInfo;
 		}
 
 		mVkCommandBuffer.beginRendering(renderingInfo);

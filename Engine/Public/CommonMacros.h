@@ -67,7 +67,8 @@ if (!(CONDITION))				\
 #if WITH_ASSERTIONS
 
 #define UNIMPLEMENTED_BODY()	\
-	TURBO_DEBUG_BREAK();
+	TURBO_DEBUG_BREAK();		\
+	std::terminate()
 
 #else // WITH_ASSERTIONS
 
