@@ -3,7 +3,7 @@
 #include "Core/Delegate.h"
 #include "Core/Allocators/StackAllocator.h"
 #include "Graphics/GraphicsCore.h"
-#include "Graphics/FrameGraph/FrameGraphHelpers.h"
+#include "Graphics/FrameGraph/RenderGraphHelpers.h"
 
 DECLARE_LOG_CATEGORY(LogRenderGraph, Info, Display)
 

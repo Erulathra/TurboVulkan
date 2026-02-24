@@ -1,8 +1,8 @@
 #pragma once
 #include "Event.h"
 #include "Core/Delegate.h"
-#include "Graphics/FrameGraph/FrameGraph.h"
-#include "Graphics/FrameGraph/FrameGraphHelpers.h"
+#include "Graphics/FrameGraph/RenderGraph.h"
+#include "Graphics/FrameGraph/RenderGraphHelpers.h"
 
 namespace Turbo
 {

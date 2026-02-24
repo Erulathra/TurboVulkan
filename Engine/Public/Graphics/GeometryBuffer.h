@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FrameGraph/FrameGraph.h"
+#include "FrameGraph/RenderGraph.h"
 #include "Graphics/Resources.h"
 
 namespace Turbo

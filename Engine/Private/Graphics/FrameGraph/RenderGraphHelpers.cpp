@@ -1,7 +1,7 @@
 #include "Graphics/GPUDevice.h"
 #include "Graphics/VulkanHelpers.h"
 #include "Graphics/VulkanInitializers.h"
-#include "Graphics/FrameGraph/FrameGraph.h"
+#include "Graphics/FrameGraph/RenderGraph.h"
 
 namespace Turbo
 {

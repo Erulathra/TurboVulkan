@@ -1,8 +1,8 @@
-#include "Graphics/FrameGraph/FrameGraph.h"
+#include "Graphics/FrameGraph/RenderGraph.h"
 
 #include "Graphics/CommandBuffer.h"
 #include "Graphics/GPUDevice.h"
-#include "Graphics/FrameGraph/FrameGraphHelpers.h"
+#include "Graphics/FrameGraph/RenderGraphHelpers.h"
 
 namespace Turbo
 {
