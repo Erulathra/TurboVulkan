@@ -303,8 +303,8 @@ namespace Turbo
 				// todo: Capturing this is dangerous, but before adding buffer support to render graph, It is necessary.
 				[this](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 				{
-					TRACE_ZONE_SCOPED_N("Rendering ImGui")
-					TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGUI")
+					TRACE_ZONE_SCOPED_N("Render Basepass")
+					TRACE_GPU_SCOPED(gpu, cmd, "Render Basepass")
 
 					FWorld* world = gEngine->GetWorld();
 
