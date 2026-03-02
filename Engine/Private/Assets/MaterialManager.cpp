@@ -67,7 +67,7 @@ namespace Turbo
 		{
 			FBufferBuilder bufferBuilder = {};
 			bufferBuilder
-				.Init(vk::BufferUsageFlagBits::eStorageBuffer, EBufferFlags::CreateMapped, targetBufferSize)
+				.Init(EBufferFlags::CreateMapped | EBufferFlags::StorageBuffer, targetBufferSize)
 				.SetName(FName(fmt::format("{}_Uniforms", pipelineBuilder.GetName())));
 			material->mDataBuffer = gpu.CreateBuffer(bufferBuilder);
 			TURBO_CHECK(material->mDataBuffer);

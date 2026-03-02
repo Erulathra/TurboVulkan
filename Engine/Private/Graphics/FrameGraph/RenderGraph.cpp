@@ -6,14 +6,9 @@
 
 namespace Turbo
 {
-	FRGResourceHandle FRGPassInfo::CreateTexture(const FRGTextureInfo& textureInfo)
-	{
-		const FRGResourceHandle textureHandle = mGraphBuilder->AddTexture(textureInfo);
-		return WriteTexture(textureHandle);
-	}
-
 	FRGResourceHandle FRGPassInfo::ReadTexture(FRGResourceHandle texture)
 	{
+		TURBO_CHECK(texture.GetType() == ERGResourceType::Texture)
 		TURBO_CHECK(std::ranges::find(mTextureReads, texture) == mTextureReads.end())
 		mTextureReads.emplace_back(texture);
 		return texture;
@@ -21,12 +16,27 @@ namespace Turbo
 
 	FRGResourceHandle FRGPassInfo::WriteTexture(FRGResourceHandle texture)
 	{
+		TURBO_CHECK(texture.GetType() == ERGResourceType::Texture)
 		TURBO_CHECK(std::ranges::find(mTextureWrites, texture) == mTextureWrites.end())
 		mTextureWrites.emplace_back(texture);
-
 		return texture;
 	}
 
+	FRGResourceHandle FRGPassInfo::ReadBuffer(FRGResourceHandle buffer)
+	{
+		TURBO_CHECK(buffer.GetType() == ERGResourceType::Buffer)
+		TURBO_CHECK(std::ranges::find(mBufferReads, buffer) == mBufferReads.end())
+		mBufferReads.emplace_back(buffer);
+		return buffer;
+	}
+
+	FRGResourceHandle FRGPassInfo::WriteBuffer(FRGResourceHandle buffer)
+	{
+		TURBO_CHECK(buffer.GetType() == ERGResourceType::Buffer)
+		TURBO_CHECK(std::ranges::find(mBufferWrites, buffer) == mBufferWrites.end())
+		mBufferWrites.emplace_back(buffer);
+		return buffer;
+	}
 
 	FRGResourceHandle FRGPassInfo::AddAttachment(FRGResourceHandle texture, uint32 mAttachmentIndex)
 	{
@@ -97,6 +107,24 @@ namespace Turbo
 		);
 
 		return resourceHandle;
+	}
+
+	FRGResourceHandle FRenderGraphBuilder::AddBuffer(const FRGBufferInfo& bufferInfo)
+	{
+		TURBO_CHECK(bufferInfo.IsValid())
+		mBuffers.push_back(bufferInfo);
+		return {ERGResourceType::Buffer, static_cast<uint32>(mBuffers.size() - 1)};
+	}
+
+	void FRenderGraphBuilder::QueueBufferUpload(const FRGBufferUpload& bufferUpload)
+	{
+#if WITH_ASSERTIONS
+		const FRGBufferInfo& bufferInfo = mBuffers[bufferUpload.mTargetBuffer.GetIndex()];
+		TURBO_CHECK(bufferUpload.mDataSize + bufferUpload.mOffset <= bufferInfo.mSize)
+		TURBO_CHECK(mAllocator.Contains(bufferUpload.mData, bufferUpload.mDataSize + bufferUpload.mOffset))
+#endif // WITH_ASSERTIONS
+
+		mQueuedBufferUploads.push_back(bufferUpload);
 	}
 
 	FRGPassInfo& FRenderGraphBuilder::AddPass(FName passName, const FRGSetupPassDelegate& setup, FRGExecutePassDelegate&& execute)
@@ -178,8 +206,8 @@ namespace Turbo
 			};
 		}
 
-		mPerPassImageBarriers.clear();
-		mPerPassImageBarriers.resize(mRenderPasses.size());
+		mPerPassTextureBarriers.clear();
+		mPerPassTextureBarriers.resize(mRenderPasses.size());
 
 		for (uint32 passId = 0; passId < mRenderPasses.size(); ++passId)
 		{
@@ -188,7 +216,7 @@ namespace Turbo
 			std::vector<FRGResourceHandle> readWriteResources = pass.mTextureWrites;
 			std::vector<FRGResourceHandle> readOnlyResources;
 
-			std::vector<FRGImageMemoryBarrier>& passImageBarriers = mPerPassImageBarriers[passId];
+			std::vector<FRGTextureMemoryBarrier>& passImageBarriers = mPerPassTextureBarriers[passId];
 
 			for (FRGResourceHandle read : pass.mTextureReads)
 			{
@@ -206,7 +234,7 @@ namespace Turbo
 				if (FResourceState& srcData = foundSrcData->second;
 					srcData.mAccess != EResourceAccess::Read || srcData.mLayout != ETextureLayout::ReadOnly)
 				{
-					FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
+					FRGTextureMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
 					newBarrier.mTexture = read;
 					newBarrier.mOldLayout = srcData.mLayout;
 					newBarrier.mNewLayout =
@@ -231,7 +259,7 @@ namespace Turbo
 
 			for (FRGResourceHandle write : readWriteResources)
 			{
-				FRGImageMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
+				FRGTextureMemoryBarrier& newBarrier = passImageBarriers.emplace_back();
 				newBarrier.mTexture = write;
 				newBarrier.mDstAccessMask = FindAccessMask(EResourceAccess::ReadWrite);
 
@@ -289,7 +317,7 @@ namespace Turbo
 			{
 				FResourceState& srcData = foundSrcData->second;
 
-				FRGImageMemoryBarrier& newBarrier = mExternalResourcesBarriers.emplace_back();
+				FRGTextureMemoryBarrier& newBarrier = mExternalTexturesBarriers.emplace_back();
 				newBarrier.mSrcStageMask = FindStageMask(srcData.mLastUseType, srcData.mFormat);
 				newBarrier.mDstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
 
@@ -304,33 +332,10 @@ namespace Turbo
 		}
 	}
 
-	void FRenderGraphBuilder::CompileResourceLifeTimes()
-	{
-		for (uint16 passId = 0; passId < mRenderPasses.size(); ++passId)
-		{
-			const FRGPassInfo& pass = mRenderPasses[passId];
-			for (FRGResourceHandle write : pass.mTextureWrites)
-			{
-				FRGResourceLifetime& lifetime = mResourceLifetimes[write];
-				lifetime.mFirstPass = glm::min(lifetime.mFirstPass, passId);
-				lifetime.mLastPass = glm::max(lifetime.mFirstPass, passId);
-			}
-
-			for (FRGResourceHandle read : pass.mTextureReads)
-			{
-				FRGResourceLifetime& lifetime = mResourceLifetimes[read];
-				lifetime.mFirstPass = glm::min(lifetime.mFirstPass, passId);
-				lifetime.mLastPass = glm::max(lifetime.mFirstPass, passId);
-			}
-		}
-	}
-
 	void FRenderGraphBuilder::Compile()
 	{
 		TRACE_ZONE_SCOPED()
 
-		// Compile lifetimes
-		CompileResourceLifeTimes();
 		CompileTextureSynchronization();
 	}
 
@@ -342,7 +347,7 @@ namespace Turbo
 		FRenderResources renderResources = {};
 		renderResources.mTextures.reserve(mTextures.size() + mExternalTextures.size());
 
-		// Allocate resources
+		// Allocate textures
 		for (uint32 textureId = 0; textureId < mTextures.size(); ++textureId)
 		{
 			const FRGTextureInfo& textureInfo = mTextures[textureId];
@@ -364,6 +369,25 @@ namespace Turbo
 			renderResources.mTextures.emplace(handle, texture);
 		}
 
+		// Allocate buffers
+		for (uint32 bufferId = 0; bufferId < mBuffers.size(); ++bufferId)
+		{
+			const FRGBufferInfo bufferInfo = mBuffers[bufferId];
+
+			FBufferBuilder builder = {
+				.mBufferFlags = bufferInfo.mBufferFlags,
+				.mSize = bufferInfo.mSize,
+				.mName = bufferInfo.mName
+			};
+
+			const FRGResourceHandle handle(ERGResourceType::Buffer, bufferId, false);
+			const THandle<FBuffer> buffer = gpu.CreateBuffer(builder);
+			TURBO_CHECK(buffer)
+
+			renderResources.mBuffers.emplace(handle, buffer);
+		}
+
+		// Register external textures
 		for (uint32 externalTextureId = 0; externalTextureId < mExternalTextures.size(); ++externalTextureId)
 		{
 			const THandle<FTexture> texture = mExternalTextures[externalTextureId].mTextureHandle;
@@ -375,18 +399,31 @@ namespace Turbo
 			TURBO_LOG(LogRenderGraph, Display, "Registering external texture: {}", mExternalTextures[externalTextureId].mTextureInfo.mName);
 		}
 
+		// Upload buffers
+		for (FRGBufferUpload& bufferUpload : mQueuedBufferUploads)
+		{
+			const FBuffer* buffer = gpu.AccessBuffer(renderResources.mBuffers.at(bufferUpload.mTargetBuffer));
+			std::memcpy(
+				static_cast<byte*>(buffer->GetMappedAddress()) + bufferUpload.mOffset,
+				bufferUpload.mData,
+				bufferUpload.mDataSize
+			);
+
+			TURBO_LOG(LogRenderGraph, Display, "Uploading data to \"{}\" buffer", mBuffers[bufferUpload.mTargetBuffer.GetIndex()].mName);
+		}
+
 		for (uint32 passId = 0; passId < mRenderPasses.size(); ++passId)
 		{
 			const FRGPassInfo& pass = mRenderPasses[passId];
 			TURBO_LOG(LogRenderGraph, Display, "Begin render pass: {}", pass.mName);
 
 			// Add barrier
-			FRGPassImageBarriers& passImageBarriers = mPerPassImageBarriers[passId];
+			FRGPassTextureBarriers& passImageBarriers = mPerPassTextureBarriers[passId];
 
 			std::vector<vk::ImageMemoryBarrier2> imageBarriers;
 			imageBarriers.reserve(passImageBarriers.size());
 
-			for (const FRGImageMemoryBarrier& rgBarrier : passImageBarriers)
+			for (const FRGTextureMemoryBarrier& rgBarrier : passImageBarriers)
 			{
 				THandle<FTexture> textureHandle = renderResources.mTextures.at(rgBarrier.mTexture);
 				imageBarriers.push_back(rgBarrier.ToVkImageBarrier(gpu, textureHandle));
@@ -483,6 +520,7 @@ namespace Turbo
 		}
 
 		// Destroy resources
+		// Destroy textures
 		for (uint32 textureId = 0; textureId < mTextures.size(); ++textureId)
 		{
 			const FRGResourceHandle handle(ERGResourceType::Texture, textureId, false);
@@ -493,12 +531,23 @@ namespace Turbo
 			gpu.DestroyTexture(foundIt->second);
 		}
 
+		// Destroy buffers
+		for (uint32 bufferId = 0; bufferId < mBuffers.size(); ++bufferId)
+		{
+			const FRGResourceHandle handle(ERGResourceType::Buffer, bufferId, false);
+			auto foundIt = renderResources.mBuffers.find(handle);
+			TURBO_CHECK(foundIt != renderResources.mBuffers.end())
+
+			TURBO_LOG(LogRenderGraph, Display, "Destroying buffer: {}", gpu.AccessBufferCold(foundIt->second)->mName);
+			gpu.DestroyBuffer(foundIt->second);
+		}
+
 		// Transition external resources to their target layouts
 		TURBO_LOG(LogRenderGraph, Display, "Final external resources barrier.");
 		std::vector<vk::ImageMemoryBarrier2> imageBarriers;
-		imageBarriers.reserve(mExternalResourcesBarriers.size());
+		imageBarriers.reserve(mExternalTexturesBarriers.size());
 
-		for (const FRGImageMemoryBarrier& rgBarrier : mExternalResourcesBarriers)
+		for (const FRGTextureMemoryBarrier& rgBarrier : mExternalTexturesBarriers)
 		{
 			const THandle<FTexture> textureHandle = renderResources.mTextures.at(rgBarrier.mTexture);
 			imageBarriers.push_back(rgBarrier.ToVkImageBarrier(gpu, textureHandle));

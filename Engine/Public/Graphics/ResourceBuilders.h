@@ -31,16 +31,18 @@ namespace Turbo
 		static FBufferBuilder CreateStagingBuffer(uint32 size);
 		static FBufferBuilder CreateStagingBuffer(std::span<byte> data);
 
-	public:
 		FBufferBuilder& Reset() { mSize = 0; mInitialData = nullptr; return *this; }
-		FBufferBuilder& Init(vk::BufferUsageFlags usageFlags, EBufferFlags bufferFlags, size_t size)
-			{ mUsageFlags = usageFlags; mBufferFlags = bufferFlags; mSize = size; return *this; }
+		FBufferBuilder& Init(EBufferFlags bufferFlags, size_t size)
+		{
+			mBufferFlags = bufferFlags;
+			mSize = size;
+			return *this;
+		}
 		FBufferBuilder& SetData(const void* data) { mInitialData = data; return *this; }
 
 		FBufferBuilder& SetName(FName name) { mName = name; return *this; }
 
-	private:
-		vk::BufferUsageFlags mUsageFlags = {};
+	public:
 		EBufferFlags mBufferFlags = EBufferFlags::None;
 		size_t mSize = 0;
 

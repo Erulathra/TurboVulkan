@@ -8,7 +8,14 @@ namespace Turbo
 	enum class EBufferFlags : uint8
 	{
 		None = 0,
+
 		CreateMapped = 1 << 0,
+
+		UniformBuffer = 1 << 1,
+		StorageBuffer = 1 << 2,
+		IndexBuffer = 1 << 3,
+
+		TransferSrc = 1 << 4
 	};
 	DEFINE_ENUM_OPERATORS(EBufferFlags, uint8)
 

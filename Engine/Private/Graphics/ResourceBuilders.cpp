@@ -14,7 +14,7 @@ Turbo::FBufferBuilder Turbo::FBufferBuilder::CreateStagingBuffer(const void* dat
 
 	FBufferBuilder result = {};
 	result
-		.Init(vk::BufferUsageFlagBits::eTransferSrc, EBufferFlags::CreateMapped, size)
+		.Init(EBufferFlags::CreateMapped | EBufferFlags::TransferSrc, size)
 		.SetData(data)
 		.SetName(kStagingBufferName);
 

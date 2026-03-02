@@ -53,8 +53,7 @@ namespace Turbo
 
 			FBufferBuilder bufferBuilder = {};
 			bufferBuilder.Init(
-				vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-				EBufferFlags::None,
+				EBufferFlags::StorageBuffer,
 				componentData.size() * sizeof(T)
 			);
 			bufferBuilder.SetData(componentData.data());
@@ -71,7 +70,7 @@ namespace Turbo
 	{
 		FBufferBuilder bufferBuilder = {};
 		bufferBuilder
-			.Init(vk::BufferUsageFlagBits::eUniformBuffer, EBufferFlags::None, sizeof(FMeshPointers) * kMaxMeshes)
+			.Init(EBufferFlags::StorageBuffer, sizeof(FMeshPointers) * kMaxMeshes)
 			.SetName(FName("MeshPointer"));
 
 		mMeshPointersPool = gpu.CreateBuffer(bufferBuilder);
@@ -154,8 +153,7 @@ namespace Turbo
 
 			FBufferBuilder bufferBuilder = {};
 			bufferBuilder.Init(
-				vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-				EBufferFlags::None,
+				EBufferFlags::IndexBuffer,
 				indices.size() * sizeof(uint32)
 			);
 			bufferBuilder.SetData(indices.data());

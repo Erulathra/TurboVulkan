@@ -92,7 +92,7 @@ if (!(CONDITION))				\
 
 #define INDEX_NONE (-1)
 
-#define TEST_FLAG(VALUE, FLAG) static_cast<uint32>((VALUE) & (FLAG)) != 0
+// #define TEST_FLAG(VALUE, FLAG) (static_cast<uint32>((VALUE) & (FLAG)) != 0)
 
 namespace Turbo
 {
@@ -135,8 +135,7 @@ constexpr ENUM_TYPE operator&(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return st
 constexpr ENUM_TYPE operator^(ENUM_TYPE lhs, ENUM_TYPE rhs) noexcept { return static_cast<ENUM_TYPE>(static_cast<INTEGER_TYPE>(lhs) ^ static_cast<INTEGER_TYPE>(rhs)); }	\
 constexpr ENUM_TYPE& operator|=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs | rhs); }															\
 constexpr ENUM_TYPE& operator&=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs & rhs); }															\
-constexpr ENUM_TYPE& operator^=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs ^ rhs); }	\
-constexpr bool any (ENUM_TYPE lhs) noexcept { return static_cast<INTEGER_TYPE>(lhs) != 0; }
+constexpr ENUM_TYPE& operator^=(ENUM_TYPE& lhs, ENUM_TYPE rhs) noexcept { return lhs = (lhs ^ rhs); }
 
 #define DELETE_COPY(CLASS_NAME)							\
 	CLASS_NAME(CLASS_NAME const&) = delete;				\

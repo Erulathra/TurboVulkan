@@ -1,22 +1,23 @@
 #pragma once
 #include "CommonMacros.h"
 #include "CommonTypeDefs.h"
+#include "Core/Memory.h"
 
 namespace Turbo
 {
-	struct FStackAllocator
+	struct FArenaAllocator
 	{
 	public:
-		explicit FStackAllocator(size_t stackSize)
+		explicit FArenaAllocator(size_t size)
 		{
 			TRACE_ZONE_SCOPED()
 
-			mAllocation = new byte[stackSize];
-			mTip = mAllocation + stackSize;
+			mAllocation = static_cast<byte*>(aligned_alloc(4, size));
+			mTip = mAllocation + size;
 			mTop = mAllocation;
 		}
 
-		~FStackAllocator()
+		~FArenaAllocator()
 		{
 			delete[] mAllocation;
 		}
@@ -24,18 +25,28 @@ namespace Turbo
 		template <typename Type>
 		Type* Allocate()
 		{
-			return reinterpret_cast<Type*>(Allocate(sizeof(Type)));
+			return reinterpret_cast<Type*>(Allocate(sizeof(Type), alignof(Type)));
 		}
 
-		byte* Allocate(size_t size)
+		byte* Allocate(size_t size, size_t alignment = 4)
 		{
 			TURBO_CHECK(mAllocation != nullptr && mTop != nullptr && mTip != nullptr)
-			TURBO_CHECK_MSG(mTop + size < mTip, "Stack allocator overflow")
+			TURBO_CHECK((alignment & (alignment-1)) == 0)
+			TURBO_CHECK(size > 0)
 
-			byte* result = mTop;
-			mTop += size;
+			// Align new top
+			byte* result = Memory::Align(mTop, alignment);
+			byte* newTop = result + size;
+			TURBO_CHECK_MSG(newTop <= mTip, "Stack allocator overflow")
+
+			mTop = newTop;
 
 			return result;
+		}
+
+		bool Contains(void* ptr, size_t size = 0) const
+		{
+			return ptr >= mAllocation && static_cast<byte*>(ptr) + size <= mTop;
 		}
 
 		void Clear()

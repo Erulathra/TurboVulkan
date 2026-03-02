@@ -30,25 +30,13 @@ namespace Turbo
 
 	void FSceneRenderingLayer::Start()
 	{
-		FBufferBuilder viewDataBufferBuilder;
-		viewDataBufferBuilder.Init(
-			vk::BufferUsageFlagBits::eUniformBuffer,
-			EBufferFlags::CreateMapped,
-			sizeof(FViewData)
-		);
-		viewDataBufferBuilder.SetName(FName("ViewData_Uniform"));
-
-		FGPUDevice& gpuDevice = entt::locator<FGPUDevice>::value();
-		mViewDataUniformBuffer = gpuDevice.CreateBuffer(viewDataBufferBuilder);
 	}
 
 	void FSceneRenderingLayer::Shutdown()
 	{
-		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
-		gpu.DestroyBuffer(mViewDataUniformBuffer);
 	}
 
-	void FSceneRenderingLayer::UpdateViewData(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world, FViewData& viewData)
+	void FSceneRenderingLayer::UpdateViewData(FWorld* world, FViewData& viewData)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -68,23 +56,18 @@ namespace Turbo
 		viewData.mTime = FCoreTimer::TimeFromEngineStart();
 		viewData.mWorldTime = FCoreTimer::TimeFromEngineStart();
 		viewData.mDeltaTime = FCoreTimer::DeltaTime();
+
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		viewData.mFrameIndex = static_cast<int32>(gpu.GetNumRenderedFrames());
-
-		const FBuffer* viewDataBuffer = gpu.AccessBuffer(mViewDataUniformBuffer);
-		std::memcpy(viewDataBuffer->GetMappedAddress(), &viewData, sizeof(FViewData));
-
-#if 0 // This barrier is unnecessary
-		cmd.BufferBarrier(
-			mViewDataUniformBuffer,
-			vk::AccessFlagBits2::eHostWrite,
-			vk::PipelineStageFlagBits2::eHost,
-			vk::AccessFlagBits2::eShaderRead,
-			vk::PipelineStageFlagBits2::eVertexShader
-		);
-#endif
 	}
 
-	void FSceneRenderingLayer::RenderMeshes(FGPUDevice& gpu, FCommandBuffer& cmd, FWorld* world, const FViewData& viewData)
+	void FSceneRenderingLayer::RenderMeshes(
+		FGPUDevice& gpu,
+		FCommandBuffer& cmd,
+		FWorld* world,
+		const FViewData& viewData,
+		THandle<FBuffer> viewDataBuffer
+	)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -204,7 +187,7 @@ namespace Turbo
 			THandle<FMesh> meshHandle = EngineResources::GetPlaceholderMesh();
 			const FMesh* mesh = assetManager.AccessMesh(meshHandle);
 
-			FDeviceAddress viewDataDeviceAddress = gpu.AccessBuffer(mViewDataUniformBuffer)->GetDeviceAddress();
+			FDeviceAddress viewDataDeviceAddress = gpu.AccessBuffer(viewDataBuffer)->GetDeviceAddress();
 
 #if WITH_PROFILER
 			FCounterType numPipelineSwitches = 0;
@@ -288,6 +271,13 @@ namespace Turbo
 			return;
 		}
 
+		FViewData* viewData = graphBuilder.AllocatePOD<FViewData>();
+		FRGResourceHandle viewDataBuffer = graphBuilder.AddBuffer({
+			.mSize = sizeof(FViewData),
+			.mBufferFlags = EBufferFlags::CreateMapped | EBufferFlags::UniformBuffer,
+			.mName = FName("ViewDataBuffer")
+		});
+
 		graphBuilder.AddPass(
 			FName("GeometryPass"),
 			FRGSetupPassDelegate::CreateLambda(
@@ -298,19 +288,24 @@ namespace Turbo
 					FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 					passInfo.AddAttachment(geometryBuffer.mColor, 0);
 					passInfo.SetDepthStencilAttachment(geometryBuffer.mDepth);
+
+					passInfo.ReadBuffer(viewDataBuffer);
+
+					UpdateViewData(world, *viewData);
+
+					graphBuilder.QueueBufferUpload({
+						.mTargetBuffer = viewDataBuffer,
+						.mData = viewData,
+						.mDataSize = sizeof(FViewData),
+					});
 				}),
 			FRGExecutePassDelegate::CreateLambda(
-				// todo: Capturing this is dangerous, but before adding buffer support to render graph, It is necessary.
-				[this](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+				[viewData, viewDataBuffer](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 				{
 					TRACE_ZONE_SCOPED_N("Render Basepass")
 					TRACE_GPU_SCOPED(gpu, cmd, "Render Basepass")
 
-					FWorld* world = gEngine->GetWorld();
-
-					FViewData viewData;
-					UpdateViewData(gpu, cmd, world, viewData);
-					RenderMeshes(gpu, cmd, world, viewData);
+					RenderMeshes(gpu, cmd, gEngine->GetWorld(), *viewData, resources.mBuffers.at(viewDataBuffer));
 				})
 		);
 	}

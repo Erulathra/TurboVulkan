@@ -131,7 +131,7 @@ namespace Turbo
 		TURBO_CHECK(handle)
 
 #if TURBO_BUILD_DEVELOPMENT
-		if (TEST_FLAG(builder.mUsageFlags, vk::BufferUsageFlagBits::eUniformBuffer))
+		if ((builder.mBufferFlags & EBufferFlags::UniformBuffer) != EBufferFlags::None)
 		{
 			TURBO_ENSURE(builder.mSize < kMaxUniformBufferSize);
 		}
@@ -142,16 +142,33 @@ namespace Turbo
 		buffer->mDeviceSize = builder.mSize;
 
 		bufferCold->mName = builder.mName;
-		bufferCold->mUsageFlags = builder.mUsageFlags;
+		bufferCold->mBufferFlags = builder.mBufferFlags;
 
 		vk::BufferCreateInfo createInfo = {};
-		createInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress | bufferCold->mUsageFlags;
 		createInfo.size = buffer->mDeviceSize;
+		createInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress;
+		createInfo.usage |=
+			(builder.mBufferFlags & EBufferFlags::UniformBuffer) != EBufferFlags::None
+				? vk::BufferUsageFlagBits::eUniformBuffer
+				: static_cast<vk::BufferUsageFlagBits>(0);
+		createInfo.usage |=
+			(builder.mBufferFlags & EBufferFlags::StorageBuffer) != EBufferFlags::None
+				? vk::BufferUsageFlagBits::eStorageBuffer
+				: static_cast<vk::BufferUsageFlagBits>(0);
+		createInfo.usage |=
+			(builder.mBufferFlags & EBufferFlags::IndexBuffer) != EBufferFlags::None
+				? vk::BufferUsageFlagBits::eIndexBuffer
+				: static_cast<vk::BufferUsageFlagBits>(0);
+		createInfo.usage |=
+			(builder.mBufferFlags & EBufferFlags::TransferSrc) != EBufferFlags::None
+				? vk::BufferUsageFlagBits::eTransferSrc
+				: static_cast<vk::BufferUsageFlagBits>(0);
 
 		vma::AllocationCreateInfo allocationCreateInfo = {};
 		allocationCreateInfo.usage = vma::MemoryUsage::eAuto;
 
-		if (any(builder.mBufferFlags & EBufferFlags::CreateMapped))
+		const bool bCreateMapped = (builder.mBufferFlags & EBufferFlags::CreateMapped) != EBufferFlags::None;
+		if (bCreateMapped)
 		{
 			allocationCreateInfo.flags |= vma::AllocationCreateFlagBits::eHostAccessSequentialWrite;
 			allocationCreateInfo.flags |= vma::AllocationCreateFlagBits::eMapped;
@@ -171,7 +188,7 @@ namespace Turbo
 
 		SetResourceName(buffer->mVkBuffer, bufferCold->mName);
 
-		if (any(builder.mBufferFlags & EBufferFlags::CreateMapped))
+		if (bCreateMapped)
 		{
 			buffer->mMappedAddress = allocationInfo.pMappedData;
 		}
@@ -578,7 +595,7 @@ namespace Turbo
 			const FBinding& binding = layout->mBindings[bindingId];
 			const FHandle resource = builder.mResources[bindingId];
 
-			const bool bPartiallyBound = TEST_FLAG(binding.mFlags, vk::DescriptorBindingFlagBits::ePartiallyBound);
+			const bool bPartiallyBound = !!(binding.mFlags & vk::DescriptorBindingFlagBits::ePartiallyBound);
 
 			TURBO_CHECK(resource.IsValid() || bPartiallyBound)
 
@@ -1509,8 +1526,8 @@ namespace Turbo
 		imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
 		imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
 
-		const bool bRenderTarget = TEST_FLAG(builder.mFlags, ETextureFlags::RenderTarget);
-		const bool bStorageImage = TEST_FLAG(builder.mFlags, ETextureFlags::StorageImage);
+		const bool bRenderTarget = (builder.mFlags & ETextureFlags::RenderTarget) != ETextureFlags::Invalid;
+		const bool bStorageImage = (builder.mFlags & ETextureFlags::StorageImage) != ETextureFlags::Invalid;
 
 		using EImgUsage = vk::ImageUsageFlagBits;
 

@@ -33,7 +33,13 @@ namespace Turbo
 			&& mName.IsNone() == false;
 	}
 
-	vk::ImageMemoryBarrier2 FRGImageMemoryBarrier::ToVkImageBarrier(FGPUDevice& gpu, THandle<FTexture> textureHandle) const
+	bool FRGBufferInfo::IsValid() const
+	{
+		return mBufferFlags != EBufferFlags::None
+			&& mSize > 0;
+	}
+
+	vk::ImageMemoryBarrier2 FRGTextureMemoryBarrier::ToVkImageBarrier(FGPUDevice& gpu, THandle<FTexture> textureHandle) const
 	{
 		vk::ImageMemoryBarrier2 vkBarrier;
 		vkBarrier.srcStageMask = mSrcStageMask;

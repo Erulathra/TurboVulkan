@@ -21,9 +21,11 @@ namespace Turbo
 
 	struct FRGPassInfo
 	{
-		FRGResourceHandle CreateTexture(const FRGTextureInfo& textureInfo);
 		FRGResourceHandle ReadTexture(FRGResourceHandle texture);
 		FRGResourceHandle WriteTexture(FRGResourceHandle texture);
+
+		FRGResourceHandle ReadBuffer(FRGResourceHandle buffer);
+		FRGResourceHandle WriteBuffer(FRGResourceHandle buffer);
 
 		FRGResourceHandle AddAttachment(FRGResourceHandle texture, uint32 mAttachmentIndex);
 		FRGResourceHandle SetDepthStencilAttachment(FRGResourceHandle texture);
@@ -31,6 +33,9 @@ namespace Turbo
 	public:
 		std::vector<FRGResourceHandle> mTextureReads;
 		std::vector<FRGResourceHandle> mTextureWrites;
+
+		std::vector<FRGResourceHandle> mBufferReads;
+		std::vector<FRGResourceHandle> mBufferWrites;
 
 		std::array<FRGResourceHandle, kMaxColorAttachments> mColorAttachments;
 		FRGResourceHandle mDepthStencilAttachment = {};
@@ -47,6 +52,7 @@ namespace Turbo
 	struct FRenderResources
 	{
 		entt::dense_map<FRGResourceHandle, THandle<FTexture>> mTextures = {};
+		entt::dense_map<FRGResourceHandle, THandle<FBuffer>> mBuffers = {};
 	};
 
 	struct FRenderGraphBuilder
@@ -60,18 +66,20 @@ namespace Turbo
 		[[nodiscard]] FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout);
 		[[nodiscard]] FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout, ETextureLayout finalLayout);
 
+		[[nodiscard]] FRGResourceHandle AddBuffer(const FRGBufferInfo& bufferInfo);
+		void QueueBufferUpload(const FRGBufferUpload& bufferUpload);
+
 		FRGPassInfo& AddPass(FName passName, const FRGSetupPassDelegate& setup, FRGExecutePassDelegate&& execute);
 
 		void Compile();
-		void CompileResourceLifeTimes();
 		void CompileTextureSynchronization();
 
 		void Execute(FGPUDevice& gpu, FCommandBuffer& cmd);
 
 		template <typename PODType>
-		PODType& AllocatePOD()
+		PODType* AllocatePOD()
 		{
-			return *mAllocator.Allocate<PODType>();
+			return mAllocator.Allocate<PODType>();
 		}
 
 		vk::Format GetTextureFormat(FRGResourceHandle resourceHandle) const;
@@ -79,15 +87,16 @@ namespace Turbo
 	public:
 		std::vector<FRGPassInfo> mRenderPasses;
 
-		using FRGPassImageBarriers = std::vector<FRGImageMemoryBarrier>;
-		std::vector<FRGPassImageBarriers> mPerPassImageBarriers;
-		FRGPassImageBarriers mExternalResourcesBarriers;
+		using FRGPassTextureBarriers = std::vector<FRGTextureMemoryBarrier>;
+		std::vector<FRGPassTextureBarriers> mPerPassTextureBarriers;
+		FRGPassTextureBarriers mExternalTexturesBarriers;
 
 		std::vector<FRGTextureInfo> mTextures;
 		std::vector<FRGExternalTextureInfo> mExternalTextures;
 
-		entt::dense_map<FRGResourceHandle, FRGResourceLifetime> mResourceLifetimes;
+		std::vector<FRGBufferInfo> mBuffers;
+		std::vector<FRGBufferUpload> mQueuedBufferUploads;
 
-		FStackAllocator mAllocator = FStackAllocator(kPerFrameStackSize);
+		FArenaAllocator mAllocator = FArenaAllocator(kPerFrameStackSize);
 	};
 } // Turbo

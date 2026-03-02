@@ -73,6 +73,9 @@ namespace Turbo
 		{
 			return !(lhs == rhs);
 		}
+
+		FRGResourceHandle(const FRGResourceHandle& other) = default;
+		FRGResourceHandle& operator=(const FRGResourceHandle& other) = default;
 	};
 }
 
@@ -184,22 +187,24 @@ namespace Turbo
 
 	struct FRGExternalTextureInfo
 	{
-		FRGTextureInfo mTextureInfo;
+		FRGTextureInfo mTextureInfo = {};
 
-		THandle<FTexture> mTextureHandle;
-		ETextureLayout mInitialLayout;
-		ETextureLayout mFinalLayout;
+		THandle<FTexture> mTextureHandle = {};
+		ETextureLayout mInitialLayout = ETextureLayout::Undefined;
+		ETextureLayout mFinalLayout = ETextureLayout::Undefined;
 	};
 
 	struct FRGBufferInfo
 	{
 		FDeviceSize mSize = 0;
-		vk::BufferUsageFlags2 mUsage = {};
+		EBufferFlags mBufferFlags;
 
 		FName mName = {};
+
+		[[nodiscard]] bool IsValid() const;
 	};
 
-	struct FRGImageMemoryBarrier
+	struct FRGTextureMemoryBarrier
 	{
 		ETextureLayout mOldLayout = ETextureLayout::Undefined;
 		ETextureLayout mNewLayout = ETextureLayout::Undefined;
@@ -219,5 +224,13 @@ namespace Turbo
 	{
 		uint16 mFirstPass = UINT16_MAX;
 		uint16 mLastPass = 0;
+	};
+
+	struct FRGBufferUpload
+	{
+		FRGResourceHandle mTargetBuffer = {};
+		void* mData = nullptr;
+		size_t mDataSize = 0;
+		size_t mOffset = 0;
 	};
 }

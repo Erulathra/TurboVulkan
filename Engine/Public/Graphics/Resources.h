@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DestoryQueue.h"
+#include "Enums.h"
 #include "Core/DataStructures/ArrayHeap.h"
 #include "Graphics/GraphicsCore.h"
 
@@ -53,7 +54,7 @@ namespace Turbo
 	struct FBufferCold
 	{
 		vma::Allocation mAllocation = nullptr;
-		vk::BufferUsageFlags mUsageFlags = {};
+		EBufferFlags mBufferFlags = EBufferFlags::None;
 
 		THandle<FBuffer> mHandle = {};
 
