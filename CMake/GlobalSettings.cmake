@@ -26,8 +26,6 @@ function(disable_exceptions TARGET)
 endfunction()
 
 function(setup_project_directory TARGET)
-    target_copy_slang_binaries(${TARGET})
-
     add_custom_command(
             TARGET ${TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E create_symlink

@@ -2,14 +2,12 @@ import os.path
 import platform
 import tarfile
 import zipfile
-import time
 import pathlib
 import json
 
-from urllib.request import urlretrieve
+from Common import *
 
-EXTERNAL_DIR = f"{os.path.dirname(__file__)}/../Content/External"
-CACHE_DIR = f"{os.path.dirname(__file__)}/Cache"
+from urllib.request import urlretrieve
 
 COMPRESSONATOR_CLI_VERSION = "4.5.52"
 COMPRESSONATOR_CLI_DIR = f"{CACHE_DIR}/compressonatorcli"
@@ -27,19 +25,6 @@ SPONZA_BASE_TEXTURES_DST = f"{SPONZA_BASE}/textures_compressed"
 SPONZA_BASE_GLTF_SRC = f"{SPONZA_BASE}/NewSponza_Main_glTF_003.gltf"
 SPONZA_BASE_GLTF_DST = f"{SPONZA_BASE}/SponzaCompressed.gltf"
 
-last_report_time = 0
-
-
-def show_download_progress(block_num, block_size, total_size):
-    global last_report_time
-
-    if time.perf_counter() - last_report_time > 1.:
-        downloaded_mib = block_num * block_size / 2. ** 20
-        total_mib = total_size / 2. ** 20
-        print(f"Downloading {downloaded_mib / total_mib * 100.:.2f}% [{downloaded_mib:.2f}MiB/{total_mib:.2f}MiB]")
-        last_report_time = time.perf_counter()
-
-
 def fetch_compressonator():
     if platform.system() == "Linux":
         if os.path.exists(COMPRESSONATOR_CLI_LINUX):
@@ -51,9 +36,9 @@ def fetch_compressonator():
             print("Downloading compressonatorcli...")
             urlretrieve(COMPRESSONATOR_CLI_LINUX_URL, archive_path, show_download_progress)
 
-        with tarfile.open(archive_path) as archiveFile:
+        with tarfile.open(archive_path) as archive_file:
             print("Uncompressing compressonatorcli...")
-            archiveFile.extractall(CACHE_DIR)
+            archive_file.extractall(CACHE_DIR)
             os.rename(archive_path[0:-len(".tar.gz")], COMPRESSONATOR_CLI_DIR)
 
         os.remove(archive_path)
