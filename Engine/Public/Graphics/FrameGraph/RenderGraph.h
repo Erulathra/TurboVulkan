@@ -62,11 +62,11 @@ namespace Turbo
 		DELETE_COPY(FRenderGraphBuilder)
 		FRenderGraphBuilder() = default;
 
-		[[nodiscard]] FRGResourceHandle AddTexture(const FRGTextureInfo& textureInfo);
+		[[nodiscard]] FRGResourceHandle CreateTexture(const FRGTextureInfo& textureInfo);
 		[[nodiscard]] FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout);
 		[[nodiscard]] FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout, ETextureLayout finalLayout);
 
-		[[nodiscard]] FRGResourceHandle AddBuffer(const FRGBufferInfo& bufferInfo);
+		[[nodiscard]] FRGResourceHandle CreateBuffer(const FRGBufferInfo& bufferInfo);
 		void QueueBufferUpload(const FRGBufferUpload& bufferUpload);
 
 		FRGPassInfo& AddPass(FName passName, const FRGSetupPassDelegate& setup, FRGExecutePassDelegate&& execute);

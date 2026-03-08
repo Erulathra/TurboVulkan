@@ -139,6 +139,8 @@ namespace Turbo
 		mesh->mAssetHash = assetHash;
 
 		TURBO_CHECK(glftSubMesh.indicesAccessor.has_value())
+		FMeshPointers meshPointers = {};
+
 		{
 			const fastgltf::Accessor& indicesAccessor = loadedAsset.accessors[glftSubMesh.indicesAccessor.value()];
 
@@ -160,9 +162,11 @@ namespace Turbo
 			bufferBuilder.SetName(FName(fmt::format("{}_INDICES", loadedAsset.meshes.front().name)));
 
 			mesh->mIndicesBuffer = gpu.CreateBuffer(bufferBuilder);
-		}
+			FBuffer* indicesBuffer = gpu.AccessBuffer(mesh->mIndicesBuffer);
+			TURBO_CHECK(indicesBuffer);
 
-		FMeshPointers meshPointers = {};
+			meshPointers.mIndexBuffer = indicesBuffer->mDeviceAddress;
+		}
 
 		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mPositionBuffer, meshPointers.mPositionBuffer, kPositionName);
 		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mNormalBuffer, meshPointers.mNormalBuffer, kNormalName);

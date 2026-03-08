@@ -59,7 +59,7 @@ namespace Turbo
 		return texture;
 	}
 
-	FRGResourceHandle FRenderGraphBuilder::AddTexture(const FRGTextureInfo& textureInfo)
+	FRGResourceHandle FRenderGraphBuilder::CreateTexture(const FRGTextureInfo& textureInfo)
 	{
 		TURBO_CHECK(textureInfo.IsValid())
 		mTextures.push_back(textureInfo);
@@ -109,7 +109,7 @@ namespace Turbo
 		return resourceHandle;
 	}
 
-	FRGResourceHandle FRenderGraphBuilder::AddBuffer(const FRGBufferInfo& bufferInfo)
+	FRGResourceHandle FRenderGraphBuilder::CreateBuffer(const FRGBufferInfo& bufferInfo)
 	{
 		TURBO_CHECK(bufferInfo.IsValid())
 		mBuffers.push_back(bufferInfo);
@@ -161,7 +161,7 @@ namespace Turbo
 		std::unreachable();
 	};
 
-	inline vk::PipelineStageFlags2 FindStageMask(EPassType passType, vk::Format format)
+	inline vk::PipelineStageFlags2 FindTextureStageMask(EPassType passType, vk::Format format)
 	{
 		switch (passType)
 		{
@@ -242,8 +242,8 @@ namespace Turbo
 							? ETextureLayout::TransferSrc
 							: ETextureLayout::ReadOnly;
 
-					newBarrier.mSrcStageMask = FindStageMask(srcData.mLastUseType, srcData.mFormat);
-					newBarrier.mDstStageMask = FindStageMask(pass.mPassType, srcData.mFormat);
+					newBarrier.mSrcStageMask = FindTextureStageMask(srcData.mLastUseType, srcData.mFormat);
+					newBarrier.mDstStageMask = FindTextureStageMask(pass.mPassType, srcData.mFormat);
 
 					newBarrier.mSrcAccessMask = FindAccessMask(srcData.mAccess);
 					newBarrier.mDstAccessMask =
@@ -268,7 +268,7 @@ namespace Turbo
 				{
 					newBarrier.mOldLayout = srcDataIt->second.mLayout;
 					newBarrier.mSrcAccessMask = FindAccessMask(srcDataIt->second.mAccess);
-					newBarrier.mSrcStageMask = FindStageMask(srcDataIt->second.mLastUseType, srcDataIt->second.mFormat);
+					newBarrier.mSrcStageMask = FindTextureStageMask(srcDataIt->second.mLastUseType, srcDataIt->second.mFormat);
 				}
 				else
 				{
@@ -300,7 +300,7 @@ namespace Turbo
 				}
 
 				FResourceState& currentData = resourceData.at(write);
-				newBarrier.mDstStageMask = FindStageMask(pass.mPassType, currentData.mFormat);
+				newBarrier.mDstStageMask = FindTextureStageMask(pass.mPassType, currentData.mFormat);
 
 				currentData.mLastUseType = pass.mPassType;
 				currentData.mAccess = EResourceAccess::ReadWrite;
@@ -318,7 +318,7 @@ namespace Turbo
 				FResourceState& srcData = foundSrcData->second;
 
 				FRGTextureMemoryBarrier& newBarrier = mExternalTexturesBarriers.emplace_back();
-				newBarrier.mSrcStageMask = FindStageMask(srcData.mLastUseType, srcData.mFormat);
+				newBarrier.mSrcStageMask = FindTextureStageMask(srcData.mLastUseType, srcData.mFormat);
 				newBarrier.mDstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
 
 				newBarrier.mSrcAccessMask = FindAccessMask(srcData.mAccess);

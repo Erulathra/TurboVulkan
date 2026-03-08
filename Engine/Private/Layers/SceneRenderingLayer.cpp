@@ -12,6 +12,10 @@
 #include "World/MeshComponent.h"
 #include "World/World.h"
 
+#ifndef ENABLE_VERTEX_PULLING
+#define ENABLE_VERTEX_PULLING 0
+#endif // ifndef ENABLE_VERTEX_PULLING
+
 namespace Turbo
 {
 	struct FDrawCall
@@ -72,7 +76,6 @@ namespace Turbo
 		TRACE_ZONE_SCOPED()
 
 		entt::registry& registry = world->mRegistry;
-		const uint32 frameId = gpu.GetBufferedFrameId();
 
 		entt::storage<FDrawCall> drawCalls;
 		using FDrawCallIt = entt::storage<FDrawCall>::iterator;
@@ -223,7 +226,9 @@ namespace Turbo
 						meshHandle = drawCallIt->mMesh;
 						mesh = assetManager.AccessMesh(meshHandle);
 
+#if ENABLE_VERTEX_PULLING == false
 						cmd.BindIndexBuffer(mesh->mIndicesBuffer);
+#endif // ENABLE_VERTEX_PULLING == false
 					}
 
 					FMaterial::PushConstants pushConstants = {};
@@ -242,7 +247,11 @@ namespace Turbo
 						TRACE_ZONE_SCOPED_N("Draw Indexed")
 
 						cmd.PushConstants(pushConstants);
+#if ENABLE_VERTEX_PULLING
+						cmd.Draw(mesh->mVertexCount);
+#else // ENABLE_VERTEX_PULLING
 						cmd.DrawIndexed(mesh->mVertexCount);
+#endif // else ENABLE_VERTEX_PULLING
 					}
 				}
 			}
@@ -254,6 +263,124 @@ namespace Turbo
 			static const cstring kPipelineSwitchesName = "Pipeline switches";
 			TRACE_PLOT_CONFIGURE(kPipelineSwitchesName, EPlotFormat::Number, true, true, 0xFFFF00)
 			TRACE_PLOT(kPipelineSwitchesName, numPipelineSwitches)
+		}
+	}
+
+	void FSceneRenderingLayer::CreateIndirectRenderBuffers(FRenderGraphBuilder& graphBuilder, FWorld* world, std::vector<FRGResourceHandle>& outBuffers)
+	{
+		TRACE_ZONE_SCOPED()
+
+		entt::registry& registry = world->mRegistry;
+
+		entt::storage<FDrawCall> drawCalls;
+		using FDrawCallIt = entt::storage<FDrawCall>::iterator;
+
+		struct FMaterialBucket
+		{
+			THandle<FMaterial> mTargetMaterial = {};
+			FDrawCallIt mStartIt = {};
+			FDrawCallIt mEndIt = {};
+		};
+
+		std::vector<FMaterialBucket> materialBuckets;
+
+		{
+			TRACE_ZONE_SCOPED_N("Prepare drawcalls")
+
+			const auto meshView = registry.view<FMeshComponent>();
+
+			{
+				TRACE_ZONE_SCOPED_N("Reserve storage")
+				drawCalls.reserve(meshView.storage()->size());
+
+				for (entt::entity entity : meshView)
+				{
+					drawCalls.emplace(entity);
+				}
+			}
+
+			{
+				TRACE_ZONE_SCOPED_N("Calculate transforms")
+
+				const auto meshTransformView = registry.view<FMeshComponent, FWorldTransform>();
+				for (entt::entity entity : meshTransformView)
+				{
+					FWorldTransform& worldTransformComp = meshTransformView.get<FWorldTransform>(entity);
+					drawCalls.get(entity).mWorldTransform = worldTransformComp.mTransform;
+				}
+
+				const auto meshRelationView = registry.view<FMeshComponent, FRelationship>(entt::exclude<FWorldTransform>);
+				for (entt::entity entity : meshRelationView)
+				{
+					const FRelationship& relationship = meshRelationView.get<FRelationship>(entity);
+					drawCalls.get(entity).mWorldTransform = registry.get<FWorldTransform>(relationship.mParent).mTransform;
+				}
+			}
+
+			{
+				TRACE_ZONE_SCOPED_N("Fill draw calls")
+				for (entt::entity entity : meshView)
+				{
+					const FMeshComponent& meshComponent = meshView.get<FMeshComponent>(entity);
+
+					FDrawCall& currentDrawCall = drawCalls.get(entity);
+					currentDrawCall.mMesh = meshComponent.mMesh;
+					currentDrawCall.mMaterial = meshComponent.mMaterial;
+					currentDrawCall.mMaterialInstance = meshComponent.mMaterialInstance;
+
+					constexpr uint64 kMaterialMask = 0xFFFF000000000000;
+					constexpr uint64 kMaterialInstanceMask = 0x0000FFFF00000000;
+					constexpr uint64 kMeshMask = 0x00000000FFFF0000;
+
+					TURBO_CHECK(currentDrawCall.mMaterial.GetIndex() < 1 << std::popcount(kMaterialMask))
+					TURBO_CHECK(currentDrawCall.mMaterial.GetIndex() < 1 << std::popcount(kMaterialInstanceMask))
+					TURBO_CHECK(currentDrawCall.mMaterial.GetIndex() < 1 << std::popcount(kMeshMask))
+
+					currentDrawCall.mDrawCallHash =
+						static_cast<uint64>(currentDrawCall.mMaterial.GetIndex()) << std::countr_zero(kMaterialMask)
+						| static_cast<uint64>(currentDrawCall.mMaterialInstance.GetIndex()) << std::countr_zero(kMaterialInstanceMask)
+						| static_cast<uint64>(currentDrawCall.mMesh.GetIndex()) << std::countr_zero(kMeshMask);
+				}
+			}
+		}
+
+		{
+			TRACE_ZONE_SCOPED_N("Sort draw calls")
+			drawCalls.sort([&](entt::entity left, const entt::entity& right)
+			{
+				return drawCalls.get(left).mDrawCallHash < drawCalls.get(right).mDrawCallHash;
+			});
+		}
+
+		{
+			materialBuckets.emplace_back();
+			FMaterialBucket& currentBucket = materialBuckets.front();
+			currentBucket.mTargetMaterial = drawCalls.begin()->mMaterial;
+			currentBucket.mStartIt = drawCalls.begin();
+
+			TRACE_ZONE_SCOPED_N("Create material buckets")
+			for (FDrawCallIt drawCallIt = drawCalls.begin(); drawCallIt != drawCalls.end(); ++drawCallIt)
+			{
+				if (drawCallIt->mMaterial != currentBucket.mTargetMaterial)
+				{
+					currentBucket.mEndIt = drawCallIt;
+
+					materialBuckets.emplace_back();
+					currentBucket = materialBuckets.front();
+					currentBucket.mTargetMaterial = drawCallIt->mMaterial;
+					currentBucket.mStartIt = drawCallIt;
+				}
+			}
+
+			currentBucket.mEndIt = drawCalls.end();
+		}
+
+		{
+			TRACE_ZONE_SCOPED_N("Initialize render buckets' buffers")
+
+			for (const FMaterialBucket& bucket : materialBuckets)
+			{
+			}
 		}
 	}
 
@@ -272,7 +399,7 @@ namespace Turbo
 		}
 
 		FViewData* viewData = graphBuilder.AllocatePOD<FViewData>();
-		FRGResourceHandle viewDataBuffer = graphBuilder.AddBuffer({
+		FRGResourceHandle viewDataBuffer = graphBuilder.CreateBuffer({
 			.mSize = sizeof(FViewData),
 			.mBufferFlags = EBufferFlags::CreateMapped | EBufferFlags::UniformBuffer,
 			.mName = FName("ViewDataBuffer")

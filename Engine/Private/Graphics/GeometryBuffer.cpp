@@ -24,8 +24,8 @@ namespace Turbo
 			.mName = geometryBufferDepthName
 		};
 
-		mColor = graphBuilder.AddTexture(colorInfo);
-		mDepth = graphBuilder.AddTexture(depthInfo);
+		mColor = graphBuilder.CreateTexture(colorInfo);
+		mDepth = graphBuilder.CreateTexture(depthInfo);
 	}
 
 	void FGeometryBuffer::BlitToPresent(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) const

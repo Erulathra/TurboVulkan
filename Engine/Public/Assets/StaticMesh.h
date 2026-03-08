@@ -5,7 +5,7 @@
 
 namespace Turbo
 {
-	class FBuffer;
+	struct FBuffer;
 	struct FMaterial;
 
 	struct FMesh final
@@ -25,6 +25,7 @@ namespace Turbo
 
 	struct FMeshPointers final
 	{
+		FDeviceAddress mIndexBuffer = kNullDeviceAddress;
 		FDeviceAddress mPositionBuffer = kNullDeviceAddress;
 		FDeviceAddress mNormalBuffer = kNullDeviceAddress;
 		FDeviceAddress mUVBuffer = kNullDeviceAddress;

@@ -141,7 +141,7 @@ namespace Turbo
 	{
 		if (diagnosticsBlob)
 		{
-			TURBO_LOG(LogSlang, Info, "There was a message compilation. Message: \n{}", static_cast<cstring>(diagnosticsBlob->getBufferPointer()));
+			TURBO_LOG(LogSlang, Info, "Message: \n{}", static_cast<cstring>(diagnosticsBlob->getBufferPointer()));
 		}
 	}
 } // Turbo
