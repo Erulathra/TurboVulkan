@@ -326,6 +326,12 @@ namespace Turbo
 		mVkCommandBuffer.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
+	void FCommandBuffer::DrawIndirect(THandle<FBuffer> commandBufferHandle, FDeviceSize offset, uint32 drawCount, uint32 stride)
+	{
+		const FBuffer* buffer = mGpu->AccessBuffer(commandBufferHandle);
+		mVkCommandBuffer.drawIndirect( buffer->mVkBuffer, offset, drawCount, stride);
+	}
+
 	void FCommandBuffer::Reset()
 	{
 		for (int setId = 0; setId < kMaxDescriptorSets; ++setId)

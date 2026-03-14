@@ -73,6 +73,8 @@ namespace Turbo
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpu.Init(gpuDeviceBuilder);
 
+		entt::locator<FRenderGraphBuilder>::emplace();
+
 		FAssetManager& assetManager = entt::locator<FAssetManager>::emplace<FAssetManager>();
 		assetManager.Init(gpu);
 
@@ -167,11 +169,12 @@ namespace Turbo
 		}
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+		FRenderGraphBuilder& graphBuilder = entt::locator<FRenderGraphBuilder>::value();
 
 		if (gpu.BeginFrame())
 		{
 			FCommandBuffer& cmd = gpu.GetMainCommandBuffer();
-			FRenderGraphBuilder graphBuilder;
+			graphBuilder.Reset();
 
 			FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 			geometryBuffer.Init(graphBuilder, gpu.GetFrameBufferSize());

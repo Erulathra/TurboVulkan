@@ -28,6 +28,12 @@ namespace Turbo
 			return reinterpret_cast<Type*>(Allocate(sizeof(Type), alignof(Type)));
 		}
 
+		template <typename Type>
+		Type* Allocate(size_t num)
+		{
+			return reinterpret_cast<Type*>(Allocate(num * sizeof(Type), alignof(Type)));
+		}
+
 		byte* Allocate(size_t size, size_t alignment = 4)
 		{
 			TURBO_CHECK(mAllocation != nullptr && mTop != nullptr && mTip != nullptr)

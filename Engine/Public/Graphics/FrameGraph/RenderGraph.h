@@ -57,7 +57,7 @@ namespace Turbo
 
 	struct FRenderGraphBuilder
 	{
-		static constexpr uint32 kPerFrameStackSize = 4 * Constants::kKibi;
+		static constexpr uint32 kPerFrameStackSize = 512 * Constants::kKibi;
 
 		DELETE_COPY(FRenderGraphBuilder)
 		FRenderGraphBuilder() = default;
@@ -76,10 +76,18 @@ namespace Turbo
 
 		void Execute(FGPUDevice& gpu, FCommandBuffer& cmd);
 
+		void Reset();
+
 		template <typename PODType>
 		PODType* AllocatePOD()
 		{
 			return mAllocator.Allocate<PODType>();
+		}
+
+		template <typename PODType>
+		PODType* AllocatePOD(size_t num)
+		{
+			return mAllocator.Allocate<PODType>(num);
 		}
 
 		vk::Format GetTextureFormat(FRGResourceHandle resourceHandle) const;

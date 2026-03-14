@@ -15,7 +15,9 @@ namespace Turbo
 		StorageBuffer = 1 << 2,
 		IndexBuffer = 1 << 3,
 
-		TransferSrc = 1 << 4
+		IndirectBuffer = 1 << 4,
+
+		TransferSrc = 1 << 5
 	};
 	DEFINE_ENUM_OPERATORS(EBufferFlags, uint8)
 

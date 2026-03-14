@@ -17,23 +17,29 @@ namespace Turbo
 		using FUniformBufferIndex = uint32;
 		static constexpr FUniformBufferIndex kInvalidUniformBufferIndex = std::numeric_limits<FUniformBufferIndex>::max();
 
-		struct  Instance final
+		struct Instance final
 		{
 			THandle<FMaterial> material = {};
 			uint32 mUniformBufferIndex = kInvalidUniformBufferIndex;
 		};
 
-		struct PushConstants final
+		struct IndirectDrawData final
 		{
 			glm::float4x4 mModelToProj;
 			glm::float4x4 mModelToView;
-			glm::float3x3 mInvModelToView;
+			glm::float3x3 mNormalModelToView;
 
-			FDeviceAddress mViewData;
-			FDeviceAddress mMaterialData;
-			FDeviceAddress mMaterialInstance;
-			FDeviceAddress mMeshData;
-			FDeviceAddress mSceneData;
+			FDeviceAddress mMaterialData = kNullDeviceAddress;
+			FDeviceAddress mMaterialInstance = kNullDeviceAddress;
+			FDeviceAddress mMeshData = kNullDeviceAddress;
+		};
+
+		struct PushConstants final
+		{
+			FDeviceAddress mViewData = kNullDeviceAddress;
+			FDeviceAddress mSceneData = kNullDeviceAddress;
+
+			FDeviceAddress mDrawData = kNullDeviceAddress;
 		};
 
 		THandle<FPipeline> mPipeline = {};
@@ -41,6 +47,8 @@ namespace Turbo
 		uint32 mPerInstanceDataSize = 0;
 		uint32 mMaterialDataSize = 0;
 		uint32 mMaxInstances = 0;
+
+		FName mName = {};
 	};
 
 	class FMaterialManager final

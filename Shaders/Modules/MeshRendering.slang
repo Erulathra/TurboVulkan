@@ -52,15 +52,22 @@ public struct FCommonPushConstants
     public const Ptr<FSceneData> mSceneData;
 };
 
-public struct FDrawCallData
+public struct FIndirectDrawData
 {
     public float4x4 mModelToProj;
     public float4x4 mModelToView;
     public float3x3 mNormalModelToView;
 
-    public const Ptr<FViewData> mViewData;
     public const Ptr<void> mMaterialData;
     public const Ptr<void> mMaterialInstance;
     public const Ptr<FMeshData> mMeshData;
-    public const Ptr<FSceneData> mSceneData;
 };
+
+public struct FIndirectPushConstants
+{
+    public const Ptr<FViewData> mViewData;
+    public const Ptr<FSceneData> mSceneData;
+
+    public const Ptr<FIndirectDrawData> mDrawData;
+};
+

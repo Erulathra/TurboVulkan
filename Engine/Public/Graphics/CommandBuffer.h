@@ -113,6 +113,7 @@ namespace Turbo
 
 		void Draw(uint32 vertexCount, uint32 instanceCount = 1, uint32 firstVertex = 0, uint32 firstInstance = 0);
 		void DrawIndexed(uint32 indexCount, uint32 instanceCount = 1, uint32 firstIndex = 0, int32 vertexOffset = 0, uint32 firstInstance = 0);
+		void DrawIndirect(THandle<FBuffer> commandBufferHandle, FDeviceSize offset, uint32 drawCount, uint32 stride);
 
 		template<PushConstant PushConstantsType>
 		void PushConstants(PushConstantsType pushConstants) { PushConstants_Internal(&pushConstants, sizeof(PushConstantsType)); }

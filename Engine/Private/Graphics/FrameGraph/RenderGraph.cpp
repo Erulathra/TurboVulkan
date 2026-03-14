@@ -8,6 +8,7 @@ namespace Turbo
 {
 	FRGResourceHandle FRGPassInfo::ReadTexture(FRGResourceHandle texture)
 	{
+		TURBO_CHECK(texture.IsValid())
 		TURBO_CHECK(texture.GetType() == ERGResourceType::Texture)
 		TURBO_CHECK(std::ranges::find(mTextureReads, texture) == mTextureReads.end())
 		mTextureReads.emplace_back(texture);
@@ -16,6 +17,7 @@ namespace Turbo
 
 	FRGResourceHandle FRGPassInfo::WriteTexture(FRGResourceHandle texture)
 	{
+		TURBO_CHECK(texture.IsValid())
 		TURBO_CHECK(texture.GetType() == ERGResourceType::Texture)
 		TURBO_CHECK(std::ranges::find(mTextureWrites, texture) == mTextureWrites.end())
 		mTextureWrites.emplace_back(texture);
@@ -24,6 +26,7 @@ namespace Turbo
 
 	FRGResourceHandle FRGPassInfo::ReadBuffer(FRGResourceHandle buffer)
 	{
+		TURBO_CHECK(buffer.IsValid())
 		TURBO_CHECK(buffer.GetType() == ERGResourceType::Buffer)
 		TURBO_CHECK(std::ranges::find(mBufferReads, buffer) == mBufferReads.end())
 		mBufferReads.emplace_back(buffer);
@@ -32,6 +35,7 @@ namespace Turbo
 
 	FRGResourceHandle FRGPassInfo::WriteBuffer(FRGResourceHandle buffer)
 	{
+		TURBO_CHECK(buffer.IsValid())
 		TURBO_CHECK(buffer.GetType() == ERGResourceType::Buffer)
 		TURBO_CHECK(std::ranges::find(mBufferWrites, buffer) == mBufferWrites.end())
 		mBufferWrites.emplace_back(buffer);
@@ -565,6 +569,20 @@ namespace Turbo
 		dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
 
 		cmd.PipelineBarrier(dependencyInfo);
+	}
+
+	void FRenderGraphBuilder::Reset()
+	{
+		mRenderPasses.clear();
+		mPerPassTextureBarriers.clear();
+		mExternalTexturesBarriers.clear();
+
+		mTextures.clear();
+		mExternalTextures.clear();
+		mBuffers.clear();
+		mQueuedBufferUploads.clear();
+
+		mAllocator.Clear();
 	}
 
 	vk::Format FRenderGraphBuilder::GetTextureFormat(FRGResourceHandle resourceHandle) const

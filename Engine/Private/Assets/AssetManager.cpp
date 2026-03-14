@@ -206,7 +206,7 @@ namespace Turbo
 		return meshHandle;
 	}
 
-	FDeviceAddress FAssetManager::GetMeshPointersAddress(FGPUDevice& gpu, THandle<FMesh> handle) const
+	FDeviceAddress FAssetManager::GetMeshPointersAddress(const FGPUDevice& gpu, THandle<FMesh> handle) const
 	{
 		TURBO_CHECK(handle);
 

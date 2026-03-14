@@ -5,7 +5,7 @@ import Modules.Math;
 import Modules.Hash;
 
 [[vk::push_constant]]
-FCommonPushConstants pc;
+FIndirectPushConstants pc;
 
 struct VSOut
 {
@@ -19,11 +19,18 @@ struct PSOut
 }
 
 [shader("vertex")]
-void vsMain(in uint vertexId : SV_VertexID, out VSOut vsOut)
+void vsMain(
+    in uint indexId : SV_VertexID,
+	in uint drawId : SV_StartInstanceLocation,
+    out VSOut vsOut
+)
 {
-    FMeshData* mesh = pc.mMeshData;
+	const FIndirectDrawData data = pc.mDrawData[drawId];
+    const Ptr<FMeshData> mesh = data.mMeshData;
+
+	const uint vertexId = asuint(mesh.mIndexBuffer[indexId]);
 	const float4 modelPosition = float4(mesh.mPositionBuffer[vertexId], 1.f);
-    vsOut.mPosition = mul(modelPosition, pc.mModelToProj);
+    vsOut.mPosition = mul(modelPosition, data.mModelToProj);
 
     vsOut.mTriangleId = uint(trunc(vertexId / 3));
 }

@@ -61,6 +61,7 @@ namespace Turbo
 		material->mMaterialDataSize = materialDataSize;
 		material->mPerInstanceDataSize = perInstanceDataSize;
 		material->mMaxInstances = perInstanceDataSize > 0 ? maxInstances : 1;
+		material->mName = materialName;
 
 		const size_t targetBufferSize = materialDataSize + perInstanceDataSize * maxInstances;
 		if (targetBufferSize > 0)

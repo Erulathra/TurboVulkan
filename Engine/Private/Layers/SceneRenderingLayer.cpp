@@ -12,10 +12,6 @@
 #include "World/MeshComponent.h"
 #include "World/World.h"
 
-#ifndef ENABLE_VERTEX_PULLING
-#define ENABLE_VERTEX_PULLING 0
-#endif // ifndef ENABLE_VERTEX_PULLING
-
 namespace Turbo
 {
 	struct FDrawCall
@@ -225,12 +221,9 @@ namespace Turbo
 
 						meshHandle = drawCallIt->mMesh;
 						mesh = assetManager.AccessMesh(meshHandle);
-
-#if ENABLE_VERTEX_PULLING == false
-						cmd.BindIndexBuffer(mesh->mIndicesBuffer);
-#endif // ENABLE_VERTEX_PULLING == false
 					}
 
+#if 0
 					FMaterial::PushConstants pushConstants = {};
 					pushConstants.mModelToProj = viewData.mWorldToProjection * drawCallIt->mWorldTransform;
 					pushConstants.mModelToView = viewData.mViewMatrix * drawCallIt->mWorldTransform;
@@ -247,12 +240,9 @@ namespace Turbo
 						TRACE_ZONE_SCOPED_N("Draw Indexed")
 
 						cmd.PushConstants(pushConstants);
-#if ENABLE_VERTEX_PULLING
 						cmd.Draw(mesh->mVertexCount);
-#else // ENABLE_VERTEX_PULLING
-						cmd.DrawIndexed(mesh->mVertexCount);
-#endif // else ENABLE_VERTEX_PULLING
 					}
+#endif
 				}
 			}
 
@@ -266,7 +256,12 @@ namespace Turbo
 		}
 	}
 
-	void FSceneRenderingLayer::CreateIndirectRenderBuffers(FRenderGraphBuilder& graphBuilder, FWorld* world, std::vector<FRGResourceHandle>& outBuffers)
+	void FSceneRenderingLayer::CreateIndirectRenderBuffers(
+		FRenderGraphBuilder& graphBuilder,
+		FWorld* world,
+		FViewData& viewData,
+		std::vector<FDrawIndirectBucket>& outBuckets
+	)
 	{
 		TRACE_ZONE_SCOPED()
 
@@ -377,11 +372,124 @@ namespace Turbo
 
 		{
 			TRACE_ZONE_SCOPED_N("Initialize render buckets' buffers")
+			const FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+			const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+			const FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+
+			uint32 numBuckets = materialBuckets.size();
+			outBuckets.reserve(numBuckets);
 
 			for (const FMaterialBucket& bucket : materialBuckets)
 			{
+				FDrawIndirectBucket& drawIndirectBucket = outBuckets.emplace_back();
+				drawIndirectBucket.mMaterialHandle = bucket.mTargetMaterial;
+
+				const FMaterial* material = materialManager.AccessMaterial(bucket.mTargetMaterial);
+				const uint32 numDraws = bucket.mEndIt - bucket.mStartIt;
+				drawIndirectBucket.mCount = numDraws;
+
+				// Initialize buffers
+				const FRGBufferInfo drawDataBufferInfo = {
+					.mSize = numDraws * sizeof(FMaterial::IndirectDrawData),
+					.mBufferFlags = EBufferFlags::CreateMapped | EBufferFlags::StorageBuffer,
+					.mName = FName(fmt::format("{}_DrawData", material->mName))
+				};
+				drawIndirectBucket.mDrawBuffer = graphBuilder.CreateBuffer(drawDataBufferInfo);
+
+				const FRGBufferInfo indirectCommandsBufferInfo = {
+					.mSize = numDraws * sizeof(vk::DrawIndirectCommand),
+					.mBufferFlags = EBufferFlags::CreateMapped | EBufferFlags::StorageBuffer | EBufferFlags::IndirectBuffer,
+					.mName = FName(fmt::format("{}_IndirectCommands", material->mName))
+				};
+				drawIndirectBucket.mIndirectCommandBuffer = graphBuilder.CreateBuffer(indirectCommandsBufferInfo);
+
+				// Allocate cpu data and queue upload to target buffers
+				FMaterial::IndirectDrawData* drawDatum = graphBuilder.AllocatePOD<FMaterial::IndirectDrawData>(numDraws);
+				graphBuilder.QueueBufferUpload({
+					.mTargetBuffer = drawIndirectBucket.mDrawBuffer,
+					.mData = drawDatum,
+					.mDataSize = numDraws * sizeof(FMaterial::IndirectDrawData),
+				});
+				vk::DrawIndirectCommand* drawCommands = graphBuilder.AllocatePOD<vk::DrawIndirectCommand>(numDraws);
+				graphBuilder.QueueBufferUpload({
+					.mTargetBuffer = drawIndirectBucket.mIndirectCommandBuffer,
+					.mData = drawCommands,
+					.mDataSize = numDraws * sizeof(vk::DrawIndirectCommand),
+				});
+
+				// Fill buffers
+				uint32 drawIndex = 0;
+				for (FDrawCallIt drawCallIt = bucket.mStartIt; drawCallIt != bucket.mEndIt; ++drawCallIt)
+				{
+					TRACE_ZONE_SCOPED_N("Prepare indirect draw")
+
+					const FMesh* mesh = assetManager.AccessMesh(drawCallIt->mMesh);
+
+					FMaterial::IndirectDrawData& drawData = drawDatum[drawIndex];
+					drawData.mModelToProj = viewData.mWorldToProjection * drawCallIt->mWorldTransform;
+					drawData.mModelToView = viewData.mViewMatrix * drawCallIt->mWorldTransform;
+					drawData.mNormalModelToView = glm::float3x3(glm::transpose(glm::inverse(drawData.mModelToView)));
+
+					drawData.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, drawCallIt->mMaterialInstance);
+					drawData.mMaterialData = materialManager.GetMaterialDataAddress(gpu, bucket.mTargetMaterial);
+					drawData.mMeshData = assetManager.GetMeshPointersAddress(gpu, drawCallIt->mMesh);
+
+					vk::DrawIndirectCommand& command = drawCommands[drawIndex];
+					command.vertexCount = mesh->mVertexCount;
+					command.firstInstance = drawIndex;
+					command.instanceCount = 1;
+					command.firstVertex = 1;
+
+					drawIndex++;
+				}
 			}
 		}
+	}
+
+	void FSceneRenderingLayer::DrawIndirect(
+		FGPUDevice& gpu,
+		FCommandBuffer& cmd,
+		FRenderResources& resources,
+		FRGResourceHandle viewDataBufferHandle,
+		const std::vector<FDrawIndirectBucket>& buckets
+	)
+	{
+		TRACE_ZONE_SCOPED_N("Render Basepass")
+		TRACE_GPU_SCOPED(gpu, cmd, "Render Basepass")
+
+		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+
+		for (int32 bucketId = 0; bucketId < buckets.size(); ++bucketId)
+		{
+			TRACE_ZONE_SCOPED_N("Render Bucket")
+			TRACE_GPU_SCOPED(gpu, cmd, "Render Bucket")
+
+			const FDrawIndirectBucket& bucket = buckets[bucketId];
+
+			const FMaterial* material = materialManager.AccessMaterial(bucket.mMaterialHandle);
+			cmd.BindPipeline(material->mPipeline);
+			cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
+
+			const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
+			const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(viewDataBufferHandle));
+
+			const FMaterial::PushConstants pushConstants = {
+				.mViewData = viewDataBuffer->mDeviceAddress,
+				.mDrawData = drawBuffer->mDeviceAddress
+			};
+
+			cmd.PushConstants(pushConstants);
+			cmd.DrawIndirect(
+				resources.mBuffers.at(bucket.mIndirectCommandBuffer),
+				0,
+				bucket.mCount,
+				sizeof(vk::DrawIndirectCommand)
+			);
+		}
+
+		static const cstring kRenderBuckets = "Render Buckets";
+		TRACE_PLOT_CONFIGURE(kRenderBuckets, EPlotFormat::Number, true, true, 0xFFFF00)
+		TRACE_PLOT(kRenderBuckets, static_cast<int64>(buckets.size()))
 	}
 
 	void FSceneRenderingLayer::RenderScene(FRenderGraphBuilder& graphBuilder)
@@ -405,6 +513,16 @@ namespace Turbo
 			.mName = FName("ViewDataBuffer")
 		});
 
+		UpdateViewData(world, *viewData);
+		graphBuilder.QueueBufferUpload({
+			.mTargetBuffer = viewDataBuffer,
+			.mData = viewData,
+			.mDataSize = sizeof(FViewData),
+		});
+
+		std::vector<FDrawIndirectBucket> drawIndirectBuckets;
+		CreateIndirectRenderBuffers(graphBuilder, world, *viewData, drawIndirectBuckets);
+
 		graphBuilder.AddPass(
 			FName("GeometryPass"),
 			FRGSetupPassDelegate::CreateLambda(
@@ -418,21 +536,19 @@ namespace Turbo
 
 					passInfo.ReadBuffer(viewDataBuffer);
 
-					UpdateViewData(world, *viewData);
-
-					graphBuilder.QueueBufferUpload({
-						.mTargetBuffer = viewDataBuffer,
-						.mData = viewData,
-						.mDataSize = sizeof(FViewData),
-					});
+					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+					{
+						passInfo.ReadBuffer(bucket.mIndirectCommandBuffer);
+						passInfo.ReadBuffer(bucket.mDrawBuffer);
+					}
 				}),
 			FRGExecutePassDelegate::CreateLambda(
-				[viewData, viewDataBuffer](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+				[viewDataBuffer, drawIndirectBuckets](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 				{
 					TRACE_ZONE_SCOPED_N("Render Basepass")
 					TRACE_GPU_SCOPED(gpu, cmd, "Render Basepass")
 
-					RenderMeshes(gpu, cmd, gEngine->GetWorld(), *viewData, resources.mBuffers.at(viewDataBuffer));
+					DrawIndirect(gpu, cmd, resources, viewDataBuffer, drawIndirectBuckets);
 				})
 		);
 	}

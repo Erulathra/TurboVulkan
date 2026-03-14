@@ -163,6 +163,10 @@ namespace Turbo
 			(builder.mBufferFlags & EBufferFlags::TransferSrc) != EBufferFlags::None
 				? vk::BufferUsageFlagBits::eTransferSrc
 				: static_cast<vk::BufferUsageFlagBits>(0);
+		createInfo.usage |=
+			(builder.mBufferFlags & EBufferFlags::IndirectBuffer) != EBufferFlags::None
+				? vk::BufferUsageFlagBits::eIndirectBuffer
+				: static_cast<vk::BufferUsageFlagBits>(0);
 
 		vma::AllocationCreateInfo allocationCreateInfo = {};
 		allocationCreateInfo.usage = vma::MemoryUsage::eAuto;
@@ -894,25 +898,26 @@ namespace Turbo
 		TURBO_CHECK(mVkWindowSurface)
 
 		vk::PhysicalDeviceFeatures deviceFeatures = {};
-		deviceFeatures.setTextureCompressionBC(true);
-		deviceFeatures.setShaderFloat64(true);
-		deviceFeatures.setShaderInt64(true);
+		deviceFeatures.textureCompressionBC = true;
+		deviceFeatures.shaderFloat64 = true;
+		deviceFeatures.shaderInt64 = true;
+		deviceFeatures.multiDrawIndirect = true;
 
 		vk::PhysicalDeviceVulkan11Features device11Features = {};
-		device11Features.setShaderDrawParameters(true);
+		device11Features.shaderDrawParameters = true;
 
 		vk::PhysicalDeviceVulkan12Features device12Features = {};
-		device12Features.setBufferDeviceAddress(true);
-		device12Features.setDescriptorIndexing(true);
-		device12Features.setDescriptorBindingPartiallyBound(true);
-		device12Features.setRuntimeDescriptorArray(true);
-		device12Features.setScalarBlockLayout(true);
-		device12Features.setDescriptorBindingSampledImageUpdateAfterBind(true);
-		device12Features.setDescriptorBindingStorageImageUpdateAfterBind(true);
+		device12Features.bufferDeviceAddress = true;
+		device12Features.descriptorIndexing = true;
+		device12Features.descriptorBindingPartiallyBound = true;
+		device12Features.runtimeDescriptorArray = true;
+		device12Features.scalarBlockLayout = true;
+		device12Features.descriptorBindingSampledImageUpdateAfterBind = true;
+		device12Features.descriptorBindingStorageImageUpdateAfterBind = true;
 
 		vk::PhysicalDeviceVulkan13Features device13Features = {};
-		device13Features.setDynamicRendering(true);
-		device13Features.setSynchronization2(true);
+		device13Features.dynamicRendering = true;
+		device13Features.synchronization2 = true;
 
 		vkb::PhysicalDeviceSelector physicalDeviceSelector(builtInstance);
 		physicalDeviceSelector

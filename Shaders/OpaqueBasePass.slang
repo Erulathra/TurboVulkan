@@ -4,7 +4,7 @@ import Modules.MeshRendering;
 import Modules.Math;
 
 [[vk::push_constant]]
-FCommonPushConstants pc;
+FIndirectPushConstants pc;
 
 struct MaterialData
 {
@@ -31,6 +31,8 @@ struct VSOut
     float3 mViewPosition;
     float3 mViewNormal;
     float2 mUV;
+
+	uint mDrawId;
 }
 
 struct PSOut
@@ -38,31 +40,36 @@ struct PSOut
     float4 mColor : SV_Target0;
 }
 
-#define ENABLE_VERTEX_PULLING 0
-
 [shader("vertex")]
-void vsMain(in uint indexId : SV_VertexID, out VSOut vsOut)
+void vsMain(
+    in uint indexId : SV_VertexID,
+	in uint drawId : SV_StartInstanceLocation,
+    out VSOut vsOut
+)
 {
-    FMeshData* mesh = pc.mMeshData;
+	const FIndirectDrawData data = pc.mDrawData[drawId];
+    const Ptr<FMeshData> mesh = data.mMeshData;
 
-#if ENABLE_VERTEX_PULLING
 	const uint vertexId = asuint(mesh.mIndexBuffer[indexId]);
-#else
-	const uint vertexId = indexId;
-#endif
 	const float4 modelPosition = float4(mesh.mPositionBuffer[vertexId], 1.f);
 
-    vsOut.mPosition = mul(modelPosition, pc.mModelToProj);
-    vsOut.mViewPosition = mul(modelPosition, pc.mModelToView).xyz;
-    vsOut.mViewNormal = mul(mesh.mNormalBuffer[vertexId], pc.mNormalModelToView);
+    vsOut.mPosition = mul(modelPosition, data.mModelToProj);
+    vsOut.mViewPosition = mul(modelPosition, data.mModelToView).xyz;
+    vsOut.mViewNormal = mul(mesh.mNormalBuffer[vertexId], data.mNormalModelToView);
     vsOut.mUV = mesh.mUVBuffer[vertexId];
+	vsOut.mDrawId = drawId;
 }
 
 [shader("pixel")]
-void psMain(in VSOut vsOut, out PSOut psOut)
+void psMain(
+    in VSOut vsOut,
+    out PSOut psOut
+)
 {
-    const Ptr<InstanceData> instance = Ptr<InstanceData>(pc.mMaterialInstance);
-    const Ptr<MaterialData> material = Ptr<MaterialData>(pc.mMaterialData);
+	const FIndirectDrawData data = pc.mDrawData[vsOut.mDrawId];
+
+    const Ptr<InstanceData> instance = Ptr<InstanceData>(data.mMaterialInstance);
+    const Ptr<MaterialData> material = Ptr<MaterialData>(data.mMaterialData);
 
     Texture2D<float3> texture = texturePool[instance.mBaseColorTexture];
     SamplerState sampler = samplerPool[material.mBaseColorSampler];
