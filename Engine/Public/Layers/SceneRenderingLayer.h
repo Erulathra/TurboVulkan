@@ -40,13 +40,6 @@ namespace Turbo
 
 	private:
 		static void UpdateViewData(FWorld* world, FViewData& viewData);
-		static void RenderMeshes(
-			FGPUDevice& gpu,
-			FCommandBuffer& cmd,
-			FWorld* world,
-			const FViewData& viewData,
-			THandle<FBuffer> viewDataBuffer
-		);
 
 		static void CreateIndirectRenderBuffers(
 			FRenderGraphBuilder& graphBuilder,

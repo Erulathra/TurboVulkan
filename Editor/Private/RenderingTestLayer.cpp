@@ -39,7 +39,7 @@ void FRenderingTestLayer::ShowImGuiWindow()
 {
 	ImGui::Begin("Rendering test");
 
-	constexpr uint32 frameTimeHistorySize = 256;
+	constexpr uint32 frameTimeHistorySize = 2048;
 	static float frameTimeHistory[frameTimeHistorySize];
 
 	frameTimeHistory[FCoreTimer::TickIndex() % frameTimeHistorySize] = static_cast<float>(FCoreTimer::DeltaTime());
