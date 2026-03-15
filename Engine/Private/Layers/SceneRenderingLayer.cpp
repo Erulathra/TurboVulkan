@@ -226,8 +226,6 @@ namespace Turbo
 				uint32 drawIndex = 0;
 				for (FDrawCallIt drawCallIt = bucket.mStartIt; drawCallIt != bucket.mEndIt; ++drawCallIt)
 				{
-					TRACE_ZONE_SCOPED_N("Prepare indirect draw")
-
 					const FMesh* mesh = assetManager.AccessMesh(drawCallIt->mMesh);
 
 					FMaterial::IndirectDrawData& drawData = drawDatum[drawIndex];

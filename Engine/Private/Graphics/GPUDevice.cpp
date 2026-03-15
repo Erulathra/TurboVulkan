@@ -1269,7 +1269,7 @@ namespace Turbo
 		const vk::SemaphoreSubmitInfo waitSemaphore = VkInit::SemaphoreSubmitInfo(frameData.mImageAcquiredSemaphore, vk::PipelineStageFlagBits2::eColorAttachmentOutput);
 		const vk::SemaphoreSubmitInfo signalSemaphore = VkInit::SemaphoreSubmitInfo(submitSemaphore, vk::PipelineStageFlagBits2::eAllGraphics);
 		const vk::SubmitInfo2 submitInfo = VkInit::SubmitInfo(bufferSubmitInfo, &signalSemaphore, &waitSemaphore);
-		TRACE_ZONE(QueueSubmit, "Vulkan Queue Submit")
+		TRACE_ZONE(QueueSubmit, "Vulkan Queue Submit (Wait for GPU)")
 		CHECK_VULKAN_HPP(mVkGraphicsQueue.submit2(1, &submitInfo, frameData.mCommandBufferExecutedFence));
 		TRACE_ZONE_END(QueueSubmit)
 
