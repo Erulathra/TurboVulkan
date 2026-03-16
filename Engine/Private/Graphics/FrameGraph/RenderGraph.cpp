@@ -150,7 +150,7 @@ namespace Turbo
 		return passInfo;
 	}
 
-	inline vk::AccessFlags2 FindAccessMask(EResourceAccess passType)
+	constexpr vk::AccessFlags2 FindAccessMask(EResourceAccess passType)
 	{
 		switch (passType)
 		{
@@ -186,6 +186,42 @@ namespace Turbo
 		std::unreachable();
 	};
 
+	inline vk::PipelineStageFlagBits2 FindBufferStageMask(EPassType passType)
+	{
+		switch (passType)
+		{
+		case EPassType::Undefined:
+			return vk::PipelineStageFlagBits2::eAllCommands;
+		case EPassType::Graphics:
+			return vk::PipelineStageFlagBits2::eDrawIndirect;
+		case EPassType::Compute:
+			return vk::PipelineStageFlagBits2::eComputeShader;
+		default:
+			TURBO_UNINPLEMENTED()
+		}
+
+		std::unreachable();
+	}
+
+	inline void GroupResourcesByUsage(
+		const std::vector<FRGResourceHandle>& inReads,
+		const std::vector<FRGResourceHandle>& inWrites,
+		std::vector<FRGResourceHandle>& outReadOnly,
+		std::vector<FRGResourceHandle>& outReadWrite
+	)
+	{
+		TURBO_CHECK(&inReads != &inWrites && &outReadOnly != &outReadWrite);
+
+		outReadWrite = inWrites;
+		for (FRGResourceHandle read : inReads)
+		{
+			if (std::ranges::find(outReadWrite, read) == outReadWrite.end())
+			{
+				outReadOnly.push_back(read);
+			}
+		}
+	}
+
 	void FRenderGraphBuilder::CompileTextureSynchronization()
 	{
 		struct FResourceState
@@ -216,19 +252,17 @@ namespace Turbo
 		for (uint32 passId = 0; passId < mRenderPasses.size(); ++passId)
 		{
 			const FRGPassInfo& pass = mRenderPasses[passId];
+			std::vector<FRGTextureMemoryBarrier>& passImageBarriers = mPerPassTextureBarriers[passId];
 
 			std::vector<FRGResourceHandle> readWriteResources = pass.mTextureWrites;
 			std::vector<FRGResourceHandle> readOnlyResources;
 
-			std::vector<FRGTextureMemoryBarrier>& passImageBarriers = mPerPassTextureBarriers[passId];
-
-			for (FRGResourceHandle read : pass.mTextureReads)
-			{
-				if (std::ranges::find(readWriteResources, read) == readWriteResources.end())
-				{
-					readOnlyResources.push_back(read);
-				}
-			}
+			GroupResourcesByUsage(
+				pass.mTextureReads,
+				pass.mTextureWrites,
+				readOnlyResources,
+				readWriteResources
+			);
 
 			for (FRGResourceHandle read : readOnlyResources)
 			{
@@ -336,11 +370,100 @@ namespace Turbo
 		}
 	}
 
+	void FRenderGraphBuilder::CompileBufferSynchronization()
+	{
+		struct FResourceState
+		{
+			EPassType mLastUseType = EPassType::Graphics;
+			EResourceAccess mAccess = EResourceAccess::ReadWrite;
+		};
+
+		entt::dense_map<FRGResourceHandle, FResourceState> resourceData;
+
+		for (const FRGBufferUpload& upload : mQueuedBufferUploads)
+		{
+			resourceData[upload.mTargetBuffer] = {
+				.mLastUseType = EPassType::Undefined,
+				.mAccess = EResourceAccess::HostWrite
+			};
+		}
+
+		mPerPassBufferBarriers.clear();
+		mPerPassBufferBarriers.resize(mRenderPasses.size());
+
+		for (uint32 passId = 0; passId < mRenderPasses.size(); ++passId)
+		{
+			const FRGPassInfo& pass = mRenderPasses[passId];
+
+			std::vector<FRGResourceHandle> readWriteResources;
+			std::vector<FRGResourceHandle> readOnlyResources;
+
+			GroupResourcesByUsage(
+				pass.mBufferReads, pass.mBufferWrites,
+				readOnlyResources, readWriteResources
+			);
+
+			for (FRGResourceHandle read : readOnlyResources)
+			{
+				auto foundSrcData = resourceData.find(read);
+				TURBO_CHECK_MSG(foundSrcData != resourceData.end(), "Pass tries to read non existent resource");
+
+				if (FResourceState& srcData = foundSrcData->second;
+					srcData.mAccess != EResourceAccess::Read && srcData.mAccess != EResourceAccess::HostWrite)
+				{
+					FRGBufferMemoryBarrier& newBarrier = mPerPassBufferBarriers[passId].emplace_back();
+					newBarrier.mBuffer = read;
+
+					newBarrier.mSrcAccessMask = FindAccessMask(EResourceAccess::ReadWrite);
+					newBarrier.mDstAccessMask = FindAccessMask(EResourceAccess::Read);
+
+					newBarrier.mSrcStageMask = FindBufferStageMask(srcData.mLastUseType);
+					newBarrier.mDstStageMask = FindBufferStageMask(pass.mPassType);
+
+					srcData.mLastUseType = pass.mPassType;
+					srcData.mAccess = EResourceAccess::Read;
+				}
+			}
+
+			for (FRGResourceHandle write : readWriteResources)
+			{
+				auto srcDataIt = resourceData.find(write);
+				if (srcDataIt != resourceData.end() && srcDataIt->second.mAccess == EResourceAccess::HostWrite)
+				{
+					continue;
+				}
+
+				FRGBufferMemoryBarrier& newBarrier = mPerPassBufferBarriers[passId].emplace_back();
+				newBarrier.mBuffer = write;
+				newBarrier.mDstAccessMask = FindAccessMask(EResourceAccess::ReadWrite);
+
+				if (srcDataIt != resourceData.end())
+				{
+					newBarrier.mSrcAccessMask = FindAccessMask(srcDataIt->second.mAccess);
+					newBarrier.mSrcStageMask = FindBufferStageMask(srcDataIt->second.mLastUseType);
+				}
+				else
+				{
+					// This pass creates a new buffer
+					newBarrier.mSrcAccessMask = vk::AccessFlagBits2::eNone;
+					newBarrier.mSrcStageMask = vk::PipelineStageFlagBits2::eNone;
+
+					resourceData[write] = {};
+				}
+
+				FResourceState& currentData = resourceData.at(write);
+				currentData.mLastUseType = pass.mPassType;
+				currentData.mAccess = EResourceAccess::ReadWrite;
+			}
+		}
+	}
+
 	void FRenderGraphBuilder::Compile()
 	{
 		TRACE_ZONE_SCOPED()
 
 		CompileTextureSynchronization();
+		CompileBufferSynchronization();
 	}
 
 	void FRenderGraphBuilder::Execute(FGPUDevice& gpu, FCommandBuffer& cmd)
@@ -421,7 +544,7 @@ namespace Turbo
 			const FRGPassInfo& pass = mRenderPasses[passId];
 			TURBO_LOG(LogRenderGraph, Display, "Begin render pass: {}", pass.mName);
 
-			// Add barrier
+			// Add a barrier
 			FRGPassTextureBarriers& passImageBarriers = mPerPassTextureBarriers[passId];
 
 			std::vector<vk::ImageMemoryBarrier2> imageBarriers;
@@ -440,9 +563,24 @@ namespace Turbo
 				);
 			}
 
+			FRGPassBufferBarriers& passBufferBarriers = mPerPassBufferBarriers[passId];
+
+			std::vector<vk::BufferMemoryBarrier2> bufferBarriers;
+			bufferBarriers.reserve(mPerPassBufferBarriers[passId].size());
+
+			for (const FRGBufferMemoryBarrier& rgBarrier : passBufferBarriers)
+			{
+				THandle<FBuffer> bufferHandle = renderResources.mBuffers.at(rgBarrier.mBuffer);
+				bufferBarriers.push_back(rgBarrier.ToVkBufferBarrier(gpu, bufferHandle));
+
+				TURBO_LOG(LogRenderGraph, Display, "[Buffer Barrier] Buffer: {}", gpu.AccessBufferCold(bufferHandle)->mName);
+			}
+
 			vk::DependencyInfo dependencyInfo = {};
 			dependencyInfo.imageMemoryBarrierCount = imageBarriers.size();
 			dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
+			dependencyInfo.bufferMemoryBarrierCount = bufferBarriers.size();
+			dependencyInfo.pBufferMemoryBarriers = bufferBarriers.data();
 
 			cmd.PipelineBarrier(dependencyInfo);
 

@@ -73,6 +73,7 @@ namespace Turbo
 
 		void Compile();
 		void CompileTextureSynchronization();
+		void CompileBufferSynchronization();
 
 		void Execute(FGPUDevice& gpu, FCommandBuffer& cmd);
 
@@ -90,7 +91,7 @@ namespace Turbo
 			return mAllocator.Allocate<PODType>(num);
 		}
 
-		vk::Format GetTextureFormat(FRGResourceHandle resourceHandle) const;
+		[[nodiscard]] vk::Format GetTextureFormat(FRGResourceHandle resourceHandle) const;
 
 	public:
 		std::vector<FRGPassInfo> mRenderPasses;
@@ -98,6 +99,9 @@ namespace Turbo
 		using FRGPassTextureBarriers = std::vector<FRGTextureMemoryBarrier>;
 		std::vector<FRGPassTextureBarriers> mPerPassTextureBarriers;
 		FRGPassTextureBarriers mExternalTexturesBarriers;
+
+		using FRGPassBufferBarriers = std::vector<FRGBufferMemoryBarrier>;
+		std::vector<FRGPassBufferBarriers> mPerPassBufferBarriers;
 
 		std::vector<FRGTextureInfo> mTextures;
 		std::vector<FRGExternalTextureInfo> mExternalTextures;

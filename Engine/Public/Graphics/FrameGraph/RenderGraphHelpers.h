@@ -171,6 +171,8 @@ namespace Turbo
 	{
 		Read,
 		ReadWrite,
+
+		HostWrite,
 	};
 
 	struct FRGTextureInfo
@@ -204,6 +206,19 @@ namespace Turbo
 		[[nodiscard]] bool IsValid() const;
 	};
 
+	struct FRGBufferMemoryBarrier
+	{
+		vk::PipelineStageFlags2 mSrcStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+		vk::PipelineStageFlags2 mDstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+
+		vk::AccessFlags2 mSrcAccessMask = vk::AccessFlagBits2::eMemoryWrite;
+		vk::AccessFlags2 mDstAccessMask = vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead;
+
+		FRGResourceHandle mBuffer = {};
+
+		[[nodiscard]] vk::BufferMemoryBarrier2 ToVkBufferBarrier(FGPUDevice& gpu, THandle<FBuffer> bufferHandle) const;
+	};
+
 	struct FRGTextureMemoryBarrier
 	{
 		ETextureLayout mOldLayout = ETextureLayout::Undefined;
@@ -217,7 +232,7 @@ namespace Turbo
 
 		FRGResourceHandle mTexture = {};
 
-		vk::ImageMemoryBarrier2 ToVkImageBarrier(FGPUDevice& gpu, THandle<FTexture> textureHandle) const;
+		[[nodiscard]] vk::ImageMemoryBarrier2 ToVkImageBarrier(FGPUDevice& gpu, THandle<FTexture> textureHandle) const;
 	};
 
 	struct FRGResourceLifetime
