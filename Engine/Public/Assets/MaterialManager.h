@@ -4,12 +4,10 @@
 #include "Core/DataStructures/GenPoolGrowable.h"
 #include "Graphics/ResourceBuilders.h"
 
-// TODO: cache gpu device
-
 namespace Turbo
 {
-	class FBuffer;
-	class FPipeline;
+	struct FBuffer;
+	struct FPipeline;
 	class FCommandBuffer;
 
 	struct FMaterial final

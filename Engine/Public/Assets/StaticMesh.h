@@ -8,6 +8,14 @@ namespace Turbo
 	struct FBuffer;
 	struct FMaterial;
 
+	struct FBounds
+	{
+		glm::float3 mMin = glm::float3(std::numeric_limits<float>::lowest());
+		float mRadius = std::numeric_limits<float>::lowest();
+		glm::float3 mMax = glm::float3(std::numeric_limits<float>::max());
+		float mRadiusSqrt = std::numeric_limits<float>::lowest();
+	};
+
 	struct FMesh final
 	{
 		THandle<FBuffer> mIndicesBuffer = {};
@@ -17,13 +25,15 @@ namespace Turbo
 		THandle<FBuffer> mUVBuffer = {};
 		THandle<FBuffer> mColorBuffer = {};
 
+		FBounds mBounds;
+
 		uint32 mVertexCount = 0;
 
 		FName mName;
 		FAssetHash mAssetHash;
 	};
 
-	struct FMeshPointers final
+	struct FMeshData final
 	{
 		FDeviceAddress mIndexBuffer = kNullDeviceAddress;
 		FDeviceAddress mPositionBuffer = kNullDeviceAddress;

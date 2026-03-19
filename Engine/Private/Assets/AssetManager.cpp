@@ -32,6 +32,30 @@ namespace Turbo
 	constexpr std::string_view kUVName = "TEXCOORD_0";
 	constexpr std::string_view kColorName = "COLOR_0";
 
+	FBounds FindBounds(const fastgltf::Asset& meshAsset, const FMeshLoadSettings& meshLoadSettings)
+	{
+		const fastgltf::Mesh& gltfMesh = meshAsset.meshes[meshLoadSettings.mMeshIndex];
+		const fastgltf::Primitive& gltfSubmesh = gltfMesh.primitives[meshLoadSettings.mSubMeshIndex];
+
+		FBounds bounds = {};
+
+		if (auto attribute = gltfSubmesh.findAttribute(kPositionName);
+			attribute != gltfSubmesh.attributes.cend())
+		{
+			const fastgltf::Accessor& accessor = meshAsset.accessors[attribute->accessorIndex];
+			fastgltf::iterateAccessor<glm::float3>(meshAsset, accessor, [&](const glm::float3& vertex)
+			{
+				bounds.mMin = glm::min(bounds.mMin, vertex);
+				bounds.mMax = glm::max(bounds.mMax, vertex);
+				bounds.mRadiusSqrt = glm::max(bounds.mRadiusSqrt, glm::length2(vertex));
+			});
+
+			bounds.mRadius = glm::sqrt(bounds.mRadiusSqrt);
+		}
+
+		return bounds;
+	}
+
 	template<typename T>
 	void LoadComponentBuffer( const fastgltf::Asset& meshAsset, const FMeshLoadSettings& meshLoadSettings, THandle<FBuffer>& outBuffer, FDeviceAddress& outDeviceAddress, std::string_view attributeName)
 	{
@@ -62,7 +86,7 @@ namespace Turbo
 			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 			outBuffer = gpu.CreateBuffer(bufferBuilder);
 			FBuffer* outBufferData = gpu.AccessBuffer(outBuffer);
-			outDeviceAddress = outBufferData->GetDeviceAddress();
+			outDeviceAddress = outBufferData->mDeviceAddress;
 		}
 	}
 
@@ -70,10 +94,14 @@ namespace Turbo
 	{
 		FBufferBuilder bufferBuilder = {};
 		bufferBuilder
-			.Init(EBufferFlags::StorageBuffer, sizeof(FMeshPointers) * kMaxMeshes)
-			.SetName(FName("MeshPointer"));
-
+			.Init(EBufferFlags::StorageBuffer, sizeof(FMeshData) * kMaxMeshes)
+			.SetName(FName("MeshPointers"));
 		mMeshPointersPool = gpu.CreateBuffer(bufferBuilder);
+
+		bufferBuilder
+			.Init(EBufferFlags::StorageBuffer, sizeof(FBounds) * kMaxMeshes)
+			.SetName(FName("MeshBounds"));
+		mBoundsPool = gpu.CreateBuffer(bufferBuilder);
 
 		EngineResources::LoadPlaceholders();
 	}
@@ -81,6 +109,7 @@ namespace Turbo
 	void FAssetManager::Destroy(FGPUDevice& gpu) const
 	{
 		gpu.DestroyBuffer(mMeshPointersPool);
+		gpu.DestroyBuffer(mBoundsPool);
 	}
 
 	THandle<FMesh> FAssetManager::LoadMesh(FName assetPath, const FMeshLoadSettings& meshLoadSettings)
@@ -139,7 +168,7 @@ namespace Turbo
 		mesh->mAssetHash = assetHash;
 
 		TURBO_CHECK(glftSubMesh.indicesAccessor.has_value())
-		FMeshPointers meshPointers = {};
+		FMeshData meshData = {};
 
 		{
 			const fastgltf::Accessor& indicesAccessor = loadedAsset.accessors[glftSubMesh.indicesAccessor.value()];
@@ -165,36 +194,41 @@ namespace Turbo
 			FBuffer* indicesBuffer = gpu.AccessBuffer(mesh->mIndicesBuffer);
 			TURBO_CHECK(indicesBuffer);
 
-			meshPointers.mIndexBuffer = indicesBuffer->mDeviceAddress;
+			meshData.mIndexBuffer = indicesBuffer->mDeviceAddress;
 		}
 
-		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mPositionBuffer, meshPointers.mPositionBuffer, kPositionName);
-		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mNormalBuffer, meshPointers.mNormalBuffer, kNormalName);
-		LoadComponentBuffer<glm::vec2>(loadedAsset, meshLoadSettings, mesh->mUVBuffer, meshPointers.mUVBuffer, kUVName);
-		LoadComponentBuffer<glm::vec4>(loadedAsset, meshLoadSettings, mesh->mColorBuffer, meshPointers.mColorBuffer, kColorName);
+		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mPositionBuffer, meshData.mPositionBuffer, kPositionName);
+		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mNormalBuffer, meshData.mNormalBuffer, kNormalName);
+		LoadComponentBuffer<glm::vec2>(loadedAsset, meshLoadSettings, mesh->mUVBuffer, meshData.mUVBuffer, kUVName);
+		LoadComponentBuffer<glm::vec4>(loadedAsset, meshLoadSettings, mesh->mColorBuffer, meshData.mColorBuffer, kColorName);
+
+		const FBounds boundingBox = FindBounds(loadedAsset, meshLoadSettings);
 
 		gpu.ImmediateSubmit(FOnImmediateSubmit::CreateLambda([&](FCommandBuffer& cmd)
 		{
-			const FBufferBuilder stagingBufferBuilder = FBufferBuilder::CreateStagingBuffer(&meshPointers, sizeof(FMeshPointers));
-			const THandle<FBuffer> stagingBuffer = gpu.CreateBuffer(stagingBufferBuilder);
-			cmd.BufferBarrier(
-				stagingBuffer,
-				vk::AccessFlagBits2::eHostWrite,
-				vk::PipelineStageFlagBits2::eHost,
-				vk::AccessFlagBits2::eTransferRead,
-				vk::PipelineStageFlagBits2::eTransfer
-				);
+			const FBufferBuilder stagingBufferBuilder = FBufferBuilder::CreateStagingBuffer(nullptr, sizeof(FMeshData) + sizeof(FBounds));
+			const THandle<FBuffer> stagingBufferHandle = gpu.CreateBuffer(stagingBufferBuilder);
+			const FBuffer* stagingBuffer = gpu.AccessBuffer(stagingBufferHandle);
 
-			const FCopyBufferInfo copyBufferInfo = {
-				.mSrc = stagingBuffer,
+			std::memcpy(stagingBuffer->mMappedAddress, &meshData, sizeof(FMeshData));
+			std::memcpy(stagingBuffer->mMappedAddress + sizeof(FMeshData), &boundingBox, sizeof(FBounds));
+
+			cmd.CopyBuffer({
+				.mSrc = stagingBufferHandle,
 				.mDst = mMeshPointersPool,
-				.mDstOffset = sizeof(FMeshPointers) * meshHandle.GetIndex(),
-				.mSize = sizeof(FMeshPointers)
-			};
+				.mDstOffset = sizeof(FMeshData) * meshHandle.GetIndex(),
+				.mSize = sizeof(FMeshData)
+			});
 
-			cmd.CopyBuffer(copyBufferInfo);
+			cmd.CopyBuffer({
+				.mSrc = stagingBufferHandle,
+				.mSrcOffset = sizeof(FMeshData),
+				.mDst = mBoundsPool,
+				.mDstOffset = sizeof(FBounds) * meshHandle.GetIndex(),
+				.mSize = sizeof(FBounds)
+			});
 
-			gpu.DestroyBuffer(stagingBuffer);
+			gpu.DestroyBuffer(stagingBufferHandle);
 		}));
 
 		if (meshLoadSettings.mbLevelAsset)
@@ -213,10 +247,10 @@ namespace Turbo
 		const FBuffer* pointersPoolBuffer = gpu.AccessBuffer(mMeshPointersPool);
 		TURBO_CHECK(pointersPoolBuffer);
 
-		const FDeviceAddress memoryOffset = sizeof(FMeshPointers) * handle.GetIndex();
-		TURBO_CHECK(memoryOffset < pointersPoolBuffer->GetSize());
+		const FDeviceAddress memoryOffset = sizeof(FMeshData) * handle.GetIndex();
+		TURBO_CHECK(memoryOffset < pointersPoolBuffer->mDeviceSize);
 
-		return pointersPoolBuffer->GetDeviceAddress() + memoryOffset;
+		return pointersPoolBuffer->mDeviceAddress + memoryOffset;
 	}
 
 	void FAssetManager::UnloadMesh(THandle<FMesh> meshHandle)
@@ -372,7 +406,6 @@ namespace Turbo
 			return result;
 		}
 
-
 		FTextureBuilder textureBuilder = {};
 		textureBuilder
 			.Init(imageFormat, textureType)
@@ -394,7 +427,7 @@ namespace Turbo
 		const FBufferBuilder stagingBufferBuilder = FBufferBuilder::CreateStagingBuffer(numDataBytes);
 
 		const THandle<FBuffer> stagingBuffer = gpu.CreateBuffer(stagingBufferBuilder);
-		void* stagingMappedAddress = gpu.AccessBuffer(stagingBuffer)->GetMappedAddress();
+		void* stagingMappedAddress = gpu.AccessBuffer(stagingBuffer)->mMappedAddress;
 
 		// Copy data to buffer;
 		uint32 dataOffset = 0;

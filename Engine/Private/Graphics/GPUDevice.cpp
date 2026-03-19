@@ -194,7 +194,7 @@ namespace Turbo
 
 		if (bCreateMapped)
 		{
-			buffer->mMappedAddress = allocationInfo.pMappedData;
+			buffer->mMappedAddress = static_cast<byte*>(allocationInfo.pMappedData);
 		}
 
 		const vk::MemoryPropertyFlags& allocationMemoryProperties = mVmaAllocator.getAllocationMemoryProperties(bufferCold->mAllocation);
@@ -216,19 +216,8 @@ namespace Turbo
 					const FBufferBuilder stagingBufferBuilder = FBufferBuilder::CreateStagingBuffer(builder.mInitialData, builder.mSize);
 					const THandle<FBuffer> stagingBuffer = CreateBuffer(stagingBufferBuilder);
 
-					// ensure that writing to staging buffer are completed before coping it to target buffer;
-					cmd.BufferBarrier(
-						stagingBuffer,
-						vk::AccessFlagBits2::eHostWrite,
-						vk::PipelineStageFlagBits2::eHost,
-						vk::AccessFlagBits2::eTransferRead,
-						vk::PipelineStageFlagBits2::eTransfer
-						);
-
 					cmd.CopyBuffer(stagingBuffer, handle, builder.mSize);
 					DestroyBuffer(stagingBuffer);
-
-					// No need for synchronization as we would submit this command buffer just after that lambda.
 				}));
 			}
 		}
@@ -325,7 +314,7 @@ namespace Turbo
 		const FDescriptorSetLayout* bindlessSetLayout = mDescriptorSetLayoutPool->Access(mBindlessResourcesLayout);
 		vkLayouts[0] = bindlessSetLayout->mVkLayout;
 
-		// Bind rest of the descriptors
+		// Bind the rest of the descriptors
 		for (uint32 layoutId = 1; layoutId < builder.mNumActiveLayouts; ++layoutId)
 		{
 			const THandle<FDescriptorSetLayout> setLayoutHandle = builder.mDescriptorSetLayouts[layoutId];
@@ -1585,7 +1574,7 @@ namespace Turbo
 		const FBufferBuilder stagingBufferBuilder = FBufferBuilder::CreateStagingBuffer(data.size());
 
 		const THandle<FBuffer> stagingBuffer = CreateBuffer(stagingBufferBuilder);
-		void* stagingMappedAddress = AccessBuffer(stagingBuffer)->GetMappedAddress();
+		void* stagingMappedAddress = AccessBuffer(stagingBuffer)->mMappedAddress;
 		std::memcpy(stagingMappedAddress, data.data(), data.size_bytes());
 
 		// copy buffer to image

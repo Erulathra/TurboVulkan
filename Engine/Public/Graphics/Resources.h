@@ -38,17 +38,14 @@ namespace Turbo
 
 	struct FBuffer
 	{
-		[[nodiscard]] void* GetMappedAddress() const { return mMappedAddress; }
-		[[nodiscard]] FDeviceAddress GetDeviceAddress() const { return mDeviceAddress; }
-		[[nodiscard]] vk::DeviceSize GetSize() const { return mDeviceSize; }
 		[[nodiscard]] bool IsValid() const { return  mVkBuffer != nullptr; }
 
 		vk::Buffer mVkBuffer = nullptr;
 
-		vk::DeviceSize mDeviceSize = {};
+		FDeviceSize mDeviceSize = {};
 
 		FDeviceAddress mDeviceAddress = {};
-		void* mMappedAddress = nullptr;
+		byte* mMappedAddress = nullptr;
 	};
 
 	struct FBufferCold

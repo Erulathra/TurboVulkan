@@ -134,8 +134,7 @@ namespace Turbo
 		TURBO_CHECK(data.size() == material->mPerInstanceDataSize)
 
 		const FBuffer* instancesDataBuffer = gpu.AccessBuffer(material->mDataBuffer);
-		byte* targetInstanceAddress =
-			static_cast<byte*>(instancesDataBuffer->GetMappedAddress()) + CalculateInstanceByteOffset(*material, instance->mUniformBufferIndex);
+		byte* targetInstanceAddress = instancesDataBuffer->mMappedAddress + CalculateInstanceByteOffset(*material, instance->mUniformBufferIndex);
 		std::memcpy(targetInstanceAddress, data.data(), data.size());
 
 		cmd.BufferBarrier(
@@ -155,7 +154,7 @@ namespace Turbo
 				material->mDataBuffer.IsValid())
 			{
 				const FBuffer* uniformBuffer = gpu.AccessBuffer(material->mDataBuffer);
-				return uniformBuffer->GetDeviceAddress() + CalculateInstanceByteOffset(*material, instance->mUniformBufferIndex);
+				return uniformBuffer->mDeviceAddress + CalculateInstanceByteOffset(*material, instance->mUniformBufferIndex);
 			}
 		}
 
@@ -173,7 +172,7 @@ namespace Turbo
 		TURBO_CHECK(data.size() == material->mMaterialDataSize)
 
 		const FBuffer* instancesDataBuffer = gpu.AccessBuffer(material->mDataBuffer);
-		std::memcpy(instancesDataBuffer->GetMappedAddress(), data.data(), data.size());
+		std::memcpy(instancesDataBuffer->mMappedAddress, data.data(), data.size());
 
 		cmd.BufferBarrier(
 			material->mDataBuffer,
@@ -190,7 +189,7 @@ namespace Turbo
 		if (material->mDataBuffer.IsValid())
 		{
 			const FBuffer* uniformBuffer = gpu.AccessBuffer(material->mDataBuffer);
-			return uniformBuffer->GetDeviceAddress();
+			return uniformBuffer->mDeviceAddress;
 		}
 
 		return kNullDeviceAddress;

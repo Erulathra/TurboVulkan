@@ -25,6 +25,14 @@ public struct FMaterialInstance
     public uint mDiffuseSampler;
 };
 
+public struct FBounds
+{
+    public float3 mMin;
+    public float mRadius;
+    public float3 mMax;
+    public float mRadiusSqrt;
+}
+
 public struct FMeshData
 {
     public const Ptr<float> mIndexBuffer;

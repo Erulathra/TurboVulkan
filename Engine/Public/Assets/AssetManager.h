@@ -74,6 +74,7 @@ namespace Turbo
 	private:
 		TGenPoolGrowable<FMesh> mMeshPool;
 		THandle<FBuffer> mMeshPointersPool;
+		THandle<FBuffer> mBoundsPool;
 
 		TManualPoolGrowable<FTextureAsset> mTexturePool;
 

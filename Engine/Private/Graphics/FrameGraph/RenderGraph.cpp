@@ -531,7 +531,7 @@ namespace Turbo
 		{
 			const FBuffer* buffer = gpu.AccessBuffer(renderResources.mBuffers.at(bufferUpload.mTargetBuffer));
 			std::memcpy(
-				static_cast<byte*>(buffer->GetMappedAddress()) + bufferUpload.mOffset,
+				static_cast<byte*>(buffer->mMappedAddress) + bufferUpload.mOffset,
 				bufferUpload.mData,
 				bufferUpload.mDataSize
 			);
