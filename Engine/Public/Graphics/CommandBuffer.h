@@ -103,7 +103,7 @@ namespace Turbo
 		void BindPipeline(THandle<FPipeline> pipelineHandle);
 		void BindIndexBuffer(THandle<FBuffer> indexBuffer);
 
-		void Dispatch(const glm::ivec3& groupCount);
+		void Dispatch(const glm::uint3& groupCount);
 
 		void BeginRendering(const FRenderingAttachments& renderingAttachments);
 		void EndRendering();

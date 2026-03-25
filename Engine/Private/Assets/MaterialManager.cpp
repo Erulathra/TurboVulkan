@@ -25,17 +25,17 @@ namespace Turbo
 			.SetPushConstantType<FMaterial::PushConstants>()
 			.SetName(FName(fmt::format("Material_{}", shaderName)));
 
-		pipelineBuilder.GetShaderState()
+		pipelineBuilder.mShaderStateBuilder
 			.AddStage(shaderName, vk::ShaderStageFlagBits::eVertex)
 			.AddStage(shaderName, vk::ShaderStageFlagBits::eFragment);
 
-		pipelineBuilder.GetBlendState()
+		pipelineBuilder.mBlendStateBuilder
 			.AddNoBlendingState();
 
-		pipelineBuilder.GetDepthStencil()
+		pipelineBuilder.mDepthStencilBuilder
 			.SetDepth(true, true, vk::CompareOp::eGreaterOrEqual);
 
-		pipelineBuilder.GetPipelineRendering()
+		pipelineBuilder.mPipelineRenderingBuilder
 			.AddColorAttachment(FGeometryBuffer::kColorFormat)
 			.SetDepthAttachment(FGeometryBuffer::kDepthStencilFormat);
 

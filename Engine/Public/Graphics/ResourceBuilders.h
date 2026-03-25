@@ -420,17 +420,8 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FPipelineBuilder final
+	struct FPipelineBuilder final
 	{
-		BUILDER_BODY()
-
-	public:
-		FRasterizationBuilder& GetRasterization() { return mRasterizationBuilder; }
-		FDepthStencilBuilder& GetDepthStencil() { return mDepthStencilBuilder; }
-		FBlendStateBuilder& GetBlendState() { return mBlendStateBuilder; }
-		FShaderStateBuilder& GetShaderState() { return mShaderStateBuilder; }
-		FPipelineRenderingBuilder& GetPipelineRendering() { return mPipelineRenderingBuilder; }
-
 		FPipelineBuilder& AddDescriptorSetLayout(THandle<FDescriptorSetLayout> handle)
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
 
@@ -440,10 +431,8 @@ namespace Turbo
 		FPipelineBuilder& SetPrimitiveTopology(vk::PrimitiveTopology primitiveTopology) { mTopology = primitiveTopology; return *this; }
 		FPipelineBuilder& SetName(FName name) { mName = name; return *this; }
 
-	public:
 		[[nodiscard]] FName GetName() const { return mName; }
 
-	private:
 		FRasterizationBuilder mRasterizationBuilder;
 		FDepthStencilBuilder mDepthStencilBuilder;
 		FBlendStateBuilder mBlendStateBuilder;

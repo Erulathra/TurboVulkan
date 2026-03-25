@@ -229,7 +229,7 @@ namespace Turbo
 		mVkCommandBuffer.bindIndexBuffer(buffer->mVkBuffer, 0, vk::IndexType::eUint32);
 	}
 
-	void FCommandBuffer::Dispatch(const glm::ivec3& groupCount)
+	void FCommandBuffer::Dispatch(const glm::uint3& groupCount)
 	{
 		mVkCommandBuffer.dispatch(groupCount.x, groupCount.y, groupCount.z);
 	}

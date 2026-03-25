@@ -55,5 +55,8 @@ namespace Turbo
 			FRGResourceHandle viewDataBufferHandle,
 			const std::vector<FDrawIndirectBucket>& buckets
 		);
+
+	private:
+		THandle<FPipeline> mFrustumCullingPipeline = {};
 	};
 } // Turbo

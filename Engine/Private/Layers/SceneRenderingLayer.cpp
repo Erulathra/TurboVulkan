@@ -28,12 +28,35 @@ namespace Turbo
 		glm::float3 mBoundsMax = {};
 	};
 
+	struct FSceneCullingPushConstants
+	{
+		FDeviceAddress mViewData;
+		FDeviceAddress mDrawData;
+		FDeviceAddress mBounds;
+
+		FDeviceAddress mDrawIndirectCommand;
+
+		uint mNumDraws;
+	};
+
 	void FSceneRenderingLayer::Start()
 	{
+		FPipelineBuilder pipelineBuilder = {};
+		pipelineBuilder
+			.SetPushConstantType<FSceneCullingPushConstants>()
+			.SetName(FName("SceneCulling"));
+
+		pipelineBuilder.mShaderStateBuilder
+			.AddStage("SceneCulling", vk::ShaderStageFlagBits::eCompute);
+
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+		mFrustumCullingPipeline = gpu.CreatePipeline(pipelineBuilder);
 	}
 
 	void FSceneRenderingLayer::Shutdown()
 	{
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+		gpu.DestroyPipeline(mFrustumCullingPipeline);
 	}
 
 	void FSceneRenderingLayer::UpdateViewData(FWorld* world, FViewData& viewData)
@@ -215,19 +238,11 @@ namespace Turbo
 					.mData = drawDatum,
 					.mDataSize = numDraws * sizeof(FMaterial::IndirectDrawData),
 				});
-				vk::DrawIndirectCommand* drawCommands = graphBuilder.AllocatePOD<vk::DrawIndirectCommand>(numDraws);
-				graphBuilder.QueueBufferUpload({
-					.mTargetBuffer = drawIndirectBucket.mIndirectCommandBuffer,
-					.mData = drawCommands,
-					.mDataSize = numDraws * sizeof(vk::DrawIndirectCommand),
-				});
 
 				// Fill buffers
 				uint32 drawIndex = 0;
 				for (FDrawCallIt drawCallIt = bucket.mStartIt; drawCallIt != bucket.mEndIt; ++drawCallIt)
 				{
-					const FMesh* mesh = assetManager.AccessMesh(drawCallIt->mMesh);
-
 					FMaterial::IndirectDrawData& drawData = drawDatum[drawIndex];
 					drawData.mModelToProj = viewData.mWorldToProjection * drawCallIt->mWorldTransform;
 					drawData.mModelToView = viewData.mViewMatrix * drawCallIt->mWorldTransform;
@@ -236,12 +251,6 @@ namespace Turbo
 					drawData.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, drawCallIt->mMaterialInstance);
 					drawData.mMaterialData = materialManager.GetMaterialDataAddress(gpu, bucket.mTargetMaterial);
 					drawData.mMeshData = assetManager.GetMeshPointersAddress(gpu, drawCallIt->mMesh);
-
-					vk::DrawIndirectCommand& command = drawCommands[drawIndex];
-					command.vertexCount = mesh->mVertexCount;
-					command.firstInstance = drawIndex;
-					command.instanceCount = 1;
-					command.firstVertex = 1;
 
 					drawIndex++;
 				}
@@ -262,14 +271,12 @@ namespace Turbo
 
 		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
-		for (int32 bucketId = 0; bucketId < buckets.size(); ++bucketId)
+		for (const FDrawIndirectBucket& bucket : buckets)
 		{
 			TRACE_ZONE_SCOPED_N("Render Bucket")
 			TRACE_GPU_SCOPED(gpu, cmd, "Render Bucket")
 
-			const FDrawIndirectBucket& bucket = buckets[bucketId];
-
-			const FMaterial* material = materialManager.AccessMaterial(bucket.mMaterialHandle);
+				const FMaterial* material = materialManager.AccessMaterial(bucket.mMaterialHandle);
 			cmd.BindPipeline(material->mPipeline);
 			cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
 
@@ -310,7 +317,7 @@ namespace Turbo
 		}
 
 		FViewData* viewData = graphBuilder.AllocatePOD<FViewData>();
-		FRGResourceHandle viewDataBuffer = graphBuilder.CreateBuffer({
+		FRGResourceHandle viewDataBufferHandle = graphBuilder.CreateBuffer({
 			.mSize = sizeof(FViewData),
 			.mBufferFlags = EBufferFlags::CreateMapped | EBufferFlags::UniformBuffer,
 			.mName = FName("ViewDataBuffer")
@@ -318,13 +325,64 @@ namespace Turbo
 
 		UpdateViewData(world, *viewData);
 		graphBuilder.QueueBufferUpload({
-			.mTargetBuffer = viewDataBuffer,
+			.mTargetBuffer = viewDataBufferHandle,
 			.mData = viewData,
 			.mDataSize = sizeof(FViewData),
 		});
 
 		std::vector<FDrawIndirectBucket> drawIndirectBuckets;
 		CreateIndirectRenderBuffers(graphBuilder, world, *viewData, drawIndirectBuckets);
+
+		// Consider moving configuration out of callback.
+		graphBuilder.AddPass(
+			FName("GeometryCullingPass"),
+			FRGSetupPassDelegate::CreateLambda(
+				[&](FRGPassInfo& passInfo)
+				{
+					passInfo.mPassType = EPassType::Compute;
+
+					passInfo.ReadBuffer(viewDataBufferHandle);
+					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+					{
+						passInfo.ReadBuffer(bucket.mDrawBuffer);
+						passInfo.WriteBuffer(bucket.mIndirectCommandBuffer);
+					}
+				}),
+			FRGExecutePassDelegate::CreateLambda(
+				[drawIndirectBuckets, pipeline = mFrustumCullingPipeline, viewDataBufferHandle](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+				{
+					TRACE_ZONE_SCOPED_N("GeometryCullingPass")
+					TRACE_GPU_SCOPED(gpu, cmd, "GometryCullingPass")
+
+					cmd.BindPipeline(pipeline);
+
+					const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(viewDataBufferHandle));
+
+					FSceneCullingPushConstants pushConstants = {
+						.mViewData = viewDataBuffer->mDeviceAddress,
+					};
+
+					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+					{
+						const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
+						const FBuffer* indirectCommandBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mIndirectCommandBuffer));
+
+						pushConstants.mDrawData = drawBuffer->mDeviceAddress;
+						pushConstants.mDrawIndirectCommand = indirectCommandBuffer->mDeviceAddress;
+						pushConstants.mNumDraws = bucket.mCount;
+
+						cmd.PushConstants(pushConstants);
+
+						const glm::uint3 groupCount = glm::uint3(
+							FMath::DivideAndRoundUp(bucket.mCount, static_cast<uint32>(64)),
+							1,
+							1
+						);
+
+						cmd.Dispatch(groupCount);
+					}
+				})
+		);
 
 		graphBuilder.AddPass(
 			FName("GeometryPass"),
@@ -337,7 +395,7 @@ namespace Turbo
 					passInfo.AddAttachment(geometryBuffer.mColor, 0);
 					passInfo.SetDepthStencilAttachment(geometryBuffer.mDepth);
 
-					passInfo.ReadBuffer(viewDataBuffer);
+					passInfo.ReadBuffer(viewDataBufferHandle);
 
 					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
 					{
@@ -346,12 +404,12 @@ namespace Turbo
 					}
 				}),
 			FRGExecutePassDelegate::CreateLambda(
-				[viewDataBuffer, drawIndirectBuckets](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+				[viewDataBufferHandle, drawIndirectBuckets](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 				{
 					TRACE_ZONE_SCOPED_N("Render Basepass")
 					TRACE_GPU_SCOPED(gpu, cmd, "Render Basepass")
 
-					DrawIndirect(gpu, cmd, resources, viewDataBuffer, drawIndirectBuckets);
+					DrawIndirect(gpu, cmd, resources, viewDataBufferHandle, drawIndirectBuckets);
 				})
 		);
 	}

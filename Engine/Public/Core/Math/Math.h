@@ -37,7 +37,7 @@ namespace Turbo
 		template <typename T>
 		T DivideAndRoundUp(T lhs, T rhs)
 		{
-			return glm::ceil(lhs / rhs);
+			return glm::ceil(static_cast<double>(lhs) / rhs);
 		}
 
 		inline void ConvertTurboToVulkanCoordinates(glm::float4x4& transform)

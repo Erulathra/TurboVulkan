@@ -39,7 +39,8 @@ public struct FMeshData
     public const Ptr<float3> mPositionBuffer;
     public const Ptr<float3> mNormalBuffer;
     public const Ptr<float2> mUVBuffer;
-    public const Ptr<float4> mColorBuffer;
+
+    public const uint mVertexCount;
 }
 
 public struct FSceneData
@@ -79,3 +80,19 @@ public struct FIndirectPushConstants
     public const Ptr<FIndirectDrawData> mDrawData;
 };
 
+public struct FDrawIndirectCommand
+{
+    public uint mVertexCount;
+    public uint mInstanceCount;
+    public uint mFirstVertex;
+    public uint mFirstInstance;
+};
+
+public struct FDrawIndexedIndirectCommand
+{
+    const uint mIndexCount;
+    const uint mInstanceCount;
+    const uint mFirstIndex;
+    const int mVertexOffset;
+    const uint mFirstInstance;
+};

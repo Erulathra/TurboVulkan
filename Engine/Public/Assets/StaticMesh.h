@@ -39,7 +39,9 @@ namespace Turbo
 		FDeviceAddress mPositionBuffer = kNullDeviceAddress;
 		FDeviceAddress mNormalBuffer = kNullDeviceAddress;
 		FDeviceAddress mUVBuffer = kNullDeviceAddress;
-		FDeviceAddress mColorBuffer = kNullDeviceAddress;
+
+		uint32 mVertexCount = 0;
+		uint32 PAD;
 	};
 
 } // Turbo

@@ -47,7 +47,12 @@ namespace Turbo
 			{
 				bounds.mMin = glm::min(bounds.mMin, vertex);
 				bounds.mMax = glm::max(bounds.mMax, vertex);
-				bounds.mRadiusSqrt = glm::max(bounds.mRadiusSqrt, glm::length2(vertex));
+			});
+
+			const glm::float3 center = (bounds.mMin + bounds.mMax) * 0.5f;
+			fastgltf::iterateAccessor<glm::float3>(meshAsset, accessor, [&](const glm::float3& vertex)
+			{
+				bounds.mRadiusSqrt = glm::max(bounds.mRadiusSqrt, glm::length2(vertex - center));
 			});
 
 			bounds.mRadius = glm::sqrt(bounds.mRadiusSqrt);
@@ -176,6 +181,7 @@ namespace Turbo
 			std::vector<uint32> indices;
 			indices.reserve(indicesAccessor.count);
 			mesh->mVertexCount = indicesAccessor.count;
+			meshData.mVertexCount = indicesAccessor.count;
 
 			fastgltf::iterateAccessor<uint32>(loadedAsset, indicesAccessor, [&](uint32 index)
 			{
@@ -200,7 +206,6 @@ namespace Turbo
 		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mPositionBuffer, meshData.mPositionBuffer, kPositionName);
 		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mNormalBuffer, meshData.mNormalBuffer, kNormalName);
 		LoadComponentBuffer<glm::vec2>(loadedAsset, meshLoadSettings, mesh->mUVBuffer, meshData.mUVBuffer, kUVName);
-		LoadComponentBuffer<glm::vec4>(loadedAsset, meshLoadSettings, mesh->mColorBuffer, meshData.mColorBuffer, kColorName);
 
 		const FBounds boundingBox = FindBounds(loadedAsset, meshLoadSettings);
 
