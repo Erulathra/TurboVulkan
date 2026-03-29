@@ -70,8 +70,6 @@ namespace Turbo
 
 		HotType* Access(THandle<HotType> handle)
 		{
-			TRACE_ZONE_SCOPED_N("Access Resource by handle")
-
 			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
 			{
 				if (handle.GetGeneration() == mGenerations[handle.GetIndex()])
@@ -85,8 +83,6 @@ namespace Turbo
 
 		const HotType* Access(THandle<HotType> handle) const
 		{
-			TRACE_ZONE_SCOPED_N("Access Resource by handle")
-
 			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
 			{
 				if (handle.GetGeneration() == mGenerations[handle.GetIndex()])
@@ -101,7 +97,6 @@ namespace Turbo
 		ColdType* AccessCold(THandle<HotType> handle)
 		{
 			static_assert(std::is_same_v<ColdType, FDummyColdType> == false);
-			TRACE_ZONE_SCOPED_N("Access Resource Cold Data by handle")
 
 			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
 			{
@@ -117,7 +112,6 @@ namespace Turbo
 		const HotType* AccessCold(THandle<HotType> handle) const
 		{
 			static_assert(std::is_same_v<ColdType, FDummyColdType> == false);
-			TRACE_ZONE_SCOPED_N("Access Resource Cold Data by handle")
 
 			if (handle.IsValid() && handle.GetIndex() < mHotData.size())
 			{

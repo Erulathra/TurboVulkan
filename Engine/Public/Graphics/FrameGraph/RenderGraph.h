@@ -57,7 +57,7 @@ namespace Turbo
 
 	struct FRenderGraphBuilder
 	{
-		static constexpr uint32 kPerFrameStackSize = 512 * Constants::kKibi;
+		static constexpr uint32 kPerFrameStackSize = 64 * Constants::kMebi;
 
 		DELETE_COPY(FRenderGraphBuilder)
 		FRenderGraphBuilder() = default;

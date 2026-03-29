@@ -32,6 +32,8 @@ struct VSOut
     float3 mViewNormal;
     float2 mUV;
 
+    float3 mWorldPosition;
+
 	uint mDrawId;
 }
 
@@ -53,6 +55,7 @@ void vsMain(
 	const uint vertexId = asuint(mesh.mIndexBuffer[indexId]);
 	const float4 modelPosition = float4(mesh.mPositionBuffer[vertexId], 1.f);
 
+	vsOut.mWorldPosition = mul(modelPosition, data.mModelToWorld).xyz;
     vsOut.mPosition = mul(modelPosition, data.mModelToProj);
     vsOut.mViewPosition = mul(modelPosition, data.mModelToView).xyz;
     vsOut.mViewNormal = mul(mesh.mNormalBuffer[vertexId], data.mNormalModelToView);
@@ -75,6 +78,7 @@ void psMain(
     SamplerState sampler = samplerPool[material.mBaseColorSampler];
 
     const float3 baseColor = instance.mBaseColorFactor.rgb * texture.Sample(sampler, vsOut.mUV);
+    // const float3 baseColor = float3(1, 0, 0);
 
     psOut.mColor = float4(baseColor, 1.f);
 }

@@ -73,8 +73,6 @@ namespace Turbo
 
 		T* Access(THandle<T> handle)
 		{
-			TRACE_ZONE_SCOPED_N("Access Resource by handle")
-
 			const FHandle::GenerationType currentGeneration = mGenerations[handle.GetIndex()];
 			if (handle.IsValid() && handle.GetIndex() < mData.size() && handle.GetGeneration() == currentGeneration)
 			{
@@ -86,8 +84,6 @@ namespace Turbo
 
 		const T* Access(THandle<T> handle) const
 		{
-			TRACE_ZONE_SCOPED_N("Access Resource by handle")
-
 			if (!handle.IsValid())
 			{
 				return nullptr;

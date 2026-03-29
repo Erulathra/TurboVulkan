@@ -52,10 +52,10 @@ namespace Turbo
 			const glm::float3 center = (bounds.mMin + bounds.mMax) * 0.5f;
 			fastgltf::iterateAccessor<glm::float3>(meshAsset, accessor, [&](const glm::float3& vertex)
 			{
-				bounds.mRadiusSqrt = glm::max(bounds.mRadiusSqrt, glm::length2(vertex - center));
+				bounds.mRadiusSquared = glm::max(bounds.mRadiusSquared, glm::length2(vertex - center));
 			});
 
-			bounds.mRadius = glm::sqrt(bounds.mRadiusSqrt);
+			bounds.mRadius = glm::sqrt(bounds.mRadiusSquared);
 		}
 
 		return bounds;
@@ -173,7 +173,9 @@ namespace Turbo
 		mesh->mAssetHash = assetHash;
 
 		TURBO_CHECK(glftSubMesh.indicesAccessor.has_value())
-		FMeshData meshData = {};
+		FMeshData meshData = {
+			.mIndex = meshHandle.GetIndex()
+		};
 
 		{
 			const fastgltf::Accessor& indicesAccessor = loadedAsset.accessors[glftSubMesh.indicesAccessor.value()];
@@ -256,6 +258,14 @@ namespace Turbo
 		TURBO_CHECK(memoryOffset < pointersPoolBuffer->mDeviceSize);
 
 		return pointersPoolBuffer->mDeviceAddress + memoryOffset;
+	}
+
+	FDeviceAddress FAssetManager::GetBoundsAddress(const FGPUDevice& gpu) const
+	{
+		const FBuffer* boundsPool = gpu.AccessBuffer(mBoundsPool);
+		TURBO_CHECK(boundsPool);
+
+		return boundsPool->mDeviceAddress;
 	}
 
 	void FAssetManager::UnloadMesh(THandle<FMesh> meshHandle)

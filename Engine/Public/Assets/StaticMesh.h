@@ -13,7 +13,7 @@ namespace Turbo
 		glm::float3 mMin = glm::float3(std::numeric_limits<float>::lowest());
 		float mRadius = std::numeric_limits<float>::lowest();
 		glm::float3 mMax = glm::float3(std::numeric_limits<float>::max());
-		float mRadiusSqrt = std::numeric_limits<float>::lowest();
+		float mRadiusSquared = std::numeric_limits<float>::lowest();
 	};
 
 	struct FMesh final
@@ -41,7 +41,7 @@ namespace Turbo
 		FDeviceAddress mUVBuffer = kNullDeviceAddress;
 
 		uint32 mVertexCount = 0;
-		uint32 PAD;
+		uint32 mIndex = 0;
 	};
 
 } // Turbo

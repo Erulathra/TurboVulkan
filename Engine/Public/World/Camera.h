@@ -1,4 +1,5 @@
 #pragma once
+#include "SceneGraph.h"
 #include "Core/Math/FRotator.h"
 
 namespace Turbo
@@ -54,6 +55,10 @@ namespace Turbo
 		double mWorldTime = 0.f;
 		double mDeltaTime = 0.f;
 		int32 mFrameIndex = 0;
+		byte __PADDING[4];
+
+		// In world space
+		FFrustum mViewFrustum = {};
 	};
 
 	class FCameraUtils final
@@ -63,6 +68,7 @@ namespace Turbo
 		static void UpdateFreeCameraPosition(entt::registry& registry, const glm::float3& movementInput, float deltaTime);
 		static void UpdateFreeCameraRotation(entt::registry& registry, const glm::float2& deltaRotation);
 		static void UpdateFreeCameraSpeed(entt::registry& registry, const int32 deltaSpeed);
+		static FFrustum GetViewFrustum(const FCamera& camera, const FWorldTransform& transform);
 
 	public:
 		static void InitializeCamera(entt::registry& registry, entt::entity entity);

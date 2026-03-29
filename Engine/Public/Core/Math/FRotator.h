@@ -49,7 +49,7 @@ namespace Turbo
 		[[nodiscard]]
 		QuatType ToQuat() const
 		{
-			return glm::quat(-ScalarType3(mPitch, mYaw, mRoll));
+			return glm::quat(ScalarType3(mPitch, mYaw, mRoll));
 		}
 
 		[[nodiscard]]

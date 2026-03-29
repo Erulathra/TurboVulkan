@@ -23,8 +23,8 @@ namespace Turbo
 
 	namespace FreeCamera
 	{
-		const FCameraBinding kMoveForward {FName("FreeCamera.MoveForward"), EKeys::W, -EFloat3::Forward};
-		const FCameraBinding kMoveBackward {FName("FreeCamera.MoveBackward"), EKeys::S, EFloat3::Forward};
+		const FCameraBinding kMoveForward {FName("FreeCamera.MoveForward"), EKeys::W, EFloat3::Forward};
+		const FCameraBinding kMoveBackward {FName("FreeCamera.MoveBackward"), EKeys::S, -EFloat3::Forward};
 		const FCameraBinding kMoveLeft {FName("FreeCamera.MoveLeft"), EKeys::A, -EFloat3::Right};
 		const FCameraBinding kMoveRight {FName("FreeCamera.MoveRight"), EKeys::D, EFloat3::Right};
 		const FCameraBinding kMoveUp {FName("FreeCamera.MoveUp"), EKeys::E, EFloat3::Up};

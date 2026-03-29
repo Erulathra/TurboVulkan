@@ -65,10 +65,11 @@ namespace Turbo
 
 		FCameraUtils::UpdateDirtyCameras(world->mRegistry);
 
-		auto mainCameraView = world->mRegistry.view<FCameraCache const, FWorldTransform const, FMainViewport const>();
+		auto mainCameraView = world->mRegistry.view<FCamera const, FCameraCache const, FWorldTransform const, FMainViewport const>();
 		TURBO_CHECK(mainCameraView.begin() != mainCameraView.end())
 
 		const entt::entity mainCameraEntity = *mainCameraView.begin();
+		const FCamera& camera = mainCameraView.get<FCamera>(mainCameraEntity);
 		const FCameraCache& cameraCache = mainCameraView.get<FCameraCache>(mainCameraEntity);
 		const FWorldTransform& cameraTransform = mainCameraView.get<FWorldTransform>(mainCameraEntity);
 
@@ -82,6 +83,8 @@ namespace Turbo
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		viewData.mFrameIndex = static_cast<int32>(gpu.GetNumRenderedFrames());
+
+		viewData.mViewFrustum = FCameraUtils::GetViewFrustum(camera, cameraTransform);
 	}
 
 	void FSceneRenderingLayer::CreateIndirectRenderBuffers(
@@ -246,6 +249,7 @@ namespace Turbo
 					FMaterial::IndirectDrawData& drawData = drawDatum[drawIndex];
 					drawData.mModelToProj = viewData.mWorldToProjection * drawCallIt->mWorldTransform;
 					drawData.mModelToView = viewData.mViewMatrix * drawCallIt->mWorldTransform;
+					drawData.mModelToWorld = drawCallIt->mWorldTransform;
 					drawData.mNormalModelToView = glm::float3x3(glm::transpose(glm::inverse(drawData.mModelToView)));
 
 					drawData.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, drawCallIt->mMaterialInstance);
@@ -356,10 +360,12 @@ namespace Turbo
 
 					cmd.BindPipeline(pipeline);
 
+					const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 					const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(viewDataBufferHandle));
 
 					FSceneCullingPushConstants pushConstants = {
 						.mViewData = viewDataBuffer->mDeviceAddress,
+						.mBounds = assetManager.GetBoundsAddress(gpu)
 					};
 
 					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)

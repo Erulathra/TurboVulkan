@@ -1,6 +1,8 @@
 #include "Modules/Common.slang"
 
 import Modules.MeshRendering;
+import Modules.Math;
+import Modules.MathTypes;
 
 struct FPushConstants
 {
@@ -25,9 +27,29 @@ void main(uint3 threadId : SV_DispatchThreadID)
 	    return;
 	}
 
-	FDrawIndirectCommand* draw = &pc.mDrawIndirectCommand[threadId.x];
-	draw.mVertexCount = pc.mDrawData[threadId.x].mMeshData.mVertexCount;
+	FIndirectDrawData drawData = pc.mDrawData[threadId.x];
+
+	bool bShouldDraw = true;
+
+	// Transfer bounding sphere to world space
+	const uint meshIndex = drawData.mMeshData.mMeshIndex;
+	const float3 boundsCenter = (pc.mBounds[meshIndex].mMin + pc.mBounds[meshIndex].mMax) * 0.5f;
+	const float boundsRadius = pc.mBounds[meshIndex].mRadius;
+	const FSphere boundsSphere = TransformSphere(drawData.mModelToWorld, FSphere(boundsCenter, boundsRadius));
+
+	// Test with frustum planes
+	for (uint i = 0; i < 6; ++i)
+	{
+		const FPlane frustumPlane = pc.mViewData.mViewFrustum.mPlanes[i];
+		// TODO: Enable me
+        // bShouldDraw &= SignedDistanceToPlane(boundsSphere.mCenter, frustumPlane) < boundsSphere.mRadius;
+	}
+
+	FDrawIndirectCommand draw;
+	draw.mVertexCount = drawData.mMeshData.mVertexCount;
 	draw.mFirstInstance = threadId.x;
-	draw.mInstanceCount = 1;
+	draw.mInstanceCount = bShouldDraw ? 1 : 0;
 	draw.mFirstVertex = 0;
+
+	pc.mDrawIndirectCommand[threadId.x] = draw;
 }

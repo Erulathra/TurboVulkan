@@ -1,5 +1,7 @@
 module CommonTypes;
 
+import MathTypes;
+
 public enum ECameraType
 {
     Perspective,
@@ -17,6 +19,9 @@ public struct FViewData
     public double mWorldTime;
     public double mDeltaTime;
     public uint mFrameIndex;
+
+    // In world space
+    public FFrustum mViewFrustum;
 };
 
 public struct FMaterialInstance
@@ -30,7 +35,7 @@ public struct FBounds
     public float3 mMin;
     public float mRadius;
     public float3 mMax;
-    public float mRadiusSqrt;
+    public float mRadiusSquared;
 }
 
 public struct FMeshData
@@ -41,6 +46,7 @@ public struct FMeshData
     public const Ptr<float2> mUVBuffer;
 
     public const uint mVertexCount;
+    public const uint mMeshIndex;
 }
 
 public struct FSceneData
@@ -65,6 +71,7 @@ public struct FIndirectDrawData
 {
     public float4x4 mModelToProj;
     public float4x4 mModelToView;
+    public float4x4 mModelToWorld;
     public float3x3 mNormalModelToView;
 
     public const Ptr<void> mMaterialData;
@@ -90,9 +97,9 @@ public struct FDrawIndirectCommand
 
 public struct FDrawIndexedIndirectCommand
 {
-    const uint mIndexCount;
-    const uint mInstanceCount;
-    const uint mFirstIndex;
-    const int mVertexOffset;
-    const uint mFirstInstance;
+    public uint mIndexCount;
+    public uint mInstanceCount;
+    public uint mFirstIndex;
+    public int mVertexOffset;
+    public uint mFirstInstance;
 };

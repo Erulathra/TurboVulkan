@@ -235,7 +235,7 @@ namespace Turbo
 	private:
 		vk::CullModeFlags mCullMode = vk::CullModeFlagBits::eBack;
 		vk::PolygonMode mPolygonMode = vk::PolygonMode::eFill;
-		vk::FrontFace mFrontFace = vk::FrontFace::eCounterClockwise;
+		vk::FrontFace mFrontFace = vk::FrontFace::eClockwise;
 	};
 
 	class FDepthStencilBuilder final

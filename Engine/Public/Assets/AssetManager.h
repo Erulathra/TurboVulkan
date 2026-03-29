@@ -44,6 +44,7 @@ namespace Turbo
 		[[nodiscard]] const FMesh* AccessMesh(THandle<FMesh> handle) const { return mMeshPool.Access(handle); }
 
 		[[nodiscard]] FDeviceAddress GetMeshPointersAddress(const FGPUDevice& gpu, THandle<FMesh> handle) const;
+		[[nodiscard]] FDeviceAddress GetBoundsAddress(const FGPUDevice& gpu) const;
 
 		/** Mesh interface end */
 

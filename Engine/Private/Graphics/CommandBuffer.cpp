@@ -297,10 +297,12 @@ namespace Turbo
 	void FCommandBuffer::SetViewport(const FViewport& viewport)
 	{
 		vk::Viewport vkViewport = {};
-		vkViewport.x = viewport.Rect.Position.x;
-		vkViewport.y = viewport.Rect.Position.y;
-		vkViewport.width = viewport.Rect.Size.x;
-		vkViewport.height = viewport.Rect.Size.y;
+		vkViewport.x = static_cast<float>(viewport.Rect.Position.x);
+		// Flip viewport
+		vkViewport.y = static_cast<float>(viewport.Rect.Size.y) - static_cast<float>(viewport.Rect.Position.y);
+		vkViewport.width = static_cast<float>(viewport.Rect.Size.x);
+		// Flip viewport
+		vkViewport.height = -static_cast<float>(viewport.Rect.Size.y);
 		vkViewport.minDepth = viewport.MinDepth;
 		vkViewport.maxDepth = viewport.MaxDepth;
 

@@ -1,14 +1,6 @@
 #include "World/Camera.h"
 
 #include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Assets/AssetManager.h"
-#include "Core/CoreTimer.h"
 #include "Core/Math/FRotator.h"
 #include "World/SceneGraph.h"
 
@@ -29,19 +21,45 @@ namespace Turbo
 	{
 		TRACE_ZONE_SCOPED()
 
-		const auto view = registry.view<FCamera const, FCameraDirty>();
+		const auto view = registry.view<FCamera const, FTransform const, FCameraDirty>();
 		for (const entt::entity& entity : view)
 		{
 			const FCamera& camera = view.get<FCamera>(entity);
+			const FTransform& transform = view.get<FTransform>(entity);
 			TURBO_CHECK(glm::abs(camera.mAspectRatio) > TURBO_SMALL_NUMBER);
 
-			glm::float4x4 projectionMatrix;
+			glm::float4x4 projectionMatrix = {};
+			FFrustum frustum;
+
+			const glm::float3 forward = TransformUtils::GetForward(transform);
+			const glm::float3 up = TransformUtils::GetUp(transform);
+			const glm::float3 right = glm::cross(up, forward);
+
+			frustum.GetNear() = {forward, transform.mPosition + forward * camera.mNearPlane};
+			frustum.GetFar() = {-forward, transform.mPosition + forward * camera.mFarPlane,};
 
 			switch (camera.mProjectionType)
 			{
 			case EProjectionType::Perspective:
 				{
 					projectionMatrix = glm::perspective(camera.mFov, camera.mAspectRatio, camera.mFarPlane, camera.mNearPlane);
+
+					const float halfWidth = camera.mFarPlane * glm::tan(camera.mFov * 0.5f);
+					const float halfHeight = halfWidth / camera.mAspectRatio;
+					const glm::float3 farVector = forward * camera.mFarPlane;
+
+					// Right, Left Plane
+					const glm::float3 rightPlaneNormal = glm::cross(glm::normalize(farVector + right * halfWidth), up);
+					frustum.GetRight() = {rightPlaneNormal, transform.mPosition};
+					const glm::float3 leftPlaneNormal = glm::cross(glm::normalize(farVector - right * halfWidth), up);
+					frustum.GetLeft() = {leftPlaneNormal, transform.mPosition};
+
+					// Top, Bottom Plane
+					const glm::float3 topPlaneNormal = glm::cross(glm::normalize(farVector + up * halfHeight), right);
+					frustum.GetTop() = {topPlaneNormal, transform.mPosition};
+					const glm::float3 bottomPlaneNormal = glm::cross(glm::normalize(farVector - up * halfHeight), right);
+					frustum.GetBottom() = {bottomPlaneNormal, transform.mPosition};
+
 					break;
 				}
 			case EProjectionType::Orthographic:
@@ -49,6 +67,12 @@ namespace Turbo
 					const float halfWidth = camera.mOrtoWidth * 0.5f;
 					const float halfHeight = halfWidth / camera.mAspectRatio;
 					projectionMatrix = glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight);
+
+					frustum.GetRight() = {-right, transform.mPosition + right * halfWidth};
+					frustum.GetBottom() = {right, transform.mPosition - right * halfWidth};
+					frustum.GetTop() = {-up, transform.mPosition + up * halfHeight};
+					frustum.GetBottom() = {up, transform.mPosition - up * halfHeight};
+
 					break;
 				}
 			default:
@@ -56,8 +80,6 @@ namespace Turbo
 					projectionMatrix = glm::float4x4(1.f);
 				}
 			}
-
-			FMath::ConvertTurboToVulkanCoordinates(projectionMatrix);
 
 			FCameraCache& cameraCache = registry.get_or_emplace<FCameraCache>(entity);
 			cameraCache.mProjectionMatrix = projectionMatrix;
@@ -136,6 +158,64 @@ namespace Turbo
 
 			camera.mMovementSpeed = glm::clamp(camera.mMovementSpeed, camera.mMinMovementSpeed, camera.mMaxMovementSpeed);
 		}
+	}
+
+	FFrustum FCameraUtils::GetViewFrustum(const FCamera& camera, const FWorldTransform& transform)
+	{
+		TURBO_CHECK(glm::abs(camera.mAspectRatio) > TURBO_SMALL_NUMBER);
+
+		FFrustum frustum;
+
+		const glm::float3 position = TransformUtils::GetPosition(transform);
+
+		const glm::float3 forward = TransformUtils::GetForward(transform);
+		const glm::float3 up = TransformUtils::GetUp(transform);
+		const glm::float3 right = glm::cross(up, forward);
+
+		frustum.GetNear() = {forward, position + forward * camera.mNearPlane};
+		frustum.GetFar() = {-forward, position + forward * camera.mFarPlane,};
+
+		switch (camera.mProjectionType)
+		{
+		case EProjectionType::Perspective:
+			{
+				const float halfWidth = camera.mFarPlane * glm::tan(camera.mFov * 0.5f);
+				const float halfHeight = halfWidth / camera.mAspectRatio;
+				const glm::float3 farVector = forward * camera.mFarPlane;
+
+				// Right, Left Plane
+				const glm::float3 rightPlaneNormal = glm::cross(glm::normalize(farVector + right * halfWidth), up);
+				frustum.GetRight() = {rightPlaneNormal, position};
+				const glm::float3 leftPlaneNormal = glm::cross(glm::normalize(farVector - right * halfWidth), up);
+				frustum.GetLeft() = {leftPlaneNormal, position};
+
+				// Top, Bottom Plane
+				const glm::float3 topPlaneNormal = glm::cross(glm::normalize(farVector + up * halfHeight), right);
+				frustum.GetTop() = {topPlaneNormal, position};
+				const glm::float3 bottomPlaneNormal = glm::cross(glm::normalize(farVector - up * halfHeight), right);
+				frustum.GetBottom() = {bottomPlaneNormal, position};
+
+				break;
+			}
+		case EProjectionType::Orthographic:
+			{
+				const float halfWidth = camera.mOrtoWidth * 0.5f;
+				const float halfHeight = halfWidth / camera.mAspectRatio;
+
+				frustum.GetRight() = {-right, position + right * halfWidth};
+				frustum.GetBottom() = {right, position - right * halfWidth};
+				frustum.GetTop() = {-up, position + up * halfHeight};
+				frustum.GetBottom() = {up, position - up * halfHeight};
+
+				break;
+			}
+		default:
+			{
+				TURBO_UNINPLEMENTED();
+			}
+		}
+
+		return frustum;
 	}
 
 	void FCameraUtils::InitializeCamera(entt::registry& registry, entt::entity entity)

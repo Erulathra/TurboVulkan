@@ -34,6 +34,44 @@ namespace Turbo
 		entt::entity mParent = entt::null;
 	};
 
+	namespace TransformUtils
+	{
+		inline glm::float3 GetForward(const FTransform& transform)
+		{
+			return glm::normalize(transform.mRotation * EFloat3::Forward);
+		}
+
+		inline glm::float3 GetForward(const FWorldTransform& transform)
+		{
+			return glm::normalize(glm::float3(transform.mTransform[2]));
+		}
+
+		inline glm::float3 GetRight(const FTransform& transform)
+		{
+			return glm::normalize(transform.mRotation * EFloat3::Right);
+		}
+
+		inline glm::float3 GetRight(const FWorldTransform& transform)
+		{
+			return glm::normalize(glm::float3(transform.mTransform[0]));
+		}
+
+		inline glm::float3 GetUp(const FTransform& transform)
+		{
+			return glm::normalize(transform.mRotation * EFloat3::Up);
+		}
+
+		inline glm::float3 GetUp(const FWorldTransform& transform)
+		{
+			return glm::normalize(glm::float3(transform.mTransform[1]));
+		}
+
+		inline glm::float3 GetPosition(const FWorldTransform& transform)
+		{
+			return glm::float3(transform.mTransform[3]);
+		}
+	}
+
 	struct FSceneGraph
 	{
 	public:

@@ -40,11 +40,6 @@ namespace Turbo
 			return glm::ceil(static_cast<double>(lhs) / rhs);
 		}
 
-		inline void ConvertTurboToVulkanCoordinates(glm::float4x4& transform)
-		{
-			transform[1][1] = -transform[1][1];
-		}
-
 		inline glm::float4x4 CreateTransform(const glm::float3& position, const glm::quat& rotation, const glm::float3 scale)
 		{
 			const glm::float4x4 translationMat = glm::translate(glm::float4x4(1.f), position);
@@ -102,6 +97,23 @@ struct fmt::formatter<glm::vec<L, T>> : fmt::formatter<std::string>
 			resultStream << vector[componentIndex] << ", ";
 		}
 		resultStream << vector[vector.length() - 1] << ")";
+
+		return formatter<std::string>::format(resultStream.str(), ctx);
+	}
+};
+
+template<uint32 columns, uint32 rows, typename T, glm::qualifier Q>
+struct fmt::formatter<glm::mat<columns, rows, T, Q>> : fmt::formatter<std::string>
+{
+	auto format(const glm::mat<columns, rows, T, Q>& matrix, format_context& ctx) const
+	{
+		std::stringstream resultStream;
+		resultStream << '{';
+		for (uint32 column = 0; column < matrix.length() - 1; ++column)
+		{
+			resultStream << fmt::format("{}", matrix[column]) << ", \n";
+		}
+		resultStream << fmt::format("{}", matrix[matrix.length() - 1]) << "}";
 
 		return formatter<std::string>::format(resultStream.str(), ctx);
 	}

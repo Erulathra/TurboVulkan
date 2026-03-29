@@ -25,6 +25,7 @@ namespace Turbo
 		{
 			glm::float4x4 mModelToProj;
 			glm::float4x4 mModelToView;
+			glm::float4x4 mModelToWorld;
 			glm::float3x3 mNormalModelToView;
 
 			FDeviceAddress mMaterialData = kNullDeviceAddress;

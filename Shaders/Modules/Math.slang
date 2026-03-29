@@ -1,5 +1,7 @@
 module Math;
 
+import MathTypes;
+
 #include "MathConstants.slang"
 
 public float2 RotateUV(float2 uv, float rotation, float2 mid)
@@ -17,6 +19,21 @@ public float2 RotateUV(float2 uv, float rotation, float mid)
 public float2 RotateUV(float2 uv, float rotation)
 {
     return RotateUV(uv, rotation, 0.5f);
+}
+
+public float LenghtSquared(float2 v)
+{
+    return dot(v, v);
+}
+
+public float LenghtSquared(float3 v)
+{
+    return dot(v, v);
+}
+
+public float LenghtSquared(float4 v)
+{
+    return dot(v, v);
 }
 
 public float InvLerp(float from, float to, float value)
@@ -42,4 +59,29 @@ public float3 HSVToRGB(float3 hsv)
     const float3 p = abs(frac(hsv.xxx + k.xyz) * 6.0 - k.www);
 
     return hsv.z * lerp(k.xxx, saturate(p - k.xxx), hsv.y);
+}
+
+public float3 ExtractScaleSquared(float4x4 transform)
+{
+    return float3(
+        LenghtSquared(transform[0].xyz),
+        LenghtSquared(transform[1].xyz),
+        LenghtSquared(transform[2].xyz)
+    );
+}
+
+public float SignedDistanceToPlane(float3 point, FPlane plane)
+{
+    return dot(plane.mNormal, point) - plane.mDistance;
+}
+
+public FSphere TransformSphere(float4x4 transform, FSphere sphere)
+{
+    const float3 newCenter = mul(float4(sphere.mCenter, 1.0f), transform).xyz;
+
+    const float3 scaleSquared = ExtractScaleSquared(transform);
+    const float maxScaleSquared = max3(scaleSquared.x, scaleSquared.y, scaleSquared.z);
+    const float newRadius = sphere.mRadius * sqrt(maxScaleSquared);
+
+    return FSphere(newCenter, newRadius);
 }
