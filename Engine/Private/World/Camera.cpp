@@ -25,41 +25,16 @@ namespace Turbo
 		for (const entt::entity& entity : view)
 		{
 			const FCamera& camera = view.get<FCamera>(entity);
-			const FTransform& transform = view.get<FTransform>(entity);
 			TURBO_CHECK(glm::abs(camera.mAspectRatio) > TURBO_SMALL_NUMBER);
 
 			glm::float4x4 projectionMatrix = {};
-			FFrustum frustum;
-
-			const glm::float3 forward = TransformUtils::GetForward(transform);
-			const glm::float3 up = TransformUtils::GetUp(transform);
-			const glm::float3 right = glm::cross(up, forward);
-
-			frustum.GetNear() = {forward, transform.mPosition + forward * camera.mNearPlane};
-			frustum.GetFar() = {-forward, transform.mPosition + forward * camera.mFarPlane,};
 
 			switch (camera.mProjectionType)
 			{
 			case EProjectionType::Perspective:
 				{
-					projectionMatrix = glm::perspective(camera.mFov, camera.mAspectRatio, camera.mFarPlane, camera.mNearPlane);
-
-					const float halfWidth = camera.mFarPlane * glm::tan(camera.mFov * 0.5f);
-					const float halfHeight = halfWidth / camera.mAspectRatio;
-					const glm::float3 farVector = forward * camera.mFarPlane;
-
-					// Right, Left Plane
-					const glm::float3 rightPlaneNormal = glm::cross(glm::normalize(farVector + right * halfWidth), up);
-					frustum.GetRight() = {rightPlaneNormal, transform.mPosition};
-					const glm::float3 leftPlaneNormal = glm::cross(glm::normalize(farVector - right * halfWidth), up);
-					frustum.GetLeft() = {leftPlaneNormal, transform.mPosition};
-
-					// Top, Bottom Plane
-					const glm::float3 topPlaneNormal = glm::cross(glm::normalize(farVector + up * halfHeight), right);
-					frustum.GetTop() = {topPlaneNormal, transform.mPosition};
-					const glm::float3 bottomPlaneNormal = glm::cross(glm::normalize(farVector - up * halfHeight), right);
-					frustum.GetBottom() = {bottomPlaneNormal, transform.mPosition};
-
+					const float verticalFov = 2.f * glm::atan(glm::tan(camera.mFov * 0.5f) / camera.mAspectRatio);
+					projectionMatrix = glm::perspective(verticalFov, camera.mAspectRatio, camera.mFarPlane, camera.mNearPlane);
 					break;
 				}
 			case EProjectionType::Orthographic:
@@ -67,11 +42,6 @@ namespace Turbo
 					const float halfWidth = camera.mOrtoWidth * 0.5f;
 					const float halfHeight = halfWidth / camera.mAspectRatio;
 					projectionMatrix = glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight);
-
-					frustum.GetRight() = {-right, transform.mPosition + right * halfWidth};
-					frustum.GetBottom() = {right, transform.mPosition - right * halfWidth};
-					frustum.GetTop() = {-up, transform.mPosition + up * halfHeight};
-					frustum.GetBottom() = {up, transform.mPosition - up * halfHeight};
 
 					break;
 				}
@@ -179,21 +149,21 @@ namespace Turbo
 		{
 		case EProjectionType::Perspective:
 			{
-				const float halfWidth = camera.mFarPlane * glm::tan(camera.mFov * 0.5f);
-				const float halfHeight = halfWidth / camera.mAspectRatio;
-				const glm::float3 farVector = forward * camera.mFarPlane;
+                const float halfWidth = camera.mFarPlane * glm::tan(camera.mFov * 0.5f);
+                const float halfHeight = halfWidth / camera.mAspectRatio;
+                const glm::float3 farVector = forward * camera.mFarPlane;
 
-				// Right, Left Plane
-				const glm::float3 rightPlaneNormal = glm::cross(glm::normalize(farVector + right * halfWidth), up);
-				frustum.GetRight() = {rightPlaneNormal, position};
-				const glm::float3 leftPlaneNormal = glm::cross(glm::normalize(farVector - right * halfWidth), up);
-				frustum.GetLeft() = {leftPlaneNormal, position};
+                // Right, Left Plane
+                const glm::float3 leftPlaneNormal = glm::cross(up, glm::normalize(farVector - right * halfWidth));
+                frustum.GetLeft() = {leftPlaneNormal, position};
+                const glm::float3 rightPlaneNormal = glm::cross(glm::normalize(farVector + right * halfWidth), up);
+                frustum.GetRight() = {rightPlaneNormal, position};
 
-				// Top, Bottom Plane
-				const glm::float3 topPlaneNormal = glm::cross(glm::normalize(farVector + up * halfHeight), right);
-				frustum.GetTop() = {topPlaneNormal, position};
-				const glm::float3 bottomPlaneNormal = glm::cross(glm::normalize(farVector - up * halfHeight), right);
-				frustum.GetBottom() = {bottomPlaneNormal, position};
+                // Top, Bottom Plane
+                const glm::float3 topPlaneNormal = glm::cross(right, glm::normalize(farVector + up * halfHeight));
+                frustum.GetTop() = {topPlaneNormal, position};
+                const glm::float3 bottomPlaneNormal = glm::cross(glm::normalize(farVector - up * halfHeight), right);
+                frustum.GetBottom() = {bottomPlaneNormal, position};
 
 				break;
 			}

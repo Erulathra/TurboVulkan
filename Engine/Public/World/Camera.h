@@ -55,7 +55,6 @@ namespace Turbo
 		double mWorldTime = 0.f;
 		double mDeltaTime = 0.f;
 		int32 mFrameIndex = 0;
-		byte __PADDING[4];
 
 		// In world space
 		FFrustum mViewFrustum = {};

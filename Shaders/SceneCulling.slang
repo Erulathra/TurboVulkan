@@ -41,8 +41,9 @@ void main(uint3 threadId : SV_DispatchThreadID)
 	for (uint i = 0; i < 6; ++i)
 	{
 		const FPlane frustumPlane = pc.mViewData.mViewFrustum.mPlanes[i];
-		// TODO: Enable me
-        // bShouldDraw &= SignedDistanceToPlane(boundsSphere.mCenter, frustumPlane) < boundsSphere.mRadius;
+		// const FPlane frustumPlane = pc.mViewData.mViewFrustum.mPlanes[3];
+		const float DistanceToPlane = SignedDistanceToPlane(boundsSphere.mCenter, frustumPlane);
+        bShouldDraw &= DistanceToPlane > -boundsSphere.mRadius;
 	}
 
 	FDrawIndirectCommand draw;

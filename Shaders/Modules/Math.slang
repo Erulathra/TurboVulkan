@@ -77,11 +77,12 @@ public float SignedDistanceToPlane(float3 point, FPlane plane)
 
 public FSphere TransformSphere(float4x4 transform, FSphere sphere)
 {
-    const float3 newCenter = mul(float4(sphere.mCenter, 1.0f), transform).xyz;
+    FSphere result;
+    result.mCenter = mul(float4(sphere.mCenter, 1.0f), transform).xyz;
 
     const float3 scaleSquared = ExtractScaleSquared(transform);
     const float maxScaleSquared = max3(scaleSquared.x, scaleSquared.y, scaleSquared.z);
-    const float newRadius = sphere.mRadius * sqrt(maxScaleSquared);
+    result.mRadius = sphere.mRadius * sqrt(maxScaleSquared);
 
-    return FSphere(newCenter, newRadius);
+    return result;
 }

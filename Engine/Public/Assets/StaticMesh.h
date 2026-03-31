@@ -10,9 +10,9 @@ namespace Turbo
 
 	struct FBounds
 	{
-		glm::float3 mMin = glm::float3(std::numeric_limits<float>::lowest());
+		glm::float3 mMin = glm::float3(std::numeric_limits<float>::max());
 		float mRadius = std::numeric_limits<float>::lowest();
-		glm::float3 mMax = glm::float3(std::numeric_limits<float>::max());
+		glm::float3 mMax = glm::float3(std::numeric_limits<float>::lowest());
 		float mRadiusSquared = std::numeric_limits<float>::lowest();
 	};
 
