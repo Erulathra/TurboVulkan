@@ -78,6 +78,7 @@ namespace Turbo
 		static void InitSceneGraph(entt::registry& registry);
 
 		static void UpdateWorldTransforms(entt::registry& registry);
+		static void ClearDirtyFlags(entt::registry& registry);
 
 		static void AddChild(entt::registry& registry, entt::entity parent, entt::entity child);
 		static void Unparent(entt::registry& registry, entt::entity child);

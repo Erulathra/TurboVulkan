@@ -17,6 +17,8 @@ namespace Turbo
 
 	DECLARE_DELEGATE(FOnImmediateSubmit, FCommandBuffer&);
 
+	inline bool gFreezeRendering = false;
+
 	constexpr size_t kTexturePoolSize = 1024;
 	constexpr size_t kSamplerPoolSize = 128;
 	constexpr uint32 kInvalidBinding = std::numeric_limits<uint32>::max();

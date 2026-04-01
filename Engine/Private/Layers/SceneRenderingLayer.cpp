@@ -63,13 +63,10 @@ namespace Turbo
 	{
 		TRACE_ZONE_SCOPED()
 
-		FCameraUtils::UpdateDirtyCameras(world->mRegistry);
-
-		auto mainCameraView = world->mRegistry.view<FCamera const, FCameraCache const, FWorldTransform const, FMainViewport const>();
+		auto mainCameraView = world->mRegistry.view<FCameraCache const, FWorldTransform const, FMainViewport const>();
 		TURBO_CHECK(mainCameraView.begin() != mainCameraView.end())
 
 		const entt::entity mainCameraEntity = *mainCameraView.begin();
-		const FCamera& camera = mainCameraView.get<FCamera>(mainCameraEntity);
 		const FCameraCache& cameraCache = mainCameraView.get<FCameraCache>(mainCameraEntity);
 		const FWorldTransform& cameraTransform = mainCameraView.get<FWorldTransform>(mainCameraEntity);
 
@@ -84,7 +81,7 @@ namespace Turbo
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		viewData.mFrameIndex = static_cast<int32>(gpu.GetNumRenderedFrames());
 
-		viewData.mViewFrustum = FCameraUtils::GetViewFrustum(camera, cameraTransform);
+		viewData.mViewFrustum = cameraCache.mViewFrustum;
 	}
 
 	void FSceneRenderingLayer::CreateIndirectRenderBuffers(
@@ -312,6 +309,9 @@ namespace Turbo
 
 		FWorld* world = gEngine->GetWorld();
 		FSceneGraph::UpdateWorldTransforms(world->mRegistry);
+		FCameraUtils::UpdateDirtyCameras(world->mRegistry);
+		FCameraUtils::UpdateCameraFrustum(world->mRegistry);
+		FSceneGraph::ClearDirtyFlags(world->mRegistry);
 
 		auto mainCameraView = world->mRegistry.view<FCamera>();
 		if (mainCameraView.begin() == mainCameraView.end())

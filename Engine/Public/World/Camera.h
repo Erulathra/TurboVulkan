@@ -29,6 +29,7 @@ namespace Turbo
 	struct FCameraCache
 	{
 		glm::float4x4 mProjectionMatrix = {1.f};
+		FFrustum mViewFrustum = {};
 	};
 
 	struct FFreeCamera
@@ -41,7 +42,7 @@ namespace Turbo
 		FRotator mRotator = FRotator(0.f);
 	};
 
-	struct FCameraDirty {};
+	struct FProjectionDirty {};
 	struct FMainViewport {};
 
 	struct FViewData final
@@ -67,6 +68,7 @@ namespace Turbo
 		static void UpdateFreeCameraPosition(entt::registry& registry, const glm::float3& movementInput, float deltaTime);
 		static void UpdateFreeCameraRotation(entt::registry& registry, const glm::float2& deltaRotation);
 		static void UpdateFreeCameraSpeed(entt::registry& registry, const int32 deltaSpeed);
+		static void UpdateCameraFrustum(entt::registry& registry);
 		static FFrustum GetViewFrustum(const FCamera& camera, const FWorldTransform& transform);
 
 	public:

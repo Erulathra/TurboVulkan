@@ -2,6 +2,7 @@
 
 #include "Assets/AssetManager.h"
 #include "Core/Math/FRotator.h"
+#include "Graphics/GPUDevice.h"
 #include "World/SceneGraph.h"
 
 namespace Turbo
@@ -9,19 +10,19 @@ namespace Turbo
 	void FCamera::on_construct(entt::registry& registry, const entt::entity entity)
 	{
 		registry.emplace<FCameraCache>(entity);
-		registry.emplace<FCameraDirty>(entity);
+		registry.emplace<FProjectionDirty>(entity);
 	}
 
 	void FCamera::on_update(entt::registry& registry, const entt::entity entity)
 	{
-		registry.emplace<FCameraDirty>(entity);
+		registry.emplace<FProjectionDirty>(entity);
 	}
 
 	void FCameraUtils::UpdateDirtyCameras(entt::registry& registry)
 	{
 		TRACE_ZONE_SCOPED()
 
-		const auto view = registry.view<FCamera const, FTransform const, FCameraDirty>();
+		const auto view = registry.view<FCamera const, FTransform const, FProjectionDirty>();
 		for (const entt::entity& entity : view)
 		{
 			const FCamera& camera = view.get<FCamera>(entity);
@@ -55,7 +56,7 @@ namespace Turbo
 			cameraCache.mProjectionMatrix = projectionMatrix;
 		}
 
-		registry.remove<FCameraDirty>(view.begin(), view.end());
+		registry.remove<FProjectionDirty>(view.begin(), view.end());
 	}
 
 	void FCameraUtils::UpdateFreeCameraPosition(entt::registry& registry, const glm::float3& movementInput, float deltaTime)
@@ -128,6 +129,24 @@ namespace Turbo
 
 			camera.mMovementSpeed = glm::clamp(camera.mMovementSpeed, camera.mMinMovementSpeed, camera.mMaxMovementSpeed);
 		}
+	}
+
+	void FCameraUtils::UpdateCameraFrustum(entt::registry& registry)
+	{
+		auto camerasView = registry.view<FCameraCache, FCamera const, FWorldTransform const, FWorldTransformDirty const, FMainViewport const>();
+
+		for (const entt::entity entity : camerasView)
+		{
+			FCameraCache& cameraCache = camerasView.get<FCameraCache>(entity);
+			const FCamera& camera = camerasView.get<FCamera>(entity);
+			const FWorldTransform& transform = camerasView.get<FWorldTransform>(entity);
+
+			if (gFreezeRendering == false)
+			{
+				cameraCache.mViewFrustum = GetViewFrustum(camera, transform);
+			}
+		}
+
 	}
 
 	FFrustum FCameraUtils::GetViewFrustum(const FCamera& camera, const FWorldTransform& transform)

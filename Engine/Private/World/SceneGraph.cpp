@@ -75,13 +75,14 @@ namespace Turbo
 
 			TRACE_PLOT("Dirty transforms", static_cast<int64>(processedEntities.size()));
 		}
+	}
 
-		{
-			TRACE_ZONE_SCOPED_N("Clear dirty flags")
+	void FSceneGraph::ClearDirtyFlags(entt::registry& registry)
+	{
+		TRACE_ZONE_SCOPED_N("Clear dirty flags")
 
-			const auto dirtyView = registry.view<FWorldTransformDirty>();
-			registry.remove<FWorldTransformDirty>(dirtyView.begin(), dirtyView.end());
-		}
+		const auto dirtyView = registry.view<FWorldTransformDirty>();
+		registry.remove<FWorldTransformDirty>(dirtyView.begin(), dirtyView.end());
 	}
 
 	void FSceneGraph::AddChild(entt::registry& registry, entt::entity parent, entt::entity child)
