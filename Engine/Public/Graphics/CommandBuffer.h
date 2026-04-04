@@ -118,6 +118,10 @@ namespace Turbo
 		template<PushConstant PushConstantsType>
 		void PushConstants(PushConstantsType pushConstants) { PushConstants_Internal(&pushConstants, sizeof(PushConstantsType)); }
 
+#if WITH_DEBUG_RENDERING_FEATURES
+		void BeginDebugUtilsLabel(const std::string_view& label, glm::float4 color = ELinearColor::kWhite);
+		void EndDebugUtilsLabel();
+#endif // WITH_DEBUG_RENDERING_FEATURES
 	public:
 		vk::CommandBuffer GetVkCommandBuffer() const { return mVkCommandBuffer; }
 

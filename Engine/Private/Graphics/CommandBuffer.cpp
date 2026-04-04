@@ -334,6 +334,22 @@ namespace Turbo
 		mVkCommandBuffer.drawIndirect( buffer->mVkBuffer, offset, drawCount, stride);
 	}
 
+#if WITH_DEBUG_RENDERING_FEATURES
+	void FCommandBuffer::BeginDebugUtilsLabel(const std::string_view& label, glm::float4 color)
+	{
+		vk::DebugUtilsLabelEXT labelInfo = {};
+		labelInfo.pLabelName = label.data();
+		labelInfo.color = std::array<float, 4>({color.r, color.g, color.b, color.a});
+
+		mVkCommandBuffer.beginDebugUtilsLabelEXT(&labelInfo);
+	}
+
+	void FCommandBuffer::EndDebugUtilsLabel()
+	{
+		mVkCommandBuffer.endDebugUtilsLabelEXT();
+	}
+#endif // WITH_DEBUG_RENDERING_FEATURES
+
 	void FCommandBuffer::Reset()
 	{
 		for (int setId = 0; setId < kMaxDescriptorSets; ++setId)

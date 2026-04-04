@@ -1,6 +1,7 @@
 #include "Graphics/FrameGraph/RenderGraph.h"
 
 #include "Graphics/CommandBuffer.h"
+#include "Graphics/Debug.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/FrameGraph/RenderGraphHelpers.h"
 
@@ -542,6 +543,7 @@ namespace Turbo
 		for (uint32 passId = 0; passId < mRenderPasses.size(); ++passId)
 		{
 			const FRGPassInfo& pass = mRenderPasses[passId];
+			DEBUG_LABEL_REGION(cmd, pass.mName.ToString());
 			TURBO_LOG(LogRenderGraph, Display, "Begin render pass: {}", pass.mName);
 
 			// Add a barrier
