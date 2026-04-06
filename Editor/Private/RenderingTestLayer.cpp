@@ -2,12 +2,10 @@
 #include "RenderingTestLayer.h"
 
 #include "Assets/EngineResources.h"
-#include "Assets/MaterialManager.h"
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
 #include "Extensions/ImGui/ImGuiExtensions.h"
 #include "glm/gtx/string_cast.hpp"
-#include "Graphics/GPUDevice.h"
 #include "Graphics/ResourceBuilders.h"
 #include "World/Camera.h"
 #include "World/CommonEntities.h"

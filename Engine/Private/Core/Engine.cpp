@@ -10,6 +10,7 @@
 #include "Core/Input/FSDLInputSystem.h"
 #include "Core/Input/Input.h"
 #include "Core/Math/Random.h"
+#include "Graphics/Debug.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 #include "Layers/ImGUILayer.h"
@@ -72,6 +73,8 @@ namespace Turbo
 
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpu.Init(gpuDeviceBuilder);
+
+		IFrameDebuggerAPI::Get();
 
 		entt::locator<FRenderGraphBuilder>::emplace();
 
@@ -272,6 +275,8 @@ namespace Turbo
 
 		entt::locator<FAssetManager>::value().Destroy(gpu);
 		entt::locator<FMaterialManager>::value().Destroy(gpu);
+
+		IFrameDebuggerAPI::Get()->Shutdown();
 
 		gpu.Shutdown();
 		entt::locator<FGeometryBuffer>::reset();

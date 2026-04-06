@@ -6,20 +6,23 @@
 #include "Core/Input/Input.h"
 #include "Core/Input/Keys.h"
 #include "EditorViewPort/EditorFreeCamera.h"
+#include "Graphics/Debug.h"
 #include "Graphics/GPUDevice.h"
 
 namespace Turbo
 {
-	const FName kToggleFullscreenName = FName("ToggleFullscreen");
 	const FName kExitName = FName("Exit");
 	const FName kFreezeRenderingName = FName("FreezeRendering");
+	const FName kToggleFullscreenName = FName("ToggleFullscreen");
+	const FName kFrameCapture = FName("FrameCapture");
 
 	void FEditorLayer::Start()
 	{
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
-		inputSystem.RegisterBinding({kToggleFullscreenName, EKeys::F11});
 		inputSystem.RegisterBinding({kExitName, EKeys::Escape});
 		inputSystem.RegisterBinding({kFreezeRenderingName, EKeys::F10});
+		inputSystem.RegisterBinding({kToggleFullscreenName, EKeys::F11});
+		inputSystem.RegisterBinding({kFrameCapture, EKeys::F12});
 
 		FEditorFreeCameraUtils::Init();
 	}
@@ -68,6 +71,11 @@ namespace Turbo
 		else if (event.mActionName == kFreezeRenderingName && event.mbDown)
 		{
 			gFreezeRendering = !gFreezeRendering;
+			event.Handle();
+		}
+		else if (event.mActionName == kFrameCapture && event.mbDown)
+		{
+			IFrameDebuggerAPI::Get()->CaptureFrame();
 			event.Handle();
 		}
 	}
