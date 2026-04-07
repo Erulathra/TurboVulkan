@@ -83,7 +83,7 @@ namespace Turbo {
 
 	vk::SubmitInfo2 VulkanInitializers::SubmitInfo(const vk::CommandBufferSubmitInfo& commandBuffer, const vk::SemaphoreSubmitInfo* signalSemaphore, const vk::SemaphoreSubmitInfo* waitSemaphore)
 	{
-		vk::SubmitInfo2 result{};
+		vk::SubmitInfo2 result = {};
 		result.setPNext(nullptr);
 
 		result.setSignalSemaphoreInfoCount(signalSemaphore ? 1 : 0);

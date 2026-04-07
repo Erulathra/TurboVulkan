@@ -1418,6 +1418,26 @@ namespace Turbo
 		}
 	}
 
+	void FGPUDevice::SubmitMainCommandBufferAndWaitIdle()
+	{
+		TRACE_ZONE_SCOPED()
+
+		const FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
+		FCommandBuffer& cmd = *frameData.mMainCommandBuffer;
+		cmd.End();
+
+		const vk::CommandBufferSubmitInfo cmdSubmitInfo = cmd.CreateSubmitInfo();
+		vk::SubmitInfo2 submitInfo = VkInit::SubmitInfo(cmdSubmitInfo, nullptr, nullptr);
+
+		CHECK_VULKAN_HPP(mVkGraphicsQueue.submit2(1, &submitInfo, frameData.mCommandBufferExecutedFence))
+		CHECK_VULKAN_HPP(mVkDevice.waitForFences({frameData.mCommandBufferExecutedFence}, vk::True, kMaxTimeout));
+		CHECK_VULKAN_HPP(mVkDevice.resetFences({frameData.mCommandBufferExecutedFence}));
+
+		cmd.Begin();
+
+		// CHECK_VULKAN_HPP(mVkDevice.waitIdle())
+	}
+
 	void FGPUDevice::DestroySwapChain()
 	{
 		mVkDevice.destroySwapchainKHR(mVkSwapchain);

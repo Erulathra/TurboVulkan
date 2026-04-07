@@ -39,8 +39,8 @@ namespace Turbo
 
 		virtual bool CanCapture() { return false; }
 
-		virtual void BeginCapture(const FGPUDevice* gpu, const FWindow* window) = 0;
-		virtual void EndCapture(const FGPUDevice* gpu, const FWindow* window) = 0;
+		virtual void BeginCapture(FGPUDevice* gpu, FWindow* window) = 0;
+		virtual void EndCapture(FGPUDevice* gpu, FWindow* window) = 0;
 
 		virtual void CaptureFrame() = 0;
 	};
@@ -50,8 +50,8 @@ namespace Turbo
 	public:
 		virtual bool Init() override { return true; }
 		virtual void Shutdown() override {}
-		virtual void BeginCapture(const FGPUDevice* gpu, const FWindow* window) override {}
-		virtual void EndCapture(const FGPUDevice* gpu, const FWindow* window) override {}
+		virtual void BeginCapture(FGPUDevice* gpu, FWindow* window) override {}
+		virtual void EndCapture(FGPUDevice* gpu, FWindow* window) override {}
 		virtual void CaptureFrame() override {}
 	};
 

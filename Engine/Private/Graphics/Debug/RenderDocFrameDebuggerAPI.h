@@ -18,8 +18,8 @@ namespace Turbo
 		virtual bool Init() override;
 		virtual void Shutdown() override;
 		virtual bool CanCapture() override;
-		virtual void BeginCapture(const FGPUDevice* gpu, const FWindow* window) override;
-		virtual void EndCapture(const FGPUDevice* gpu, const FWindow* window) override;
+		virtual void BeginCapture(FGPUDevice* gpu, FWindow* window) override;
+		virtual void EndCapture(FGPUDevice* gpu, FWindow* window) override;
 		virtual void CaptureFrame() override;
 
 	private:

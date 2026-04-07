@@ -53,26 +53,28 @@ namespace Turbo
 		return mbInitialized;
 	}
 
-	void FRenderDocFrameDebuggerAPI::BeginCapture(const FGPUDevice* gpu, const FWindow* window)
+	void FRenderDocFrameDebuggerAPI::BeginCapture(FGPUDevice* gpu, FWindow* window)
 	{
 		TURBO_CHECK(mbInitialized)
 		TURBO_CHECK(mApi->IsFrameCapturing() == false)
 
 		TURBO_LOG(LogRenderDoc, Info, "RenderDoc API capture started");
 
+		gpu->SubmitMainCommandBufferAndWaitIdle();
 		mApi->StartFrameCapture(
 			RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(static_cast<VkInstance>(gpu->GetVkInstance())),
 			nullptr
 			);
 	}
 
-	void FRenderDocFrameDebuggerAPI::EndCapture(const FGPUDevice* gpu, const FWindow* window)
+	void FRenderDocFrameDebuggerAPI::EndCapture(FGPUDevice* gpu, FWindow* window)
 	{
 		TURBO_CHECK(mbInitialized)
 		TURBO_CHECK(mApi->IsFrameCapturing())
 
 		TURBO_LOG(LogRenderDoc, Info, "RenderDoc API capture ended");
 
+		gpu->SubmitMainCommandBufferAndWaitIdle();
 		mApi->EndFrameCapture(
 			RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(static_cast<VkInstance>(gpu->GetVkInstance())),
 			nullptr

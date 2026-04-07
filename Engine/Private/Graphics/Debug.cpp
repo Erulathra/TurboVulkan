@@ -2,6 +2,7 @@
 
 #include "Debug/RenderDocFrameDebuggerAPI.h"
 #include "Graphics/CommandBuffer.h"
+#include "Graphics/GPUDevice.h"
 #include "Graphics/FrameGraph/RenderGraph.h"
 
 namespace Turbo

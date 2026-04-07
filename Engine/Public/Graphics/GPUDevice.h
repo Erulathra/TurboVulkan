@@ -58,6 +58,7 @@ namespace Turbo
 		void WaitIdle() const;
 
 		void ImmediateSubmit(const FOnImmediateSubmit& immediateSubmitDelegate);
+		void SubmitMainCommandBufferAndWaitIdle();
 
 		[[nodiscard]] glm::uint2 GetFrameBufferSize() const { return mFramebufferSize; }
 		[[nodiscard]] uint32 GetBufferedFrameId() const { return mBufferedFrameId; }
