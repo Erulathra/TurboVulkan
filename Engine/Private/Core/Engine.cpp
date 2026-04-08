@@ -74,7 +74,7 @@ namespace Turbo
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpu.Init(gpuDeviceBuilder);
 
-		IFrameDebuggerAPI::Get();
+		IFrameDebuggerAPI::Emplace();
 
 		entt::locator<FRenderGraphBuilder>::emplace();
 
@@ -276,7 +276,7 @@ namespace Turbo
 		entt::locator<FAssetManager>::value().Destroy(gpu);
 		entt::locator<FMaterialManager>::value().Destroy(gpu);
 
-		IFrameDebuggerAPI::Get()->Shutdown();
+		entt::locator<IFrameDebuggerAPI>::value().Shutdown();
 
 		gpu.Shutdown();
 		entt::locator<FGeometryBuffer>::reset();

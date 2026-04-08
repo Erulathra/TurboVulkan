@@ -20,26 +20,16 @@ namespace Turbo
 		TURBO_CHECK(mCommandBuffer)
 		mCommandBuffer->EndDebugUtilsLabel();
 	}
-#endif // WITH_DEBUG_RENDERING_FEATURES
 
-	IFrameDebuggerAPI* IFrameDebuggerAPI::Get()
+	void IFrameDebuggerAPI::Emplace()
 	{
-		static IFrameDebuggerAPI* instance = nullptr;
-		if (instance == nullptr)
+		IFrameDebuggerAPI& renderDoc = entt::locator<IFrameDebuggerAPI>::emplace<FRenderDocFrameDebuggerAPI>();
+		if (renderDoc.Init() == false)
 		{
-			FRenderDocFrameDebuggerAPI* renderDocFrameDebuggerAPI = new FRenderDocFrameDebuggerAPI();
-			if (renderDocFrameDebuggerAPI->Init())
-			{
-				instance = renderDocFrameDebuggerAPI;
-			}
-			else
-			{
-				instance = new FNullFrameDebuggerAPI();
-			}
+			entt::locator<IFrameDebuggerAPI>::emplace<FNullFrameDebuggerAPI>();
 		}
-
-		return instance;
 	}
+#endif // WITH_DEBUG_RENDERING_FEATURES
 
 	FScopedRenderCapture::FScopedRenderCapture(bool bCapture, FRenderGraphBuilder& graphBuilder)
 	{
@@ -56,7 +46,7 @@ namespace Turbo
 				}),
 				FRGExecutePassDelegate::CreateLambda([](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 				{
-					IFrameDebuggerAPI::Get()->BeginCapture(&gpu, nullptr);
+					entt::locator<IFrameDebuggerAPI>::value().BeginCapture(&gpu, nullptr);
 				})
 			);
 		}
@@ -75,7 +65,7 @@ namespace Turbo
 				}),
 				FRGExecutePassDelegate::CreateLambda([](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 				{
-					IFrameDebuggerAPI::Get()->EndCapture(&gpu, nullptr);
+					entt::locator<IFrameDebuggerAPI>::value().EndCapture(&gpu, nullptr);
 				})
 			);
 		}

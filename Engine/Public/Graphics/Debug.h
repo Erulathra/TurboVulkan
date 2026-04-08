@@ -30,9 +30,9 @@ namespace Turbo
 	class IFrameDebuggerAPI
 	{
 	public:
-		static IFrameDebuggerAPI* Get();
-
+		static void Emplace();
 		virtual ~IFrameDebuggerAPI() = default;
+
 	public:
 		virtual bool Init() = 0;
 		virtual void Shutdown() = 0;

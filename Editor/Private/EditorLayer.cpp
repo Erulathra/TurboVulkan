@@ -75,7 +75,7 @@ namespace Turbo
 		}
 		else if (event.mActionName == kFrameCapture && event.mbDown)
 		{
-			IFrameDebuggerAPI::Get()->CaptureFrame();
+			entt::locator<IFrameDebuggerAPI>::value().CaptureFrame();
 			event.Handle();
 		}
 	}
