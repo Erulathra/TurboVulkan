@@ -24,6 +24,7 @@ namespace Turbo
 
 	private:
 		void OnSDLEvent(SDL_Event* sdlEvent);
+		void SetupTheme();
 
 	public:
 		virtual FName GetName() override;

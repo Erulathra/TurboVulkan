@@ -10,9 +10,11 @@
 #include "Core/Input/FSDLInputSystem.h"
 #include "Core/Input/Input.h"
 #include "Core/Math/Random.h"
+#include "Debug/IConsoleManager.h"
 #include "Graphics/Debug.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
+#include "Layers/ConsoleFrontendLayer.h"
 #include "Layers/ImGUILayer.h"
 #include "Layers/Layer.h"
 #include "Layers/SceneRenderingLayer.h"
@@ -250,6 +252,7 @@ namespace Turbo
 	{
 		FLayersStack& layerStack = entt::locator<FLayersStack>::value();
 		layerStack.PushLayer<FImGuiLayer>();
+		layerStack.PushLayer<FConsoleFrontendLayer>();
 		layerStack.PushLayer<FSceneRenderingLayer>();
 	}
 

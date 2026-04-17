@@ -4,6 +4,7 @@
 #include "Assets/EngineResources.h"
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
+#include "Debug/IConsoleManager.h"
 #include "Extensions/ImGui/ImGuiExtensions.h"
 #include "glm/gtx/string_cast.hpp"
 #include "Graphics/ResourceBuilders.h"

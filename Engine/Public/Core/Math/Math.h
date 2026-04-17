@@ -75,6 +75,13 @@ namespace Turbo
 			return radians;
 		}
 
+		template <typename T>
+			requires std::is_integral_v<T>
+		T Modulo(T a, T b)
+		{
+			const T result = a - ((a / b) * b);
+			return result >= 0 ? result : result + b;
+		}
 	};
 
 	template <>
@@ -82,6 +89,7 @@ namespace Turbo
 	{
 		return glm::int3(glm::ceil(glm::float3(lhs) / glm::float3(rhs)));
 	}
+
 
 } // Turbo
 

@@ -6,10 +6,11 @@
 
 namespace ImGui
 {
-	template <typename... T>
-	IMGUI_API void TextFmt(fmt::format_string<T...> fmt, T&&... args)
+
+	template <typename... Args>
+	void TextFmt(fmt::format_string<Args...> fmt, Args&&... args)
 	{
-		const std::string str = fmt::vformat(fmt.str, fmt::vargs<T...>{{args...}});
+		const std::string str = fmt::format(fmt, std::forward<Args>(args)...);
 		TextUnformatted(&*str.begin(), &*str.end());
 	}
 }
