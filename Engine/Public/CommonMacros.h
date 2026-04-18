@@ -1,6 +1,9 @@
 #pragma once
 #include "CommonTypeDefs.h"
 
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
 // Version macros
 #define MAKE_VERSION(Major, Minor, Patch) \
     ((((uint32_t)(Major)) << 22U) | (((uint32_t)(Minor)) << 12U) | ((uint32_t)(Patch)))

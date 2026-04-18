@@ -10,6 +10,8 @@
 #include <functional>
 #include <type_traits>
 #include <filesystem>
+#include <string>
+#include <string_view>
 
 // stl collections
 #include <vector>

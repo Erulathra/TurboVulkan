@@ -4,6 +4,7 @@
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
 #include "Core/Engine.h"
+#include "Core/FileSystem.h"
 #include "Debug/IConsoleManager.h"
 #include "Graphics/GPUDevice.h"
 #include "UserInterface/UserInterfaceHelpers.h"
@@ -129,6 +130,12 @@ namespace Turbo
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
+		const static std::string kConfigPath = FileSystem::PathCombine(FileSystem::kConfigPath, "ImGui.ini");
+		const static std::string kLogPath = FileSystem::PathCombine(FileSystem::kConfigPath, "ImGui.txt");
+
+		io.IniFilename = kConfigPath.c_str();
+		io.LogFilename = kLogPath.c_str();
+
 		ImGui_ImplSDL3_InitForVulkan(window.GetWindow());
 
 		ImGui_ImplVulkan_InitInfo initInfo = {};
@@ -146,7 +153,6 @@ namespace Turbo
 		initInfo.PipelineRenderingCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
 		initInfo.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
 
-		const FTexture* presentTexture = gpu.AccessTexture(gpu.GetPresentImage());
 		const FTextureCold* presentTextureCold = gpu.AccessTextureCold(gpu.GetPresentImage());
 		VkFormat presentTextureFormat = static_cast<VkFormat>(presentTextureCold->GetFormat());
 		initInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats = &presentTextureFormat;

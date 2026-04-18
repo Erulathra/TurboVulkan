@@ -5,6 +5,7 @@
 #include "Assets/EngineResources.h"
 #include "Assets/MaterialManager.h"
 #include "Core/CoreTimer.h"
+#include "Core/FileSystem.h"
 #include "Core/Window.h"
 #include "Core/WindowEvents.h"
 #include "Core/Input/FSDLInputSystem.h"
@@ -31,6 +32,7 @@ namespace Turbo
 
 	void FEngine::Init()
 	{
+		FileSystem::InitDirectories();
 		InitLogger();
 
 		Random::SetRandomSeed();

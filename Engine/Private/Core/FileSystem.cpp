@@ -23,4 +23,22 @@ namespace Turbo
 		file.read(reinterpret_cast<char*>(outData.data()), static_cast<std::streamsize>(outData.size()));
 		return true;
 	}
+
+	bool FileSystem::CreateDirectory(std::string_view path)
+	{
+		if (std::filesystem::exists(path) == false)
+		{
+			std::filesystem::create_directories(path);
+			return true;
+		}
+
+		return false;
+	}
+
+	void FileSystem::InitDirectories()
+	{
+		CreateDirectory(kSavedPath);
+		CreateDirectory(kLogPath);
+		CreateDirectory(kConfigPath);
+	}
 } // Turbo
