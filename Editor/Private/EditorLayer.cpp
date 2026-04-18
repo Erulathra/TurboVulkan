@@ -12,7 +12,6 @@
 namespace Turbo
 {
 	const FName kExitName = FName("Exit");
-	const FName kFreezeRenderingName = FName("FreezeRendering");
 	const FName kToggleFullscreenName = FName("ToggleFullscreen");
 	const FName kFrameCapture = FName("FrameCapture");
 
@@ -20,7 +19,6 @@ namespace Turbo
 	{
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
 		inputSystem.RegisterBinding({kExitName, EKeys::Escape});
-		inputSystem.RegisterBinding({kFreezeRenderingName, EKeys::F10});
 		inputSystem.RegisterBinding({kToggleFullscreenName, EKeys::F11});
 		inputSystem.RegisterBinding({kFrameCapture, EKeys::F12});
 
@@ -66,11 +64,6 @@ namespace Turbo
 		else if (event.mActionName == kExitName && event.mbDown)
 		{
 			gEngine->RequestExit(EExitCode::Success);
-			event.Handle();
-		}
-		else if (event.mActionName == kFreezeRenderingName && event.mbDown)
-		{
-			gFreezeRendering = !gFreezeRendering;
 			event.Handle();
 		}
 		else if (event.mActionName == kFrameCapture && event.mbDown)

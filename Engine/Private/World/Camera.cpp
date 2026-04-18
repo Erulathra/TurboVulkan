@@ -7,6 +7,8 @@
 
 namespace Turbo
 {
+	inline TAutoConsoleVariable<bool> CVarFreezeCulling("culling.freeze", false, "Freezes culling");
+
 	void FCamera::on_construct(entt::registry& registry, const entt::entity entity)
 	{
 		registry.emplace<FCameraCache>(entity);
@@ -141,7 +143,7 @@ namespace Turbo
 			const FCamera& camera = camerasView.get<FCamera>(entity);
 			const FWorldTransform& transform = camerasView.get<FWorldTransform>(entity);
 
-			if (gFreezeRendering == false)
+			if (CVarFreezeCulling.Get() == false)
 			{
 				cameraCache.mViewFrustum = GetViewFrustum(camera, transform);
 			}

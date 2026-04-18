@@ -64,11 +64,11 @@ namespace Turbo
     {
         T mVariableData;
 
+        TAutoConsoleVariable() = delete;
         TAutoConsoleVariable(const std::string_view name, T defaultValue, const std::string_view description);
 
         void Set(T value) { mVariableData = value; }
         T Get() const { return mVariableData; }
-
     };
 
     template<typename T>

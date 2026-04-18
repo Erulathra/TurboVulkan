@@ -7,6 +7,7 @@
 #include "DestoryQueue.h"
 #include "Graphics/Resources.h"
 #include "VulkanHelpers.h"
+#include "Debug/IConsoleManager.h"
 
 DECLARE_LOG_CATEGORY(LogGPUDevice, Info, Display)
 
@@ -16,8 +17,6 @@ namespace Turbo
 	class FWindow;
 
 	DECLARE_DELEGATE(FOnImmediateSubmit, FCommandBuffer&);
-
-	inline bool gFreezeRendering = false;
 
 	constexpr size_t kTexturePoolSize = 1024;
 	constexpr size_t kSamplerPoolSize = 128;

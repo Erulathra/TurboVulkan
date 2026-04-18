@@ -38,7 +38,7 @@ namespace StringUtils
 			return false;
 		}
 
-		for (int32 charId = 0; charId < left.length(); ++charId)
+		for (size_t charId = 0; charId < left.length(); ++charId)
 		{
 			if (left[charId] != right[charId])
 			{
@@ -48,8 +48,15 @@ namespace StringUtils
 				}
 				else
 				{
-					if (left[charId] >= 'A' && left[charId] <= 'Z'
-						&& left[charId] != right[charId] + ('a' - 'A'))
+					constexpr char caseOffset = 'a' - 'A';
+					const char leftLower = (left[charId] >= 'A' && left[charId] <= 'Z')
+						? static_cast<char>(left[charId] + caseOffset)
+						: left[charId];
+					const char rightLower = (right[charId] >= 'A' && right[charId] <= 'Z')
+						? static_cast<char>(right[charId] + caseOffset)
+						: right[charId];
+
+					if (leftLower != rightLower)
 					{
 						return false;
 					}
