@@ -31,29 +31,24 @@ namespace Turbo
 	void FGeometryBuffer::BlitToPresent(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) const
 	{
 		const static FName passName("BlitGeometryBufferToPresentTexture");
-		graphBuilder.AddPass(
-			passName,
-			FRGSetupPassDelegate::CreateLambda(
-				[&](FRGPassInfo& passInfo)
-				{
-					passInfo.mPassType = EPassType::Transfer;
-					passInfo.ReadTexture(mColor);
-					passInfo.WriteTexture(presentTexture);
-				}),
-			FRGExecutePassDelegate::CreateLambda(
-				[colorRes = mColor, presentRes = presentTexture](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
-				{
-					const THandle<FTexture> colorHandle = resources.mTextures[colorRes];
-					const THandle<FTexture> presentHandle = resources.mTextures[presentRes];
+		FRGPassInitializer pass = graphBuilder.AddPass(passName, EPassType::Transfer);
+		pass->ReadTexture(mColor);
+		pass->WriteTexture(presentTexture);
 
-					const FTextureCold* colorTexCold = gpu.AccessTextureCold(colorHandle);
-					const FTextureCold* presentTexCold = gpu.AccessTextureCold(presentHandle);
+		pass->mExecutePass.BindLambda(
+			[colorRes = mColor, presentRes = presentTexture](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+			{
+				const THandle<FTexture> colorHandle = resources.mTextures[colorRes];
+				const THandle<FTexture> presentHandle = resources.mTextures[presentRes];
 
-					const FRect2DInt srcRect = FRect2DInt::FromSize(colorTexCold->GetSize2D());
-					const FRect2DInt dstRect = FRect2DInt::FromSize(presentTexCold->GetSize2D());
+				const FTextureCold* colorTexCold = gpu.AccessTextureCold(colorHandle);
+				const FTextureCold* presentTexCold = gpu.AccessTextureCold(presentHandle);
 
-					cmd.BlitImage(colorHandle, srcRect, presentHandle, dstRect);
-				})
+				const FRect2DInt srcRect = FRect2DInt::FromSize(colorTexCold->GetSize2D());
+				const FRect2DInt dstRect = FRect2DInt::FromSize(presentTexCold->GetSize2D());
+
+				cmd.BlitImage(colorHandle, srcRect, presentHandle, dstRect);
+			}
 		);
 	}
 } // Turbo

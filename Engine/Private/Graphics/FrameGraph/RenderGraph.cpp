@@ -64,6 +64,35 @@ namespace Turbo
 		return texture;
 	}
 
+	FRGPassInitializer::FRGPassInitializer(FRenderGraphBuilder& graphBuilder, FRGPassInfo& passInfo)
+		: mOwner(&graphBuilder)
+		, mHandle(passInfo.mHandle)
+	{
+	}
+
+	FRGPassInitializer::~FRGPassInitializer()
+	{
+		const FRGPassInfo& pass = Get();
+
+		TURBO_CHECK(pass.mPassType != EPassType::Undefined)
+		TURBO_CHECK_MSG(pass.mExecutePass.IsBound(), "{}: Execute delegate is not bound", pass.mName)
+	}
+
+	FRGPassInfo& FRGPassInitializer::Get() const
+	{
+		return mOwner->mRenderPasses[mHandle.mIndex];
+	}
+
+	FRGPassInfo* FRGPassInitializer::operator->()
+	{
+		return &mOwner->mRenderPasses[mHandle.mIndex];
+	}
+
+	const FRGPassInfo* FRGPassInitializer::operator->() const
+	{
+		return &mOwner->mRenderPasses[mHandle.mIndex];
+	}
+
 	FRGResourceHandle FRenderGraphBuilder::CreateTexture(const FRGTextureInfo& textureInfo)
 	{
 		TURBO_CHECK(textureInfo.IsValid())
@@ -132,23 +161,16 @@ namespace Turbo
 		mQueuedBufferUploads.push_back(bufferUpload);
 	}
 
-	FRGPassInfo& FRenderGraphBuilder::AddPass(FName passName, const FRGSetupPassDelegate& setup, FRGExecutePassDelegate&& execute)
+	FRGPassInitializer FRenderGraphBuilder::AddPass(FName passName, EPassType passType)
 	{
 		mRenderPasses.emplace_back();
 		FRGPassInfo& passInfo = mRenderPasses.back();
-		passInfo.mExecutePass = std::move(execute);
+		passInfo.mPassType = passType;
 		passInfo.mGraphBuilder = this;
 		passInfo.mHandle = { .mIndex = static_cast<uint16>(mRenderPasses.size() - 1) };
 		passInfo.mName = passName;
 
-		TURBO_CHECK(setup.IsBound())
-		TURBO_CHECK(passInfo.mExecutePass.IsBound())
-
-		setup.Execute(passInfo);
-
-		TURBO_CHECK(passInfo.mPassType != EPassType::Undefined)
-
-		return passInfo;
+		return FRGPassInitializer(*this, passInfo);
 	}
 
 	constexpr vk::AccessFlags2 FindAccessMask(EResourceAccess passType)

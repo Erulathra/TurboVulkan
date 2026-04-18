@@ -337,86 +337,79 @@ namespace Turbo
 		std::vector<FDrawIndirectBucket> drawIndirectBuckets;
 		CreateIndirectRenderBuffers(graphBuilder, world, *viewData, drawIndirectBuckets);
 
-		// Consider moving configuration out of callback.
-		graphBuilder.AddPass(
-			FName("GeometryCullingPass"),
-			FRGSetupPassDelegate::CreateLambda(
-				[&](FRGPassInfo& passInfo)
+		// Geometry culling
+		static FName cullingPassName = FName("GeometryCullingPass");
+		FRGPassInitializer cullingPass = graphBuilder.AddPass(cullingPassName, EPassType::Compute);
+
+		cullingPass->ReadBuffer(viewDataBufferHandle);
+		for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+		{
+			cullingPass->ReadBuffer(bucket.mDrawBuffer);
+			cullingPass->WriteBuffer(bucket.mIndirectCommandBuffer);
+		}
+
+		cullingPass->mExecutePass.BindLambda(
+			[drawIndirectBuckets, pipeline = mFrustumCullingPipeline, viewDataBufferHandle](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+			{
+				TRACE_ZONE_SCOPED_N("GeometryCullingPass")
+				TRACE_GPU_SCOPED(gpu, cmd, "GometryCullingPass")
+
+				cmd.BindPipeline(pipeline);
+
+				const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+				const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(viewDataBufferHandle));
+
+				FSceneCullingPushConstants pushConstants = {
+					.mViewData = viewDataBuffer->mDeviceAddress,
+					.mBounds = assetManager.GetBoundsAddress(gpu)
+				};
+
+				for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
 				{
-					passInfo.mPassType = EPassType::Compute;
+					const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
+					const FBuffer* indirectCommandBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mIndirectCommandBuffer));
 
-					passInfo.ReadBuffer(viewDataBufferHandle);
-					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
-					{
-						passInfo.ReadBuffer(bucket.mDrawBuffer);
-						passInfo.WriteBuffer(bucket.mIndirectCommandBuffer);
-					}
-				}),
-			FRGExecutePassDelegate::CreateLambda(
-				[drawIndirectBuckets, pipeline = mFrustumCullingPipeline, viewDataBufferHandle](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
-				{
-					TRACE_ZONE_SCOPED_N("GeometryCullingPass")
-					TRACE_GPU_SCOPED(gpu, cmd, "GometryCullingPass")
+					pushConstants.mDrawData = drawBuffer->mDeviceAddress;
+					pushConstants.mDrawIndirectCommand = indirectCommandBuffer->mDeviceAddress;
+					pushConstants.mNumDraws = bucket.mCount;
 
-					cmd.BindPipeline(pipeline);
+					cmd.PushConstants(pushConstants);
 
-					const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
-					const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(viewDataBufferHandle));
+					const glm::uint3 groupCount = glm::uint3(
+						FMath::DivideAndRoundUp(bucket.mCount, static_cast<uint32>(64)),
+						1,
+						1
+					);
 
-					FSceneCullingPushConstants pushConstants = {
-						.mViewData = viewDataBuffer->mDeviceAddress,
-						.mBounds = assetManager.GetBoundsAddress(gpu)
-					};
-
-					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
-					{
-						const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
-						const FBuffer* indirectCommandBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mIndirectCommandBuffer));
-
-						pushConstants.mDrawData = drawBuffer->mDeviceAddress;
-						pushConstants.mDrawIndirectCommand = indirectCommandBuffer->mDeviceAddress;
-						pushConstants.mNumDraws = bucket.mCount;
-
-						cmd.PushConstants(pushConstants);
-
-						const glm::uint3 groupCount = glm::uint3(
-							FMath::DivideAndRoundUp(bucket.mCount, static_cast<uint32>(64)),
-							1,
-							1
-						);
-
-						cmd.Dispatch(groupCount);
-					}
-				})
+					cmd.Dispatch(groupCount);
+				}
+			}
 		);
 
-		graphBuilder.AddPass(
-			FName("GeometryPass"),
-			FRGSetupPassDelegate::CreateLambda(
-				[&](FRGPassInfo& passInfo)
-				{
-					passInfo.mPassType = EPassType::Graphics;
+		// Geometry Pass
+		const static FName geometryPassName = FName("GeometryPass");
+		FRGPassInitializer geometryPass = graphBuilder.AddPass(geometryPassName, EPassType::Graphics);
 
-					FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
-					passInfo.AddAttachment(geometryBuffer.mColor, 0);
-					passInfo.SetDepthStencilAttachment(geometryBuffer.mDepth);
+		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
+		geometryPass->AddAttachment(geometryBuffer.mColor, 0);
+		geometryPass->SetDepthStencilAttachment(geometryBuffer.mDepth);
 
-					passInfo.ReadBuffer(viewDataBufferHandle);
+		geometryPass->ReadBuffer(viewDataBufferHandle);
 
-					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
-					{
-						passInfo.ReadBuffer(bucket.mIndirectCommandBuffer);
-						passInfo.ReadBuffer(bucket.mDrawBuffer);
-					}
-				}),
-			FRGExecutePassDelegate::CreateLambda(
-				[viewDataBufferHandle, drawIndirectBuckets](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
-				{
-					TRACE_ZONE_SCOPED_N("Render Basepass")
-					TRACE_GPU_SCOPED(gpu, cmd, "Render Basepass")
+		for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+		{
+			geometryPass->ReadBuffer(bucket.mIndirectCommandBuffer);
+			geometryPass->ReadBuffer(bucket.mDrawBuffer);
+		}
 
-					DrawIndirect(gpu, cmd, resources, viewDataBufferHandle, drawIndirectBuckets);
-				})
+		geometryPass->mExecutePass.BindLambda(
+			[viewDataBufferHandle, drawIndirectBuckets](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+			{
+				TRACE_ZONE_SCOPED_N("Render Basepass")
+				TRACE_GPU_SCOPED(gpu, cmd, "Render Basepass")
+
+				DrawIndirect(gpu, cmd, resources, viewDataBufferHandle, drawIndirectBuckets);
+			}
 		);
 	}
 

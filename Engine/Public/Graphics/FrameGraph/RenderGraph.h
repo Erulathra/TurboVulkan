@@ -16,7 +16,6 @@ namespace Turbo
 	struct FRenderGraphBuilder;
 	struct FTexture;
 
-	DECLARE_DELEGATE(FRGSetupPassDelegate, FRGPassInfo& /*passInfo*/);
 	DECLARE_DELEGATE(FRGExecutePassDelegate, FGPUDevice& /*gpu*/, FCommandBuffer& /*cmd*/, FRenderResources& /*resources*/);
 
 	struct FRGPassInfo
@@ -49,6 +48,27 @@ namespace Turbo
 		FName mName = {};
 	};
 
+	/** Validates pass in RAII style */
+	struct FRGPassInitializer final
+	{
+		DELETE_COPY(FRGPassInitializer)
+
+	public:
+		explicit FRGPassInitializer(FRenderGraphBuilder& graphBuilder, FRGPassInfo& passInfo);
+		~FRGPassInitializer();
+
+		[[nodiscard]] FRGPassInfo& Get() const;
+		FRGPassInfo* operator->();
+		const FRGPassInfo* operator->() const;
+
+	private:
+		FRenderGraphBuilder* mOwner = nullptr;
+		FRGPassHandle mHandle = {};
+
+	public:
+		friend struct FRenderGraphBuilder;
+	};
+
 	struct FRenderResources
 	{
 		entt::dense_map<FRGResourceHandle, THandle<FTexture>> mTextures = {};
@@ -69,7 +89,7 @@ namespace Turbo
 		[[nodiscard]] FRGResourceHandle CreateBuffer(const FRGBufferInfo& bufferInfo);
 		void QueueBufferUpload(const FRGBufferUpload& bufferUpload);
 
-		FRGPassInfo& AddPass(FName passName, const FRGSetupPassDelegate& setup, FRGExecutePassDelegate&& execute);
+		[[nodiscard]] FRGPassInitializer AddPass(FName passName, EPassType passType = EPassType::Undefined);
 
 		void Compile();
 		void CompileTextureSynchronization();

@@ -213,22 +213,17 @@ namespace Turbo
 		ILayer::BeginPresentingFrame(graphBuilder, presentImage);
 
 		static FName ImGUIPassName("RenderImGUI");
-		graphBuilder.AddPass(
-			ImGUIPassName,
-			FRGSetupPassDelegate::CreateLambda(
-				[&](FRGPassInfo& passInfo)
-				{
-					passInfo.mPassType = EPassType::Graphics;
-					passInfo.AddAttachment(presentImage, 0);
-					passInfo.ReadTexture(presentImage);
-				}),
-			FRGExecutePassDelegate::CreateLambda(
-				[](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
-				{
-					TRACE_ZONE_SCOPED_N("Rendering ImGui")
-					TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGUI")
-					ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.GetVkCommandBuffer());
-				})
+		FRGPassInitializer pass = graphBuilder.AddPass(ImGUIPassName, EPassType::Graphics);
+		pass->AddAttachment(presentImage, 0);
+		pass->ReadTexture(presentImage);
+
+		pass->mExecutePass.BindLambda(
+			[](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+			{
+				TRACE_ZONE_SCOPED_N("Rendering ImGui")
+				TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGUI")
+				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.GetVkCommandBuffer());
+			}
 		);
 	}
 } // Turbo
