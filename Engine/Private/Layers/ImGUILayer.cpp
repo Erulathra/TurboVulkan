@@ -220,8 +220,6 @@ namespace Turbo
 		pass->mExecutePass.BindLambda(
 			[](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 			{
-				TRACE_ZONE_SCOPED_N("Rendering ImGui")
-				TRACE_GPU_SCOPED(gpu, cmd, "Rendering ImGUI")
 				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.GetVkCommandBuffer());
 			}
 		);

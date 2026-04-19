@@ -267,9 +267,6 @@ namespace Turbo
 		const std::vector<FDrawIndirectBucket>& buckets
 	)
 	{
-		TRACE_ZONE_SCOPED_N("Render Basepass")
-		TRACE_GPU_SCOPED(gpu, cmd, "Render Basepass")
-
 		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 
 		for (const FDrawIndirectBucket& bucket : buckets)
@@ -351,9 +348,6 @@ namespace Turbo
 		cullingPass->mExecutePass.BindLambda(
 			[drawIndirectBuckets, pipeline = mFrustumCullingPipeline, viewDataBufferHandle](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 			{
-				TRACE_ZONE_SCOPED_N("GeometryCullingPass")
-				TRACE_GPU_SCOPED(gpu, cmd, "GometryCullingPass")
-
 				cmd.BindPipeline(pipeline);
 
 				const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
@@ -405,9 +399,6 @@ namespace Turbo
 		geometryPass->mExecutePass.BindLambda(
 			[viewDataBufferHandle, drawIndirectBuckets](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 			{
-				TRACE_ZONE_SCOPED_N("Render Basepass")
-				TRACE_GPU_SCOPED(gpu, cmd, "Render Basepass")
-
 				DrawIndirect(gpu, cmd, resources, viewDataBufferHandle, drawIndirectBuckets);
 			}
 		);

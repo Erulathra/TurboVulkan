@@ -90,7 +90,6 @@ namespace Turbo
 		return glm::int3(glm::ceil(glm::float3(lhs) / glm::float3(rhs)));
 	}
 
-
 } // Turbo
 
 template <int32 L, typename T>

@@ -124,6 +124,7 @@ namespace Turbo
 #endif // WITH_DEBUG_RENDERING_FEATURES
 	public:
 		vk::CommandBuffer GetVkCommandBuffer() const { return mVkCommandBuffer; }
+		FGPUDevice* GetGPUDevice() const { return mGpu; }
 
 	private:
 		void Begin();

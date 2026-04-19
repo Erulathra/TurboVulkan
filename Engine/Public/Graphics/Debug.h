@@ -12,12 +12,16 @@ namespace Turbo
 	class FScopedLabelRegion final
 	{
 	public:
-		FScopedLabelRegion(FCommandBuffer& commandBuffer, std::string_view label, glm::float4 color = glm::float4(1.f));
+		FScopedLabelRegion(FCommandBuffer& commandBuffer, FName label, glm::float4 color = glm::float4(1.f));
 		~FScopedLabelRegion();
 
 		DELETE_COPY(FScopedLabelRegion)
 	private:
-		FCommandBuffer* mCommandBuffer;
+		FCommandBuffer* mCommandBuffer = nullptr;
+#if WITH_PROFILER
+		tracy::VkCtxScope* mGPUZone = nullptr;
+		tracy::ScopedZone* mCPUZone = nullptr;
+#endif // WITH_PROFILER
 	};
 
 #define DEBUG_LABEL_REGION(commandBuffer, label) FScopedLabelRegion __label_region__(commandBuffer, label);
