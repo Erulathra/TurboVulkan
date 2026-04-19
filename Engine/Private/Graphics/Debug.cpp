@@ -21,6 +21,8 @@ namespace Turbo
 		mCommandBuffer->EndDebugUtilsLabel();
 	}
 
+#endif // WITH_DEBUG_RENDERING_FEATURES
+
 	void IFrameDebuggerAPI::Emplace()
 	{
 		IFrameDebuggerAPI& renderDoc = entt::locator<IFrameDebuggerAPI>::emplace<FRenderDocFrameDebuggerAPI>();
@@ -29,7 +31,6 @@ namespace Turbo
 			entt::locator<IFrameDebuggerAPI>::emplace<FNullFrameDebuggerAPI>();
 		}
 	}
-#endif // WITH_DEBUG_RENDERING_FEATURES
 
 	FScopedRenderCapture::FScopedRenderCapture(bool bCapture, FRenderGraphBuilder& graphBuilder)
 	{
