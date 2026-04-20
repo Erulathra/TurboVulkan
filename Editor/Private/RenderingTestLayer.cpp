@@ -25,8 +25,6 @@ FRenderingTestLayer::FRenderingTestLayer()
 
 void FRenderingTestLayer::Start()
 {
-	TRACE_ZONE_SCOPED()
-
 	FWorld* world = gEngine->GetWorld();
 	world->OpenLevel(FName("Content/External/main_sponza/SponzaCompressed.gltf"));
 	// world->OpenLevel(FName("Content/Meshes/SM_Cube.glb"));

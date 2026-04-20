@@ -302,8 +302,6 @@ namespace Turbo
 
 	void FSceneRenderingLayer::RenderScene(FRenderGraphBuilder& graphBuilder)
 	{
-		TRACE_ZONE_SCOPED_N("Render Scene")
-
 		FWorld* world = gEngine->GetWorld();
 		FSceneGraph::UpdateWorldTransforms(world->mRegistry);
 		FCameraUtils::UpdateDirtyCameras(world->mRegistry);

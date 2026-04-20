@@ -18,6 +18,9 @@
 
 #define TRACE_ZONE_SCOPED() ZoneScoped;
 #define TRACE_ZONE_SCOPED_N(NAME) ZoneScopedN(NAME);
+#define TRACE_ZONE_SCOPED_FORMAT(NAME, FORMAT, ...)									\
+	const std::string __message = fmt::format(FORMAT __VA_OPT__(,) __VA_ARGS__);	\
+    tracy::ScopedZone __NAME(TracyLine, TracyFile, strlen(TracyFile), TracyFunction, strlen(TracyFunction), __message.c_str(), __message.length(), TRACY_CALLSTACK, true); \
 
 #define TRACE_ZONE(ID, NAME) TracyCZoneN(ID, NAME, true);
 #define TRACE_ZONE_END(ID) TracyCZoneEnd(ID);
@@ -63,6 +66,7 @@ inline void operator delete ( void * ptr ) noexcept
 
 #define TRACE_ZONE_SCOPED() {}
 #define TRACE_ZONE_SCOPED_N(NAME) {}
+#define TRACE_ZONE_SCOPED_TRANSIENT(STR_NAME) {}
 
 #define TRACE_ZONE(ID, NAME) {}
 #define TRACE_ZONE_END(ID) {}

@@ -192,8 +192,6 @@ namespace Turbo
 
 	void FImGuiLayer::BeginTick(double deltaTime)
 	{
-		TRACE_ZONE_SCOPED()
-
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
@@ -203,8 +201,6 @@ namespace Turbo
 
 	void FImGuiLayer::EndTick(double deltaTime)
 	{
-		TRACE_ZONE_SCOPED()
-
 		ImGui::Render();
 	}
 

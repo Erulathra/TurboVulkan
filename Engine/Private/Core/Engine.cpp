@@ -101,6 +101,7 @@ namespace Turbo
 
 		for (const TSharedPtr<ILayer>& layer : entt::locator<FLayersStack>::value())
 		{
+            TRACE_ZONE_SCOPED_FORMAT(LayerStart, "Layer Start - {}", layer->GetName())
 			layer->Start();
 		}
 
@@ -158,6 +159,7 @@ namespace Turbo
 			{
 				if (layer->ShouldTick())
 				{
+					TRACE_ZONE_SCOPED_FORMAT(BeginTick, "Begin Tick - {}", layer->GetName())
 					layer->BeginTick(deltaTime);
 				}
 			}
@@ -170,6 +172,7 @@ namespace Turbo
 				if (ILayer* layer = layerIt.get();
 					layer->ShouldTick())
 				{
+					TRACE_ZONE_SCOPED_FORMAT(EndTick, "End Tick - {}", layer->GetName())
 					layer->EndTick(deltaTime);
 				}
 			}
@@ -199,17 +202,19 @@ namespace Turbo
 				{
 					if (layer->ShouldRender())
 					{
+                        TRACE_ZONE_SCOPED_FORMAT(PostBeginFrame, "Post begin frame - {}", layer->GetName())
 						layer->PostBeginFrame(graphBuilder);
 					}
 				}
 			}
 
 			{
-				TRACE_ZONE_SCOPED_N("Services: Post begin frame")
+				TRACE_ZONE_SCOPED_N("Services: Render Scene")
 				for (const TSharedPtr<ILayer>& layer : layerStack)
 				{
 					if (layer->ShouldRender())
 					{
+                        TRACE_ZONE_SCOPED_FORMAT(RenderScene, "Render Scene - {}", layer->GetName())
 						layer->RenderScene(graphBuilder);
 					}
 				}
@@ -224,6 +229,7 @@ namespace Turbo
 					if (ILayer* layer = layerIt.get();
 						layer->ShouldRender())
 					{
+                        TRACE_ZONE_SCOPED_FORMAT(PostPresentingFrame, "Begin presenting frame - {}", layer->GetName())
 						layer->BeginPresentingFrame(graphBuilder, presentRes);
 					}
 				}
