@@ -2,6 +2,7 @@
 
 #include "FlyMovement.h"
 #include "../../cmake-build-debug-test/_deps/imgui-src/imgui.h"
+#include "../../cmake-build-test/_deps/imgui-src/imgui_internal.h"
 #include "../../Editor/Public/EditorViewPort/EditorFreeCamera.h"
 #include "Core/Engine.h"
 #include "Extensions/ImGui/ImGuiExtensions.h"
@@ -64,7 +65,7 @@ namespace Turbo
 		ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, ImGui::GetTextLineHeightWithSpacing() + (2.f * ImGui::GetStyle().FramePadding.y)));
 		ImGui::SetNextWindowViewport(viewport->ID);
 
-		ImGuiWindowFlags imGuiWindowFlags = 0
+		constexpr ImGuiWindowFlags kImGuiWindowFlags = 0
 			| ImGuiWindowFlags_NoDocking
 			| ImGuiWindowFlags_NoTitleBar
 			| ImGuiWindowFlags_NoResize
@@ -74,7 +75,8 @@ namespace Turbo
 			| ImGuiWindowFlags_NoBackground;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-		ImGui::Begin("Toolbar", nullptr, imGuiWindowFlags);
+		ImGui::Begin("Toolbar", nullptr, kImGuiWindowFlags);
+		ImGui::BringWindowToDisplayBack(ImGui::GetCurrentWindow());
 		ImGui::PopStyleVar(1);
 
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 1.f, 0.f, 1.f));
