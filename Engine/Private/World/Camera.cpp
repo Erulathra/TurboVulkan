@@ -235,4 +235,9 @@ namespace Turbo
 			registry.emplace<FFreeCamera>(entity);
 		}
 	}
+
+	void FCameraUtils::SetMainViewport(entt::registry& registry, entt::entity entity)
+	{
+		registry.emplace_or_replace<FMainViewport>(entity);
+	}
 } // Turbo

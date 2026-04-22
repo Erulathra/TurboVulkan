@@ -87,7 +87,7 @@ namespace Turbo
 
 	bool FSDLInputSystem::RegisterBinding(const FActionBinding& actionBinding)
 	{
-		mActionBindings[actionBinding.mActionName] = actionBinding.mKey;
+		mActionBindings[actionBinding.mName] = actionBinding.mKey;
 
 		return true;
 	}
@@ -205,7 +205,7 @@ namespace Turbo
 			if (key == keyEvent.mKey)
 			{
 				FActionEvent newActionEvent{};
-				newActionEvent.mActionName = actionName;
+				newActionEvent.mName = actionName;
 				newActionEvent.mKey = keyEvent.mKey;
 				newActionEvent.mbDown = keyEvent.mbDown;
 				newActionEvent.mbAxis = false;
@@ -227,7 +227,7 @@ namespace Turbo
 			if (key == axisEvent.mKey)
 			{
 				FActionEvent newActionEvent{};
-				newActionEvent.mActionName = actionName;
+				newActionEvent.mName = actionName;
 				newActionEvent.mKey = axisEvent.mKey;
 				newActionEvent.mbAxis = true;
 				newActionEvent.mValue = axisEvent.mValue;

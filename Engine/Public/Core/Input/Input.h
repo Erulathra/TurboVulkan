@@ -51,7 +51,7 @@ namespace Turbo
 	{
 		EVENT_BODY(FActionEvent)
 
-		FName mActionName{};
+		FName mName{};
 
 		FKey mKey{};
 		bool mbAxis = false;
@@ -65,7 +65,7 @@ namespace Turbo
 
 	struct FActionBinding
 	{
-		FName mActionName;
+		FName mName;
 		FKey mKey;
 	};
 

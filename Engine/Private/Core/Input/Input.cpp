@@ -26,7 +26,7 @@ namespace Turbo
 
 	FActionEvent::FActionEvent(const FActionEvent& other)
 		: FEventBase(other.mEventTypeId)
-		, mActionName(other.mActionName)
+		, mName(other.mName)
 		, mKey(other.mKey)
 		, mbAxis(other.mbAxis)
 		, mbDown(other.mbDown)
@@ -39,7 +39,7 @@ namespace Turbo
 		if (this == &other)
 			return *this;
 
-		mActionName = other.mActionName;
+		mName = other.mName;
 		mKey = other.mKey;
 		mbAxis = other.mbAxis;
 		mbDown = other.mbDown;

@@ -9,6 +9,12 @@
 
 namespace Turbo
 {
+	struct FEditorFreeCameraInput
+	{
+		bool bNavigationEnabled = false;
+		glm::float3 mMoveInputValue = glm::float3(0.f);
+	};
+
 	struct FCameraBinding
 	{
 		FName mActionName;
@@ -51,8 +57,6 @@ namespace Turbo
 			kRotateY,
 		};
 	}
-
-
 
 	void FEditorFreeCameraUtils::Init()
 	{
@@ -146,7 +150,7 @@ namespace Turbo
 		FWorld* world = gEngine->GetWorld();
 		auto view = world->mRegistry.view<FEditorFreeCameraInput>();
 
-		if (actionEvent.mActionName == FreeCamera::kEnable.mActionName)
+		if (actionEvent.mName == FreeCamera::kEnable.mName)
 		{
 			for (const entt::entity cameraEntity : view)
 			{
@@ -179,7 +183,7 @@ namespace Turbo
 
 			for (const FCameraBinding& binding : FreeCamera::kMovementBindings)
 			{
-				if (binding.mActionName == actionEvent.mActionName)
+				if (binding.mActionName == actionEvent.mName)
 				{
 					const float directionSign = actionEvent.mbDown ? 1.f : -1.f;
 					freeCameraInput.mMoveInputValue += binding.mDirection * directionSign;
@@ -214,12 +218,12 @@ namespace Turbo
 			return false;
 		}
 
-		if (actionEvent.mActionName == FreeCamera::kRotateX.mActionName)
+		if (actionEvent.mName == FreeCamera::kRotateX.mName)
 		{
 			deltaRotation.x = actionEvent.mValue;
 		}
 
-		if (actionEvent.mActionName == FreeCamera::kRotateY.mActionName)
+		if (actionEvent.mName == FreeCamera::kRotateY.mName)
 		{
 			deltaRotation.y = actionEvent.mValue;
 		}
@@ -245,7 +249,7 @@ namespace Turbo
 			bNavigationEnabled &= freeCameraInput.bNavigationEnabled;
 		}
 
-		if (bNavigationEnabled && actionEvent.mActionName == FreeCamera::kChangeSpeed.mActionName)
+		if (bNavigationEnabled && actionEvent.mName == FreeCamera::kChangeSpeed.mName)
 		{
 			FCameraUtils::UpdateFreeCameraSpeed(world->mRegistry, glm::trunc(actionEvent.mValue));
 			return true;

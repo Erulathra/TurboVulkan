@@ -8,12 +8,6 @@ namespace Turbo
 	struct FActionEvent;
 	struct FEventBase;
 
-	struct FEditorFreeCameraInput
-	{
-		bool bNavigationEnabled = false;
-		glm::float3 mMoveInputValue = glm::float3(0.f);
-	};
-
 	struct FEditorFreeCameraUtils
 	{
 		static void Init();

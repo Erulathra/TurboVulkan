@@ -15,48 +15,10 @@
 
 using namespace Turbo;
 
-FRenderingTestLayer::~FRenderingTestLayer()
-{
-}
-
-FRenderingTestLayer::FRenderingTestLayer()
-{
-}
-
 void FRenderingTestLayer::Start()
 {
 	FWorld* world = gEngine->GetWorld();
 	world->OpenLevel(FName("Content/External/main_sponza/SponzaCompressed.gltf"));
-	// world->OpenLevel(FName("Content/Meshes/SM_Cube.glb"));
-
-#if 0
-	FAssetManager& assetManager = entt::locator<FAssetManager>::value();
-	THandle<FMesh> cube = assetManager.LoadMesh(FName("Content/Meshes/SM_Cube.glb"));
-
-	const uint32 numCubesSqrt = 3;
-	for (uint32 cubeX = 0; cubeX < numCubesSqrt; ++cubeX)
-	{
-		for (uint32 cubeY = 0; cubeY < numCubesSqrt; ++cubeY)
-		{
-			for (uint32 cubeZ = 2; cubeZ < numCubesSqrt; ++cubeZ)
-			{
-				entt::entity meshEntity = CommonEntities::SpawnStaticMeshEntity(world->mRegistry);
-				FMeshComponent& meshComponent = world->mRegistry.get<FMeshComponent>(meshEntity);
-				meshComponent.mMesh = cube;
-				meshComponent.mMaterial = EngineMaterials::GetPlaceholderMaterial();
-
-				const glm::float3 offset = glm::vec3((numCubesSqrt - 1) * 0.5f);
-				world->mRegistry.replace<FTransform>(meshEntity) =
-					FTransform((glm::float3(cubeX, cubeY, cubeZ) - offset) * 16.f);
-			}
-		}
-	}
-#endif
-
-	// for (auto&& [entity, camera, transform] : world->mRegistry.view<FCamera, FTransform>().each())
-	// {
-	// 	transform.mPosition = glm::vec3(0.0f, 0.0f, -10.0f);
-	// }
 }
 
 void FRenderingTestLayer::Shutdown()

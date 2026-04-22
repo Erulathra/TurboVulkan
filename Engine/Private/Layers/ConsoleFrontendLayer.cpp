@@ -172,7 +172,7 @@ namespace Turbo
 
 	void FConsoleFrontendLayer::HandleInputActionEvent(FActionEvent& event)
 	{
-		if (event.mActionName == kToggleConsoleName && event.mbDown)
+		if (event.mName == kToggleConsoleName && event.mbDown)
 		{
 			mbConsoleVisible = !mbConsoleVisible;
 			if (mbConsoleVisible)

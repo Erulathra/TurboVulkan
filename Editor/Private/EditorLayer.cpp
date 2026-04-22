@@ -55,18 +55,18 @@ namespace Turbo
 
 	void FEditorLayer::HandleInputActionEvent(FActionEvent& event)
 	{
-		if (event.mActionName == kToggleFullscreenName && event.mbDown)
+		if (event.mName == kToggleFullscreenName && event.mbDown)
 		{
 			FWindow& window = entt::locator<FWindow>::value();
 			window.SetFullscreen(!window.IsFullscreenEnabled());
 			event.Handle();
 		}
-		else if (event.mActionName == kExitName && event.mbDown)
+		else if (event.mName == kExitName && event.mbDown)
 		{
 			gEngine->RequestExit(EExitCode::Success);
 			event.Handle();
 		}
-		else if (event.mActionName == kFrameCapture && event.mbDown)
+		else if (event.mName == kFrameCapture && event.mbDown)
 		{
 			entt::locator<IFrameDebuggerAPI>::value().CaptureFrame();
 			event.Handle();

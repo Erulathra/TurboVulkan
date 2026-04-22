@@ -4,13 +4,10 @@
 
 namespace Turbo
 {
-	class FRenderingTestLayer final : public Turbo::ILayer
+	class FRenderingTestLayer final : public ILayer
 	{
 		/** IService Interface */
 	public:
-		virtual ~FRenderingTestLayer() override;
-		FRenderingTestLayer();
-
 		virtual void Start() override;
 		virtual void Shutdown() override;
 		void ShowImGuiWindow();
@@ -20,7 +17,7 @@ namespace Turbo
 		virtual bool ShouldTick() override { return true; }
 		virtual bool ShouldRender() override { return true; }
 
-		virtual Turbo::FName GetName() override;
+		virtual FName GetName() override;
 
 		/** IService Interface end */
 	};
