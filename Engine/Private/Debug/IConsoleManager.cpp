@@ -124,7 +124,7 @@ namespace Turbo
 	void FConsoleVariable::Set(float value) const
 	{
 		TURBO_CHECK(mType == EConsoleVariableType::Float && mDataPtr != nullptr)
-		*static_cast<int32*>(mDataPtr) = value;
+		*static_cast<float*>(mDataPtr) = value;
 	}
 
 	bool FConsoleVariable::GetBool() const

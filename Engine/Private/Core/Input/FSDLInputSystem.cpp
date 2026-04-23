@@ -99,7 +99,7 @@ namespace Turbo
 		const FKey key = ConvertSDLKey(keyboardEvent.key);
 		if (key == EKeys::None)
 		{
-			TURBO_LOG(LogInput, Warn, "InputEvent: Unknown input code: {}", keyboardEvent.key);
+			TURBO_LOG(LogInput, Warn, "InputEvent: Unknown input code: {:#x}", keyboardEvent.key);
 			return;
 		}
 

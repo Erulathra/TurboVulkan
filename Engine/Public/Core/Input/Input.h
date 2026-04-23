@@ -8,10 +8,14 @@ namespace Turbo
 {
 	struct FKey
 	{
-		FName mKeyName{};
-		bool mbAxis = false;
+		FName mKeyName;
+		bool mbAxis;
 
-		FKey() = default;
+		FKey()
+		{
+			mKeyName = {};
+			mbAxis = false;
+		}
 
 		FKey(FName keyName, bool bAxis);
 		FKey(const FKey& other);

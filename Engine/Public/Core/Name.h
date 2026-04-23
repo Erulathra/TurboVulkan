@@ -39,7 +39,7 @@ namespace Turbo
 		friend class std::hash<FName>;
 	};
 
-	static const FName kNameNone = FName("none");
+	static FName GetNoneName();
 } // Turbo
 
 template <>

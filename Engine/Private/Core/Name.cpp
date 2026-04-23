@@ -31,9 +31,15 @@ namespace Turbo {
 		outName.mStringPtr = &gNameLookUp.back();
 	}
 
+	FName GetNoneName()
+	{
+		static const FName kNameNone = FName("none");
+		return kNameNone;
+	}
+
 	FName::FName()
-		: mStringId(kNameNone.mStringId)
-		, mStringPtr(kNameNone.mStringPtr)
+		: mStringId(GetNoneName().mStringId)
+		, mStringPtr(GetNoneName().mStringPtr)
 	{
 	}
 
@@ -44,7 +50,7 @@ namespace Turbo {
 
 	bool FName::IsNone() const
 	{
-		return *this == kNameNone;
+		return *this == GetNoneName();
 	}
 
 	std::string_view FName::ToString() const
