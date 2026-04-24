@@ -52,7 +52,8 @@ namespace Turbo
 		~FEngine();
 
 	public:
-		static void Init();
+		static FEngine* Init();
+		void RegisterEngineLayers();
 
 		int32_t Start(int32 argc, char* argv[]);
 		void End();
@@ -70,8 +71,6 @@ namespace Turbo
 		void GameThreadTick();
 
 		void OnEvent(FEventBase& event);
-
-		void RegisterEngineLayers();
 
 	private:
 		bool mbExitRequested = false;

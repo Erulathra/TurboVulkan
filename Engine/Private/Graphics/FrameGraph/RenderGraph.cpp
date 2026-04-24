@@ -143,6 +143,14 @@ namespace Turbo
 		return resourceHandle;
 	}
 
+	FRGTextureInfo FRenderGraphBuilder::GetTextureInfo(FRGResourceHandle resourceHandle) const
+	{
+		TURBO_CHECK(resourceHandle.GetType() == ERGResourceType::Texture && resourceHandle.IsValid())
+		return resourceHandle.IsExternal()
+			       ? mExternalTextures[resourceHandle.GetIndex()].mTextureInfo
+			       : mTextures[resourceHandle.GetIndex()];
+	}
+
 	FRGResourceHandle FRenderGraphBuilder::CreateBuffer(const FRGBufferInfo& bufferInfo)
 	{
 		TURBO_CHECK(bufferInfo.IsValid())

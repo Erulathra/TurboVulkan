@@ -1,10 +1,10 @@
 #include "RuntimeTestLayer.h"
 
 #include "FlyMovement.h"
-#include "../../cmake-build-debug-test/_deps/imgui-src/imgui.h"
-#include "../../cmake-build-test/_deps/imgui-src/imgui_internal.h"
-#include "../../Editor/Public/EditorViewPort/EditorFreeCamera.h"
+#include "imgui.h"
+#include "imgui_internal.h"
 #include "Core/Engine.h"
+#include "Core/Input/Keys.h"
 #include "Extensions/ImGui/ImGuiExtensions.h"
 #include "World/Camera.h"
 #include "World/World.h"
@@ -14,12 +14,14 @@ namespace Turbo
 	namespace ActionBindings
 	{
 		const FActionBinding kExit {FName{"Exit"}, EKeys::Escape};
+		const FActionBinding kToggleFullscreen {FName{"ToggleFullscreen"}, EKeys::F11};
 	}
 
 	void FRuntimeTestLayer::Start()
 	{
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
 		inputSystem.RegisterBinding(ActionBindings::kExit);
+		inputSystem.RegisterBinding(ActionBindings::kToggleFullscreen);
 
 		FWindow& window = entt::locator<FWindow>::value();
 		window.ShowCursor(false);
@@ -47,10 +49,15 @@ namespace Turbo
 		FEventDispatcher::Dispatch<FActionEvent>(
 			event, [](FActionEvent& event)
 			{
-				if (event.mName == ActionBindings::kExit.mName)
+				if (event.mName == ActionBindings::kExit.mName && event.mbDown)
 				{
 					gEngine->RequestExit(EExitCode::Success);
 					event.Handle();
+				}
+				else if (event.mName == ActionBindings::kToggleFullscreen.mName && event.mbDown)
+				{
+					const bool bFullscreen = entt::locator<FWindow>::value().IsFullscreenEnabled();
+					entt::locator<FWindow>::value().SetFullscreen(!bFullscreen);
 				}
 			}
 		);

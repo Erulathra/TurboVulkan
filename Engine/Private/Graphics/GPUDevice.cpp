@@ -991,6 +991,7 @@ namespace Turbo
 
 		const FWindow& window = entt::locator<FWindow>::value();
 		mFramebufferSize = window.GetFrameBufferSize();
+
 		TURBO_LOG(LogGPUDevice, Info, "Creating swapchain of size: {}", mFramebufferSize);
 
 		vkb::SwapchainBuilder swapchainBuilder {mVkPhysicalDevice, mVkDevice, mVkWindowSurface};

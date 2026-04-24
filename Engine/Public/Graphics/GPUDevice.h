@@ -59,6 +59,9 @@ namespace Turbo
 		void ImmediateSubmit(const FOnImmediateSubmit& immediateSubmitDelegate);
 		void SubmitMainCommandBufferAndWaitIdle();
 
+		[[nodiscard]] glm::uint2 GetMainViewportSize() const { return mViewportSize; }
+		void SetMainViewportSize(glm::uint2 mNewSize) { mViewportSize = mNewSize; }
+
 		[[nodiscard]] glm::uint2 GetFrameBufferSize() const { return mFramebufferSize; }
 		[[nodiscard]] uint32 GetBufferedFrameId() const { return mBufferedFrameId; }
 		[[nodiscard]] uint32 GetNumRenderedFrames() const { return mRenderedFrames; }
@@ -292,7 +295,6 @@ namespace Turbo
 
 		/** Frame handing */
 		uint32 mNumRenderingThreads = 1;
-
 		std::array<FBufferedFrameData, kMaxBufferedFrames> mFrameDatas;
 
 		/** Note that this is an index of buffered frame */
@@ -322,6 +324,8 @@ namespace Turbo
 	private:
 		FDestroyQueue mDestroyQueue;
 		vk::DebugUtilsMessengerEXT mVkDebugUtilsMessenger;
+
+		glm::uint2 mViewportSize = glm::uint2(0);
 
 		/** Other end */
 

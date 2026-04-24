@@ -85,6 +85,7 @@ namespace Turbo
 		[[nodiscard]] FRGResourceHandle CreateTexture(const FRGTextureInfo& textureInfo);
 		[[nodiscard]] FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout);
 		[[nodiscard]] FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout, ETextureLayout finalLayout);
+		[[nodiscard]] FRGTextureInfo GetTextureInfo(FRGResourceHandle resourceHandle) const;
 
 		[[nodiscard]] FRGResourceHandle CreateBuffer(const FRGBufferInfo& bufferInfo);
 		void QueueBufferUpload(const FRGBufferUpload& bufferUpload);

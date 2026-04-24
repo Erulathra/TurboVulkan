@@ -52,6 +52,7 @@ target_link_libraries(imgui PRIVATE Vulkan-Headers)
 target_link_libraries(imgui PRIVATE SDL3::SDL3-shared)
 target_compile_definitions(imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR}/imgui_internal.h)
 
 CPMAddPackage(
         GITHUB_REPOSITORY "wolfpld/tracy"

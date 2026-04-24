@@ -17,6 +17,8 @@ namespace Turbo
 	public:
 		virtual ~ILayer() = default;
 
+		virtual void PreGPUInit() {};
+
 		virtual void Start() = 0;
 		virtual void Shutdown() = 0;
 

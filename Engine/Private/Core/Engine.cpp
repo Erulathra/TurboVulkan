@@ -23,6 +23,12 @@
 
 namespace Turbo
 {
+	TAutoConsoleVariable<float> CVarResolutionScale(
+		"r.resolutionScale",
+		1.f,
+		"The gBuffer resolution scale. This factor multiplies viewport resolution."
+	);
+
 	FEngine::FEngine()
 		: mbExitRequested(false)
 	{
@@ -30,24 +36,19 @@ namespace Turbo
 
 	FEngine::~FEngine() = default;
 
-	void FEngine::Init()
+	FEngine* FEngine::Init()
 	{
 		FileSystem::InitDirectories();
 		InitLogger();
 
 		Random::SetRandomSeed();
 
-		// TURBO_LOG(LOG_ENGINE, Info, "Creating engine instance.");
 		TURBO_LOG(LogEngine, Info, "Creating engine instance.")
 		gEngine = TUniquePtr<FEngine>(new FEngine());
 
-#if 0
-		// TODO: Move thread configuration to separate class
-		pthread_setname_np(pthread_self(), "Turbo Engine");
-#endif
-
 		entt::locator<FLayersStack>::emplace();
-		gEngine->RegisterEngineLayers();
+
+		return gEngine.get();
 	}
 
 	int32_t FEngine::Start(int32 argc, char* argv[])
@@ -75,6 +76,12 @@ namespace Turbo
 
 		window.InitBackend();
 
+		for (const TSharedPtr<ILayer>& layer : entt::locator<FLayersStack>::value())
+		{
+			TRACE_ZONE_SCOPED_FORMAT(LayerStart, "Layer Start - {}", layer->GetName())
+			layer->PreGPUInit();
+		}
+
 		FGPUDeviceBuilder gpuDeviceBuilder;
 		gpu.Init(gpuDeviceBuilder);
 
@@ -90,7 +97,7 @@ namespace Turbo
 
 		EngineMaterials::InitEngineMaterials();
 
-		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::emplace();
+		entt::locator<FGeometryBuffer>::emplace();
 
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
 		inputSystem.Init();
@@ -187,7 +194,10 @@ namespace Turbo
 			graphBuilder.Reset();
 
 			FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
-			geometryBuffer.Init(graphBuilder, gpu.GetFrameBufferSize());
+
+			TURBO_CHECK(gpu.GetMainViewportSize() != glm::uint2(0))
+			const glm::int2 gbufferResolution = glm::floor(glm::float2(gpu.GetMainViewportSize()) * CVarResolutionScale.Get());
+			geometryBuffer.Init(graphBuilder, gbufferResolution);
 
 			const THandle<FTexture> presentHandle = gpu.GetPresentImage();
 			FRGResourceHandle presentRes = graphBuilder.RegisterExternalTexture(
@@ -220,14 +230,11 @@ namespace Turbo
 				}
 			}
 
-			geometryBuffer.BlitToPresent(graphBuilder, presentRes);
-
 			{
 				TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")
-				for (const TSharedPtr<ILayer>& layerIt : std::ranges::reverse_view(layerStack))
+				for (const TSharedPtr<ILayer>& layer : layerStack)
 				{
-					if (ILayer* layer = layerIt.get();
-						layer->ShouldRender())
+					if (layer->ShouldRender())
 					{
                         TRACE_ZONE_SCOPED_FORMAT(PostPresentingFrame, "Begin presenting frame - {}", layer->GetName())
 						layer->BeginPresentingFrame(graphBuilder, presentRes);
@@ -259,9 +266,9 @@ namespace Turbo
 	void FEngine::RegisterEngineLayers()
 	{
 		FLayersStack& layerStack = entt::locator<FLayersStack>::value();
+		layerStack.PushLayer<FSceneRenderingLayer>();
 		layerStack.PushLayer<FImGuiLayer>();
 		layerStack.PushLayer<FConsoleFrontendLayer>();
-		layerStack.PushLayer<FSceneRenderingLayer>();
 	}
 
 	void FEngine::End()
