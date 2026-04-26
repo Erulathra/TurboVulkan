@@ -29,11 +29,7 @@ namespace Turbo
 		virtual void Start() override;
 		virtual void Shutdown() override;
 
-		virtual FName GetName() override
-		{
-			static FName name("Scene Rendering Layer");
-			return name;
-		}
+		virtual FName GetName() override;
 
 		virtual void RenderScene(FRenderGraphBuilder& graphBuilder) override;
 		virtual bool ShouldRender() override;

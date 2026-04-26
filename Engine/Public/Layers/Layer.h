@@ -10,7 +10,6 @@ namespace Turbo
 	class FCommandBuffer;
 	class FGPUDevice;
 
-
 	class ILayer
 	{
 		/** Interface */
@@ -39,7 +38,12 @@ namespace Turbo
 		/** Interface end */
 	};
 
+	template<typename LayerType>
+		requires std::is_base_of_v<ILayer, LayerType>
+	FName GetStaticLayerName() = delete;
+
 	using FLayersCollection = std::vector<TSharedPtr<ILayer>>;
+	using FLayerLookUp = entt::dense_map<FName, uint32>;
 
 	class FLayersStack final
 	{
@@ -58,7 +62,21 @@ namespace Turbo
 		void PopLayer();
 		void RemoveLayer(FName layerName);
 
+		template<typename LayerType>
+			requires std::is_base_of_v<ILayer, LayerType>
+		void RemoveLayer()
+		{
+			RemoveLayer(GetStaticLayerName<LayerType>());
+		}
+
 		TSharedPtr<ILayer> GetLayer(FName layerName);
+
+		template<typename LayerType>
+			requires std::is_base_of_v<ILayer, LayerType>
+		TSharedPtr<ILayer> GetLayer()
+		{
+			return GetLayer(GetStaticLayerName<LayerType>());
+		}
 
 		Iterator begin() { return mLayers.begin(); };
 		Iterator end() { return mLayers.end(); };
@@ -71,6 +89,7 @@ namespace Turbo
 
 	private:
 		FLayersCollection mLayers;
+		FLayerLookUp mLayerLookUp;
 	};
 
 	template <typename ServiceType> requires std::is_base_of_v<ILayer, ServiceType>

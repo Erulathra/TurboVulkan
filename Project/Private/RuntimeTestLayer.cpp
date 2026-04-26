@@ -98,9 +98,15 @@ namespace Turbo
 		return true;
 	}
 
-	FName FRuntimeTestLayer::GetName()
+	template<>
+	FName GetStaticLayerName<FRuntimeTestLayer>()
 	{
 		const static FName kName("RuntimeTest");
 		return kName;
+	}
+
+	FName FRuntimeTestLayer::GetName()
+	{
+		return GetStaticLayerName<FRuntimeTestLayer>();
 	}
 } // Turbo

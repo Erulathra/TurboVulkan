@@ -1,7 +1,6 @@
 #include "Layers/SceneRenderingLayer.h"
 
 #include "Assets/AssetManager.h"
-#include "Assets/EngineResources.h"
 #include "Assets/StaticMesh.h"
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
@@ -57,6 +56,18 @@ namespace Turbo
 	{
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		gpu.DestroyPipeline(mFrustumCullingPipeline);
+	}
+
+	template<>
+	FName GetStaticLayerName<FSceneRenderingLayer>()
+	{
+		static FName name("SceneRenderingLayer");
+		return name;
+	}
+
+	FName FSceneRenderingLayer::GetName()
+	{
+		return GetStaticLayerName<FSceneRenderingLayer>();
 	}
 
 	void FSceneRenderingLayer::UpdateViewData(FWorld* world, FViewData& viewData)

@@ -112,10 +112,16 @@ namespace Turbo
 		style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.8f, 0.8f, 0.8f, 0.35f);
 	}
 
-	FName FImGuiLayer::GetName()
+	template<>
+	FName GetStaticLayerName<FImGuiLayer>()
 	{
 		static FName Name("ImGUILayer");
 		return Name;
+	}
+
+	FName FImGuiLayer::GetName()
+	{
+		return GetStaticLayerName<FImGuiLayer>();
 	}
 
 	void FImGuiLayer::Start()

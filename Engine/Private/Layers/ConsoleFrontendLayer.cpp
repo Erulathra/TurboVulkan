@@ -1,7 +1,6 @@
 #include "Layers/ConsoleFrontendLayer.h"
 
 #include "imgui.h"
-#include "../../../cmake-build-test/_deps/imgui-src/imgui_internal.h"
 #include "Core/Input/Input.h"
 #include "Core/Input/Keys.h"
 #include "Debug/IConsoleManager.h"
@@ -11,10 +10,16 @@ namespace Turbo
 {
 	const FName kToggleConsoleName = FName("ToggleConsole");
 
-	FName FConsoleFrontendLayer::GetName()
+	template<>
+	FName GetStaticLayerName<FConsoleFrontendLayer>()
 	{
 		static FName name("ConsoleFrontend");
 		return name;
+	}
+
+	FName FConsoleFrontendLayer::GetName()
+	{
+		return GetStaticLayerName<FConsoleFrontendLayer>();
 	}
 
 	void FConsoleFrontendLayer::Start()

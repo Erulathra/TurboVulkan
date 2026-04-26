@@ -34,10 +34,16 @@ namespace Turbo
 		FEventDispatcher::Dispatch<FResizeWindowEvent>(event, this, &FGameViewportLayer::HandleResizeWindowEvent);
 	}
 
-	FName FGameViewportLayer::GetName()
+	template<>
+	FName GetStaticLayerName<FGameViewportLayer>()
 	{
 		static const FName kLayerName("GameViewport");
 		return kLayerName;
+	}
+
+	FName FGameViewportLayer::GetName()
+	{
+		return GetStaticLayerName<FGameViewportLayer>();
 	}
 
 	void FGameViewportLayer::HandleResizeWindowEvent(FResizeWindowEvent& event)

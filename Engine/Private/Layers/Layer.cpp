@@ -16,6 +16,7 @@ namespace Turbo
 		TURBO_CHECK(GetLayer(newLayer->GetName()) == nullptr)
 
 		mLayers.push_back(newLayer);
+		mLayerLookUp.emplace(newLayer->GetName(), mLayers.size() - 1);
 	}
 
 	void FLayersStack::PopLayer()
@@ -25,20 +26,21 @@ namespace Turbo
 
 	void FLayersStack::RemoveLayer(FName layerName)
 	{
-		std::erase_if(mLayers, [layerName](const TSharedPtr<ILayer>& layer)
+		if (auto foundIt = mLayerLookUp.find(layerName);
+			foundIt != mLayerLookUp.end())
 		{
-			return layer->GetName() == layerName;
-		});
+			mLayers.erase(mLayers.begin() + foundIt->second);
+			mLayerLookUp.erase(layerName);
+		}
 	}
 
 	TSharedPtr<ILayer> FLayersStack::GetLayer(FName layerName)
 	{
-		for (const TSharedPtr<ILayer>& layer : mLayers)
+		if (auto foundIt = mLayerLookUp.find(layerName);
+			foundIt != mLayerLookUp.end())
 		{
-			if (layer->GetName() == layerName)
-			{
-				return layer;
-			}
+			const uint32 layerIndex = foundIt->second;
+			return mLayers[layerIndex];
 		}
 
 		return nullptr;
