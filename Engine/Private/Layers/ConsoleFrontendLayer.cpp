@@ -172,8 +172,8 @@ namespace Turbo
 
 	void FConsoleFrontendLayer::OnEvent(FEventBase& event)
 	{
-		FEventDispatcher::Dispatch<FActionEvent>(event, this, &FConsoleFrontendLayer::HandleInputActionEvent);
-		FEventDispatcher::Dispatch<FConsoleBufferChangedEvent>(event, this, &FConsoleFrontendLayer::HandleConsoleBufferChangedEvent);
+		FEventDispatcher::DispatchLayer<FActionEvent>(event, this, &FConsoleFrontendLayer::HandleInputActionEvent);
+		FEventDispatcher::DispatchLayer<FConsoleBufferChangedEvent>(event, this, &FConsoleFrontendLayer::HandleConsoleBufferChangedEvent);
 	}
 
 	void FConsoleFrontendLayer::HandleInputActionEvent(FActionEvent& event)

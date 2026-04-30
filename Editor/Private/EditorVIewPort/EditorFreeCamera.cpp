@@ -88,6 +88,11 @@ namespace Turbo
 		inputSystem.RegisterBinding(FreeCamera::kChangeSpeed);
 	}
 
+	void FEditorFreeCameraUtils::HandleEvent(FEventBase& Event, bool bViewportFocused)
+	{
+		FEventDispatcher::Dispatch<FActionEvent>(Event, &FEditorFreeCameraUtils::HandleAction, bViewportFocused);
+	}
+
 	void FEditorFreeCameraUtils::OnConstructMainViewPort(entt::registry& registry, const entt::entity& entity)
 	{
 		if (registry.all_of<FFreeCamera>(entity))
@@ -99,11 +104,6 @@ namespace Turbo
 	void FEditorFreeCameraUtils::OnDestroyMainViewPort(entt::registry& registry, const entt::entity& entity)
 	{
 		registry.remove<FEditorFreeCameraInput>(entity);
-	}
-
-	void FEditorFreeCameraUtils::HandleEvent(FEventBase& Event)
-	{
-		FEventDispatcher::Dispatch<FActionEvent>(Event, &FEditorFreeCameraUtils::HandleAction);
 	}
 
 	void FEditorFreeCameraUtils::Tick(double deltaTime)
@@ -122,9 +122,9 @@ namespace Turbo
 		}
 	}
 
-	void FEditorFreeCameraUtils::HandleAction(FActionEvent& actionEvent)
+	void FEditorFreeCameraUtils::HandleAction(FActionEvent& actionEvent, bool bViewportFocused)
 	{
-		if (HandleEnableAction(actionEvent))
+		if (HandleEnableAction(actionEvent, bViewportFocused))
 		{
 			return;
 		}
@@ -145,7 +145,7 @@ namespace Turbo
 		}
 	}
 
-	bool FEditorFreeCameraUtils::HandleEnableAction(FActionEvent& actionEvent)
+	bool FEditorFreeCameraUtils::HandleEnableAction(FActionEvent& actionEvent, bool bViewportFocused)
 	{
 		FWorld* world = gEngine->GetWorld();
 		auto view = world->mRegistry.view<FEditorFreeCameraInput>();
@@ -155,7 +155,7 @@ namespace Turbo
 			for (const entt::entity cameraEntity : view)
 			{
 				FEditorFreeCameraInput& freeCameraInput = view.get<FEditorFreeCameraInput>(cameraEntity);
-				freeCameraInput.bNavigationEnabled = actionEvent.mbDown;
+				freeCameraInput.bNavigationEnabled = actionEvent.mbDown && bViewportFocused;
 
 				if (!freeCameraInput.bNavigationEnabled)
 				{

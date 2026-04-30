@@ -3,6 +3,8 @@
 #include "Core/WindowEvents.h"
 #include "Core/Input/Input.h"
 #include "Layers/Layer.h"
+#include "Windows/EditorViewportWindow.h"
+#include "Windows/SceneOutlinerWindow.h"
 
 namespace Turbo
 {
@@ -25,17 +27,11 @@ namespace Turbo
 		virtual FName GetName() override;
 
 	private:
-		void DrawEditorViewport();
-		void ResizeViewport(const glm::uint2& newSize);
-
-	private:
 		void HandleInputActionEvent(FActionEvent& event);
 		void HandleCloseEvent(FCloseWindowEvent& event);
 
-	private:
-		std::vector<THandle<FTexture>> mRenderedTextures;
-		std::vector<vk::DescriptorSet> mVkRenderedTexturesDescriptorSets;
-
-		glm::uint2 mEditorViewportSize = glm::uint2(0);
+	public:
+		TSharedPtr<FEditorViewportWindow> mViewportWindow;
+		TSharedPtr<FSceneOutlinerWindow> mOutlinerWindow;
 	};
 } // Turbo

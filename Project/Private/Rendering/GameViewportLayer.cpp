@@ -31,7 +31,7 @@ namespace Turbo
 
 	void FGameViewportLayer::OnEvent(FEventBase& event)
 	{
-		FEventDispatcher::Dispatch<FResizeWindowEvent>(event, this, &FGameViewportLayer::HandleResizeWindowEvent);
+		FEventDispatcher::DispatchLayer<FResizeWindowEvent>(event, this, &FGameViewportLayer::HandleResizeWindowEvent);
 	}
 
 	template<>

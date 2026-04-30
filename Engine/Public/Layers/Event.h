@@ -31,21 +31,30 @@ namespace Turbo
 
 	struct FEventDispatcher
 	{
-		template <typename EventType, typename FunctionType>
-		static void Dispatch(FEventBase& event, FunctionType callback)
+		template <typename EventType, typename FunctionType, typename ... Args>
+		static void Dispatch(FEventBase& event, FunctionType callback, Args&& ... args)
 		{
 			if (event.mEventTypeId == EventType::GetStaticTypeId())
 			{
-				std::invoke(callback, static_cast<EventType&>(event));
+				std::invoke(
+					std::forward<FunctionType>(callback),
+					static_cast<EventType&>(event),
+					std::forward<Args>(args)...
+				);
 			}
 		}
 
-		template <typename EventType, typename LayerType, typename FunctionType>
-		static void Dispatch(FEventBase& event, LayerType* layer, FunctionType callback)
+		template <typename EventType, typename LayerType, typename FunctionType, typename ... Args>
+		static void DispatchLayer(FEventBase& event, LayerType* layer, FunctionType callback, Args&& ... args)
 		{
 			if (event.mEventTypeId == EventType::GetStaticTypeId())
 			{
-				std::invoke(callback, layer, static_cast<EventType&>(event));
+				std::invoke(
+					std::forward<FunctionType>(callback),
+					layer,
+					static_cast<EventType&>(event),
+					std::forward<Args>(args)...
+				);
 			}
 		}
 	};
