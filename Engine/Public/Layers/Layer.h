@@ -28,7 +28,8 @@ namespace Turbo
 
 		virtual void PostBeginFrame(FRenderGraphBuilder& graphBuilder) {};
 		virtual void RenderScene(FRenderGraphBuilder& graphBuilder) {};
-		virtual void BeginPresentingFrame(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentImage) {};
+		virtual void EndFrame(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) {};
+		virtual void BeginPresentingFrame(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) {};
 
 		virtual bool ShouldTick() { return false; };
 		virtual bool ShouldRender() { return false; };
@@ -69,13 +70,22 @@ namespace Turbo
 			RemoveLayer(GetStaticLayerName<LayerType>());
 		}
 
-		TSharedPtr<ILayer> GetLayer(FName layerName);
+		ILayer* GetLayer(FName layerName);
 
 		template<typename LayerType>
 			requires std::is_base_of_v<ILayer, LayerType>
-		TSharedPtr<ILayer> GetLayer()
+		LayerType* GetLayer()
 		{
-			return GetLayer(GetStaticLayerName<LayerType>());
+			return static_cast<LayerType*>(GetLayer(GetStaticLayerName<LayerType>()));
+		}
+
+		template<typename LayerType>
+			requires std::is_base_of_v<ILayer, LayerType>
+		LayerType* GetLayerChecked()
+		{
+			LayerType* result = static_cast<LayerType*>(GetLayer(GetStaticLayerName<LayerType>()));
+			TURBO_CHECK(result)
+			return result;
 		}
 
 		Iterator begin() { return mLayers.begin(); };

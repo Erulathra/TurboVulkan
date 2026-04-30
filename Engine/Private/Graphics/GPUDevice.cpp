@@ -851,6 +851,12 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
+	void FGPUDevice::AddOnDestroyCallback(FOnDestroy::Delegate&& delegate)
+	{
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
+		frameData.mDestroyQueue.OnDestroy().Add(std::move(delegate));
+	}
+
 	vkb::Instance FGPUDevice::CreateVkInstance(const std::vector<cstring>& requiredExtensions)
 	{
 		// Copy by design
@@ -991,6 +997,11 @@ namespace Turbo
 
 		const FWindow& window = entt::locator<FWindow>::value();
 		mFramebufferSize = window.GetFrameBufferSize();
+
+		if (glm::length2(glm::float2(mViewportSize)) < TURBO_SMALL_NUMBER)
+		{
+			mViewportSize = mFramebufferSize;
+		}
 
 		TURBO_LOG(LogGPUDevice, Info, "Creating swapchain of size: {}", mFramebufferSize);
 
@@ -1485,10 +1496,7 @@ namespace Turbo
 			}
 		}
 
-		for (FBufferedFrameData& frameData : mFrameDatas)
-		{
-			frameData.mDestroyQueue.Flush(*this);
-		}
+		FlushDestroyQueues();
 	}
 
 	void FGPUDevice::DestroyImmediateCommands()
@@ -1514,6 +1522,14 @@ namespace Turbo
 		mBindlessResourcesLayout.Reset();
 		mBindlessResourcesPool.Reset();
 		mBindlessResourcesSet.Reset();
+	}
+
+	void FGPUDevice::FlushDestroyQueues()
+	{
+		for (FBufferedFrameData& frameData : mFrameDatas)
+		{
+			frameData.mDestroyQueue.Flush(*this);
+		}
 	}
 
 	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture, FTextureCold* textureCold)

@@ -2,6 +2,7 @@
 
 #include "Graphics/Enums.h"
 #include "Graphics/GPUDevice.h"
+#include "Graphics/FrameGraph/RenderGraphUtils.h"
 
 namespace Turbo
 {
@@ -30,25 +31,6 @@ namespace Turbo
 
 	void FGeometryBuffer::BlitToPresent(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) const
 	{
-		const static FName passName("BlitGeometryBufferToPresentTexture");
-		FRGPassInitializer pass = graphBuilder.AddPass(passName, EPassType::Transfer);
-		pass->ReadTexture(mColor);
-		pass->WriteTexture(presentTexture);
-
-		pass->mExecutePass.BindLambda(
-			[colorRes = mColor, presentRes = presentTexture](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
-			{
-				const THandle<FTexture> colorHandle = resources.mTextures[colorRes];
-				const THandle<FTexture> presentHandle = resources.mTextures[presentRes];
-
-				const FTextureCold* colorTexCold = gpu.AccessTextureCold(colorHandle);
-				const FTextureCold* presentTexCold = gpu.AccessTextureCold(presentHandle);
-
-				const FRect2DInt srcRect = FRect2DInt::FromSize(colorTexCold->GetSize2D());
-				const FRect2DInt dstRect = FRect2DInt::FromSize(presentTexCold->GetSize2D());
-
-				cmd.BlitImage(colorHandle, srcRect, presentHandle, dstRect);
-			}
-		);
+		RenderGraphUtils::AddBlitTexturePass(graphBuilder, mColor, presentTexture);
 	}
 } // Turbo

@@ -752,23 +752,23 @@ namespace Turbo
 	class TMulticastDelegate : public FDelegateBase
 	{
 	public:
-		using DelegateT = TDelegate<void, Args...>;
+		using Delegate = TDelegate<void, Args...>;
 
 	private:
 		struct FDelegateHandlerPair
 		{
 			FDelegateHandle Handle;
-			DelegateT Callback;
+			Delegate Callback;
 
 			FDelegateHandlerPair() : Handle(false)
 			{
 			}
 
-			FDelegateHandlerPair(const FDelegateHandle& handle, const DelegateT& callback) : Handle(handle), Callback(callback)
+			FDelegateHandlerPair(const FDelegateHandle& handle, const Delegate& callback) : Handle(handle), Callback(callback)
 			{
 			}
 
-			FDelegateHandlerPair(const FDelegateHandle& handle, DelegateT&& callback) : Handle(handle), Callback(std::move(callback))
+			FDelegateHandlerPair(const FDelegateHandle& handle, Delegate&& callback) : Handle(handle), Callback(std::move(callback))
 			{
 			}
 		};
@@ -816,7 +816,7 @@ namespace Turbo
 			RemoveAll();
 		}
 
-		FDelegateHandle Add(DelegateT&& handler) noexcept
+		FDelegateHandle Add(Delegate&& handler) noexcept
 		{
 			//Favor an empty space over a possible array reallocation
 			for (size_t i = 0; i < mEvents.size(); ++i)
@@ -835,40 +835,40 @@ namespace Turbo
 		template <typename T, typename... Args2>
 		FDelegateHandle AddRaw(T* pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
-			return Add(DelegateT::CreateRaw(pObject, pFunction, std::forward<Args2>(args)...));
+			return Add(Delegate::CreateRaw(pObject, pFunction, std::forward<Args2>(args)...));
 		}
 
 		template <typename T, typename... Args2>
 		FDelegateHandle AddRaw(T* pObject, ConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
-			return Add(DelegateT::CreateRaw(pObject, pFunction, std::forward<Args2>(args)...));
+			return Add(Delegate::CreateRaw(pObject, pFunction, std::forward<Args2>(args)...));
 		}
 
 		//Bind a static/global function
 		template <typename... Args2>
 		FDelegateHandle AddStatic(void (*pFunction)(Args..., Args2...), Args2&&... args)
 		{
-			return Add(DelegateT::CreateStatic(pFunction, std::forward<Args2>(args)...));
+			return Add(Delegate::CreateStatic(pFunction, std::forward<Args2>(args)...));
 		}
 
 		//Bind a lambda
 		template <typename LambdaType, typename... Args2>
 		FDelegateHandle AddLambda(LambdaType&& lambda, Args2&&... args)
 		{
-			return Add(DelegateT::CreateLambda(std::forward<LambdaType>(lambda), std::forward<Args2>(args)...));
+			return Add(Delegate::CreateLambda(std::forward<LambdaType>(lambda), std::forward<Args2>(args)...));
 		}
 
 		//Bind a member function with a shared_ptr object
 		template <typename T, typename... Args2>
 		FDelegateHandle AddSP(TSharedPtr<T> pObject, NonConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
-			return Add(DelegateT::CreateSP(pObject, pFunction, std::forward<Args2>(args)...));
+			return Add(Delegate::CreateSP(pObject, pFunction, std::forward<Args2>(args)...));
 		}
 
 		template <typename T, typename... Args2>
 		FDelegateHandle AddSP(TSharedPtr<T> pObject, ConstMemberFunction<T, Args2...> pFunction, Args2&&... args)
 		{
-			return Add(DelegateT::CreateSP(pObject, pFunction, std::forward<Args2>(args)...));
+			return Add(Delegate::CreateSP(pObject, pFunction, std::forward<Args2>(args)...));
 		}
 
 		//Removes all handles that are bound from a specific object

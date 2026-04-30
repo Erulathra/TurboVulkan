@@ -394,8 +394,18 @@ namespace Turbo
 		FRGPassInitializer geometryPass = graphBuilder.AddPass(geometryPassName, EPassType::Graphics);
 
 		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
-		geometryPass->AddAttachment(geometryBuffer.mColor, 0);
-		geometryPass->SetDepthStencilAttachment(geometryBuffer.mDepth);
+		geometryPass->AddAttachment(
+			{
+				.mTexture = geometryBuffer.mColor,
+				.mLoadOp = ELoadOp::Clear,
+				.mClearColor = EClearColor::OpaqueBlack
+			},
+			0);
+		geometryPass->SetDepthStencilAttachment({
+			.mTexture = geometryBuffer.mDepth,
+			.mLoadOp = ELoadOp::Clear,
+			.mClearColor = EClearColor::Zero
+		});
 
 		geometryPass->ReadBuffer(viewDataBufferHandle);
 

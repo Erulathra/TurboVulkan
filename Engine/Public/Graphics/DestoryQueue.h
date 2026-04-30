@@ -45,11 +45,11 @@ namespace Turbo
 		std::vector<DestroyerType> mDestroyers;
 	};
 
+	DECLARE_MULTICAST_DELEGATE_REVERSE(FOnDestroy);
+	using FOnDestroyDelegate = FOnDestroy::Delegate;
+
 	class FDestroyQueue
 	{
-	public:
-		DECLARE_MULTICAST_DELEGATE_REVERSE(FOnDestroy);
-
 	public:
 		template <typename DestroyerType>
 			requires (std::is_base_of_v<IDestroyer, DestroyerType>)

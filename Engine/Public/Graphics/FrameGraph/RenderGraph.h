@@ -26,8 +26,10 @@ namespace Turbo
 		FRGResourceHandle ReadBuffer(FRGResourceHandle buffer);
 		FRGResourceHandle WriteBuffer(FRGResourceHandle buffer);
 
-		FRGResourceHandle AddAttachment(FRGResourceHandle texture, uint32 mAttachmentIndex);
-		FRGResourceHandle SetDepthStencilAttachment(FRGResourceHandle texture);
+		FRGResourceHandle AddAttachment(FRGResourceHandle attachment, uint32 attachmentIndex);
+		FRGResourceHandle AddAttachment(FRGAttachment attachment, uint32 attachmentIndex);
+		FRGResourceHandle SetDepthStencilAttachment(FRGResourceHandle attachment);
+		FRGResourceHandle SetDepthStencilAttachment(FRGAttachment attachment);
 
 	public:
 		std::vector<FRGResourceHandle> mTextureReads;
@@ -36,8 +38,8 @@ namespace Turbo
 		std::vector<FRGResourceHandle> mBufferReads;
 		std::vector<FRGResourceHandle> mBufferWrites;
 
-		std::array<FRGResourceHandle, kMaxColorAttachments> mColorAttachments;
-		FRGResourceHandle mDepthStencilAttachment = {};
+		std::array<FRGAttachment, kMaxColorAttachments> mColorAttachments;
+		FRGAttachment mDepthStencilAttachment = {};
 
 		EPassType mPassType = EPassType::Undefined;
 
@@ -83,8 +85,8 @@ namespace Turbo
 		FRenderGraphBuilder() = default;
 
 		[[nodiscard]] FRGResourceHandle CreateTexture(const FRGTextureInfo& textureInfo);
-		[[nodiscard]] FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout);
-		[[nodiscard]] FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout, ETextureLayout finalLayout);
+		FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout);
+		FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout, ETextureLayout finalLayout);
 		[[nodiscard]] FRGTextureInfo GetTextureInfo(FRGResourceHandle resourceHandle) const;
 
 		[[nodiscard]] FRGResourceHandle CreateBuffer(const FRGBufferInfo& bufferInfo);

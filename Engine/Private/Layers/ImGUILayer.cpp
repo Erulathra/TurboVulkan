@@ -1,6 +1,7 @@
 #include "Layers/ImGUILayer.h"
 
 #include "imgui.h"
+#include "Assets/EngineResources.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
 #include "Core/Engine.h"
@@ -124,6 +125,26 @@ namespace Turbo
 		return GetStaticLayerName<FImGuiLayer>();
 	}
 
+	FImGuiTexture& FImGuiLayer::FindOrRegisterTexture(THandle<FTexture> textureHandle)
+	{
+		auto findTexturePredicate = [textureHandle](const FImGuiTexture& imGuiTexture)
+		{
+			return imGuiTexture.mTexture == textureHandle;
+		};
+
+		if (const auto foundIt = std::ranges::find_if(mTextures.begin(), mTextures.end(), findTexturePredicate);
+			foundIt != mTextures.end())
+		{
+			return *foundIt;
+		}
+
+		mTextures.push_back({
+			.mTexture = textureHandle
+		});
+
+		return mTextures.back();
+	}
+
 	void FImGuiLayer::Start()
 	{
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
@@ -210,14 +231,27 @@ namespace Turbo
 		ImGui::Render();
 	}
 
+	void FImGuiLayer::PostBeginFrame(FRenderGraphBuilder& graphBuilder)
+	{
+	}
+
 	void FImGuiLayer::BeginPresentingFrame(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentImage)
 	{
-		ILayer::BeginPresentingFrame(graphBuilder, presentImage);
+		// I don't know if setting here read-only as initial layout is a good idea.
+		for (FImGuiTexture& imGuiTexture : mTextures)
+		{
+			imGuiTexture.mRGTexture = graphBuilder.RegisterExternalTexture(imGuiTexture.mTexture, ETextureLayout::ReadOnly);
+		}
 
 		static FName ImGUIPassName("RenderImGUI");
 		FRGPassInitializer pass = graphBuilder.AddPass(ImGUIPassName, EPassType::Graphics);
 		pass->AddAttachment(presentImage, 0);
 		pass->ReadTexture(presentImage);
+
+		for (FImGuiTexture& imGuiTexture : mTextures)
+		{
+			pass->ReadTexture(imGuiTexture.mRGTexture);
+		}
 
 		pass->mExecutePass.BindLambda(
 			[](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
@@ -225,5 +259,35 @@ namespace Turbo
 				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.GetVkCommandBuffer());
 			}
 		);
+
+		entt::locator<FGPUDevice>::value().AddOnDestroyCallback(FOnDestroy::Delegate::CreateLambda(
+				[texturesToDestroy = std::move(mTextures)]() mutable
+				{
+					for (FImGuiTexture& imGuiTexture : texturesToDestroy)
+					{
+						ImGui_ImplVulkan_RemoveTexture(imGuiTexture.mDescriptorSet);
+					}
+				})
+		);
 	}
 } // Turbo
+
+void ImGui::Texture(Turbo::THandle<Turbo::FTexture> textureHandle)
+{
+	using namespace Turbo;
+
+	FLayersStack& layersStack = entt::locator<FLayersStack>::value();
+	FImGuiLayer* imGuiLayer = layersStack.GetLayerChecked<FImGuiLayer>();
+
+	FImGuiTexture& imGuiTexture = imGuiLayer->FindOrRegisterTexture(textureHandle);
+
+	FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+	const FTexture* texture = gpu.AccessTexture(textureHandle);
+	const FTextureCold* textureCold = gpu.AccessTextureCold(textureHandle);
+
+	const THandle<FSampler> samplerHandle = EngineResources::GetDefaultNearestNeighbourSampler();
+	const FSampler* sampler = gpu.AccessSampler(samplerHandle);
+
+	imGuiTexture.mDescriptorSet = ImGui_ImplVulkan_AddTexture(sampler->mVkSampler, texture->mVkImageView, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+	Image(static_cast<VkDescriptorSet>(imGuiTexture.mDescriptorSet), textureCold->GetSize2D());
+}

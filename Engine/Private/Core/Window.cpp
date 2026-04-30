@@ -35,7 +35,7 @@ namespace Turbo
 	{
 		TURBO_LOG(LogWindow, Info, "Initializing Window.");
 		mSDLWindow = SDL_CreateWindow(WindowDefaultValues::kName.data(), WindowDefaultValues::kSizeX, WindowDefaultValues::kSizeY,
-		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN);
+		                                     SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
 		if (!mSDLWindow)
 		{
 			TURBO_LOG(LogWindow, Error, "SDL window creation error. See bellow logs for details");
@@ -59,10 +59,6 @@ namespace Turbo
 		// Handle events
 		while (SDL_PollEvent(&event))
 		{
-			// todo: Move to engine subsystem
-			// Handle ImGui events
-			// ImGui_ImplSDL3_ProcessEvent(&event);
-
 			switch (event.type)
 			{
 			case SDL_EVENT_QUIT:

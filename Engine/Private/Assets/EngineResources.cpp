@@ -8,6 +8,7 @@ namespace Turbo
 	namespace
 	{
 		THandle<FSampler> gDefaultLinearSampler;
+		THandle<FSampler> gDefaultNearestNeighbourSampler;
 
 		THandle<FTexture> gWhiteTexture;
 		THandle<FTexture> gBlackTexture;
@@ -63,8 +64,15 @@ namespace Turbo
 			samplerBuilder
 				.SetMinMagFilter(vk::Filter::eNearest, vk::Filter::eLinear)
 				.SetMipFilter(vk::SamplerMipmapMode::eLinear)
-				.SetName(FName("DefaultLinearSampler"));
+				.SetName(FName("DefaultLinear"));
 			gDefaultLinearSampler = gpu.CreateSampler(samplerBuilder);
+
+			samplerBuilder
+				.SetMinMagFilter(vk::Filter::eNearest, vk::Filter::eNearest)
+				.SetMipFilter(vk::SamplerMipmapMode::eNearest)
+				.SetAddressUV(vk::SamplerAddressMode::eClampToEdge, vk::SamplerAddressMode::eClampToEdge)
+				.SetName(FName("DefaultNearestNeighbour"));
+			gDefaultNearestNeighbourSampler = gpu.CreateSampler(samplerBuilder);
 		}
 
 		void InitEngineTextures()
@@ -98,6 +106,7 @@ namespace Turbo
 		{
 			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 			gpu.DestroySampler(gDefaultLinearSampler);
+			gpu.DestroySampler(gDefaultNearestNeighbourSampler);
 
 			gpu.DestroyTexture(gWhiteTexture);
 			gpu.DestroyTexture(gBlackTexture);
@@ -110,6 +119,11 @@ namespace Turbo
 		THandle<FSampler> GetDefaultLinearSampler()
 		{
 			return gDefaultLinearSampler;
+		}
+
+		THandle<FSampler> GetDefaultNearestNeighbourSampler()
+		{
+			return gDefaultNearestNeighbourSampler;
 		}
 
 		THandle<FTexture> GetWhiteTexture()

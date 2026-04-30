@@ -3,6 +3,7 @@
 #include <limits>
 
 #include "CommonTypeDefs.h"
+#include "Graphics/CommandBuffer.h"
 #include "Graphics/Resources.h"
 
 namespace Turbo
@@ -233,6 +234,7 @@ namespace Turbo
 		FRGResourceHandle mTexture = {};
 
 		[[nodiscard]] vk::ImageMemoryBarrier2 ToVkImageBarrier(FGPUDevice& gpu, THandle<FTexture> textureHandle) const;
+		[[nodiscard]] std::string ToString() const;
 	};
 
 	struct FRGResourceLifetime
@@ -247,5 +249,15 @@ namespace Turbo
 		void* mData = nullptr;
 		size_t mDataSize = 0;
 		size_t mOffset = 0;
+	};
+
+	struct FRGAttachment
+	{
+		FRGResourceHandle mTexture = {};
+		ELoadOp mLoadOp = ELoadOp::Load;
+		EStoreOp mStoreOp = EStoreOp::Store;
+		EClearColor mClearColor = EClearColor::Zero;
+
+		bool IsValid() const { return mTexture.GetType() == ERGResourceType::Texture && mTexture.IsValid(); }
 	};
 }

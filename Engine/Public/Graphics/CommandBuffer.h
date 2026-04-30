@@ -92,7 +92,7 @@ namespace Turbo
 			vk::DeviceSize size = vk::WholeSize
 		);
 
-		void ClearImage(THandle<FTexture> textureHandle, glm::vec4 color = ELinearColor::kBlack);
+		void ClearImage(THandle<FTexture> textureHandle, glm::vec4 color = ELinearColor::kBlack, vk::ImageLayout layout = vk::ImageLayout::eGeneral);
 		void BlitImage(THandle<FTexture> src, FRect2DInt srcRect, THandle<FTexture> dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
 
 		void CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, vk::DeviceSize size);

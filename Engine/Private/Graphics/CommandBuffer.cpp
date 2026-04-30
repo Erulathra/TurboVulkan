@@ -86,14 +86,14 @@ namespace Turbo
 		mVkCommandBuffer.pipelineBarrier2(dependencyInfo);
 	}
 
-	void FCommandBuffer::ClearImage(THandle<FTexture> textureHandle, glm::vec4 color)
+	void FCommandBuffer::ClearImage(THandle<FTexture> textureHandle, glm::vec4 color, vk::ImageLayout layout)
 	{
 		FTexture* texture = mGpu->AccessTexture(textureHandle);
 		TURBO_CHECK(texture)
 
 		const vk::ClearColorValue clearColorValue {color.r, color.g, color.b, color.a};
 		const vk::ImageSubresourceRange subresourceRange = VkInit::ImageSubresourceRange();
-		mVkCommandBuffer.clearColorImage(texture->mVkImage, vk::ImageLayout::eGeneral, clearColorValue, subresourceRange);
+		mVkCommandBuffer.clearColorImage(texture->mVkImage, layout, clearColorValue, subresourceRange);
 	}
 
 	void FCommandBuffer::BlitImage(THandle<FTexture> src, FRect2DInt srcRect, THandle<FTexture> dst, FRect2DInt dstRect, EFilter filter)

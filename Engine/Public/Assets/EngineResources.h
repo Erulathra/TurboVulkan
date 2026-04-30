@@ -47,6 +47,7 @@ namespace Turbo
 		void DestroyEngineResources();
 
 		THandle<FSampler> GetDefaultLinearSampler();
+		THandle<FSampler> GetDefaultNearestNeighbourSampler();
 
 		THandle<FTexture> GetWhiteTexture();
 		THandle<FTexture> GetBlackTexture();

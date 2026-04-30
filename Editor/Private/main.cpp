@@ -8,6 +8,8 @@ int32_t main(int argc, char* argv[])
     Turbo::FEngine::Init();
 
     Turbo::FLayersStack& layerStack = entt::locator<Turbo::FLayersStack>::value();
+    Turbo::gEngine->RegisterEngineLayers();
+
     layerStack.PushLayer<Turbo::FEditorLayer>();
     layerStack.PushLayer<Turbo::FRenderingTestLayer>();
 

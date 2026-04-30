@@ -47,11 +47,16 @@ add_library(imgui STATIC
         ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
 
         ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
+        ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
 )
 target_link_libraries(imgui PRIVATE Vulkan-Headers)
 target_link_libraries(imgui PRIVATE SDL3::SDL3-shared)
 target_compile_definitions(imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
+target_link_libraries(imgui PRIVATE glm::glm)
+
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+target_include_directories(imgui PUBLIC ImGui)
+target_compile_definitions(imgui PUBLIC -DIMGUI_USER_CONFIG="ImGuiConfig.h")
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR}/imgui_internal.h)
 
 CPMAddPackage(

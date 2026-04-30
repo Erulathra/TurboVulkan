@@ -78,4 +78,17 @@ namespace Turbo
 
 		return vkBarrier;
 	}
+
+	std::string FRGTextureMemoryBarrier::ToString() const
+	{
+		return fmt::format(
+			"({}, {}, {}) -> ({}, {}, {})",
+			magic_enum::enum_name(mOldLayout),
+			vk::to_string(mSrcAccessMask),
+			vk::to_string(mSrcStageMask),
+			magic_enum::enum_name(mNewLayout),
+			vk::to_string(mDstAccessMask),
+			vk::to_string(mDstStageMask)
+		);
+	}
 }

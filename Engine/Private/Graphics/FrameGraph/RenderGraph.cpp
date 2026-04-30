@@ -4,6 +4,7 @@
 #include "Graphics/Debug.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/FrameGraph/RenderGraphHelpers.h"
+#include "vulkan/vulkan_to_string.hpp"
 
 namespace Turbo
 {
@@ -43,23 +44,36 @@ namespace Turbo
 		return buffer;
 	}
 
-	FRGResourceHandle FRGPassInfo::AddAttachment(FRGResourceHandle texture, uint32 mAttachmentIndex)
+	FRGResourceHandle FRGPassInfo::AddAttachment(FRGResourceHandle attachment, uint32 attachmentIndex)
 	{
-		TURBO_CHECK(mAttachmentIndex < kMaxColorAttachments);
-		TURBO_CHECK(mColorAttachments[mAttachmentIndex].IsValid() == false)
+		return AddAttachment({.mTexture = attachment }, attachmentIndex);
+	}
 
-		texture = WriteTexture(texture);
-		mColorAttachments[mAttachmentIndex] = texture;
+	FRGResourceHandle FRGPassInfo::AddAttachment(FRGAttachment attachment, uint32 attachmentIndex)
+	{
+		TURBO_CHECK(attachmentIndex < kMaxColorAttachments);
+		TURBO_CHECK(mColorAttachments[attachmentIndex].IsValid() == false)
+
+		FRGResourceHandle texture = WriteTexture(attachment.mTexture);
+		mColorAttachments[attachmentIndex] = attachment;
 
 		return texture;
 	}
 
-	FRGResourceHandle FRGPassInfo::SetDepthStencilAttachment(FRGResourceHandle texture)
+	FRGResourceHandle FRGPassInfo::SetDepthStencilAttachment(FRGResourceHandle attachment)
+	{
+		return SetDepthStencilAttachment({
+			.mTexture = attachment,
+			.mClearColor = EClearColor::Zero
+		});
+	}
+
+	FRGResourceHandle FRGPassInfo::SetDepthStencilAttachment(FRGAttachment attachment)
 	{
 		TURBO_CHECK(mDepthStencilAttachment.IsValid() == false)
 
-		texture = WriteTexture(texture);
-		mDepthStencilAttachment = texture;
+		FRGResourceHandle texture = WriteTexture(attachment.mTexture);
+		mDepthStencilAttachment = attachment;
 
 		return texture;
 	}
@@ -109,13 +123,21 @@ namespace Turbo
 	{
 		TURBO_CHECK(texture)
 
-		auto findExternalTexture =
+		auto findExternalTexturePredicate =
 			[texture](const FRGExternalTextureInfo& externalTextureInfo)
 			{
 				return externalTextureInfo.mTextureHandle == texture;
 			};
 
-		TURBO_CHECK(std::ranges::find_if(mExternalTextures, findExternalTexture) == mExternalTextures.end());
+		if (const auto foundIt = std::ranges::find_if(mExternalTextures, findExternalTexturePredicate);
+			foundIt != mExternalTextures.end())
+		{
+			return {
+				ERGResourceType::Texture,
+				static_cast<uint32>(std::distance(mExternalTextures.begin(), foundIt)),
+				true
+			};
+		}
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		const FTextureCold* textureCold = gpu.AccessTextureCold(texture);
@@ -283,6 +305,8 @@ namespace Turbo
 		for (uint32 passId = 0; passId < mRenderPasses.size(); ++passId)
 		{
 			const FRGPassInfo& pass = mRenderPasses[passId];
+			TURBO_LOG(LogRenderGraph, Display, "[Compile Texture Syncronization] {}", pass.mName)
+
 			std::vector<FRGTextureMemoryBarrier>& passImageBarriers = mPerPassTextureBarriers[passId];
 
 			std::vector<FRGResourceHandle> readWriteResources = pass.mTextureWrites;
@@ -312,7 +336,10 @@ namespace Turbo
 							: ETextureLayout::ReadOnly;
 
 					newBarrier.mSrcStageMask = FindTextureStageMask(srcData.mLastUseType, srcData.mFormat);
-					newBarrier.mDstStageMask = FindTextureStageMask(pass.mPassType, srcData.mFormat);
+					newBarrier.mDstStageMask =
+						pass.mPassType == EPassType::Compute
+							? vk::PipelineStageFlagBits2::eAllCommands
+							: vk::PipelineStageFlagBits2::eAllGraphics;
 
 					newBarrier.mSrcAccessMask = FindAccessMask(srcData.mAccess);
 					newBarrier.mDstAccessMask =
@@ -323,6 +350,8 @@ namespace Turbo
 					srcData.mLastUseType = pass.mPassType;
 					srcData.mAccess = EResourceAccess::Read;
 					srcData.mLayout = ETextureLayout::ReadOnly;
+
+					TURBO_LOG(LogRenderGraph, Display, "[Read Only] {}, {}", GetTextureInfo(read).mName, newBarrier.ToString())
 				}
 			}
 
@@ -354,9 +383,10 @@ namespace Turbo
 				switch (pass.mPassType)
 				{
 				case EPassType::Graphics:
-					newBarrier.mNewLayout = pass.mDepthStencilAttachment == write
-						                        ? ETextureLayout::DepthStencilAttachment
-						                        : ETextureLayout::ColorAttachment;
+					newBarrier.mNewLayout =
+						pass.mDepthStencilAttachment.mTexture == write
+							? ETextureLayout::DepthStencilAttachment
+							: ETextureLayout::ColorAttachment;
 					break;
 				case EPassType::Compute:
 					newBarrier.mNewLayout = ETextureLayout::General;
@@ -370,6 +400,9 @@ namespace Turbo
 
 				FResourceState& currentData = resourceData.at(write);
 				newBarrier.mDstStageMask = FindTextureStageMask(pass.mPassType, currentData.mFormat);
+
+				TURBO_LOG(LogRenderGraph, Display, "[Read Write] {} {}", GetTextureInfo(write).mName, newBarrier.ToString())
+
 
 				currentData.mLastUseType = pass.mPassType;
 				currentData.mAccess = EResourceAccess::ReadWrite;
@@ -385,6 +418,12 @@ namespace Turbo
 				foundSrcData != resourceData.end())
 			{
 				FResourceState& srcData = foundSrcData->second;
+
+				// Skip transitions to undefined
+				if (mExternalTextures[externalTextureId].mFinalLayout == ETextureLayout::Undefined)
+				{
+					continue;
+				}
 
 				FRGTextureMemoryBarrier& newBarrier = mExternalTexturesBarriers.emplace_back();
 				newBarrier.mSrcStageMask = FindTextureStageMask(srcData.mLastUseType, srcData.mFormat);
@@ -586,14 +625,18 @@ namespace Turbo
 			for (const FRGTextureMemoryBarrier& rgBarrier : passImageBarriers)
 			{
 				THandle<FTexture> textureHandle = renderResources.mTextures.at(rgBarrier.mTexture);
-				imageBarriers.push_back(rgBarrier.ToVkImageBarrier(gpu, textureHandle));
-
 				TURBO_LOG(
-					LogRenderGraph, Display, "[Image Barrier] Texture: {}; {} -> {}",
+					LogRenderGraph, Display, "[Image Barrier] Texture: {}; ({}, {}, {}) -> ({}, {}, {})",
 					gpu.AccessTextureCold(textureHandle)->mName,
 					magic_enum::enum_name(rgBarrier.mOldLayout),
-					magic_enum::enum_name(rgBarrier.mNewLayout)
+					vk::to_string(rgBarrier.mSrcStageMask),
+					vk::to_string(rgBarrier.mSrcAccessMask),
+					magic_enum::enum_name(rgBarrier.mNewLayout),
+					vk::to_string(rgBarrier.mSrcStageMask),
+					vk::to_string(rgBarrier.mDstAccessMask)
 				);
+
+				imageBarriers.push_back(rgBarrier.ToVkImageBarrier(gpu, textureHandle));
 			}
 
 			FRGPassBufferBarriers& passBufferBarriers = mPerPassBufferBarriers[passId];
@@ -626,19 +669,19 @@ namespace Turbo
 				{
 					if (pass.mColorAttachments[attachmentId].IsValid())
 					{
-						const FRGResourceHandle attachmentResource = pass.mColorAttachments[attachmentId];
+						const FRGAttachment attachment = pass.mColorAttachments[attachmentId];
 
 						const FAttachment attachmentInfo = {
-							.mTexture = renderResources.mTextures.at(attachmentResource),
-							.mLoadOp = std::ranges::contains(pass.mTextureReads, attachmentResource) ? ELoadOp::Load : ELoadOp::Clear,
-							.mStoreOp = EStoreOp::Store,
-							.mClearColor = EClearColor::TransparentBlack
+							.mTexture = renderResources.mTextures.at(attachment.mTexture),
+							.mLoadOp = attachment.mLoadOp,
+							.mStoreOp = attachment.mStoreOp,
+							.mClearColor = attachment.mClearColor
 						};
 						renderingAttachments.AddColorAttachment(attachmentInfo);
 
 						TURBO_LOG(
 							LogRenderGraph, Display, "[GraphicsPass] Bind {} as color attachment {}",
-							gpu.AccessTextureCold(renderResources.mTextures.at(attachmentResource))->mName,
+							gpu.AccessTextureCold(renderResources.mTextures.at(attachment.mTexture))->mName,
 							attachmentId
 						);
 					}
@@ -647,24 +690,26 @@ namespace Turbo
 				// Bind depth stencil attachment (if valid)
 				if (pass.mDepthStencilAttachment.IsValid())
 				{
+					const FRGAttachment& attachment = pass.mDepthStencilAttachment;
+
 					const FAttachment attachmentInfo = {
-						.mTexture = renderResources.mTextures.at(pass.mDepthStencilAttachment),
-						.mLoadOp = std::ranges::contains(pass.mTextureReads, pass.mDepthStencilAttachment) ? ELoadOp::Load : ELoadOp::Clear,
-						.mStoreOp = EStoreOp::Store,
-						.mClearColor = EClearColor::Zero
+						.mTexture = renderResources.mTextures.at(attachment.mTexture),
+						.mLoadOp = attachment.mLoadOp,
+						.mStoreOp = attachment.mStoreOp,
+						.mClearColor = attachment.mClearColor
 					};
 					renderingAttachments.SetDepthAttachment(attachmentInfo);
 
 					TURBO_LOG(
 						LogRenderGraph, Display, "[GraphicsPass] Bind {} as depth attachment",
-						gpu.AccessTextureCold(renderResources.mTextures[pass.mDepthStencilAttachment])->mName
+						gpu.AccessTextureCold(renderResources.mTextures[pass.mDepthStencilAttachment.mTexture])->mName
 					);
 				}
 
 				const FRGResourceHandle mainTextureHandle =
 					pass.mColorAttachments[0].IsValid()
-						? pass.mColorAttachments[0]
-						: pass.mDepthStencilAttachment;
+						? pass.mColorAttachments[0].mTexture
+						: pass.mDepthStencilAttachment.mTexture;
 
 				TURBO_CHECK(mainTextureHandle.IsValid())
 
@@ -728,10 +773,14 @@ namespace Turbo
 			imageBarriers.push_back(rgBarrier.ToVkImageBarrier(gpu, textureHandle));
 
 			TURBO_LOG(
-				LogRenderGraph, Display, "[Image Barrier] Texture: {}; {} -> {}",
+				LogRenderGraph, Display, "[External Image Barrier] Texture: {}; ({}, {}, {}) -> ({}, {}, {})",
 				gpu.AccessTextureCold(textureHandle)->mName,
 				magic_enum::enum_name(rgBarrier.mOldLayout),
-				magic_enum::enum_name(rgBarrier.mNewLayout)
+				vk::to_string(rgBarrier.mSrcStageMask),
+				vk::to_string(rgBarrier.mSrcAccessMask),
+				magic_enum::enum_name(rgBarrier.mNewLayout),
+				vk::to_string(rgBarrier.mSrcStageMask),
+				vk::to_string(rgBarrier.mDstAccessMask)
 			);
 		}
 

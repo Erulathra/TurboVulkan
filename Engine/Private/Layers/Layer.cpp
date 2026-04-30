@@ -34,13 +34,13 @@ namespace Turbo
 		}
 	}
 
-	TSharedPtr<ILayer> FLayersStack::GetLayer(FName layerName)
+	ILayer* FLayersStack::GetLayer(FName layerName)
 	{
 		if (auto foundIt = mLayerLookUp.find(layerName);
 			foundIt != mLayerLookUp.end())
 		{
 			const uint32 layerIndex = foundIt->second;
-			return mLayers[layerIndex];
+			return mLayers[layerIndex].get();
 		}
 
 		return nullptr;

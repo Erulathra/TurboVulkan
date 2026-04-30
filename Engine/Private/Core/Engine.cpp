@@ -200,7 +200,7 @@ namespace Turbo
 			geometryBuffer.Init(graphBuilder, gbufferResolution);
 
 			const THandle<FTexture> presentHandle = gpu.GetPresentImage();
-			FRGResourceHandle presentRes = graphBuilder.RegisterExternalTexture(
+			FRGResourceHandle presentTexture = graphBuilder.RegisterExternalTexture(
 				presentHandle,
 				ETextureLayout::Undefined,
 				ETextureLayout::PresentSrc
@@ -231,13 +231,25 @@ namespace Turbo
 			}
 
 			{
+				TRACE_ZONE_SCOPED_N("Services: End frame")
+				for (const TSharedPtr<ILayer>& layer : layerStack)
+				{
+					if (layer->ShouldRender())
+					{
+						TRACE_ZONE_SCOPED_FORMAT(PostPresentingFrame, "End frame - {}", layer->GetName())
+						layer->EndFrame(graphBuilder, presentTexture);
+					}
+				}
+			}
+
+			{
 				TRACE_ZONE_SCOPED_N("Services: Begin presenting frame")
 				for (const TSharedPtr<ILayer>& layer : layerStack)
 				{
 					if (layer->ShouldRender())
 					{
                         TRACE_ZONE_SCOPED_FORMAT(PostPresentingFrame, "Begin presenting frame - {}", layer->GetName())
-						layer->BeginPresentingFrame(graphBuilder, presentRes);
+						layer->BeginPresentingFrame(graphBuilder, presentTexture);
 					}
 				}
 			}
@@ -280,11 +292,12 @@ namespace Turbo
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		gpu.WaitIdle();
+		gpu.FlushDestroyQueues();
 
 		FLayersStack& layerStack = entt::locator<FLayersStack>::value();
-		for (auto layerIt = layerStack.rbegin(); layerIt != layerStack.rend(); ++layerIt)
+		for (auto & layerIt : std::views::reverse(layerStack))
 		{
-			layerIt->get()->Shutdown();
+			layerIt.get()->Shutdown();
 		}
 
 		mWorld->UnloadLevel();

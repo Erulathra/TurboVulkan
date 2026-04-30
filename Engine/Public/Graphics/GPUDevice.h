@@ -128,6 +128,7 @@ namespace Turbo
 		void DestroyDescriptorSetLayout(THandle<FDescriptorSetLayout> handle);
 		void DestroyShaderState(THandle<FShaderState> handle);
 
+		void AddOnDestroyCallback(FOnDestroy::Delegate&& delegate);
 		/** Resource destroy end */
 
 		/** Destroy immediate */
@@ -191,6 +192,7 @@ namespace Turbo
 		void DestroyFrameDatas();
 		void DestroyImmediateCommands();
 		void DestroyBindlessResources();
+		void FlushDestroyQueues();
 
 		/** Destroy methods end */
 

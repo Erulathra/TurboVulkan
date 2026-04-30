@@ -12,12 +12,6 @@
 
 namespace Turbo
 {
-	template<>
-	FName GetStaticLayerName<FRenderingTestLayer>()
-	{
-		static FName layerName = FName("EditorLayer");
-		return layerName;
-	}
 
 	void FRenderingTestLayer::Start()
 	{
@@ -76,10 +70,15 @@ namespace Turbo
 		ShowImGuiWindow();
 	}
 
+	template<>
+	FName GetStaticLayerName<FRenderingTestLayer>()
+	{
+		static FName layerName = FName("RenderingTestLayer");
+		return layerName;
+	}
+
 	FName FRenderingTestLayer::GetName()
 	{
 		return GetStaticLayerName<FRenderingTestLayer>();
 	}
-
-
 }
