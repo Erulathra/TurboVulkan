@@ -10,6 +10,7 @@ namespace Turbo
 	void AddWorldTransform(entt::registry& registry, entt::entity entity)
 	{
 		registry.emplace<FWorldTransform>(entity);
+		registry.emplace<FWorldRoot>(entity);
 	}
 
 	void FSceneGraph::InitSceneGraph(entt::registry& registry)
@@ -40,7 +41,7 @@ namespace Turbo
 
 			auto transformView = registry.view<FRelationship, FTransform, FWorldTransform>();
 
-			// Iterate over children using breath first search
+			// Iterate over children using breath-first search
 			while (entitiesToProcessBack < entitiesToProcess.size())
 			{
 				entt::entity dirtyEntity = entitiesToProcess[entitiesToProcessBack];
@@ -96,6 +97,7 @@ namespace Turbo
 		FRelationship& parentRel = registry.get<FRelationship>(parent);
 
 		childRel.mParent = parent;
+		registry.remove<FWorldRoot>(child);
 		childRel.mNext = parentRel.mFirstChild;
 
 		parentRel.mFirstChild = child;
@@ -125,6 +127,7 @@ namespace Turbo
 		}
 
 		childRel.mParent = entt::null;
+		registry.emplace<FWorldRoot>(child);
 	}
 
 	void FSceneGraph::MarkDirty(entt::registry& registry, entt::entity entity)

@@ -1,6 +1,13 @@
 #include "Windows/SceneOutlinerWindow.h"
 
+#include <queue>
+
+#include "EditorLayer.h"
 #include "imgui.h"
+#include "Core/Engine.h"
+#include "Extensions/ImGui/ImGuiExtensions.h"
+#include "Layers/Layer.h"
+#include "World/World.h"
 
 namespace Turbo
 {
@@ -15,11 +22,115 @@ namespace Turbo
 			textFilter.Build();
 		}
 
-		ImGui::BeginTable("##EntityList", 1, ImGuiTableFlags_RowBg);
-
-		ImGui::EndTable();
+		if (textFilter.IsActive())
+		{
+			DrawList(textFilter);
+		}
+		else
+		{
+			DrawTree();
+		}
 
 		ImGui::PopItemWidth();
 		ImGui::End();
+	}
+
+	void FSceneOutlinerWindow::DrawTree()
+	{
+		entt::registry& registry = gEngine->GetWorld()->mRegistry;
+
+		ImGui::BeginTable("##EntityList", 1, ImGuiTableFlags_RowBg);
+
+		// breath-first search
+		std::vector<std::pair<entt::entity, uint32>> entitiesToProcess;
+
+		auto rootView = registry.view<FWorldRoot>();
+		for (entt::entity entity : rootView)
+		{
+			entitiesToProcess.emplace_back(entity, 0);
+		}
+
+		uint32 currentDepth = 0;
+
+		while (entitiesToProcess.empty() == false)
+		{
+			auto [currentEntity, nodeDepth] = entitiesToProcess.back();
+			entitiesToProcess.pop_back();
+
+			ImGui::TreePop(currentDepth, nodeDepth);
+
+			if (DrawNode(registry, currentEntity))
+			{
+				currentDepth++;
+				FSceneGraph::EachChild(
+					registry, currentEntity, [&](entt::entity child)
+				{
+					entitiesToProcess.emplace_back(child, nodeDepth + 1);
+				});
+			}
+		}
+
+		ImGui::TreePop(currentDepth, 0);
+		ImGui::EndTable();
+	}
+
+	bool FSceneOutlinerWindow::DrawNode(entt::registry& registry, entt::entity entity, bool bForceLeaf)
+	{
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		std::string_view name = "Entity";
+		if (FEntityName* entityName = registry.try_get<FEntityName>(entity))
+		{
+			name = entityName->mName.ToString();
+		}
+
+		const std::string label = fmt::format("{}: {}", static_cast<uint32>(entity), name);
+
+		const FRelationship& relationship = registry.get<FRelationship>(entity);
+
+		ImGuiTreeNodeFlags nodeFlags = 0;
+		nodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+		nodeFlags |= ImGuiTreeNodeFlags_NavLeftJumpsToParent;
+		nodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DrawLinesToNodes;
+
+		if (relationship.mNumChildren == 0 || bForceLeaf)
+		{
+			nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		}
+
+		ImGui::SetNextItemStorageID(static_cast<uint32>(entity));
+		bool bOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(entity)), nodeFlags, "%s", label.c_str());
+		bOpen &= relationship.mNumChildren > 0;
+
+		if (ImGui::IsItemClicked())
+		{
+			FEditorLayer* editorLayer = entt::locator<FLayersStack>::value().GetLayerChecked<FEditorLayer>();
+			editorLayer->SetSelection(entity);
+		}
+
+		return bOpen;
+	}
+
+	void FSceneOutlinerWindow::DrawList(ImGuiTextFilter& filter)
+	{
+		entt::registry& registry = gEngine->GetWorld()->mRegistry;
+
+		ImGui::BeginTable("##EntityList", 1, ImGuiTableFlags_RowBg);
+
+		auto namedEntitiesView = registry.view<FEntityName>();
+		for (entt::entity entity : namedEntitiesView)
+		{
+			const FEntityName& entityName = namedEntitiesView.get<FEntityName>(entity);
+			if (filter.PassFilter(entityName.mName.ToCString()))
+			{
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				DrawNode(registry, entity, true);
+			}
+		}
+
+		ImGui::EndTable();
 	}
 } // Turbo

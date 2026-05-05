@@ -11,6 +11,11 @@ namespace Turbo
 
 namespace Turbo
 {
+	struct FEntityName
+	{
+		FName mName;
+	};
+
 	struct FTransform
 	{
 		glm::float3 mPosition = {};
@@ -23,6 +28,7 @@ namespace Turbo
 		glm::float4x4 mTransform = glm::float4x4(1.f);
 	};
 
+	struct FWorldRoot {};
 	struct FWorldTransformDirty {};
 
 	struct FRelationship
@@ -82,7 +88,6 @@ namespace Turbo
 
 		static void AddChild(entt::registry& registry, entt::entity parent, entt::entity child);
 		static void Unparent(entt::registry& registry, entt::entity child);
-
 		static void MarkDirty(entt::registry& registry, entt::entity entity);
 
 		template<typename Func>

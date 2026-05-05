@@ -8,8 +8,12 @@
 
 namespace Turbo
 {
+	DECLARE_MULTICAST_DELEGATE(FOnSelectionChanged, entt::entity);
+
 	class FEditorLayer : public ILayer
 	{
+		FOnSelectionChanged OnSelectionChanged;
+
 	public:
 		virtual void Start() override;
 		virtual void Shutdown() override;
@@ -26,12 +30,28 @@ namespace Turbo
 	public:
 		virtual FName GetName() override;
 
+	public:
+		void SetSelection(entt::entity entity);
+		[[nodiscard]] entt::entity GetSelection() const { return mSelection; }
+
 	private:
-		void HandleInputActionEvent(FActionEvent& event);
-		void HandleCloseEvent(FCloseWindowEvent& event);
+		entt::entity mSelection = entt::null;
 
 	public:
 		TSharedPtr<FEditorViewportWindow> mViewportWindow;
 		TSharedPtr<FSceneOutlinerWindow> mOutlinerWindow;
+
+
+	private:
+		void HandleInputActionEvent(FActionEvent& event);
+		void HandleCloseEvent(FCloseWindowEvent& event);
+
 	};
+
+	template<>
+	inline FName GetStaticLayerName<FEditorLayer>()
+	{
+		static FName layerName = FName("EditorLayer");
+		return layerName;
+	}
 } // Turbo

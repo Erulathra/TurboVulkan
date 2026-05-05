@@ -169,6 +169,8 @@ namespace Turbo
 			entt::entity nodeEntity = world.mRegistry.create();
 			world.mRegistry.emplace<FSpawnedByLevelTag>(nodeEntity);
 			world.mRegistry.emplace<FRelationship>(nodeEntity);
+			FEntityName& entityName = world.mRegistry.emplace<FEntityName>(nodeEntity);
+			entityName.mName = FName(node.name);
 
 			nodeEntities.push_back(nodeEntity);
 

@@ -17,13 +17,6 @@ namespace Turbo
 	const FName kToggleFullscreenName = FName("ToggleFullscreen");
 	const FName kFrameCapture = FName("FrameCapture");
 
-	template<>
-	FName GetStaticLayerName<FEditorLayer>()
-	{
-		static FName layerName = FName("EditorLayer");
-		return layerName;
-	}
-
 	void FEditorLayer::Start()
 	{
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
@@ -89,6 +82,15 @@ namespace Turbo
 	FName FEditorLayer::GetName()
 	{
 		return GetStaticLayerName<FEditorLayer>();
+	}
+
+	void FEditorLayer::SetSelection(entt::entity entity)
+	{
+		if (mSelection != entity)
+		{
+			mSelection = entity;
+			OnSelectionChanged.Broadcast(entity);
+		}
 	}
 
 	void FEditorLayer::HandleInputActionEvent(FActionEvent& event)

@@ -1,13 +1,12 @@
 #include "imgui.h"
 #include "RenderingTestLayer.h"
 
+#include "EditorLayer.h"
 #include "Core/CoreTimer.h"
 #include "Core/Engine.h"
 #include "Debug/IConsoleManager.h"
 #include "Extensions/ImGui/ImGuiExtensions.h"
-#include "glm/gtx/string_cast.hpp"
 #include "Graphics/ResourceBuilders.h"
-#include "World/Camera.h"
 #include "World/World.h"
 
 namespace Turbo
@@ -50,17 +49,23 @@ namespace Turbo
 			0.f
 		);
 
-		const entt::registry& registry = gEngine->GetWorld()->mRegistry;
-		const auto mainCameraView = registry.view<FWorldTransform const, FCamera const, FMainViewport const>();
+		FEditorLayer* editorLayer = entt::locator<FLayersStack>::value().GetLayerChecked<FEditorLayer>();
+		entt::entity selection = editorLayer->GetSelection();
 
-		for (entt::entity entity : mainCameraView)
+		std::string selectionString = "None";
+
+		entt::registry& registry = gEngine->GetWorld()->mRegistry;
+		const FEntityName* selectionName = registry.try_get<FEntityName>(selection);
+		if (selectionName)
 		{
-			const FWorldTransform& transform = mainCameraView.get<FWorldTransform>(entity);
-			ImGui::TextFmt("Camera position: {}", TransformUtils::GetPosition(transform));
-			ImGui::TextFmt("Camera front: {}", TransformUtils::GetForward(transform));
-			ImGui::TextFmt("Camera right: {}", TransformUtils::GetRight(transform));
-			ImGui::TextFmt("Camera up: {}", TransformUtils::GetUp(transform));
+			selectionString = selectionName->mName.ToString();
 		}
+		else if (registry.valid(selection))
+		{
+			selectionString = fmt::format("Entity: {}", static_cast<uint32>(selection));
+		}
+
+		ImGui::TextFmt("Selected entities: {}", selectionString);
 
 		ImGui::End();
 	}
