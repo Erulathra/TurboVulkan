@@ -19,6 +19,8 @@ namespace Turbo
 
 	void FEditorLayer::Start()
 	{
+		entt::locator<FEditorSelection>::emplace();
+
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
 		inputSystem.RegisterBinding({kToggleFullscreenName, EKeys::F11});
 		inputSystem.RegisterBinding({kFrameCapture, EKeys::F12});
@@ -26,10 +28,12 @@ namespace Turbo
 		mViewportWindow = MakeShared<FEditorViewportWindow>();
 		mViewportWindow->Init();
 		mOutlinerWindow = MakeShared<FSceneOutlinerWindow>();
+
 	}
 
 	void FEditorLayer::Shutdown()
 	{
+		entt::locator<FEditorSelection>::reset();
 		mViewportWindow->Shutdown();
 	}
 
@@ -84,7 +88,7 @@ namespace Turbo
 		return GetStaticLayerName<FEditorLayer>();
 	}
 
-	void FEditorLayer::SetSelection(entt::entity entity)
+	void FEditorSelection::SetSelection(entt::entity entity)
 	{
 		if (mSelection != entity)
 		{

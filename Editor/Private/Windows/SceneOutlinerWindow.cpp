@@ -94,10 +94,16 @@ namespace Turbo
 		nodeFlags |= ImGuiTreeNodeFlags_NavLeftJumpsToParent;
 		nodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DrawLinesToNodes;
 
+		if (entity == entt::locator<FEditorSelection>::value().GetSelection())
+		{
+			nodeFlags |= ImGuiTreeNodeFlags_Selected;
+		}
+
 		if (relationship.mNumChildren == 0 || bForceLeaf)
 		{
 			nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 		}
+
 
 		ImGui::SetNextItemStorageID(static_cast<uint32>(entity));
 		bool bOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(entity)), nodeFlags, "%s", label.c_str());
@@ -105,8 +111,7 @@ namespace Turbo
 
 		if (ImGui::IsItemClicked())
 		{
-			FEditorLayer* editorLayer = entt::locator<FLayersStack>::value().GetLayerChecked<FEditorLayer>();
-			editorLayer->SetSelection(entity);
+			entt::locator<FEditorSelection>::value().SetSelection(entity);
 		}
 
 		return bOpen;

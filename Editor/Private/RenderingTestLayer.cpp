@@ -49,8 +49,7 @@ namespace Turbo
 			0.f
 		);
 
-		FEditorLayer* editorLayer = entt::locator<FLayersStack>::value().GetLayerChecked<FEditorLayer>();
-		entt::entity selection = editorLayer->GetSelection();
+		entt::entity selection = entt::locator<FEditorSelection>::value().GetSelection();
 
 		std::string selectionString = "None";
 

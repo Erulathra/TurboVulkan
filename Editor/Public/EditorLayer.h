@@ -10,9 +10,21 @@ namespace Turbo
 {
 	DECLARE_MULTICAST_DELEGATE(FOnSelectionChanged, entt::entity);
 
+	class FEditorSelection
+	{
+	public:
+		FOnSelectionChanged OnSelectionChanged;
+
+	public:
+		void SetSelection(entt::entity entity);
+		[[nodiscard]] entt::entity GetSelection() const { return mSelection; }
+
+	private:
+		entt::entity mSelection = entt::null;
+	};
+
 	class FEditorLayer : public ILayer
 	{
-		FOnSelectionChanged OnSelectionChanged;
 
 	public:
 		virtual void Start() override;
@@ -29,13 +41,6 @@ namespace Turbo
 
 	public:
 		virtual FName GetName() override;
-
-	public:
-		void SetSelection(entt::entity entity);
-		[[nodiscard]] entt::entity GetSelection() const { return mSelection; }
-
-	private:
-		entt::entity mSelection = entt::null;
 
 	public:
 		TSharedPtr<FEditorViewportWindow> mViewportWindow;
