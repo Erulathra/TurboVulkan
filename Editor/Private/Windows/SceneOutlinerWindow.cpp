@@ -90,7 +90,7 @@ namespace Turbo
 		const FRelationship& relationship = registry.get<FRelationship>(entity);
 
 		ImGuiTreeNodeFlags nodeFlags = 0;
-		nodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+		nodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
 		nodeFlags |= ImGuiTreeNodeFlags_NavLeftJumpsToParent;
 		nodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DrawLinesToNodes;
 
@@ -104,10 +104,17 @@ namespace Turbo
 			nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 		}
 
-
 		ImGui::SetNextItemStorageID(static_cast<uint32>(entity));
 		bool bOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(entity)), nodeFlags, "%s", label.c_str());
 		bOpen &= relationship.mNumChildren > 0;
+
+		if (ImGui::BeginDragDropSource())
+		{
+			ImGui::SetDragDropPayload("Entity", &entity, sizeof(entt::entity));
+			ImGui::TextFmt("{}", label.c_str());
+
+			ImGui::EndDragDropSource();
+		}
 
 		if (ImGui::IsItemClicked())
 		{
