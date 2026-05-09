@@ -36,10 +36,10 @@ namespace Turbo
 
 	void FEditorViewportWindow::Draw()
 	{
+		ImGui::SetNextWindowSizeConstraints(glm::float2(128.f), glm::float2(FLT_MAX));
 		ImGui::Begin("Viewport");
 		bHasFocus = ImGui::IsWindowHovered();
 
-		// const glm::uint2 newContentSize = currentWindow->SizeFull
 		const glm::uint2 newContentSize = ImGui::GetContentRegionAvail();
 		if (newContentSize != mEditorViewportSize)
 		{

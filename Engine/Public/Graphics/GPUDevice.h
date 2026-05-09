@@ -60,7 +60,11 @@ namespace Turbo
 		void SubmitMainCommandBufferAndWaitIdle();
 
 		[[nodiscard]] glm::uint2 GetMainViewportSize() const { return mViewportSize; }
-		void SetMainViewportSize(glm::uint2 mNewSize) { mViewportSize = mNewSize; }
+		void SetMainViewportSize(glm::uint2 newSize)
+		{
+			TURBO_CHECK(newSize.x > 0 && newSize.y > 0)
+			mViewportSize = newSize;
+		}
 
 		[[nodiscard]] glm::uint2 GetFrameBufferSize() const { return mFramebufferSize; }
 		[[nodiscard]] uint32 GetBufferedFrameId() const { return mBufferedFrameId; }

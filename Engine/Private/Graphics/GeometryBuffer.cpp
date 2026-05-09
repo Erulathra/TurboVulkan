@@ -15,6 +15,7 @@ namespace Turbo
 			.mWidth = static_cast<uint16>(resolution.x),
 			.mHeight = static_cast<uint16>(resolution.y),
 			.mFormat = kColorFormat,
+			.mFlags = ETextureFlags::RenderTarget | ETextureFlags::StorageImage,
 			.mName = geometryBufferColorName
 		};
 
@@ -22,6 +23,7 @@ namespace Turbo
 			.mWidth = static_cast<uint16>(resolution.x),
 			.mHeight = static_cast<uint16>(resolution.y),
 			.mFormat = kDepthStencilFormat,
+			.mFlags = ETextureFlags::RenderTarget,
 			.mName = geometryBufferDepthName
 		};
 

@@ -182,6 +182,7 @@ namespace Turbo
 		uint16 mHeight = 1;
 
 		vk::Format mFormat = vk::Format::eUndefined;
+		ETextureFlags mFlags = ETextureFlags::Invalid;
 
 		FName mName = {};
 

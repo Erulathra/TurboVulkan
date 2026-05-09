@@ -1534,7 +1534,9 @@ namespace Turbo
 
 	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture, FTextureCold* textureCold)
 	{
-		*texture = {};
+		*texture = {
+			.mFlags = builder.mFlags
+		};
 
 		textureCold->mFormat = builder.mFormat;
 

@@ -119,14 +119,14 @@ namespace Turbo
 		return RegisterExternalTexture(texture, initLayout, initLayout);
 	}
 
-	FRGResourceHandle FRenderGraphBuilder::RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout, ETextureLayout finalLayout)
+	FRGResourceHandle FRenderGraphBuilder::RegisterExternalTexture(THandle<FTexture> textureHandle, ETextureLayout initLayout, ETextureLayout finalLayout)
 	{
-		TURBO_CHECK(texture)
+		TURBO_CHECK(textureHandle)
 
 		auto findExternalTexturePredicate =
-			[texture](const FRGExternalTextureInfo& externalTextureInfo)
+			[textureHandle](const FRGExternalTextureInfo& externalTextureInfo)
 			{
-				return externalTextureInfo.mTextureHandle == texture;
+				return externalTextureInfo.mTextureHandle == textureHandle;
 			};
 
 		if (const auto foundIt = std::ranges::find_if(mExternalTextures, findExternalTexturePredicate);
@@ -140,17 +140,19 @@ namespace Turbo
 		}
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
-		const FTextureCold* textureCold = gpu.AccessTextureCold(texture);
-		TURBO_CHECK(texture);
+		const FTexture* texture = gpu.AccessTexture(textureHandle);
+		const FTextureCold* textureCold = gpu.AccessTextureCold(textureHandle);
+		TURBO_CHECK(textureHandle);
 
 		FRGExternalTextureInfo externalTextureInfo = {
 			.mTextureInfo = {
 				.mWidth = textureCold->mWidth,
 				.mHeight = textureCold->mHeight,
 				.mFormat = textureCold->GetFormat(),
+				.mFlags =  texture->mFlags,
 				.mName = textureCold->mName
 			},
-			.mTextureHandle = texture,
+			.mTextureHandle = textureHandle,
 			.mInitialLayout = initLayout,
 			.mFinalLayout = finalLayout
 		};
@@ -553,7 +555,7 @@ namespace Turbo
 			FTextureBuilder builder = {
 				.mWidth = textureInfo.mWidth,
 				.mHeight = textureInfo.mHeight,
-				.mFlags = ETextureFlags::RenderTarget | ETextureFlags::StorageImage,
+				.mFlags = textureInfo.mFlags,
 				.mFormat = textureInfo.mFormat,
 				.mType = ETextureType::Texture2D,
 				.mName = textureInfo.mName

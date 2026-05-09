@@ -105,6 +105,8 @@ namespace Turbo
 		vk::ImageView mVkImageView = nullptr;
 		vma::Allocation mImageAllocation = nullptr;
 		uint32 mBindIndex = std::numeric_limits<uint32>::max();
+
+		ETextureFlags mFlags = ETextureFlags::Invalid;
 	};
 
 	struct FTextureCold
