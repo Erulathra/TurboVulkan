@@ -11,6 +11,9 @@
 #include "Graphics/GPUDevice.h"
 #include "Graphics/FrameGraph/RenderGraphUtils.h"
 #include "Layers/ImGUILayer.h"
+#include "Windows/EditorViewportWindow.h"
+#include "Windows/PropertyEditor.h"
+#include "Windows/SceneOutlinerWindow.h"
 
 namespace Turbo
 {
@@ -28,7 +31,8 @@ namespace Turbo
 		mViewportWindow = MakeShared<FEditorViewportWindow>();
 		mViewportWindow->Init();
 		mOutlinerWindow = MakeShared<FSceneOutlinerWindow>();
-
+		mPropertyEditor = MakeShared<FPropertyEditorWindow>();
+		mPropertyEditor->Init();
 	}
 
 	void FEditorLayer::Shutdown()
@@ -46,6 +50,7 @@ namespace Turbo
 	{
 		mViewportWindow->Draw();
 		mOutlinerWindow->Draw();
+		mPropertyEditor->Draw();
 	}
 
 	bool FEditorLayer::ShouldTick()

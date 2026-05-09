@@ -7,6 +7,7 @@
 #include "Core/Engine.h"
 #include "Extensions/ImGui/ImGuiExtensions.h"
 #include "Layers/Layer.h"
+#include "World/EntityUtils.h"
 #include "World/World.h"
 
 namespace Turbo
@@ -79,18 +80,11 @@ namespace Turbo
 		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
 
-		std::string_view name = "Entity";
-		if (FEntityName* entityName = registry.try_get<FEntityName>(entity))
-		{
-			name = entityName->mName.ToString();
-		}
-
-		const std::string label = fmt::format("{}: {}", static_cast<uint32>(entity), name);
-
+		const std::string label = EntityUtils::GetEntityLabel(registry, entity);
 		const FRelationship& relationship = registry.get<FRelationship>(entity);
 
 		ImGuiTreeNodeFlags nodeFlags = 0;
-		nodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
+		nodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
 		nodeFlags |= ImGuiTreeNodeFlags_NavLeftJumpsToParent;
 		nodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DrawLinesToNodes;
 
@@ -130,10 +124,10 @@ namespace Turbo
 
 		ImGui::BeginTable("##EntityList", 1, ImGuiTableFlags_RowBg);
 
-		auto namedEntitiesView = registry.view<FEntityName>();
+		auto namedEntitiesView = registry.view<FEntityLabel>();
 		for (entt::entity entity : namedEntitiesView)
 		{
-			const FEntityName& entityName = namedEntitiesView.get<FEntityName>(entity);
+			const FEntityLabel& entityName = namedEntitiesView.get<FEntityLabel>(entity);
 			if (filter.PassFilter(entityName.mName.ToCString()))
 			{
 				ImGui::TableNextRow();

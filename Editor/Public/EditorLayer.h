@@ -3,12 +3,14 @@
 #include "Core/WindowEvents.h"
 #include "Core/Input/Input.h"
 #include "Layers/Layer.h"
-#include "Windows/EditorViewportWindow.h"
-#include "Windows/SceneOutlinerWindow.h"
 
 namespace Turbo
 {
 	DECLARE_MULTICAST_DELEGATE(FOnSelectionChanged, entt::entity);
+
+	class FEditorViewportWindow;
+	class FPropertyEditorWindow;
+	class FSceneOutlinerWindow;
 
 	class FEditorSelection
 	{
@@ -45,6 +47,7 @@ namespace Turbo
 	public:
 		TSharedPtr<FEditorViewportWindow> mViewportWindow;
 		TSharedPtr<FSceneOutlinerWindow> mOutlinerWindow;
+		TSharedPtr<FPropertyEditorWindow> mPropertyEditor;
 
 
 	private:

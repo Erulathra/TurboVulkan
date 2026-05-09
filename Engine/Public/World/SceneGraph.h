@@ -11,7 +11,7 @@ namespace Turbo
 
 namespace Turbo
 {
-	struct FEntityName
+	struct FEntityLabel
 	{
 		FName mName;
 	};

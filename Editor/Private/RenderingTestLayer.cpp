@@ -54,7 +54,7 @@ namespace Turbo
 		std::string selectionString = "None";
 
 		entt::registry& registry = gEngine->GetWorld()->mRegistry;
-		const FEntityName* selectionName = registry.try_get<FEntityName>(selection);
+		const FEntityLabel* selectionName = registry.try_get<FEntityLabel>(selection);
 		if (selectionName)
 		{
 			selectionString = selectionName->mName.ToString();
