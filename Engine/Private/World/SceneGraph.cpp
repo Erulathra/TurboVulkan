@@ -13,14 +13,14 @@ namespace Turbo
 		registry.emplace<FWorldRoot>(entity);
 	}
 
-	void FSceneGraph::InitSceneGraph(entt::registry& registry)
+	void SceneGraph::InitSceneGraph(entt::registry& registry)
 	{
 		registry.on_construct<FTransform>().connect<MarkDirty_Impl>();
 		registry.on_construct<FTransform>().connect<AddWorldTransform>();
 		registry.on_update<FTransform>().connect<MarkDirty_Impl>();
 	}
 
-	void FSceneGraph::UpdateWorldTransforms(entt::registry& registry)
+	void SceneGraph::UpdateWorldTransforms(entt::registry& registry)
 	{
 		TRACE_ZONE_SCOPED();
 
@@ -53,7 +53,7 @@ namespace Turbo
 				{
 					FWorldTransform& world = transformView.get<FWorldTransform>(dirtyEntity);
 
-					const glm::mat4 localMatrix = FMath::CreateTransform(local->mPosition, local->mRotation, local->mScale);
+					const glm::mat4 localMatrix = FMath::MatrixFromTransform(*local);
 
 					if (relationship.mParent == entt::null)
 					{
@@ -78,7 +78,7 @@ namespace Turbo
 		}
 	}
 
-	void FSceneGraph::ClearDirtyFlags(entt::registry& registry)
+	void SceneGraph::ClearDirtyFlags(entt::registry& registry)
 	{
 		TRACE_ZONE_SCOPED_N("Clear dirty flags")
 
@@ -86,7 +86,7 @@ namespace Turbo
 		registry.remove<FWorldTransformDirty>(dirtyView.begin(), dirtyView.end());
 	}
 
-	void FSceneGraph::AddChild(entt::registry& registry, entt::entity parent, entt::entity child)
+	void SceneGraph::AddChild(entt::registry& registry, entt::entity parent, entt::entity child)
 	{
 		FRelationship& childRel = registry.get<FRelationship>(child);
 		if (childRel.mParent != entt::null)
@@ -104,7 +104,7 @@ namespace Turbo
 		parentRel.mNumChildren++;
 	}
 
-	void FSceneGraph::Unparent(entt::registry& registry, entt::entity child)
+	void SceneGraph::Unparent(entt::registry& registry, entt::entity child)
 	{
 		FRelationship& childRel = registry.get<FRelationship>(child);
 		if (childRel.mParent == entt::null)
@@ -130,9 +130,23 @@ namespace Turbo
 		registry.emplace<FWorldRoot>(child);
 	}
 
-	void FSceneGraph::MarkDirty(entt::registry& registry, entt::entity entity)
+	void SceneGraph::MarkDirty(entt::registry& registry, entt::entity entity)
 	{
 		MarkDirty_Impl(registry, entity);
 	}
 
+	glm::float4x4 SceneGraph::GetParentWorldTransform(entt::registry& registry, entt::entity entity)
+	{
+		glm::float4x4 result = glm::float4x4(1.f);
+
+		if (const FRelationship* relationship = registry.try_get<FRelationship>(entity))
+		{
+			if (const FWorldTransform* worldTransform = registry.try_get<FWorldTransform>(relationship->mParent))
+			{
+				result = worldTransform->mTransform;
+			}
+		}
+
+		return result;
+	}
 } // Turbo

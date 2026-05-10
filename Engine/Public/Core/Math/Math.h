@@ -1,20 +1,8 @@
 #pragma once
 
-#include "glm/glm.hpp"
-#include "glm/gtc/epsilon.hpp"
-#include "glm/gtx/quaternion.hpp"
-
 // MATH
 #define TURBO_SMALL_NUMBER 1e-5
 #define TURBO_VERY_SMALL_NUMBER 1e-8
-
-namespace glm
-{
-	typedef uint32						uint1;			//!< \brief unsigned integer vector with 1 component. (From GLM_GTX_compatibility extension)
-	typedef vec<2, uint32, highp>		uint2;			//!< \brief unsigned integer vector with 2 components. (From GLM_GTX_compatibility extension)
-	typedef vec<3, uint32, highp>		uint3;			//!< \brief unsigned integer vector with 3 components. (From GLM_GTX_compatibility extension)
-	typedef vec<4, uint32, highp>		uint4;			//!< \brief unsigned integer vector with 4 components. (From GLM_GTX_compatibility extension)
-}
 
 namespace Turbo
 {
@@ -40,13 +28,30 @@ namespace Turbo
 			return glm::ceil(static_cast<double>(lhs) / rhs);
 		}
 
-		inline glm::float4x4 CreateTransform(const glm::float3& position, const glm::quat& rotation, const glm::float3 scale)
+		inline glm::float4x4 MatrixFromTransform(const FTransform& transform)
 		{
-			const glm::float4x4 translationMat = glm::translate(glm::float4x4(1.f), position);
-			const glm::float4x4 rotationMat = glm::toMat4(rotation);
-			const glm::float4x4 scaleMat = glm::scale(glm::float4x4(1.f), scale);
+			const glm::float4x4 translationMat = glm::translate(glm::float4x4(1.f), transform.mPosition);
+			const glm::float4x4 rotationMat = glm::toMat4(transform.mRotation);
+			const glm::float4x4 scaleMat = glm::scale(glm::float4x4(1.f), transform.mScale);
 
 			return translationMat * rotationMat * scaleMat;
+		}
+
+		inline FTransform TransformFromMatrix(const glm::float4x4& matrix)
+		{
+			FTransform result;
+			result.mPosition = glm::float3(matrix[3]);
+
+			glm::float3x3 basis = glm::float3x3(matrix);
+			result.mScale = glm::float3(glm::length(basis[0]), glm::length(basis[1]), glm::length(basis[2]));
+
+			basis[0] /= result.mScale.x;
+			basis[1] /= result.mScale.y;
+			basis[2] /= result.mScale.z;
+
+			result.mRotation = glm::quat(basis);
+
+			return result;
 		}
 
 		template <typename T>
@@ -123,5 +128,16 @@ struct fmt::formatter<glm::mat<columns, rows, T, Q>> : fmt::formatter<std::strin
 		resultStream << fmt::format("{}", matrix[matrix.length() - 1]) << "}";
 
 		return formatter<std::string>::format(resultStream.str(), ctx);
+	}
+};
+
+// Transform formatter
+template<>
+struct fmt::formatter<Turbo::FTransform> : fmt::formatter<std::string>
+{
+	auto format(const Turbo::FTransform& transform, format_context& ctx) const
+	{
+		const glm::float3 eulerRotation = glm::degrees(glm::eulerAngles(transform.mRotation));
+		return format_to(ctx.out(), "{{T: {} R: {} S:{}}}", transform.mPosition, eulerRotation, transform.mScale);
 	}
 };

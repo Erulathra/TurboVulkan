@@ -63,7 +63,7 @@ namespace Turbo
 			if (DrawNode(registry, currentEntity))
 			{
 				currentDepth++;
-				FSceneGraph::EachChild(
+				SceneGraph::EachChild(
 					registry, currentEntity, [&](entt::entity child)
 				{
 					entitiesToProcess.emplace_back(child, nodeDepth + 1);

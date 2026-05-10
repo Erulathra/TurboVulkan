@@ -13,6 +13,7 @@ add_executable(${PROJECT_NAME} ${PUBLIC_FILES} ${PRIVATE_FILES})
 set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
 
 target_link_libraries(${PROJECT_NAME} TurboVulkan)
+target_link_libraries(${PROJECT_NAME} turbo_imguizmo)
 
 setup_project_directory(${PROJECT_NAME})
 

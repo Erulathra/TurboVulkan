@@ -37,7 +37,7 @@ CPMAddPackage(
 CPMAddPackage( "gh:YaaZ/VulkanMemoryAllocator-Hpp@3.2.1")
 
 CPMAddPackage("gh:ocornut/imgui@1.92.3-docking")
-add_library(imgui STATIC
+add_library(turbo_imgui STATIC
         ${imgui_SOURCE_DIR}/imgui.cpp
         ${imgui_SOURCE_DIR}/imgui_draw.cpp
         ${imgui_SOURCE_DIR}/imgui_tables.cpp
@@ -49,15 +49,28 @@ add_library(imgui STATIC
         ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
         ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
 )
-target_link_libraries(imgui PRIVATE Vulkan-Headers)
-target_link_libraries(imgui PRIVATE SDL3::SDL3-shared)
-target_compile_definitions(imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
-target_link_libraries(imgui PRIVATE glm::glm)
+target_link_libraries(turbo_imgui PRIVATE Vulkan-Headers)
+target_link_libraries(turbo_imgui PRIVATE SDL3::SDL3-shared)
+target_compile_definitions(turbo_imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
+target_link_libraries(turbo_imgui PRIVATE glm::glm)
 
-target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
-target_include_directories(imgui PUBLIC ImGui)
-target_compile_definitions(imgui PUBLIC -DIMGUI_USER_CONFIG="ImGuiConfig.h")
-target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR}/imgui_internal.h)
+target_include_directories(turbo_imgui PUBLIC ${imgui_SOURCE_DIR})
+target_include_directories(turbo_imgui PUBLIC ImGui)
+target_compile_definitions(turbo_imgui PUBLIC -DIMGUI_USER_CONFIG="ImGuiConfig.h")
+target_include_directories(turbo_imgui PUBLIC ${imgui_SOURCE_DIR}/imgui_internal.h)
+
+CPMAddPackage("gh:CedricGuillemet/ImGuizmo#1.9")
+add_library(turbo_imguizmo STATIC
+        ${ImGuizmo_SOURCE_DIR}/src/ImGuizmo.cpp
+        ${ImGuizmo_SOURCE_DIR}/src/GraphEditor.cpp
+        ${ImGuizmo_SOURCE_DIR}/src/ImCurveEdit.cpp
+        ${ImGuizmo_SOURCE_DIR}/src/ImGradient.cpp
+        ${ImGuizmo_SOURCE_DIR}/src/ImSequencer.cpp
+        ${ImGuizmo_SOURCE_DIR}/src/ImVectorEditor.cpp
+)
+target_link_libraries(turbo_imguizmo PRIVATE turbo_imgui)
+target_link_libraries(turbo_imguizmo PRIVATE glm::glm)
+target_include_directories(turbo_imguizmo PUBLIC ${ImGuizmo_SOURCE_DIR}/src)
 
 CPMAddPackage(
         GITHUB_REPOSITORY "wolfpld/tracy"

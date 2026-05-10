@@ -76,6 +76,8 @@ namespace Turbo
 		static void InitializeFreeCamera(entt::registry& registry, entt::entity entity);
 		static void SetMainViewport(entt::registry& registry, entt::entity entity);
 
+		static entt::entity GetMainViewport(const entt::registry& registry);
+
 	public:
 		FCameraUtils() = delete;
 	};

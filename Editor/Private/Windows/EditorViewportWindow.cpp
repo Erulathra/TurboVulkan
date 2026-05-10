@@ -5,6 +5,7 @@
 #include "EditorViewPort/EditorFreeCamera.h"
 #include "Graphics/GPUDevice.h"
 #include "Layers/ImGUILayer.h"
+#include "Windows/EditorGizmo.h"
 #include "World/Camera.h"
 #include "World/World.h"
 
@@ -13,6 +14,7 @@ namespace Turbo
 	void FEditorViewportWindow::Init()
 	{
 		FEditorFreeCameraUtils::Init();
+		mGizmo = std::make_unique<FEditorGizmo>();
 	}
 
 	void FEditorViewportWindow::Shutdown()
@@ -36,10 +38,10 @@ namespace Turbo
 
 	void FEditorViewportWindow::Draw()
 	{
-		ImGui::SetNextWindowSizeConstraints(glm::float2(128.f), glm::float2(FLT_MAX));
 		ImGui::Begin("Viewport");
 		bHasFocus = ImGui::IsWindowHovered();
 
+		// const glm::uint2 newContentSize = currentWindow->SizeFull
 		const glm::uint2 newContentSize = ImGui::GetContentRegionAvail();
 		if (newContentSize != mEditorViewportSize)
 		{
@@ -52,6 +54,8 @@ namespace Turbo
 		{
 			ImGui::Texture(mRenderedTextures[bufferedFrameId]);
 		}
+
+		mGizmo->Draw();
 
 		ImGui::End();
 	}
@@ -92,4 +96,7 @@ namespace Turbo
 			mRenderedTextures.push_back(gpu.CreateTexture(builder));
 		}
 	}
+
+	FEditorViewportWindow::FEditorViewportWindow() = default;
+	FEditorViewportWindow::~FEditorViewportWindow() = default;
 } // Turbo

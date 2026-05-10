@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Layers/Event.h"
+#include "Math/Math.h"
 
 namespace Turbo
 {

@@ -50,7 +50,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3-shared)
 target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
-target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
+target_link_libraries(${PROJECT_NAME} PUBLIC turbo_imgui)
 target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 
 # TODO: Create GPU Interface and make those private

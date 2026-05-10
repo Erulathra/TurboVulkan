@@ -314,10 +314,10 @@ namespace Turbo
 	void FSceneRenderingLayer::RenderScene(FRenderGraphBuilder& graphBuilder)
 	{
 		FWorld* world = gEngine->GetWorld();
-		FSceneGraph::UpdateWorldTransforms(world->mRegistry);
+		SceneGraph::UpdateWorldTransforms(world->mRegistry);
 		FCameraUtils::UpdateDirtyCameras(world->mRegistry);
 		FCameraUtils::UpdateCameraFrustum(world->mRegistry);
-		FSceneGraph::ClearDirtyFlags(world->mRegistry);
+		SceneGraph::ClearDirtyFlags(world->mRegistry);
 
 		auto mainCameraView = world->mRegistry.view<FCamera>();
 		if (mainCameraView.begin() == mainCameraView.end())

@@ -240,4 +240,10 @@ namespace Turbo
 	{
 		registry.emplace_or_replace<FMainViewport>(entity);
 	}
+
+	entt::entity FCameraUtils::GetMainViewport(const entt::registry& registry)
+	{
+		auto camerasView = registry.view<FCamera const, FMainViewport const>();
+		return camerasView.front();
+	}
 } // Turbo

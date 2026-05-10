@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Math/MathTypes.h"
 #include "glm/fwd.hpp"
 #include "glm/vec3.hpp"
 #include "glm/detail/type_quat.hpp"
@@ -14,13 +15,6 @@ namespace Turbo
 	struct FEntityLabel
 	{
 		FName mName;
-	};
-
-	struct FTransform
-	{
-		glm::float3 mPosition = {};
-		glm::quat mRotation = glm::quat(glm::float3(0.f));
-		glm::float3 mScale = glm::float3{1.f};
 	};
 
 	struct FWorldTransform
@@ -78,20 +72,19 @@ namespace Turbo
 		}
 	}
 
-	struct FSceneGraph
+	namespace SceneGraph
 	{
-	public:
-		static void InitSceneGraph(entt::registry& registry);
+		void InitSceneGraph(entt::registry& registry);
 
-		static void UpdateWorldTransforms(entt::registry& registry);
-		static void ClearDirtyFlags(entt::registry& registry);
+		void UpdateWorldTransforms(entt::registry& registry);
+		void ClearDirtyFlags(entt::registry& registry);
 
-		static void AddChild(entt::registry& registry, entt::entity parent, entt::entity child);
-		static void Unparent(entt::registry& registry, entt::entity child);
-		static void MarkDirty(entt::registry& registry, entt::entity entity);
+		void AddChild(entt::registry& registry, entt::entity parent, entt::entity child);
+		void Unparent(entt::registry& registry, entt::entity child);
+		void MarkDirty(entt::registry& registry, entt::entity entity);
 
 		template<typename Func>
-		static void EachChild(entt::registry& registry, entt::entity entity, Func func)
+		void EachChild(entt::registry& registry, entt::entity entity, Func func)
 		{
 			const FRelationship& componentRel = registry.get<FRelationship>(entity);
 			entt::entity currentEntt = componentRel.mFirstChild;
@@ -104,5 +97,7 @@ namespace Turbo
 				currentEntt = currentRel.mNext;
 			}
 		}
+
+		glm::float4x4 GetParentWorldTransform(entt::registry& registry, entt::entity entity);
 	};
 } // Turbo

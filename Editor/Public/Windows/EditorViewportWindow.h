@@ -2,6 +2,7 @@
 
 namespace Turbo
 {
+	class FEditorGizmo;
 	struct FTexture;
 	struct FEventBase;
 
@@ -18,6 +19,12 @@ namespace Turbo
 		void ResizeViewport(const glm::uint2& newSize);
 
 	public:
+		FEditorViewportWindow();
+		~FEditorViewportWindow();
+
+	public:
+		TUniquePtr<FEditorGizmo> mGizmo;
+
 		std::vector<THandle<FTexture>> mRenderedTextures;
 		glm::uint2 mEditorViewportSize = glm::uint2(0);
 

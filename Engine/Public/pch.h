@@ -33,6 +33,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/compatibility.hpp"
+#include "glm/gtx/quaternion.hpp"
 #ifndef GLM_TYPE_PTR
 #define GLM_TYPE_PTR
 #include "glm/gtc/type_ptr.inl"
@@ -56,6 +57,6 @@
 #include "Core/DataStructures/Handle.h"
 
 // Internal Math
+#include "Core/Math/MathTypes.h"
 #include "Core/Math/Math.h"
 #include "Core/Math/Vector.h"
-#include "Core/Math/MathTypes.h"

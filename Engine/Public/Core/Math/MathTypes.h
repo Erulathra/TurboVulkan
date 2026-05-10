@@ -1,7 +1,22 @@
 #pragma once
 
+namespace glm
+{
+	typedef uint32						uint1;			//!< \brief unsigned integer vector with 1 component. (From GLM_GTX_compatibility extension)
+	typedef vec<2, uint32, highp>		uint2;			//!< \brief unsigned integer vector with 2 components. (From GLM_GTX_compatibility extension)
+	typedef vec<3, uint32, highp>		uint3;			//!< \brief unsigned integer vector with 3 components. (From GLM_GTX_compatibility extension)
+	typedef vec<4, uint32, highp>		uint4;			//!< \brief unsigned integer vector with 4 components. (From GLM_GTX_compatibility extension)
+}
+
 namespace Turbo
 {
+	struct FTransform
+	{
+		glm::float3 mPosition = {};
+		glm::quat mRotation = glm::quat(glm::float3(0.f));
+		glm::float3 mScale = glm::float3{1.f};
+	};
+
 	struct FRect2D final
 	{
 		glm::float2 Position = {};
@@ -43,17 +58,8 @@ namespace Turbo
 
 		FPlane() = default;
 
-		FPlane(glm::float3 normal, float distance)
-			: mNormal(normal), mDistance(distance)
-		{
-			TURBO_CHECK(glm::length(normal) - 1.f < TURBO_SMALL_NUMBER);
-		}
-
-		FPlane(glm::float3 normal, glm::float3 point)
-			: mNormal(normal), mDistance(glm::dot(normal, point))
-		{
-			TURBO_CHECK(glm::length(normal) - 1.f < TURBO_SMALL_NUMBER);
-		}
+		FPlane(glm::float3 normal, float distance);
+		FPlane(glm::float3 normal, glm::float3 point);
 	};
 
 	struct FFrustum final

@@ -223,7 +223,7 @@ namespace Turbo
 						const entt::entity meshEntity = world.mRegistry.create();
 						world.mRegistry.emplace<FSpawnedByLevelTag>(meshEntity);
 						world.mRegistry.emplace<FRelationship>(meshEntity);
-						FSceneGraph::AddChild(world.mRegistry, nodeEntity, meshEntity);
+						SceneGraph::AddChild(world.mRegistry, nodeEntity, meshEntity);
 
 						FMeshComponent& meshComponent = world.mRegistry.emplace<FMeshComponent>(meshEntity);
 						meshComponent.mMaterial = opaqueMaterial;
@@ -240,7 +240,7 @@ namespace Turbo
 			const fastgltf::Node& gltfNode = gltfAsset->nodes[nodeId];
 			for (std::size_t childId : gltfNode.children)
 			{
-				FSceneGraph::AddChild(world.mRegistry, nodeEntities[nodeId], nodeEntities[childId]);
+				SceneGraph::AddChild(world.mRegistry, nodeEntities[nodeId], nodeEntities[childId]);
 			}
 		}
 	}
