@@ -5,7 +5,6 @@
 #endif // ifndef SPDLOG_ACTIVE_LEVEL
 
 #include "spdlog/spdlog.h"
-#include "entt/entt.hpp"
 
 // Log verbosity
 

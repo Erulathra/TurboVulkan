@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CommonMacros.h"
-
 #if WITH_PROFILER
 
 #if defined ( __clang__ ) || defined ( __GNUC__ )

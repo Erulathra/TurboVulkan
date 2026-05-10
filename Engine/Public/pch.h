@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <limits>
 
 // stl collections
 #include <vector>
@@ -21,29 +22,40 @@
 #include <set>
 #include <unordered_set>
 
-// Internal headers
-#include "CommonMacros.h"
-#include "CommonTypeDefs.h"
-#include "CommonConstants.h"
-#include "TurboLog.h"
-#include "ProfilingMacros.h"
-#include "Core/Name.h"
-
-#include "Core/DataStructures/GenPool.h"
-
-// GLM
-#include "Core/Math/MathCommon.h"
-
-// Internal Math
-#include "Core/Math/Math.h"
-#include "Core/Math/Vector.h"
-#include "Core/Math/MathTypes.h"
-
-#include "magic_enum/magic_enum.hpp"
+// Vulkan headers
+#include <vulkan/vulkan.hpp>
 
 // VMA
 #define VULKAN_HPP_ASSERT_ON_RESULT {}
 #include "vk_mem_alloc.hpp"
 
+// GLM
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/compatibility.hpp"
+#ifndef GLM_TYPE_PTR
+#define GLM_TYPE_PTR
+#include "glm/gtc/type_ptr.inl"
+#endif // GLM_TYPE_PTR
+
+// Magic enum
+#include "magic_enum/magic_enum.hpp"
+
 // EnTT
 #include "entt/entt.hpp"
+
+// Internal headers
+#include "CommonTypeDefs.h"
+#include "CommonMacros.h"
+#include "CommonConstants.h"
+#include "TurboLog.h"
+#include "ProfilingMacros.h"
+#include "Core/Name.h"
+#include "Core/Memory.h"
+
+#include "Core/DataStructures/Handle.h"
+
+// Internal Math
+#include "Core/Math/Math.h"
+#include "Core/Math/Vector.h"
+#include "Core/Math/MathTypes.h"

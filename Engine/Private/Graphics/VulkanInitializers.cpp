@@ -1,7 +1,5 @@
-#include "../../Public/Graphics/VulkanInitializers.h"
-
-#include "../../Public/Graphics/VulkanHelpers.h"
-#include "Core/Math/Vector.h"
+#include "Graphics/VulkanInitializers.h"
+#include "Graphics/VulkanHelpers.h"
 
 namespace Turbo {
 	vk::CommandPoolCreateInfo VulkanInitializers::CommandPoolCreateInfo(uint32 queueFamilyIndex, vk::CommandPoolCreateFlags flags)

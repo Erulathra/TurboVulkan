@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CommonMacros.h"
 #include "Graphics/GraphicsCore.h"
 
 namespace Turbo

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Resources.h"
-#include "Core/Name.h"
 #include "Graphics/GraphicsCore.h"
 #include "Graphics/Enums.h"
 #include "Graphics/VulkanHelpers.h"

@@ -2,7 +2,6 @@
 
 #include "Assets/AssetManager.h"
 #include "World/SceneGraph.h"
-#include "Core/DataStructures/Handle.h"
 
 namespace Turbo
 {

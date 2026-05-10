@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Core/DataStructures/Handle.h"
-
 namespace Turbo
 {
 	struct FDummyColdType {};

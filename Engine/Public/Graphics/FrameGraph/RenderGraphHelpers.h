@@ -1,8 +1,5 @@
 #pragma once
 
-#include <limits>
-
-#include "CommonTypeDefs.h"
 #include "Graphics/CommandBuffer.h"
 #include "Graphics/Resources.h"
 

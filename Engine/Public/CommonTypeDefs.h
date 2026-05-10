@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 // integer types
 using int8 = std::int8_t;
 using uint8 = std::uint8_t;

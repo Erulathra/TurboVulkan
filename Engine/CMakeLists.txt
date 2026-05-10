@@ -7,13 +7,13 @@ project(TurboVulkan VERSION 0.1.0)
 file(GLOB_RECURSE PRIVATE_FILES Private/*.cpp)
 file(GLOB_RECURSE PUBLIC_FILES Public/*.h)
 
-add_library(${PROJECT_NAME} STATIC ${PUBLIC_FILES} ${PRIVATE_FILES})
+add_library(${PROJECT_NAME} STATIC ${PRIVATE_FILES})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-target_precompile_headers(${PROJECT_NAME} PUBLIC pch.h)
+target_precompile_headers(${PROJECT_NAME} PUBLIC Public/pch.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE Private)
 target_include_directories(${PROJECT_NAME} PUBLIC Public)

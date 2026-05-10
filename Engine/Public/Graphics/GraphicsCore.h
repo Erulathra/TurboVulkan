@@ -1,11 +1,5 @@
 #pragma once
 
-#include "CommonTypeDefs.h"
-#include "Core/Math/MathCommon.h"
-
-// #define VULKAN_HPP_ASSERT_ON_RESULT(EXPRESSION) {}
-#include <vulkan/vulkan.hpp>
-
 /** Constants */
 namespace Turbo
 {

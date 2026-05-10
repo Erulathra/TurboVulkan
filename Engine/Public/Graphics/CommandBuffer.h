@@ -2,7 +2,6 @@
 
 #include "Enums.h"
 #include "Core/Math/Color.h"
-#include "Core/Math/MathTypes.h"
 #include "Graphics/GraphicsCore.h"
 #include "Graphics/Resources.h"
 #include "Graphics/VulkanHelpers.h"
