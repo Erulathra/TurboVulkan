@@ -70,6 +70,45 @@ namespace Turbo
 		{
 			return glm::float3(transform.mTransform[3]);
 		}
+
+		inline glm::float4x4 MatrixFromTransform(const FTransform& transform)
+		{
+			const glm::float4x4 translationMat = glm::translate(glm::float4x4(1.f), transform.mPosition);
+			const glm::float4x4 rotationMat = glm::toMat4(transform.mRotation);
+			const glm::float4x4 scaleMat = glm::scale(glm::float4x4(1.f), transform.mScale);
+
+			return translationMat * rotationMat * scaleMat;
+		}
+
+		inline FTransform TransformFromMatrix(const glm::float4x4& matrix)
+		{
+			FTransform result;
+			result.mPosition = glm::float3(matrix[3]);
+
+			glm::float3x3 basis = glm::float3x3(matrix);
+			result.mScale = glm::float3(glm::length(basis[0]), glm::length(basis[1]), glm::length(basis[2]));
+
+			basis[0] /= result.mScale.x;
+			basis[1] /= result.mScale.y;
+			basis[2] /= result.mScale.z;
+
+			result.mRotation = glm::quat(basis);
+
+			return result;
+		}
+
+		inline bool IsFrontOf(const FWorldTransform& transform, const glm::float3& position)
+		{
+			const glm::float3 forward = GetForward(transform);
+			const glm::float3 sourcePos = GetPosition(transform);
+
+			return glm::dot(forward, position - sourcePos) > 0.f;
+		}
+
+		inline bool IsFrontOf(const FWorldTransform& source, const FWorldTransform& test)
+		{
+			return IsFrontOf(source, GetPosition(test));
+		}
 	}
 
 	namespace SceneGraph

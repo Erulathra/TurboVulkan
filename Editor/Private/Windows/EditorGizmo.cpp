@@ -19,6 +19,7 @@ namespace Turbo
 		{
 			ImGuizmo::BeginFrame();
 			ImGuizmo::SetOrthographic(false);
+			ImGuizmo::AllowAxisFlip(false);
 			ImGuizmo::SetDrawlist();
 
 			const glm::float2 contentPos = ImGui::GetWindowContentRegionMin();
@@ -33,24 +34,34 @@ namespace Turbo
 			const glm::float4x4 viewMatrix = glm::inverse(cameraTransform.mTransform);
 			const glm::float4x4 projectionMatrix = cameraCache.mProjectionMatrix;
 
-			glm::float4x4 newTransform = selectionTransform.mTransform;
-
-			const bool bTransformDirty = ImGuizmo::Manipulate(
-				glm::value_ptr(viewMatrix),
-				glm::value_ptr(projectionMatrix),
-				ImGuizmo::OPERATION::TRANSLATE,
-				ImGuizmo::LOCAL,
-				glm::value_ptr(newTransform)
-			);
-
-			if (bTransformDirty)
+			if (TransformUtils::IsFrontOf(cameraTransform, selectionTransform))
 			{
-				const glm::float4x4 parentTransform = SceneGraph::GetParentWorldTransform(registry, selection);
-				const glm::float4x4& newLocalTransform = glm::inverse(parentTransform) * newTransform;
+				glm::float4x4 newTransform = selectionTransform.mTransform;
 
-				const FTransform newTransformComponent = FMath::TransformFromMatrix(newLocalTransform);
+				const bool bTransformDirty = ImGuizmo::Manipulate(
+					glm::value_ptr(viewMatrix),
+					glm::value_ptr(projectionMatrix),
+					ImGuizmo::OPERATION::TRANSLATE,
+					ImGuizmo::LOCAL,
+					glm::value_ptr(newTransform)
+				);
 
-				registry.emplace_or_replace<FTransform>(selection, newTransformComponent);
+				ImGuizmo::DrawAxes(
+					glm::value_ptr(viewMatrix),
+					glm::value_ptr(projectionMatrix),
+					glm::value_ptr(newTransform),
+					1
+				);
+
+				if (bTransformDirty)
+				{
+					const glm::float4x4 parentTransform = SceneGraph::GetParentWorldTransform(registry, selection);
+					const glm::float4x4& newLocalTransform = glm::inverse(parentTransform) * newTransform;
+
+					const FTransform newTransformComponent = TransformUtils::TransformFromMatrix(newLocalTransform);
+
+					registry.emplace_or_replace<FTransform>(selection, newTransformComponent);
+				}
 			}
 		}
 	}

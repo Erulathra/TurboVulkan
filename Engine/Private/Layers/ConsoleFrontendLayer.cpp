@@ -99,7 +99,7 @@ namespace Turbo
 					newHistoryIndex++;
 				}
 
-				frontend->mHistoryIndex = FMath::Modulo<int32>(newHistoryIndex, history.size() + 1);
+				frontend->mHistoryIndex = Math::Modulo<int32>(newHistoryIndex, history.size() + 1);
 
 				std::string_view historyEntry;
 				if (frontend->mHistoryIndex == history.size())

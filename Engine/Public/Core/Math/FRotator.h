@@ -56,9 +56,9 @@ namespace Turbo
 		TRotator Normalize() const
 		{
 			return TRotator(
-				FMath::NormalizeAngle(mPitch),
-				FMath::NormalizeAngle(mYaw),
-				FMath::NormalizeAngle(mRoll)
+				Math::NormalizeAngle(mPitch),
+				Math::NormalizeAngle(mYaw),
+				Math::NormalizeAngle(mRoll)
 			);
 		}
 

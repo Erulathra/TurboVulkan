@@ -6,7 +6,7 @@
 
 namespace Turbo
 {
-	namespace FMath
+	namespace Math
 	{
 		template <typename T>
 			requires (std::is_floating_point_v<T>)
@@ -26,32 +26,6 @@ namespace Turbo
 		T DivideAndRoundUp(T lhs, T rhs)
 		{
 			return glm::ceil(static_cast<double>(lhs) / rhs);
-		}
-
-		inline glm::float4x4 MatrixFromTransform(const FTransform& transform)
-		{
-			const glm::float4x4 translationMat = glm::translate(glm::float4x4(1.f), transform.mPosition);
-			const glm::float4x4 rotationMat = glm::toMat4(transform.mRotation);
-			const glm::float4x4 scaleMat = glm::scale(glm::float4x4(1.f), transform.mScale);
-
-			return translationMat * rotationMat * scaleMat;
-		}
-
-		inline FTransform TransformFromMatrix(const glm::float4x4& matrix)
-		{
-			FTransform result;
-			result.mPosition = glm::float3(matrix[3]);
-
-			glm::float3x3 basis = glm::float3x3(matrix);
-			result.mScale = glm::float3(glm::length(basis[0]), glm::length(basis[1]), glm::length(basis[2]));
-
-			basis[0] /= result.mScale.x;
-			basis[1] /= result.mScale.y;
-			basis[2] /= result.mScale.z;
-
-			result.mRotation = glm::quat(basis);
-
-			return result;
 		}
 
 		template <typename T>
@@ -90,7 +64,7 @@ namespace Turbo
 	};
 
 	template <>
-	inline glm::int3 FMath::DivideAndRoundUp(glm::int3 lhs, glm::int3 rhs)
+	inline glm::int3 Math::DivideAndRoundUp(glm::int3 lhs, glm::int3 rhs)
 	{
 		return glm::int3(glm::ceil(glm::float3(lhs) / glm::float3(rhs)));
 	}

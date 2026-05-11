@@ -53,7 +53,7 @@ namespace Turbo
 				{
 					FWorldTransform& world = transformView.get<FWorldTransform>(dirtyEntity);
 
-					const glm::mat4 localMatrix = FMath::MatrixFromTransform(*local);
+					const glm::mat4 localMatrix = TransformUtils::MatrixFromTransform(*local);
 
 					if (relationship.mParent == entt::null)
 					{

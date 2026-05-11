@@ -379,7 +379,7 @@ namespace Turbo
 					cmd.PushConstants(pushConstants);
 
 					const glm::uint3 groupCount = glm::uint3(
-						FMath::DivideAndRoundUp(bucket.mCount, static_cast<uint32>(64)),
+						Math::DivideAndRoundUp(bucket.mCount, static_cast<uint32>(64)),
 						1,
 						1
 					);
