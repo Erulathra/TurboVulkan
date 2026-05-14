@@ -27,8 +27,6 @@ namespace Turbo
 		virtual bool IsActionPressed(FName actionName) override;
 
 		virtual bool RegisterBinding(const FActionBinding& actionBinding) override;
-		virtual std::unordered_map<FName, FKey>& GetBindings() override { return mActionBindings; }
-
 	private:
 		void HandleSDLKeyboardEvent(const SDL_KeyboardEvent& keyboardEvent);
 		void HandleSDLMouseButtonEvent(const SDL_MouseButtonEvent& mouseButtonEvent);
@@ -42,7 +40,7 @@ namespace Turbo
 		void HandleAxisEvent(FAxisEvent& axisEvent);
 
 	private:
-		std::unordered_map<FName /** actionName **/, FKey> mActionBindings;
+		entt::dense_map<FName /** actionName **/, FActionBinding> mActionBindings;
 
 		std::unordered_map<FName /** keyName **/, float> mLastAxisValues;
 		std::unordered_map<FName /** keyName **/, bool> mLastKeyValues;

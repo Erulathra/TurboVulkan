@@ -45,12 +45,12 @@ namespace Turbo
 		if (const auto actionKeyIt = mActionBindings.find(actionName);
 			actionKeyIt != mActionBindings.end())
 		{
-			if (actionKeyIt->second.mbAxis)
+			if (actionKeyIt->second.mKey.mbAxis)
 			{
-				return GetAxisValue(actionKeyIt->second);
+				return GetAxisValue(actionKeyIt->second.mKey);
 			}
 
-			return IsKeyPressed(actionKeyIt->second) ? 1.f : 0.f;
+			return IsKeyPressed(actionKeyIt->second.mKey) ? 1.f : 0.f;
 		}
 
 		return 0.f;
@@ -74,12 +74,12 @@ namespace Turbo
 		if (const auto actionKeyIt = mActionBindings.find(actionName);
 			actionKeyIt != mActionBindings.end())
 		{
-			if (actionKeyIt->second.mbAxis)
+			if (actionKeyIt->second.mKey.mbAxis)
 			{
-				return GetAxisValue(actionKeyIt->second) > kAnalogActivationValue;
+				return GetAxisValue(actionKeyIt->second.mKey) > kAnalogActivationValue;
 			}
 
-			return IsKeyPressed(actionKeyIt->second);
+			return IsKeyPressed(actionKeyIt->second.mKey);
 		}
 
 		return false;
@@ -87,8 +87,9 @@ namespace Turbo
 
 	bool FSDLInputSystem::RegisterBinding(const FActionBinding& actionBinding)
 	{
-		mActionBindings[actionBinding.mName] = actionBinding.mKey;
+		TURBO_CHECK(actionBinding.mKey.mbAxis == false || actionBinding.mRequiredModifiers == EKeyModifier::None)
 
+		mActionBindings[actionBinding.mName] = actionBinding;
 		return true;
 	}
 
@@ -109,6 +110,15 @@ namespace Turbo
 			newKeyEvent.mKey = key;
 			newKeyEvent.mbDown = keyboardEvent.down;
 			newKeyEvent.mbRepeat = keyboardEvent.repeat;
+
+			EKeyModifier newModifiers = EKeyModifier::None;
+			newModifiers |= keyboardEvent.mod & SDL_KMOD_LSHIFT ? EKeyModifier::LeftShift : EKeyModifier::None;
+			newModifiers |= keyboardEvent.mod & SDL_KMOD_RSHIFT ? EKeyModifier::RightShift : EKeyModifier::None;
+			newModifiers |= keyboardEvent.mod & SDL_KMOD_LCTRL ? EKeyModifier::LeftCtrl : EKeyModifier::None;
+			newModifiers |= keyboardEvent.mod & SDL_KMOD_RCTRL ? EKeyModifier::RightCtrl : EKeyModifier::None;
+			newModifiers |= keyboardEvent.mod & SDL_KMOD_LALT ? EKeyModifier::LeftAlt : EKeyModifier::None;
+			newModifiers |= keyboardEvent.mod & SDL_KMOD_RALT ? EKeyModifier::RightAlt : EKeyModifier::None;
+			newKeyEvent.mModifiers = newModifiers;
 
 			HandleKeyEvent(newKeyEvent);
 		}
@@ -200,15 +210,17 @@ namespace Turbo
 			return;
 		}
 
-		for (const auto& [actionName, key] : mActionBindings)
+		for (const auto& [actionName, binding] : mActionBindings)
 		{
-			if (key == keyEvent.mKey)
+			if (binding.mKey == keyEvent.mKey
+				&& binding.mRequiredModifiers == keyEvent.mModifiers)
 			{
 				FActionEvent newActionEvent{};
 				newActionEvent.mName = actionName;
 				newActionEvent.mKey = keyEvent.mKey;
 				newActionEvent.mbDown = keyEvent.mbDown;
 				newActionEvent.mbAxis = false;
+				newActionEvent.mModifiers = keyEvent.mModifiers;
 
 				gEngine->PushEvent(newActionEvent);
 			}
@@ -222,9 +234,9 @@ namespace Turbo
 		mLastAxisValues[axisEvent.mKey.mKeyName] = axisEvent.mValue;
 		gEngine->PushEvent(axisEvent);
 
-		for (const auto& [actionName, key] : mActionBindings)
+		for (const auto& [actionName, binding] : mActionBindings)
 		{
-			if (key == axisEvent.mKey)
+			if (binding.mKey == axisEvent.mKey)
 			{
 				FActionEvent newActionEvent{};
 				newActionEvent.mName = actionName;

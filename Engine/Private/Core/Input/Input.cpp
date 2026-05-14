@@ -31,19 +31,23 @@ namespace Turbo
 		, mbAxis(other.mbAxis)
 		, mbDown(other.mbDown)
 		, mValue(other.mValue)
+		, mModifiers(other.mModifiers)
 	{
 	}
 
 	FActionEvent& FActionEvent::operator=(const FActionEvent& other)
 	{
 		if (this == &other)
+		{
 			return *this;
+		}
 
 		mName = other.mName;
 		mKey = other.mKey;
 		mbAxis = other.mbAxis;
 		mbDown = other.mbDown;
 		mValue = other.mValue;
+		mModifiers = other.mModifiers;
 
 		return *this;
 	}

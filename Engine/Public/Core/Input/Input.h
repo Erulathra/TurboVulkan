@@ -32,6 +32,19 @@ namespace Turbo
 		}
 	};
 
+	enum class EKeyModifier : uint8
+	{
+		None = 0,
+		LeftShift	= 1 << 0,
+		RightShift	= 1 << 1,
+		LeftCtrl	= 1 << 2,
+		RightCtrl	= 1 << 3,
+		LeftAlt		= 1 << 4,
+		RightAlt	= 1 << 5,
+	};
+
+	DEFINE_ENUM_OPERATORS(EKeyModifier, uint8)
+
 	struct FKeyEvent : FEventBase
 	{
 		EVENT_BODY(FKeyEvent)
@@ -40,6 +53,7 @@ namespace Turbo
 
 		bool mbDown : 1 = false;
 		bool mbRepeat : 1 = false;
+		EKeyModifier mModifiers : 5 = EKeyModifier::None;
 	};
 
 	struct FAxisEvent : FEventBase
@@ -63,6 +77,8 @@ namespace Turbo
 		bool mbDown = false;
 		float mValue = 0.f;
 
+		EKeyModifier mModifiers = EKeyModifier::None;
+
 		FActionEvent(const FActionEvent& other);
 		FActionEvent& operator=(const FActionEvent& other);
 	};
@@ -71,6 +87,7 @@ namespace Turbo
 	{
 		FName mName;
 		FKey mKey;
+		EKeyModifier mRequiredModifiers = EKeyModifier::None;
 	};
 
 	DECLARE_MULTICAST_DELEGATE(FOnKeyEvent, FKeyEvent);
@@ -95,6 +112,5 @@ namespace Turbo
 		virtual bool IsActionPressed(FName actionName) = 0;
 
 		virtual bool RegisterBinding(const FActionBinding& ActionBinding) = 0;
-		virtual std::unordered_map<FName, FKey>& GetBindings() = 0;
 	};
 } // Turbo
