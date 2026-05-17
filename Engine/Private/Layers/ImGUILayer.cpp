@@ -197,7 +197,15 @@ namespace Turbo
 
 		window.OnSDLEvent.AddRaw(this, &FImGuiLayer::OnSDLEvent);
 
-		ImFont* firaCodeImFont = io.Fonts->AddFontFromFileTTF("Content/Fonts/FiraCode/FiraCode-Regular.ttf", 13);
+		ImFont* firaCodeImFont = io.Fonts->AddFontFromFileTTF("Content/Fonts/FiraCode/FiraCode-Regular.ttf");
+
+		ImFontConfig nerdFontConfig;
+		nerdFontConfig.MergeMode = true;
+		nerdFontConfig.GlyphMinAdvanceX = 13.0f;
+		// nerdFontConfig.GlyphOffset = glm::float2(-1.f);
+		io.Fonts->AddFontFromFileTTF("Content/Fonts/NerdFont/FiraCodeNerdFontPropo-Regular.ttf", 13.f, &nerdFontConfig);
+		io.Fonts->Build();
+
 		ImGui::PushFont(firaCodeImFont, 13);
 
 		SetupTheme();

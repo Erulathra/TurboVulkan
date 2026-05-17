@@ -93,6 +93,7 @@ if (!(CONDITION))				\
 // Other
 
 #define INDEX_NONE (-1)
+#define TEXT(LITERAL_STRING) LITERAL_STRING
 
 // #define TEST_FLAG(VALUE, FLAG) (static_cast<uint32>((VALUE) & (FLAG)) != 0)
 

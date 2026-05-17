@@ -182,7 +182,8 @@ namespace Turbo
 
 			for (const FCameraBinding& binding : FreeCamera::kMovementBindings)
 			{
-				if (binding.mActionName == actionEvent.mName)
+				if (binding.mActionName == actionEvent.mName
+					&& freeCameraInput.bNavigationEnabled)
 				{
 					const float directionSign = actionEvent.mbDown ? 1.f : -1.f;
 					freeCameraInput.mMoveInputValue += binding.mDirection * directionSign;
@@ -230,6 +231,7 @@ namespace Turbo
 		if (glm::length2(deltaRotation) > TURBO_SMALL_NUMBER)
 		{
 			FCameraUtils::UpdateFreeCameraRotation(gEngine->GetWorld()->mRegistry, deltaRotation);
+			actionEvent.Handle();
 			return true;
 		}
 
@@ -251,6 +253,7 @@ namespace Turbo
 		if (bNavigationEnabled && actionEvent.mName == FreeCamera::kChangeSpeed.mName)
 		{
 			FCameraUtils::UpdateFreeCameraSpeed(world->mRegistry, glm::trunc(actionEvent.mValue));
+			actionEvent.Handle();
 			return true;
 		}
 

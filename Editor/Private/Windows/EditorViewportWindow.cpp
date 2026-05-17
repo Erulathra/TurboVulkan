@@ -15,6 +15,7 @@ namespace Turbo
 	{
 		FEditorFreeCameraUtils::Init();
 		mGizmo = std::make_unique<FEditorGizmo>();
+		mGizmo->Init();
 	}
 
 	void FEditorViewportWindow::Shutdown()
@@ -29,6 +30,11 @@ namespace Turbo
 	void FEditorViewportWindow::HandleEvent(FEventBase& event)
 	{
 		FEditorFreeCameraUtils::HandleEvent(event, bHasFocus);
+
+		if (event.mEventReply != EEventReply::Handled)
+		{
+			mGizmo->HandleEvent(event);
+		}
 	}
 
 	void FEditorViewportWindow::Tick(float deltaTime)

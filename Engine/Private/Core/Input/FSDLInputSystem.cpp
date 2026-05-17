@@ -223,6 +223,11 @@ namespace Turbo
 				newActionEvent.mModifiers = keyEvent.mModifiers;
 
 				gEngine->PushEvent(newActionEvent);
+
+				if (newActionEvent.mEventReply == EEventReply::Handled)
+				{
+					break;
+				}
 			}
 		}
 	}

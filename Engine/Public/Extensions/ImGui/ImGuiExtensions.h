@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+
+#include "imgui.h"
 #include "fmt/format.h"
 
 
@@ -21,4 +23,5 @@ namespace ImGui
 			currentDepth--;
 		}
 	}
+
 }
