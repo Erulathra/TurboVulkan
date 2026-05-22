@@ -2,6 +2,7 @@
 
 #include "World/SceneGraph.h"
 #include "imgui.h"
+#include "World/ShadingComponents.h"
 
 namespace Turbo
 {
@@ -26,6 +27,46 @@ namespace Turbo
 			{
 				registry.emplace_or_replace<FTransform>(entity, transform);
 			}
+		})
+	);
+
+	static TAutoComponentEditor<FDirectionalLightComponent> DirectionalLightEditor(
+		FName("DirectionalLight"),
+		FDrawComonentPropertyEditorDelegate::CreateLambda([](entt::registry& registry, entt::entity entity)
+		{
+			FDirectionalLightComponent& lightComponent = registry.get<FDirectionalLightComponent>(entity);
+			ImGui::ColorEdit3("Color", glm::value_ptr(lightComponent.mColor));
+			ImGui::DragFloat("Intensity", &lightComponent.mIntensity, 0.1f, 0.f);
+		})
+	);
+
+	static TAutoComponentEditor<FPointLightComponent> PointLightEditor(
+		FName("PointLight"),
+		FDrawComonentPropertyEditorDelegate::CreateLambda([](entt::registry& registry, entt::entity entity)
+		{
+			FPointLightComponent& lightComponent = registry.get<FPointLightComponent>(entity);
+			ImGui::ColorEdit3("Color", glm::value_ptr(lightComponent.mColor));
+			ImGui::DragFloat("Intensity", &lightComponent.mIntensity, 0.1f);
+			ImGui::DragFloat("Radius", &lightComponent.mIntensity, 0.1f, 0.f);
+		})
+	);
+
+	static TAutoComponentEditor<FSpotLightComponent> SpotLightEditor(
+		FName("SpotLight"),
+		FDrawComonentPropertyEditorDelegate::CreateLambda([](entt::registry& registry, entt::entity entity)
+		{
+			FSpotLightComponent& lightComponent = registry.get<FSpotLightComponent>(entity);
+			ImGui::ColorEdit3("Color", glm::value_ptr(lightComponent.mColor));
+			ImGui::DragFloat("Intensity", &lightComponent.mIntensity, 0.1f);
+			ImGui::DragFloat("Radius", &lightComponent.mIntensity, 0.1f, 0.f);
+
+			float innerAngleDeg = glm::degrees(lightComponent.mInnerAngle);
+			float outerAngleDeg = glm::degrees(lightComponent.mOuterAngle);
+			ImGui::DragFloat("InnerAngle", &innerAngleDeg, 0.1f, 0.f, 180.f);
+			ImGui::DragFloat("InnerAngle", &outerAngleDeg, 0.1f, 0.f, 180.f);
+
+			lightComponent.mInnerAngle = glm::min(innerAngleDeg, outerAngleDeg);
+			lightComponent.mOuterAngle = glm::max(innerAngleDeg, outerAngleDeg);
 		})
 	);
 

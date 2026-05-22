@@ -1,7 +1,6 @@
 #pragma once
 
 #include "FrameGraph/RenderGraph.h"
-#include "Graphics/Resources.h"
 
 namespace Turbo
 {
@@ -10,7 +9,7 @@ namespace Turbo
 	class FGeometryBuffer
 	{
 	public:
-		static constexpr vk::Format kColorFormat = vk::Format::eR16G16B16A16Sfloat;
+		static constexpr vk::Format kColorFormat = vk::Format::eB10G11R11UfloatPack32;
 		static constexpr vk::Format kDepthStencilFormat = vk::Format::eD32Sfloat;
 
 	public:
@@ -18,7 +17,7 @@ namespace Turbo
 		void BlitToPresent(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) const;
 
 	public:
-		FRGResourceHandle mColor = {};
-		FRGResourceHandle mDepth = {};
+		FRGResourceHandle mDepthStencil = {};
+		FRGResourceHandle mSceneColor = {};
 	};
 } // Turbo

@@ -129,6 +129,11 @@ def convert_gltf():
         image["uri"] = relative_path
         image["mimeType"] = "image/vnd-ms.dds"
 
+    for light in gltf["extensions"]["KHR_lights_punctual"]["lights"]:
+        if light["type"] == "point":
+            light["intensity"] = 1000.
+            light["range"] = 5.
+
     with open(SPONZA_BASE_GLTF_DST, 'w') as f:
         json.dump(gltf, f, indent=4)
 

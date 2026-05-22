@@ -14,6 +14,10 @@ using uint32 = std::uint32_t;
 using int64 = std::int64_t;
 using uint64 = std::uint64_t;
 
+using fp16 = _Float16;
+using fp32 = _Float32;
+using fp64 = _Float64;
+
 using cstring = const char*;
 
 constexpr std::byte operator""_B(unsigned long long x)

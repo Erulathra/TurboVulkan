@@ -13,6 +13,7 @@
 #include <string>
 #include <string_view>
 #include <limits>
+#include <stdfloat>
 
 // stl collections
 #include <vector>

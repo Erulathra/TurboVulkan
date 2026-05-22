@@ -9,12 +9,18 @@
 #include "fastgltf/core.hpp"
 #include "fastgltf/tools.hpp"
 #include "Graphics/GPUDevice.h"
+#include "World/ShadingComponents.h"
 
 namespace
 {
 	void LogGLTFError(std::string_view message, fastgltf::Error error)
 	{
 		TURBO_LOG(LogGLTFSceneLoader, Error, "{} Error: {} Message: {}", message, fastgltf::getErrorName(error), fastgltf::getErrorMessage(error));
+	}
+
+	glm::float3 ToFloat3(const fastgltf::math::nvec3& vec3)
+	{
+		return glm::float3{vec3.x(), vec3.y(), vec3.z()};
 	}
 }
 
@@ -37,7 +43,7 @@ namespace Turbo
 		FTurboGLTFDataBuffer dataBuffer = FTurboGLTFDataBuffer::Load(path.ToString());
 
 		// Load gltf material
-		fastgltf::Parser parser;
+		fastgltf::Parser parser(fastgltf::Extensions::KHR_lights_punctual);
 		fastgltf::Expected<fastgltf::Asset> gltfAsset = parser.loadGltf(
 			dataBuffer,
 			path.ToString(),
@@ -229,6 +235,39 @@ namespace Turbo
 						meshComponent.mMaterial = opaqueMaterial;
 						meshComponent.mMaterialInstance = meshNodeData.mMaterials[subMeshId];
 						meshComponent.mMesh = meshNodeData.mSubMeshes[subMeshId];
+					}
+				}
+			}
+
+			if (node.lightIndex.has_value())
+			{
+				const fastgltf::Light& light = gltfAsset->lights[node.lightIndex.value()];
+				switch (light.type)
+				{
+				case fastgltf::LightType::Directional:
+					{
+						FDirectionalLightComponent& newDirLight = world.mRegistry.emplace<FDirectionalLightComponent>(nodeEntity);
+						newDirLight.mColor = ToFloat3(light.color);
+						newDirLight.mIntensity = light.intensity;
+						break;
+					}
+				case fastgltf::LightType::Point:
+					{
+						FPointLightComponent& newPointLight = world.mRegistry.emplace<FPointLightComponent>(nodeEntity);
+						newPointLight.mColor = ToFloat3(light.color);
+						newPointLight.mIntensity = light.intensity;
+						newPointLight.mRadius = light.range.value_or(0.f);
+						break;
+					}
+				case fastgltf::LightType::Spot:
+					{
+						FSpotLightComponent& newSpotLight = world.mRegistry.emplace<FSpotLightComponent>(nodeEntity);
+						newSpotLight.mColor = ToFloat3(light.color);
+						newSpotLight.mIntensity = light.intensity;
+						newSpotLight.mRadius = light.range.value_or(0);
+						newSpotLight.mInnerAngle = light.innerConeAngle.value_or(0);
+						newSpotLight.mOuterAngle = light.outerConeAngle.value_or(0);
+						break;
 					}
 				}
 			}

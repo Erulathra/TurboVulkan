@@ -27,12 +27,12 @@ namespace Turbo
 			.mName = geometryBufferDepthName
 		};
 
-		mColor = graphBuilder.CreateTexture(colorInfo);
-		mDepth = graphBuilder.CreateTexture(depthInfo);
+		mSceneColor = graphBuilder.CreateTexture(colorInfo);
+		mDepthStencil = graphBuilder.CreateTexture(depthInfo);
 	}
 
 	void FGeometryBuffer::BlitToPresent(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) const
 	{
-		RenderGraphUtils::AddBlitTexturePass(graphBuilder, mColor, presentTexture);
+		RenderGraphUtils::AddBlitTexturePass(graphBuilder, mSceneColor, presentTexture);
 	}
 } // Turbo

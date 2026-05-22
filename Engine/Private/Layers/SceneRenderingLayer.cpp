@@ -396,13 +396,13 @@ namespace Turbo
 		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 		geometryPass->AddAttachment(
 			{
-				.mTexture = geometryBuffer.mColor,
+				.mTexture = geometryBuffer.mSceneColor,
 				.mLoadOp = ELoadOp::Clear,
 				.mClearColor = EClearColor::OpaqueBlack
 			},
 			0);
 		geometryPass->SetDepthStencilAttachment({
-			.mTexture = geometryBuffer.mDepth,
+			.mTexture = geometryBuffer.mDepthStencil,
 			.mLoadOp = ELoadOp::Clear,
 			.mClearColor = EClearColor::Zero
 		});
