@@ -249,6 +249,14 @@ namespace Turbo
 		size_t mOffset = 0;
 	};
 
+	struct FCreateAndUploadBuffer
+	{
+		void* mData = nullptr;
+		FDeviceSize mSize = 0;
+		EBufferFlags mBufferFlags;
+		FName mName = {};
+	};
+
 	struct FRGAttachment
 	{
 		FRGResourceHandle mTexture = {};

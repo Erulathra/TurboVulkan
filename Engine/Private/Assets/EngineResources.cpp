@@ -13,6 +13,8 @@ namespace Turbo
 		THandle<FTexture> gWhiteTexture;
 		THandle<FTexture> gBlackTexture;
 		THandle<FTexture> gPlaceholderTexture;
+		THandle<FTexture> gORMPlaceholderTexture;
+		THandle<FTexture> gFlatNormalMapTexture;
 
 		THandle<FMesh> gPlaceholderMesh;
 
@@ -93,6 +95,20 @@ namespace Turbo
 			gBlackTexture = gpu.CreateTexture(textureBuilder);
 			constexpr byte blackBytes[] {0x0_B, 0x0_B, 0x0_B, 0xff_B};
 			gpu.UploadTextureUsingStagingBuffer( gBlackTexture, blackBytes);
+
+			textureBuilder
+				.Init(vk::Format::eR8G8B8Snorm, ETextureType::Texture2D)
+				.SetName(FName("Engine::ORMPlaceholder"));
+			gORMPlaceholderTexture = gpu.CreateTexture(textureBuilder);
+			constexpr byte ormBytes[] {0xFF_B, 0xFF_B, 0x0_B};
+			gpu.UploadTextureUsingStagingBuffer( gORMPlaceholderTexture, ormBytes);
+
+			textureBuilder
+				.Init(vk::Format::eR8G8B8Snorm, ETextureType::Texture2D)
+				.SetName(FName("Engine::FlatNormalMap"));
+			gFlatNormalMapTexture = gpu.CreateTexture(textureBuilder);
+			constexpr byte flatNormalBytes[] {0x80_B, 0x80_B, 0xFF_B};
+			gpu.UploadTextureUsingStagingBuffer( gFlatNormalMapTexture, flatNormalBytes);
 		}
 
 		void LoadPlaceholders()
@@ -111,6 +127,8 @@ namespace Turbo
 			gpu.DestroyTexture(gWhiteTexture);
 			gpu.DestroyTexture(gBlackTexture);
 			gpu.DestroyTexture(gPlaceholderTexture);
+			gpu.DestroyTexture(gORMPlaceholderTexture);
+			gpu.DestroyTexture(gFlatNormalMapTexture);
 
 			FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 			assetManager.UnloadMesh(gPlaceholderMesh);
@@ -139,6 +157,16 @@ namespace Turbo
 		THandle<FTexture> GetPlaceholderTexture()
 		{
 			return gPlaceholderTexture;
+		}
+
+		THandle<FTexture> GetORMPlaceholderTexture()
+		{
+			return gORMPlaceholderTexture;
+		}
+
+		THandle<FTexture> GetFlatNormalMapTexture()
+		{
+			return gFlatNormalMapTexture;
 		}
 
 		THandle<FMesh> GetPlaceholderMesh()

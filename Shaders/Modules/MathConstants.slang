@@ -70,3 +70,6 @@
 #define HLF_MIN_EXP         (-14)                   // min binary exponent
 #define HLF_RADIX           2
 #define HLF_TRUE_MIN        5.960464477539063e-08F  // min positive value
+
+// TURBO Specific
+#define TURBO_SMALL_NUMBER      1e-6f

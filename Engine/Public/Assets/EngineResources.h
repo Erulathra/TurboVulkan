@@ -52,6 +52,8 @@ namespace Turbo
 		THandle<FTexture> GetWhiteTexture();
 		THandle<FTexture> GetBlackTexture();
 		THandle<FTexture> GetPlaceholderTexture();
+		THandle<FTexture> GetORMPlaceholderTexture();
+		THandle<FTexture> GetFlatNormalMapTexture();
 
 		THandle<FMesh> GetPlaceholderMesh();
 

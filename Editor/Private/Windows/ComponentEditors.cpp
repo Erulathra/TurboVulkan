@@ -30,43 +30,52 @@ namespace Turbo
 		})
 	);
 
-	static TAutoComponentEditor<FDirectionalLightComponent> DirectionalLightEditor(
-		FName("DirectionalLight"),
+	static TAutoComponentEditor<FLightComponent> LightComponentEditor(
+		FName("Light"),
 		FDrawComonentPropertyEditorDelegate::CreateLambda([](entt::registry& registry, entt::entity entity)
 		{
-			FDirectionalLightComponent& lightComponent = registry.get<FDirectionalLightComponent>(entity);
+			FLightComponent& lightComponent = registry.get<FLightComponent>(entity);
+
+			if (ImGui::BeginCombo("Type", ToString(lightComponent.mType)))
+			{
+				for (uint8 typeId = 0; typeId < static_cast<uint8>(ELightType::Num); ++typeId)
+				{
+					ELightType currentType = static_cast<ELightType>(typeId);
+
+					ImGui::PushID(static_cast<int32>(typeId));
+					if (ImGui::Selectable(ToString(currentType), typeId == static_cast<uint8>(lightComponent.mType)))
+					{
+						lightComponent.mType = static_cast<ELightType>(typeId);
+					}
+
+					ImGui::PopID();
+				}
+
+				ImGui::EndCombo();
+			}
+
 			ImGui::ColorEdit3("Color", glm::value_ptr(lightComponent.mColor));
 			ImGui::DragFloat("Intensity", &lightComponent.mIntensity, 0.1f, 0.f);
-		})
-	);
 
-	static TAutoComponentEditor<FPointLightComponent> PointLightEditor(
-		FName("PointLight"),
-		FDrawComonentPropertyEditorDelegate::CreateLambda([](entt::registry& registry, entt::entity entity)
-		{
-			FPointLightComponent& lightComponent = registry.get<FPointLightComponent>(entity);
-			ImGui::ColorEdit3("Color", glm::value_ptr(lightComponent.mColor));
-			ImGui::DragFloat("Intensity", &lightComponent.mIntensity, 0.1f);
-			ImGui::DragFloat("Radius", &lightComponent.mIntensity, 0.1f, 0.f);
-		})
-	);
+			if (lightComponent.mType == ELightType::Point || lightComponent.mType == ELightType::Spot)
+			{
+				ImGui::DragFloat("Range", &lightComponent.mRange, 0.1f, 0.f);
+			}
 
-	static TAutoComponentEditor<FSpotLightComponent> SpotLightEditor(
-		FName("SpotLight"),
-		FDrawComonentPropertyEditorDelegate::CreateLambda([](entt::registry& registry, entt::entity entity)
-		{
-			FSpotLightComponent& lightComponent = registry.get<FSpotLightComponent>(entity);
-			ImGui::ColorEdit3("Color", glm::value_ptr(lightComponent.mColor));
-			ImGui::DragFloat("Intensity", &lightComponent.mIntensity, 0.1f);
-			ImGui::DragFloat("Radius", &lightComponent.mIntensity, 0.1f, 0.f);
+			if (lightComponent.mType == ELightType::Spot)
+			{
+				float innerAngleDeg = glm::degrees(lightComponent.mInnerAngle);
+				float outerAngleDeg = glm::degrees(lightComponent.mOuterAngle);
+				if (ImGui::DragFloat("InnerAngle", &innerAngleDeg, 0.1f, 0.f, 180.f))
+				{
+					lightComponent.mInnerAngle = glm::min(innerAngleDeg, outerAngleDeg);
+				}
 
-			float innerAngleDeg = glm::degrees(lightComponent.mInnerAngle);
-			float outerAngleDeg = glm::degrees(lightComponent.mOuterAngle);
-			ImGui::DragFloat("InnerAngle", &innerAngleDeg, 0.1f, 0.f, 180.f);
-			ImGui::DragFloat("InnerAngle", &outerAngleDeg, 0.1f, 0.f, 180.f);
-
-			lightComponent.mInnerAngle = glm::min(innerAngleDeg, outerAngleDeg);
-			lightComponent.mOuterAngle = glm::max(innerAngleDeg, outerAngleDeg);
+				if (ImGui::DragFloat("OuterAngle", &outerAngleDeg, 0.1f, 0.f, 180.f))
+				{
+					lightComponent.mOuterAngle = glm::max(innerAngleDeg, outerAngleDeg);
+				}
+			}
 		})
 	);
 

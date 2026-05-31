@@ -1,6 +1,6 @@
 #include "Modules/Common.slang"
 
-import Modules.MeshRendering;
+import Modules.BasePassCommon;
 import Modules.Math;
 import Modules.Hash;
 

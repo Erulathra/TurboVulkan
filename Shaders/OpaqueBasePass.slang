@@ -1,22 +1,23 @@
 #include "Modules/Common.slang"
 
-import Modules.MeshRendering;
+import Modules.BasePassCommon;
 import Modules.Math;
+import Modules.ShadingCommon;
 
 [[vk::push_constant]]
 FIndirectPushConstants pc;
 
-struct MaterialData
+struct FMaterialData
 {
     uint mBaseColorSampler;
-    uint mMetalicRoughnessSampler;
+    uint mORMSampler;
     uint mNormalSampler;
 }
 
-struct InstanceData
+struct FInstanceData
 {
     uint mBaseColorTexture;
-    uint mMetalicRoughnessTexture;
+    uint mORMTexture;
     uint mNormalTexture;
 
     float mNormalScale;
@@ -28,11 +29,10 @@ struct InstanceData
 struct VSOut
 {
     float4 mPosition : SV_Position;
-    float3 mViewPosition;
-    float3 mViewNormal;
-    float2 mUV;
 
     float3 mWorldPosition;
+    float3 mWorldNormal;
+    float2 mUV;
 
 	uint mDrawId;
 }
@@ -55,11 +55,12 @@ void vsMain(
 	const uint vertexId = asuint(mesh.mIndexBuffer[indexId]);
 	const float4 modelPosition = float4(mesh.mPositionBuffer[vertexId], 1.f);
 
-	vsOut.mWorldPosition = mul(modelPosition, data.mModelToWorld).xyz;
     vsOut.mPosition = mul(modelPosition, data.mModelToProj);
-    vsOut.mViewPosition = mul(modelPosition, data.mModelToView).xyz;
-    vsOut.mViewNormal = mul(mesh.mNormalBuffer[vertexId], data.mNormalModelToView);
+
+    vsOut.mWorldPosition = mul(modelPosition, data.mModelToWorld).xyz;
+	vsOut.mWorldNormal = mul(mesh.mNormalBuffer[vertexId], data.mNormalModelToWorld);
     vsOut.mUV = mesh.mUVBuffer[vertexId];
+
 	vsOut.mDrawId = drawId;
 }
 
@@ -71,14 +72,48 @@ void psMain(
 {
 	const FIndirectDrawData data = pc.mDrawData[vsOut.mDrawId];
 
-    const Ptr<InstanceData> instance = Ptr<InstanceData>(data.mMaterialInstance);
-    const Ptr<MaterialData> material = Ptr<MaterialData>(data.mMaterialData);
+    const Ptr<FInstanceData> instance = Ptr<FInstanceData>(data.mMaterialInstance);
+    const Ptr<FMaterialData> material = Ptr<FMaterialData>(data.mMaterialData);
 
-    Texture2D<float3> texture = texturePool[instance.mBaseColorTexture];
-    SamplerState sampler = samplerPool[material.mBaseColorSampler];
+    // Fetch textures and samplers
+    Texture2D<float3> albedoTexture = texturePool[instance.mBaseColorTexture];
+    SamplerState albedoSampler = samplerPool[material.mBaseColorSampler];
+    Texture2D<float3> normalTexture = texturePool[instance.mNormalTexture];
+    SamplerState normalSampler = samplerPool[material.mNormalSampler];
+    Texture2D<float3> ormTexture = texturePool[instance.mORMTexture];
+    SamplerState ormSampler = samplerPool[material.mORMSampler];
 
-    const float3 baseColor = instance.mBaseColorFactor.rgb * texture.Sample(sampler, vsOut.mUV);
-    // const float3 baseColor = float3(1, 0, 0);
+    // Normal mapping (TODO:)
+    // const float3 normal = vsOut.mViewNormal;
 
-    psOut.mColor = float4(baseColor, 1.f);
+    Ptr<FViewData> viewData = pc.mViewData;
+
+    // Fill pixel data
+    FPixelLightningInput pixelInput;
+    pixelInput.mPosition = vsOut.mWorldPosition;
+    pixelInput.mNormal = vsOut.mWorldNormal;
+    pixelInput.mPixelToCamera = normalize(viewData.mViewPosition - vsOut.mWorldPosition);
+
+    pixelInput.mAlbedo = albedoTexture.Sample(albedoSampler, vsOut.mUV);
+    const float3 ORM = ormTexture.Sample(ormSampler, vsOut.mUV);
+    pixelInput.mMetallic = ORM.r * instance.mMetalicFactor;
+    pixelInput.mRoughness = ORM.g * instance.mRoughnessFactor;
+    pixelInput.mAO = ORM.b;
+
+    Ptr<FSceneData> scene = pc.mSceneData;
+    Ptr<FLight> lights = pc.mLightData;
+
+    float3 irradiance = 0.f;
+
+    for (int lightIndex = 0; lightIndex < scene.mNumLights; lightIndex++)
+    {
+        // For now only support point lights
+        FLight light = lights[lightIndex];
+        if (GetLightType(light) == ELightType::Point)
+        {
+            irradiance += CalculatePixelRadiance(light, pixelInput);
+        }
+    }
+
+    psOut.mColor = float4(irradiance, 1.f);
 }

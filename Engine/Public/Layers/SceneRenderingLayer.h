@@ -23,6 +23,12 @@ namespace Turbo
 		FRGResourceHandle mDrawBuffer = {};
 	};
 
+	struct FSceneData final
+	{
+		uint32 mNumLights = 0;
+		uint32 _PADDING[3];
+	};
+
 	class FSceneRenderingLayer : public ILayer
 	{
 	public:
@@ -42,14 +48,6 @@ namespace Turbo
 			FWorld* world,
 			FViewData& viewData,
 			std::vector<FDrawIndirectBucket>& outBuckets
-		);
-
-		static void DrawIndirect(
-			FGPUDevice& gpu,
-			FCommandBuffer& cmd,
-			FRenderResources& resources,
-			FRGResourceHandle viewDataBufferHandle,
-			const std::vector<FDrawIndirectBucket>& buckets
 		);
 
 	private:

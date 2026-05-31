@@ -1,6 +1,7 @@
 #pragma once
 #include "SceneGraph.h"
 #include "Core/Math/FRotator.h"
+#include "Graphics/ForwardLightningHelpers.h"
 
 namespace Turbo
 {
@@ -51,6 +52,7 @@ namespace Turbo
 		glm::float4x4 mViewMatrix = {1.f};
 
 		glm::float4x4 mWorldToProjection = {1.f};
+		glm::float3 mCameraPosition = {};
 
 		double mTime = 0.f;
 		double mWorldTime = 0.f;

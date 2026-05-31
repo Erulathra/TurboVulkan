@@ -193,6 +193,33 @@ namespace Turbo
 		mQueuedBufferUploads.push_back(bufferUpload);
 	}
 
+	FRGResourceHandle FRenderGraphBuilder::CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer)
+	{
+		TURBO_CHECK(createAndUploadBuffer.mData)
+
+		FRGResourceHandle result = CreateBuffer(FRGBufferInfo{
+			.mSize = createAndUploadBuffer.mSize,
+			.mBufferFlags = createAndUploadBuffer.mBufferFlags | EBufferFlags::CreateMapped,
+			.mName = createAndUploadBuffer.mName,
+		});
+
+		void* data = createAndUploadBuffer.mData;
+		if (mAllocator.Contains(createAndUploadBuffer.mData) == false)
+		{
+			data = mAllocator.Allocate(createAndUploadBuffer.mSize);
+			memcpy(data, createAndUploadBuffer.mData, createAndUploadBuffer.mSize);
+		}
+
+		QueueBufferUpload(FRGBufferUpload{
+			.mTargetBuffer = result,
+			.mData = data,
+			.mDataSize = createAndUploadBuffer.mSize,
+			.mOffset = 0
+		});
+
+		return result;
+	}
+
 	FRGPassInitializer FRenderGraphBuilder::AddPass(FName passName, EPassType passType)
 	{
 		mRenderPasses.emplace_back();

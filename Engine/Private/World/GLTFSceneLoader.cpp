@@ -119,11 +119,20 @@ namespace Turbo
 						{
 							instanceData.mMetalicRoughnessTexture = loadedTextures[pbrData.metallicRoughnessTexture.value().textureIndex].GetIndex();
 						}
+						else
+						{
+							instanceData.mMetalicRoughnessTexture = EngineResources::GetORMPlaceholderTexture().GetIndex();
+						}
 
 						if (gltfMaterial.normalTexture.has_value())
 						{
 							instanceData.mNormalTexture = loadedTextures[gltfMaterial.normalTexture.value().textureIndex].GetIndex();
 							instanceData.mNormalScale = gltfMaterial.normalTexture.value().scale;
+						}
+						else
+						{
+							instanceData.mNormalTexture = EngineResources::GetFlatNormalMapTexture().GetIndex();
+							instanceData.mNormalScale = 0.f;
 						}
 
 						instanceData.mBaseColorFactor = glm::float4{
@@ -242,33 +251,35 @@ namespace Turbo
 			if (node.lightIndex.has_value())
 			{
 				const fastgltf::Light& light = gltfAsset->lights[node.lightIndex.value()];
+
+				FLightComponent& newLight = world.mRegistry.emplace<FLightComponent>(nodeEntity);
+
 				switch (light.type)
 				{
 				case fastgltf::LightType::Directional:
-					{
-						FDirectionalLightComponent& newDirLight = world.mRegistry.emplace<FDirectionalLightComponent>(nodeEntity);
-						newDirLight.mColor = ToFloat3(light.color);
-						newDirLight.mIntensity = light.intensity;
-						break;
-					}
+					newLight.mType = ELightType::Directional;
+					break;
 				case fastgltf::LightType::Point:
-					{
-						FPointLightComponent& newPointLight = world.mRegistry.emplace<FPointLightComponent>(nodeEntity);
-						newPointLight.mColor = ToFloat3(light.color);
-						newPointLight.mIntensity = light.intensity;
-						newPointLight.mRadius = light.range.value_or(0.f);
-						break;
-					}
+					newLight.mType = ELightType::Point;
+					break;
 				case fastgltf::LightType::Spot:
-					{
-						FSpotLightComponent& newSpotLight = world.mRegistry.emplace<FSpotLightComponent>(nodeEntity);
-						newSpotLight.mColor = ToFloat3(light.color);
-						newSpotLight.mIntensity = light.intensity;
-						newSpotLight.mRadius = light.range.value_or(0);
-						newSpotLight.mInnerAngle = light.innerConeAngle.value_or(0);
-						newSpotLight.mOuterAngle = light.outerConeAngle.value_or(0);
-						break;
-					}
+					newLight.mType = ELightType::Spot;
+					break;
+				}
+
+				switch (light.type)
+				{
+				case fastgltf::LightType::Spot:
+					newLight.mInnerAngle = light.innerConeAngle.value_or(0);
+					newLight.mOuterAngle = light.outerConeAngle.value_or(0);
+					// no break by design
+				case fastgltf::LightType::Point:
+					newLight.mRange = light.range.value_or(0.f);
+					// no break by design
+				case fastgltf::LightType::Directional:
+					newLight.mColor = ToFloat3(light.color);
+					newLight.mIntensity = light.intensity;
+					// no break by design
 				}
 			}
 		}

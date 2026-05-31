@@ -9,6 +9,7 @@
 #include "Graphics/ResourceBuilders.h"
 #include "World/Camera.h"
 #include "World/MeshComponent.h"
+#include "World/ShadingComponents.h"
 #include "World/World.h"
 
 namespace Turbo
@@ -84,6 +85,7 @@ namespace Turbo
 		viewData.mProjectionMatrix = cameraCache.mProjectionMatrix;
 		viewData.mViewMatrix = glm::inverse(cameraTransform.mTransform);
 		viewData.mWorldToProjection = viewData.mProjectionMatrix * viewData.mViewMatrix;
+		viewData.mCameraPosition = TransformUtils::GetPosition(cameraTransform);
 
 		viewData.mTime = FCoreTimer::TimeFromEngineStart();
 		viewData.mWorldTime = FCoreTimer::TimeFromEngineStart();
@@ -258,7 +260,7 @@ namespace Turbo
 					drawData.mModelToProj = viewData.mWorldToProjection * drawCallIt->mWorldTransform;
 					drawData.mModelToView = viewData.mViewMatrix * drawCallIt->mWorldTransform;
 					drawData.mModelToWorld = drawCallIt->mWorldTransform;
-					drawData.mNormalModelToView = glm::float3x3(glm::transpose(glm::inverse(drawData.mModelToView)));
+					drawData.mNormalModelToWorld = glm::float3x3(glm::transpose(glm::inverse(drawData.mModelToWorld)));
 
 					drawData.mMaterialInstance = materialManager.GetMaterialInstanceAddress(gpu, drawCallIt->mMaterialInstance);
 					drawData.mMaterialData = materialManager.GetMaterialDataAddress(gpu, bucket.mTargetMaterial);
@@ -268,47 +270,6 @@ namespace Turbo
 				}
 			}
 		}
-	}
-
-	void FSceneRenderingLayer::DrawIndirect(
-		FGPUDevice& gpu,
-		FCommandBuffer& cmd,
-		FRenderResources& resources,
-		FRGResourceHandle viewDataBufferHandle,
-		const std::vector<FDrawIndirectBucket>& buckets
-	)
-	{
-		FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
-
-		for (const FDrawIndirectBucket& bucket : buckets)
-		{
-			TRACE_ZONE_SCOPED_N("Render Bucket")
-			TRACE_GPU_SCOPED(gpu, cmd, "Render Bucket")
-
-				const FMaterial* material = materialManager.AccessMaterial(bucket.mMaterialHandle);
-			cmd.BindPipeline(material->mPipeline);
-			cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
-
-			const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
-			const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(viewDataBufferHandle));
-
-			const FMaterial::PushConstants pushConstants = {
-				.mViewData = viewDataBuffer->mDeviceAddress,
-				.mDrawData = drawBuffer->mDeviceAddress
-			};
-
-			cmd.PushConstants(pushConstants);
-			cmd.DrawIndirect(
-				resources.mBuffers.at(bucket.mIndirectCommandBuffer),
-				0,
-				bucket.mCount,
-				sizeof(vk::DrawIndirectCommand)
-			);
-		}
-
-		static const cstring kRenderBuckets = "Render Buckets";
-		TRACE_PLOT_CONFIGURE(kRenderBuckets, EPlotFormat::Number, true, true, 0xFFFF00)
-		TRACE_PLOT(kRenderBuckets, static_cast<int64>(buckets.size()))
 	}
 
 	void FSceneRenderingLayer::RenderScene(FRenderGraphBuilder& graphBuilder)
@@ -326,6 +287,7 @@ namespace Turbo
 			return;
 		}
 
+		// Create and upload view data
 		FViewData* viewData = graphBuilder.AllocatePOD<FViewData>();
 		FRGResourceHandle viewDataBufferHandle = graphBuilder.CreateBuffer({
 			.mSize = sizeof(FViewData),
@@ -338,6 +300,44 @@ namespace Turbo
 			.mTargetBuffer = viewDataBufferHandle,
 			.mData = viewData,
 			.mDataSize = sizeof(FViewData),
+		});
+
+		// Create Lights buffers
+		std::vector<FLight> lights;
+		auto pointLightView = world->mRegistry.view<FLightComponent, FWorldTransform>();
+		for (const entt::entity entity : pointLightView)
+		{
+			const FWorldTransform& transform = pointLightView.get<FWorldTransform>(entity);
+			const FLightComponent& pointLight = pointLightView.get<FLightComponent>(entity);
+
+			if (pointLight.mIntensity > TURBO_SMALL_NUMBER)
+			{
+				lights.emplace_back(
+					pointLight.mColor,
+					pointLight.mIntensity,
+					TransformUtils::GetPosition(transform),
+					pointLight.mRange,
+					TransformUtils::GetForward(transform),
+					ForwardLightning::EncodeLightAnglesAndType(pointLight.mInnerAngle, pointLight.mOuterAngle, pointLight.mType)
+				);
+			}
+		}
+
+		FRGResourceHandle lightsBufferHandle = graphBuilder.CreateAndQueueBufferUpload(FCreateAndUploadBuffer{
+			.mData = lights.data(),
+			.mSize = lights.size() * sizeof(FLight),
+			.mBufferFlags = EBufferFlags::UniformBuffer,
+			.mName = FName("PointLightBuffer")
+		});
+
+		// Create and upload scene data
+		FSceneData* sceneData = graphBuilder.AllocatePOD<FSceneData>();
+		sceneData->mNumLights = lights.size();
+		FRGResourceHandle sceneDataBufferHandle = graphBuilder.CreateAndQueueBufferUpload(FCreateAndUploadBuffer{
+			.mData = sceneData,
+			.mSize = sizeof(FSceneData),
+			.mBufferFlags = EBufferFlags::UniformBuffer,
+			.mName = FName("SceneDataBuffer")
 		});
 
 		std::vector<FDrawIndirectBucket> drawIndirectBuckets;
@@ -378,11 +378,7 @@ namespace Turbo
 
 					cmd.PushConstants(pushConstants);
 
-					const glm::uint3 groupCount = glm::uint3(
-						Math::DivideAndRoundUp(bucket.mCount, static_cast<uint32>(64)),
-						1,
-						1
-					);
+					const glm::uint3 groupCount = glm::uint3(Math::DivideAndRoundUp<uint32>(bucket.mCount, 64), 1, 1 );
 
 					cmd.Dispatch(groupCount);
 				}
@@ -408,6 +404,8 @@ namespace Turbo
 		});
 
 		geometryPass->ReadBuffer(viewDataBufferHandle);
+		geometryPass->ReadBuffer(sceneDataBufferHandle);
+		geometryPass->ReadBuffer(lightsBufferHandle);
 
 		for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
 		{
@@ -416,9 +414,43 @@ namespace Turbo
 		}
 
 		geometryPass->mExecutePass.BindLambda(
-			[viewDataBufferHandle, drawIndirectBuckets](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+			[=](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 			{
-				DrawIndirect(gpu, cmd, resources, viewDataBufferHandle, drawIndirectBuckets);
+				FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+
+				for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+				{
+					TRACE_ZONE_SCOPED_N("Render Bucket")
+					TRACE_GPU_SCOPED(gpu, cmd, "Render Bucket")
+
+					const FMaterial* material = materialManager.AccessMaterial(bucket.mMaterialHandle);
+					cmd.BindPipeline(material->mPipeline);
+					cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
+
+					const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
+					const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(viewDataBufferHandle));
+					const FBuffer* sceneDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneDataBufferHandle));
+					const FBuffer* lightsBuffer = gpu.AccessBuffer(resources.mBuffers.at(lightsBufferHandle));
+
+					const FMaterial::PushConstants pushConstants = {
+						.mViewData = viewDataBuffer->mDeviceAddress,
+						.mSceneData = sceneDataBuffer->mDeviceAddress,
+						.mLightData = lightsBuffer->mDeviceAddress,
+						.mDrawData = drawBuffer->mDeviceAddress
+					};
+
+					cmd.PushConstants(pushConstants);
+					cmd.DrawIndirect(
+						resources.mBuffers.at(bucket.mIndirectCommandBuffer),
+						0,
+						bucket.mCount,
+						sizeof(vk::DrawIndirectCommand)
+					);
+				}
+
+				static const cstring kRenderBuckets = "Render Buckets";
+				TRACE_PLOT_CONFIGURE(kRenderBuckets, EPlotFormat::Number, true, true, 0xFFFF00)
+				TRACE_PLOT(kRenderBuckets, static_cast<int64>(drawIndirectBuckets.size()))
 			}
 		);
 	}

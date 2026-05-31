@@ -91,6 +91,7 @@ namespace Turbo
 
 		[[nodiscard]] FRGResourceHandle CreateBuffer(const FRGBufferInfo& bufferInfo);
 		void QueueBufferUpload(const FRGBufferUpload& bufferUpload);
+		[[nodiscard]] FRGResourceHandle CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer);
 
 		[[nodiscard]] FRGPassInitializer AddPass(FName passName, EPassType passType = EPassType::Undefined);
 
