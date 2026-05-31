@@ -15,18 +15,30 @@ namespace Turbo
 	// Replace with growable buffer
 	constexpr size_t kNumAllocatedMaterialInstances = 512;
 
+	struct FSceneData final
+	{
+		uint32 mNumLights = 0;
+		uint32 _PADDING[3];
+	};
+
+	struct FSceneView
+	{
+		// Those pointers are valid only during this frame
+		FViewData* mViewData = nullptr;
+		FSceneData* mSceneData = nullptr;
+		FLight* mLights = nullptr; // There is mNumLights in mSceneData;
+
+		FRGResourceHandle mViewDataBufferHandle = {};
+		FRGResourceHandle mSceneDataBufferHandle = {};
+		FRGResourceHandle mLightsBufferHandle = {};
+	};
+
 	struct FDrawIndirectBucket
 	{
 		THandle<FMaterial> mMaterialHandle = {};
 		uint32 mCount = 0;
 		FRGResourceHandle mIndirectCommandBuffer = {};
 		FRGResourceHandle mDrawBuffer = {};
-	};
-
-	struct FSceneData final
-	{
-		uint32 mNumLights = 0;
-		uint32 _PADDING[3];
 	};
 
 	class FSceneRenderingLayer : public ILayer
@@ -46,8 +58,7 @@ namespace Turbo
 		static void CreateIndirectRenderBuffers(
 			FRenderGraphBuilder& graphBuilder,
 			FWorld* world,
-			FViewData& viewData,
-			std::vector<FDrawIndirectBucket>& outBuckets
+			FSceneView* sceneView, std::vector<FDrawIndirectBucket>& outBuckets
 		);
 
 	private:

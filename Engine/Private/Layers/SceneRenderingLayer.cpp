@@ -100,7 +100,7 @@ namespace Turbo
 	void FSceneRenderingLayer::CreateIndirectRenderBuffers(
 		FRenderGraphBuilder& graphBuilder,
 		FWorld* world,
-		FViewData& viewData,
+		FSceneView* sceneView,
 		std::vector<FDrawIndirectBucket>& outBuckets
 	)
 	{
@@ -252,13 +252,15 @@ namespace Turbo
 					.mDataSize = numDraws * sizeof(FMaterial::IndirectDrawData),
 				});
 
+				const FViewData* viewData = sceneView->mViewData;
+
 				// Fill buffers
 				uint32 drawIndex = 0;
 				for (FDrawCallIt drawCallIt = bucket.mStartIt; drawCallIt != bucket.mEndIt; ++drawCallIt)
 				{
 					FMaterial::IndirectDrawData& drawData = drawDatum[drawIndex];
-					drawData.mModelToProj = viewData.mWorldToProjection * drawCallIt->mWorldTransform;
-					drawData.mModelToView = viewData.mViewMatrix * drawCallIt->mWorldTransform;
+					drawData.mModelToProj = viewData->mWorldToProjection * drawCallIt->mWorldTransform;
+					drawData.mModelToView = viewData->mViewMatrix * drawCallIt->mWorldTransform;
 					drawData.mModelToWorld = drawCallIt->mWorldTransform;
 					drawData.mNormalModelToWorld = glm::float3x3(glm::transpose(glm::inverse(drawData.mModelToWorld)));
 
@@ -287,18 +289,20 @@ namespace Turbo
 			return;
 		}
 
+		FSceneView* sceneView = graphBuilder.AllocatePOD<FSceneView>();
+
 		// Create and upload view data
-		FViewData* viewData = graphBuilder.AllocatePOD<FViewData>();
-		FRGResourceHandle viewDataBufferHandle = graphBuilder.CreateBuffer({
+		sceneView->mViewData = graphBuilder.AllocatePOD<FViewData>();
+		sceneView->mViewDataBufferHandle = graphBuilder.CreateBuffer({
 			.mSize = sizeof(FViewData),
 			.mBufferFlags = EBufferFlags::CreateMapped | EBufferFlags::UniformBuffer,
 			.mName = FName("ViewDataBuffer")
 		});
 
-		UpdateViewData(world, *viewData);
+		UpdateViewData(world, *sceneView->mViewData);
 		graphBuilder.QueueBufferUpload({
-			.mTargetBuffer = viewDataBufferHandle,
-			.mData = viewData,
+			.mTargetBuffer = sceneView->mViewDataBufferHandle,
+			.mData = sceneView->mViewData,
 			.mDataSize = sizeof(FViewData),
 		});
 
@@ -323,31 +327,33 @@ namespace Turbo
 			}
 		}
 
-		FRGResourceHandle lightsBufferHandle = graphBuilder.CreateAndQueueBufferUpload(FCreateAndUploadBuffer{
-			.mData = lights.data(),
-			.mSize = lights.size() * sizeof(FLight),
-			.mBufferFlags = EBufferFlags::UniformBuffer,
-			.mName = FName("PointLightBuffer")
-		});
+		std::tie(sceneView->mLightsBufferHandle, sceneView->mLights) =
+			graphBuilder.CreateAndQueueBufferUpload<FLight>(FCreateAndUploadBuffer{
+				.mData = lights.data(),
+				.mSize = lights.size() * sizeof(FLight),
+				.mBufferFlags = EBufferFlags::UniformBuffer,
+				.mName = FName("PointLightBuffer")
+			});
 
 		// Create and upload scene data
 		FSceneData* sceneData = graphBuilder.AllocatePOD<FSceneData>();
 		sceneData->mNumLights = lights.size();
-		FRGResourceHandle sceneDataBufferHandle = graphBuilder.CreateAndQueueBufferUpload(FCreateAndUploadBuffer{
-			.mData = sceneData,
-			.mSize = sizeof(FSceneData),
-			.mBufferFlags = EBufferFlags::UniformBuffer,
-			.mName = FName("SceneDataBuffer")
-		});
+		std::tie(sceneView->mSceneDataBufferHandle, sceneView->mSceneData) =
+			graphBuilder.CreateAndQueueBufferUpload<FSceneData>(FCreateAndUploadBuffer{
+				.mData = sceneData,
+				.mSize = sizeof(FSceneData),
+				.mBufferFlags = EBufferFlags::UniformBuffer,
+				.mName = FName("SceneDataBuffer")
+			});
 
 		std::vector<FDrawIndirectBucket> drawIndirectBuckets;
-		CreateIndirectRenderBuffers(graphBuilder, world, *viewData, drawIndirectBuckets);
+		CreateIndirectRenderBuffers(graphBuilder, world, sceneView, drawIndirectBuckets);
 
 		// Geometry culling
 		static FName cullingPassName = FName("GeometryCullingPass");
 		FRGPassInitializer cullingPass = graphBuilder.AddPass(cullingPassName, EPassType::Compute);
 
-		cullingPass->ReadBuffer(viewDataBufferHandle);
+		cullingPass->ReadBuffer(sceneView->mViewDataBufferHandle);
 		for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
 		{
 			cullingPass->ReadBuffer(bucket.mDrawBuffer);
@@ -355,12 +361,12 @@ namespace Turbo
 		}
 
 		cullingPass->mExecutePass.BindLambda(
-			[drawIndirectBuckets, pipeline = mFrustumCullingPipeline, viewDataBufferHandle](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+			[drawIndirectBuckets, pipeline = mFrustumCullingPipeline, sceneView](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
 			{
 				cmd.BindPipeline(pipeline);
 
 				const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
-				const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(viewDataBufferHandle));
+				const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mViewDataBufferHandle));
 
 				FSceneCullingPushConstants pushConstants = {
 					.mViewData = viewDataBuffer->mDeviceAddress,
@@ -385,7 +391,7 @@ namespace Turbo
 			}
 		);
 
-		// Geometry Pass
+		// Base Pass
 		const static FName geometryPassName = FName("GeometryPass");
 		FRGPassInitializer geometryPass = graphBuilder.AddPass(geometryPassName, EPassType::Graphics);
 
@@ -403,9 +409,9 @@ namespace Turbo
 			.mClearColor = EClearColor::Zero
 		});
 
-		geometryPass->ReadBuffer(viewDataBufferHandle);
-		geometryPass->ReadBuffer(sceneDataBufferHandle);
-		geometryPass->ReadBuffer(lightsBufferHandle);
+		geometryPass->ReadBuffer(sceneView->mViewDataBufferHandle);
+		geometryPass->ReadBuffer(sceneView->mSceneDataBufferHandle);
+		geometryPass->ReadBuffer(sceneView->mLightsBufferHandle);
 
 		for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
 		{
@@ -428,9 +434,9 @@ namespace Turbo
 					cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
 
 					const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
-					const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(viewDataBufferHandle));
-					const FBuffer* sceneDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneDataBufferHandle));
-					const FBuffer* lightsBuffer = gpu.AccessBuffer(resources.mBuffers.at(lightsBufferHandle));
+					const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mViewDataBufferHandle));
+					const FBuffer* sceneDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mSceneDataBufferHandle));
+					const FBuffer* lightsBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mLightsBufferHandle));
 
 					const FMaterial::PushConstants pushConstants = {
 						.mViewData = viewDataBuffer->mDeviceAddress,

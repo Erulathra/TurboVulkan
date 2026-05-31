@@ -193,7 +193,7 @@ namespace Turbo
 		mQueuedBufferUploads.push_back(bufferUpload);
 	}
 
-	FRGResourceHandle FRenderGraphBuilder::CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer)
+	std::tuple<FRGResourceHandle, void* /*intermediatePtr */> FRenderGraphBuilder::CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer)
 	{
 		TURBO_CHECK(createAndUploadBuffer.mData)
 
@@ -217,7 +217,7 @@ namespace Turbo
 			.mOffset = 0
 		});
 
-		return result;
+		return std::make_tuple(result, data);
 	}
 
 	FRGPassInitializer FRenderGraphBuilder::AddPass(FName passName, EPassType passType)

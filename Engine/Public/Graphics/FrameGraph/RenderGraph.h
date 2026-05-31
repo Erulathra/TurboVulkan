@@ -91,7 +91,14 @@ namespace Turbo
 
 		[[nodiscard]] FRGResourceHandle CreateBuffer(const FRGBufferInfo& bufferInfo);
 		void QueueBufferUpload(const FRGBufferUpload& bufferUpload);
-		[[nodiscard]] FRGResourceHandle CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer);
+		[[nodiscard]] std::tuple<FRGResourceHandle, void* /*intermediatePtr */> CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer);
+
+		template<typename T>
+		[[nodiscard]] std::tuple<FRGResourceHandle, T* /*intermediatePtr */> CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer)
+		{
+			std::tuple<FRGResourceHandle, void*> result = CreateAndQueueBufferUpload(createAndUploadBuffer);
+			return std::make_tuple(std::get<0>(result), static_cast<T*>(std::get<1>(result)));
+		}
 
 		[[nodiscard]] FRGPassInitializer AddPass(FName passName, EPassType passType = EPassType::Undefined);
 
