@@ -49,9 +49,11 @@ namespace Turbo
 
 		virtual FName GetName() override;
 
-		virtual void RenderScene(FRenderGraphBuilder& graphBuilder) override;
 		virtual bool ShouldRender() override;
 
+		void Render(FRenderGraphBuilder& graphBuilder);
+		void RenderScene(FRenderGraphBuilder& graphBuilder, FSceneView* SceneView);
+		void RenderPostProcess(FRenderGraphBuilder& graphBuilder, FSceneView* SceneView);
 	private:
 		static void UpdateViewData(FWorld* world, FViewData& viewData);
 
@@ -64,4 +66,11 @@ namespace Turbo
 	private:
 		THandle<FPipeline> mFrustumCullingPipeline = {};
 	};
+
+	template<>
+	inline FName GetStaticLayerName<FSceneRenderingLayer>()
+	{
+		static FName name("SceneRenderingLayer");
+		return name;
+	}
 } // Turbo

@@ -27,7 +27,6 @@ namespace Turbo
 		virtual void EndTick(double deltaTime) {};
 
 		virtual void PostBeginFrame(FRenderGraphBuilder& graphBuilder) {};
-		virtual void RenderScene(FRenderGraphBuilder& graphBuilder) {};
 		virtual void EndFrame(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) {};
 		virtual void BeginPresentingFrame(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) {};
 

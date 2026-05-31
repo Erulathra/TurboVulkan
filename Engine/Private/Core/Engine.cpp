@@ -219,15 +219,8 @@ namespace Turbo
 			}
 
 			{
-				TRACE_ZONE_SCOPED_N("Services: Render Scene")
-				for (const TSharedPtr<ILayer>& layer : layerStack)
-				{
-					if (layer->ShouldRender())
-					{
-                        TRACE_ZONE_SCOPED_FORMAT(RenderScene, "Render Scene - {}", layer->GetName())
-						layer->RenderScene(graphBuilder);
-					}
-				}
+				FSceneRenderingLayer* sceneRenderingLayer = layerStack.GetLayerChecked<FSceneRenderingLayer>();
+				sceneRenderingLayer->Render(graphBuilder);
 			}
 
 			{

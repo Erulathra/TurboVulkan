@@ -59,13 +59,6 @@ namespace Turbo
 		gpu.DestroyPipeline(mFrustumCullingPipeline);
 	}
 
-	template<>
-	FName GetStaticLayerName<FSceneRenderingLayer>()
-	{
-		static FName name("SceneRenderingLayer");
-		return name;
-	}
-
 	FName FSceneRenderingLayer::GetName()
 	{
 		return GetStaticLayerName<FSceneRenderingLayer>();
@@ -274,7 +267,7 @@ namespace Turbo
 		}
 	}
 
-	void FSceneRenderingLayer::RenderScene(FRenderGraphBuilder& graphBuilder)
+	void FSceneRenderingLayer::Render(FRenderGraphBuilder& graphBuilder)
 	{
 		FWorld* world = gEngine->GetWorld();
 		SceneGraph::UpdateWorldTransforms(world->mRegistry);
@@ -290,6 +283,16 @@ namespace Turbo
 		}
 
 		FSceneView* sceneView = graphBuilder.AllocatePOD<FSceneView>();
+
+		RenderScene(graphBuilder, sceneView);
+		RenderPostProcess(graphBuilder, sceneView);
+	}
+
+	void FSceneRenderingLayer::RenderScene(FRenderGraphBuilder& graphBuilder, FSceneView* sceneView)
+	{
+		TRACE_ZONE_SCOPED_N("Render Scene")
+
+		FWorld* world = gEngine->GetWorld();
 
 		// Create and upload view data
 		sceneView->mViewData = graphBuilder.AllocatePOD<FViewData>();
@@ -461,9 +464,14 @@ namespace Turbo
 		);
 	}
 
+	void FSceneRenderingLayer::RenderPostProcess(FRenderGraphBuilder& graphBuilder, FSceneView* SceneView)
+	{
+		TRACE_ZONE_SCOPED_N("Render Post-Process")
+
+	}
+
 	bool FSceneRenderingLayer::ShouldRender()
 	{
 		return true;
 	}
-
 } // Turbo
