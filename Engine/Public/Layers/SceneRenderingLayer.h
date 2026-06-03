@@ -65,6 +65,7 @@ namespace Turbo
 
 	private:
 		THandle<FPipeline> mFrustumCullingPipeline = {};
+		THandle<FPipeline> mToneMapperPipeline = {};
 	};
 
 	template<>

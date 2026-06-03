@@ -81,7 +81,8 @@ namespace Turbo
 		ImGui::TableNextColumn();
 
 		const std::string label = EntityUtils::GetEntityLabel(registry, entity);
-		const FRelationship& relationship = registry.get<FRelationship>(entity);
+		const FRelationship* relationship = registry.try_get<FRelationship>(entity);
+		const bool bHasChildren = relationship != nullptr && relationship->mNumChildren > 0;
 
 		ImGuiTreeNodeFlags nodeFlags = 0;
 		nodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
@@ -93,14 +94,14 @@ namespace Turbo
 			nodeFlags |= ImGuiTreeNodeFlags_Selected;
 		}
 
-		if (relationship.mNumChildren == 0 || bForceLeaf)
+		if (bHasChildren == false || bForceLeaf)
 		{
 			nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 		}
 
 		ImGui::SetNextItemStorageID(static_cast<uint32>(entity));
 		bool bOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(entity)), nodeFlags, "%s", label.c_str());
-		bOpen &= relationship.mNumChildren > 0;
+		bOpen &= bHasChildren;
 
 		if (ImGui::BeginDragDropSource())
 		{

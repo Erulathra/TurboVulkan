@@ -39,7 +39,7 @@ struct VSOut
 
 struct PSOut
 {
-    float4 mColor : SV_Target0;
+    float3 mColor : SV_Target0;
 }
 
 [shader("vertex")]
@@ -83,8 +83,7 @@ void psMain(
     Texture2D<float3> ormTexture = texturePool[instance.mORMTexture];
     SamplerState ormSampler = samplerPool[material.mORMSampler];
 
-    // Normal mapping (TODO:)
-    // const float3 normal = vsOut.mViewNormal;
+    // TODO: Normal mapping
 
     Ptr<FViewData> viewData = pc.mViewData;
 
@@ -105,6 +104,7 @@ void psMain(
 
     float3 irradiance = 0.f;
 
+    // Calculate irradiance
     for (int lightIndex = 0; lightIndex < scene.mNumLights; lightIndex++)
     {
         // For now only support point lights
@@ -115,5 +115,5 @@ void psMain(
         }
     }
 
-    psOut.mColor = float4(irradiance, 1.f);
+    psOut.mColor = irradiance;
 }

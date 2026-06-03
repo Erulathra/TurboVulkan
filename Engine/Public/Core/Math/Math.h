@@ -28,6 +28,16 @@ namespace Turbo
 			return glm::ceil(static_cast<double>(lhs) / rhs);
 		}
 
+		template<>
+		inline glm::uint3 DivideAndRoundUp<glm::uint3>(glm::uint3 lhs, glm::uint3 rhs)
+		{
+			return glm::uint3(
+				DivideAndRoundUp(lhs.x, rhs.x),
+				DivideAndRoundUp(lhs.y, rhs.y),
+				DivideAndRoundUp(lhs.z, rhs.z)
+			);
+		}
+
 		template <typename T>
 		T SafeNormal(T value)
 		{

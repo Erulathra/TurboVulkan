@@ -10,12 +10,13 @@ namespace Turbo
 	{
 		const static FName geometryBufferColorName = FName{"GBuffer_Color"};
 		const static FName geometryBufferDepthName = FName{"GBuffer_Depth"};
+		const static FName geometryBufferAfterToneMapName = FName{"GBuffer_AfterToneMap"};
 
 		const FRGTextureInfo colorInfo = {
 			.mWidth = static_cast<uint16>(resolution.x),
 			.mHeight = static_cast<uint16>(resolution.y),
 			.mFormat = kColorFormat,
-			.mFlags = ETextureFlags::RenderTarget | ETextureFlags::StorageImage,
+			.mFlags = ETextureFlags::RenderTarget,
 			.mName = geometryBufferColorName
 		};
 
@@ -27,12 +28,21 @@ namespace Turbo
 			.mName = geometryBufferDepthName
 		};
 
+		const FRGTextureInfo afterToneMap = {
+			.mWidth = static_cast<uint16>(resolution.x),
+			.mHeight = static_cast<uint16>(resolution.y),
+			.mFormat = kAfterToneMapFormat,
+			.mFlags = ETextureFlags::StorageImage,
+			.mName = geometryBufferAfterToneMapName
+		};
+
 		mSceneColor = graphBuilder.CreateTexture(colorInfo);
 		mDepthStencil = graphBuilder.CreateTexture(depthInfo);
+		mAfterToneMap = graphBuilder.CreateTexture(afterToneMap);
 	}
 
 	void FGeometryBuffer::BlitToPresent(FRenderGraphBuilder& graphBuilder, FRGResourceHandle presentTexture) const
 	{
-		RenderGraphUtils::AddBlitTexturePass(graphBuilder, mSceneColor, presentTexture);
+		RenderGraphUtils::AddBlitTexturePass(graphBuilder, mAfterToneMap, presentTexture);
 	}
 } // Turbo

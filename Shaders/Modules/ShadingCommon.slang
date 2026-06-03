@@ -142,5 +142,5 @@ public float3 CalculatePixelRadiance(in FLight light, in FPixelLightningInput in
     const float3 kDiffuse = (1.f - kReflected) * (1.f - input.mMetallic);
 
     const float cosTheta = SaturatedDot(input.mNormal, lightToPixel);
-    return (kDiffuse + input.mAlbedo / M_PI + brdf) * light.mColor * attenuation * cosTheta;
+    return (kDiffuse * input.mAlbedo / M_PI + brdf) * light.mColor * attenuation * cosTheta;
 }

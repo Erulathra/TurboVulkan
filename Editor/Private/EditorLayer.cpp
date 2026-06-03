@@ -69,7 +69,7 @@ namespace Turbo
 			const FRGResourceHandle viewportTexture = graphBuilder.RegisterExternalTexture(renderedTextures[bufferedFrameId], ETextureLayout::Undefined);
 
 			const FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
-			RenderGraphUtils::AddBlitTexturePass(graphBuilder, geometryBuffer.mSceneColor, viewportTexture);
+			RenderGraphUtils::AddBlitTexturePass(graphBuilder, geometryBuffer.mAfterToneMap, viewportTexture);
 		}
 
 		RenderGraphUtils::AddClearTexturePass(graphBuilder, presentTexture, ELinearColor::kBlack);

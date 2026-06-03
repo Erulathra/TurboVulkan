@@ -7,6 +7,7 @@
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/ResourceBuilders.h"
+#include "Graphics/Shaders/ToneMapperPostProcess.h"
 #include "World/Camera.h"
 #include "World/MeshComponent.h"
 #include "World/ShadingComponents.h"
@@ -39,8 +40,10 @@ namespace Turbo
 		uint mNumDraws;
 	};
 
+
 	void FSceneRenderingLayer::Start()
 	{
+		// Scene Culling
 		FPipelineBuilder pipelineBuilder = {};
 		pipelineBuilder
 			.SetPushConstantType<FSceneCullingPushConstants>()
@@ -51,12 +54,14 @@ namespace Turbo
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		mFrustumCullingPipeline = gpu.CreatePipeline(pipelineBuilder);
+		mToneMapperPipeline = ToneMapperPostProcess::CreatePipeline(gpu);
 	}
 
 	void FSceneRenderingLayer::Shutdown()
 	{
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		gpu.DestroyPipeline(mFrustumCullingPipeline);
+		gpu.DestroyPipeline(mToneMapperPipeline);
 	}
 
 	FName FSceneRenderingLayer::GetName()
@@ -330,13 +335,30 @@ namespace Turbo
 			}
 		}
 
-		std::tie(sceneView->mLightsBufferHandle, sceneView->mLights) =
-			graphBuilder.CreateAndQueueBufferUpload<FLight>(FCreateAndUploadBuffer{
-				.mData = lights.data(),
-				.mSize = lights.size() * sizeof(FLight),
-				.mBufferFlags = EBufferFlags::UniformBuffer,
-				.mName = FName("PointLightBuffer")
-			});
+		if (lights.empty() == false)
+		{
+			std::tie(sceneView->mLightsBufferHandle, sceneView->mLights) =
+				graphBuilder.CreateAndQueueBufferUpload<FLight>(FCreateAndUploadBuffer{
+					.mData = lights.data(),
+					.mSize = lights.size() * sizeof(FLight),
+					.mBufferFlags = EBufferFlags::UniformBuffer,
+					.mName = FName("PointLightBuffer")
+				});
+		}
+		else
+		{
+			// This is a completely invalid solution. Let's do it!
+			// TODO: Create dummy buffer in FEngineResources
+			FLight dummyLight;
+
+			std::tie(sceneView->mLightsBufferHandle, sceneView->mLights) =
+				graphBuilder.CreateAndQueueBufferUpload<FLight>(FCreateAndUploadBuffer{
+					.mData = &dummyLight,
+					.mSize = sizeof(FLight),
+					.mBufferFlags = EBufferFlags::UniformBuffer,
+					.mName = FName("PointLightBuffer")
+				});
+		}
 
 		// Create and upload scene data
 		FSceneData* sceneData = graphBuilder.AllocatePOD<FSceneData>();
@@ -468,6 +490,68 @@ namespace Turbo
 	{
 		TRACE_ZONE_SCOPED_N("Render Post-Process")
 
+		const FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
+
+		// Tone Mapping
+		{
+			FWorld* world = gEngine->GetWorld();
+			ToneMapperPostProcess::FComponent settings = {};
+
+			if (const auto settingsView = world->mRegistry.view<ToneMapperPostProcess::FComponent>();
+				settingsView.begin() != settingsView.end())
+			{
+				settings = settingsView.get<ToneMapperPostProcess::FComponent>(*settingsView.begin());
+			}
+
+			ToneMapperPostProcess::FUniformBuffer* uniformBufferData = graphBuilder.AllocatePOD<ToneMapperPostProcess::FUniformBuffer>();
+			uniformBufferData->mExposure = 1.f / glm::pow(2.f, settings.mExposure);
+			uniformBufferData->mSaturation = settings.mSaturation;
+			uniformBufferData->mOffset = settings.mOffset;
+			uniformBufferData->mSlope = settings.mSlope;
+			uniformBufferData->mPower = settings.mPower;
+
+			const static FName uniformBufferName = FName("ToneMapper.UniformBuffer");
+			FRGResourceHandle uniformBuffer;
+			std::tie(uniformBuffer, uniformBufferData) =
+				graphBuilder.CreateAndQueueBufferUpload<ToneMapperPostProcess::FUniformBuffer>(FCreateAndUploadBuffer{
+					.mData = uniformBufferData,
+					.mSize = sizeof(ToneMapperPostProcess::FUniformBuffer),
+					.mBufferFlags = EBufferFlags::UniformBuffer,
+					.mName = uniformBufferName
+				});
+
+			const static FName passName = FName("ToneMapping");
+			FRGPassInitializer pass = graphBuilder.AddPass(passName, EPassType::Compute);
+			pass->ReadBuffer(uniformBuffer);
+			pass->ReadTexture(geometryBuffer.mSceneColor);
+			pass->WriteTexture(geometryBuffer.mAfterToneMap);
+
+			pass->mExecutePass.BindLambda(
+				[=, pipeline = mToneMapperPipeline](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+				{
+					const THandle<FTexture> sceneColorHandle = resources.mTextures.at(geometryBuffer.mSceneColor);
+					const FTextureCold* sceneColorCold = gpu.AccessTextureCold(sceneColorHandle);
+					const THandle<FTexture> afterToneMapHandle = resources.mTextures.at(geometryBuffer.mAfterToneMap);
+					const FBuffer* buffer = gpu.AccessBuffer(resources.mBuffers.at(uniformBuffer));
+
+					ToneMapperPostProcess::FPushConstants pushConstants = {
+						.mSceneColor = sceneColorHandle.GetIndex(),
+						.mOutput = afterToneMapHandle.GetIndex(),
+						.mTextureSize = sceneColorCold->GetSize2D(),
+						.mUniforms = buffer->mDeviceAddress
+					};
+
+					cmd.BindPipeline(pipeline);
+					cmd.PushConstants(pushConstants);
+					cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
+
+					const glm::uint3 groupCount = Math::DivideAndRoundUp<glm::uint3>(
+						sceneColorCold->GetSize(),
+						glm::uint3(8, 8, 1)
+					);
+					cmd.Dispatch(groupCount);
+				});
+		}
 	}
 
 	bool FSceneRenderingLayer::ShouldRender()

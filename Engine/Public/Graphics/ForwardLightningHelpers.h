@@ -27,6 +27,7 @@ namespace Turbo
 		}
 
 		TURBO_UNINPLEMENTED()
+		return "None";
 	}
 
 	// Update Light encoding code

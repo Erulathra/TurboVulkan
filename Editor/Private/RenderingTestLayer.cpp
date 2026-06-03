@@ -6,7 +6,7 @@
 #include "Core/Engine.h"
 #include "Debug/IConsoleManager.h"
 #include "Extensions/ImGui/ImGuiExtensions.h"
-#include "Graphics/ResourceBuilders.h"
+#include "Graphics/Shaders/ToneMapperPostProcess.h"
 #include "World/World.h"
 
 namespace Turbo
@@ -16,6 +16,12 @@ namespace Turbo
 	{
 		FWorld* world = gEngine->GetWorld();
 		world->OpenLevel(FName("Content/External/main_sponza/SponzaCompressed.gltf"));
+
+		auto& registry = world->mRegistry;
+		entt::entity ppSettingsEntity = registry.create();
+		registry.emplace<FEntityLabel>(ppSettingsEntity, FName("PostProcessSettings"));
+		ToneMapperPostProcess::FComponent& toneMapper =  registry.emplace<ToneMapperPostProcess::FComponent>(ppSettingsEntity);
+		toneMapper.mExposure = 4.f;
 	}
 
 	void FRenderingTestLayer::Shutdown()

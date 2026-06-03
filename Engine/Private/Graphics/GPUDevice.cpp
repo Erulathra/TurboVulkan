@@ -241,6 +241,12 @@ namespace Turbo
 		{
 			mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, handle.GetIndex(), handle);
 			texture->mBindIndex = handle.GetIndex();
+
+			if ((builder.mFlags & ETextureFlags::StorageImage) != ETextureFlags::Invalid)
+			{
+				mBindlessResourcesToUpdate.emplace_back(EResourceType::RWTexture, handle.GetIndex(), handle);
+				texture->mBindIndex = handle.GetIndex();
+			}
 		}
 
 		return handle;
@@ -1346,7 +1352,6 @@ namespace Turbo
 
 					descriptorWrites.push_back(writeDescriptorSet);
 
-					// No brake by design. We want to bind RWTexture both as SampledImage and StorageImage
 					break;
 				}
 			case EResourceType::Texture:

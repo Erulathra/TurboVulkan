@@ -2,6 +2,7 @@
 
 #include "World/SceneGraph.h"
 #include "imgui.h"
+#include "Graphics/Shaders/ToneMapperPostProcess.h"
 #include "World/ShadingComponents.h"
 
 namespace Turbo
@@ -76,6 +77,19 @@ namespace Turbo
 					lightComponent.mOuterAngle = glm::max(innerAngleDeg, outerAngleDeg);
 				}
 			}
+		})
+	);
+
+	static TAutoComponentEditor<ToneMapperPostProcess::FComponent> ToneMapperEditor(
+		FName("ToneMapper"),
+		FDrawComonentPropertyEditorDelegate::CreateLambda([](entt::registry& registry, entt::entity entity)
+		{
+			ToneMapperPostProcess::FComponent& settings = registry.get<ToneMapperPostProcess::FComponent>(entity);
+			ImGui::DragFloat("Exposure", &settings.mExposure, 0.1f);
+			ImGui::DragFloat("Saturation", &settings.mSaturation, 0.1f);
+			ImGui::DragFloat3("Offset", glm::value_ptr(settings.mOffset), 0.1f);
+			ImGui::DragFloat3("Slope", glm::value_ptr(settings.mSlope), 0.1f);
+			ImGui::DragFloat3("Power", glm::value_ptr(settings.mPower), 0.1f);
 		})
 	);
 
