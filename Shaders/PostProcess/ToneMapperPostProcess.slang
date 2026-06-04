@@ -45,11 +45,12 @@ float3 AGX(float3 color)
         0.0792237451477643f, 0.0791661274605434f, 0.879142973793104f
     );
 
+    // Original values
     const float minEv = -12.47393f;
     const float maxEv = 4.026069f;
 
     // Input transform
-    color = mul(color, agxMatrix);
+    color = mul(agxMatrix, color);
 
     // Log2 encoding
     color = clamp(log2(color), minEv, maxEv);
@@ -68,7 +69,7 @@ float3 AGXEotf(float3 color)
         -0.0990297440797205f, -0.0989611768448433f, 1.15107367264116f
     );
 
-    color = mul(color, agxMatrixInv);
+    color = mul(agxMatrixInv, color);
 
     // Gamma correction
     color = pow(color, 2.2f);
@@ -98,8 +99,9 @@ void main(uint3 threadId : SV_DispatchThreadID)
     RWTexture2D<float4> output = rwTexturePool[pc.mOutput];
 
     const float3 hdrColor = sceneColor[threadId.xy];
-    const float3 postExposure = hdrColor * pc.mUniforms.mExposure;
-    float3 postTonemap = AGX(postExposure);
+
+    float3 postTonemap = hdrColor * pc.mUniforms.mExposure;
+    postTonemap = AGX(postTonemap);
     postTonemap = AGXLook(postTonemap);
     postTonemap = AGXEotf(postTonemap);
 

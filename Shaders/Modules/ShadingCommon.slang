@@ -72,8 +72,13 @@ public ELightType GetLightType(in FLight light)
 
 public float CalculateLightAttentuation(float distance, float lightIntensity, float lightRange)
 {
-    const float denominaotor = (distance / lightRange) + 1;
-    return saturate(lightIntensity / (denominaotor * denominaotor));
+    // Godot's attenuation formula
+    float nd = distance * rcp(lightRange);
+    nd *= nd;
+    nd *= nd;
+    nd = max(1.f - nd, 0.f);
+    nd *= nd;
+    return nd * pow(max(distance, TURBO_KINDA_SMALL_NUMBER), /** decay */ -2.f);
 }
 
 public float3 CalculateFresnel(float cosTheta, float3 F0)
@@ -114,7 +119,7 @@ public float CalculateGeometryShading(float3 normal, float3 lightToCamera, float
 
 public float3 CalculatePixelRadiance(in FLight light, in FPixelLightningInput input)
 {
-    const float3 pixelToLightVector = normalize(light.mPosition - input.mPosition);
+    const float3 pixelToLightVector = light.mPosition - input.mPosition;
     const float lightDistance = length(pixelToLightVector);
 
     float attenuation = 1.f;
@@ -142,5 +147,5 @@ public float3 CalculatePixelRadiance(in FLight light, in FPixelLightningInput in
     const float3 kDiffuse = (1.f - kReflected) * (1.f - input.mMetallic);
 
     const float cosTheta = SaturatedDot(input.mNormal, lightToPixel);
-    return (kDiffuse * input.mAlbedo / M_PI + brdf) * light.mColor * attenuation * cosTheta;
+    return (kDiffuse * input.mAlbedo / M_PI + brdf) * light.mColor * light.mIntensity * attenuation * cosTheta;
 }

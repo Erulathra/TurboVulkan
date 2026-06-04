@@ -94,6 +94,8 @@ void psMain(
     pixelInput.mPixelToCamera = normalize(viewData.mViewPosition - vsOut.mWorldPosition);
 
     pixelInput.mAlbedo = albedoTexture.Sample(albedoSampler, vsOut.mUV);
+    pixelInput.mAlbedo *= instance.mBaseColorFactor.rgb;
+
     const float3 ORM = ormTexture.Sample(ormSampler, vsOut.mUV);
     pixelInput.mMetallic = ORM.r * instance.mMetalicFactor;
     pixelInput.mRoughness = ORM.g * instance.mRoughnessFactor;
@@ -114,6 +116,9 @@ void psMain(
             irradiance += CalculatePixelRadiance(light, pixelInput);
         }
     }
+
+    // Add ambient light
+    irradiance += 0.03f * pixelInput.mAlbedo;
 
     psOut.mColor = irradiance;
 }

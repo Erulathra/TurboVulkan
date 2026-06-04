@@ -82,33 +82,29 @@ namespace Turbo
 			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 			FTextureBuilder textureBuilder = {};
 			textureBuilder
-				.Init(vk::Format::eR8G8B8A8Srgb, ETextureType::Texture2D)
+				.Init(vk::Format::eR8G8B8A8Unorm, ETextureType::Texture2D)
 				.SetNumMips(1)
 				.SetSize(glm::uint3(1, 1, 1));
 
 			textureBuilder.SetName(FName("Engine::White"));
 			gWhiteTexture = gpu.CreateTexture(textureBuilder);
-			constexpr byte whiteBytes[] {0xff_B, 0xff_B, 0xff_B, 0xff_B};
+			constexpr byte whiteBytes[]{0xff_B, 0xff_B, 0xff_B, 0xff_B};
 			gpu.UploadTextureUsingStagingBuffer(gWhiteTexture, whiteBytes);
 
 			textureBuilder.SetName(FName("Engine::Black"));
 			gBlackTexture = gpu.CreateTexture(textureBuilder);
-			constexpr byte blackBytes[] {0x0_B, 0x0_B, 0x0_B, 0xff_B};
-			gpu.UploadTextureUsingStagingBuffer( gBlackTexture, blackBytes);
+			constexpr byte blackBytes[]{0x0_B, 0x0_B, 0x0_B, 0xff_B};
+			gpu.UploadTextureUsingStagingBuffer(gBlackTexture, blackBytes);
 
-			textureBuilder
-				.Init(vk::Format::eR8G8B8Snorm, ETextureType::Texture2D)
-				.SetName(FName("Engine::ORMPlaceholder"));
+			textureBuilder.SetName(FName("Engine::ORMPlaceholder"));
 			gORMPlaceholderTexture = gpu.CreateTexture(textureBuilder);
-			constexpr byte ormBytes[] {0xFF_B, 0xFF_B, 0x0_B};
-			gpu.UploadTextureUsingStagingBuffer( gORMPlaceholderTexture, ormBytes);
+			constexpr byte ormBytes[]{0xFF_B, 0xFF_B, 0xFF_B, 0xFF_B};
+			gpu.UploadTextureUsingStagingBuffer(gORMPlaceholderTexture, ormBytes);
 
-			textureBuilder
-				.Init(vk::Format::eR8G8B8Snorm, ETextureType::Texture2D)
-				.SetName(FName("Engine::FlatNormalMap"));
+			textureBuilder.SetName(FName("Engine::FlatNormalMap"));
 			gFlatNormalMapTexture = gpu.CreateTexture(textureBuilder);
-			constexpr byte flatNormalBytes[] {0x80_B, 0x80_B, 0xFF_B};
-			gpu.UploadTextureUsingStagingBuffer( gFlatNormalMapTexture, flatNormalBytes);
+			constexpr byte flatNormalBytes[]{0x80_B, 0x80_B, 0xFF_B, 0xFF_B};
+			gpu.UploadTextureUsingStagingBuffer(gFlatNormalMapTexture, flatNormalBytes);
 		}
 
 		void LoadPlaceholders()

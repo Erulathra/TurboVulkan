@@ -117,10 +117,12 @@ namespace Turbo
 
 		mBindlessResourcesToUpdate.reserve(kTexturePoolSize);
 
+#if 0
 		for (uint32 textureBindId = 0; textureBindId < kTexturePoolSize; ++textureBindId)
 		{
 			mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, textureBindId, EngineResources::GetBlackTexture());
 		}
+#endif // 0
 	}
 
 	THandle<FBuffer> FGPUDevice::CreateBuffer(const FBufferBuilder& builder)
@@ -1625,13 +1627,6 @@ namespace Turbo
 		ImmediateSubmit(FOnImmediateSubmit::CreateLambda(
 				[&](FCommandBuffer& cmd)
 				{
-					cmd.BufferBarrier(
-						stagingBuffer,
-						vk::AccessFlagBits2::eHostWrite,
-						vk::PipelineStageFlagBits2::eHost,
-						vk::AccessFlagBits2::eTransferRead,
-						vk::PipelineStageFlagBits2::eTransfer
-						);
 					cmd.TransitionImage(handle, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 					cmd.CopyBufferToTexture(stagingBuffer, handle, 0, 0);
 					cmd.TransitionImage(handle, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);

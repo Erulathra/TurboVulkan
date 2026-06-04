@@ -16,12 +16,15 @@ namespace Turbo
 	{
 		FWorld* world = gEngine->GetWorld();
 		world->OpenLevel(FName("Content/External/main_sponza/SponzaCompressed.gltf"));
+		// world->OpenLevel(FName("Content/Scenes/LV_GammaTest.gltf"));
 
 		auto& registry = world->mRegistry;
 		entt::entity ppSettingsEntity = registry.create();
 		registry.emplace<FEntityLabel>(ppSettingsEntity, FName("PostProcessSettings"));
+		registry.emplace<FWorldRoot>(ppSettingsEntity);
 		ToneMapperPostProcess::FComponent& toneMapper =  registry.emplace<ToneMapperPostProcess::FComponent>(ppSettingsEntity);
-		toneMapper.mExposure = 4.f;
+		// toneMapper.mExposure = 4.f;
+		// toneMapper.mExposure = 0.f;
 	}
 
 	void FRenderingTestLayer::Shutdown()

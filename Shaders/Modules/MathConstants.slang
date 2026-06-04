@@ -72,4 +72,5 @@
 #define HLF_TRUE_MIN        5.960464477539063e-08F  // min positive value
 
 // TURBO Specific
-#define TURBO_SMALL_NUMBER      1e-6f
+#define TURBO_SMALL_NUMBER          1e-6f
+#define TURBO_KINDA_SMALL_NUMBER    1e-4f
