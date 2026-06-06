@@ -63,7 +63,7 @@ namespace Turbo
 		FAttachment mDepthAttachment = {};
 	};
 
-	struct FCopyBufferInfo
+	struct FCopyBufferParams
 	{
 		THandle<FBuffer> mSrc = {};
 		vk::DeviceSize mSrcOffset = 0;
@@ -72,6 +72,24 @@ namespace Turbo
 		vk::DeviceSize mDstOffset = 0;
 
 		vk::DeviceSize mSize = 0;
+	};
+
+	struct FDrawIndirectParams
+	{
+		THandle<FBuffer> mBuffer = {};
+		FDeviceSize mOffset = 0;
+		uint32 mDrawCount = 0;
+		uint32 mStride = 0;
+	};
+
+	struct FDrawIndirectCountParams
+	{
+		THandle<FBuffer> mBuffer = {};
+		FDeviceSize mOffset = 0;
+		THandle<FBuffer> mCountBuffer = {};
+		FDeviceSize mCountOffset = 0;
+		uint32 mMaxDrawCount = 0;
+		uint32 mStride = 0;
 	};
 
 	class FCommandBuffer
@@ -95,7 +113,7 @@ namespace Turbo
 		void BlitImage(THandle<FTexture> src, FRect2DInt srcRect, THandle<FTexture> dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
 
 		void CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, vk::DeviceSize size);
-		void CopyBuffer(const FCopyBufferInfo& copyBufferInfo);
+		void CopyBuffer(const FCopyBufferParams& copyBufferInfo);
 		void CopyBufferToTexture(THandle<FBuffer> src, THandle<FTexture> dst, uint32 mipIndex, vk::DeviceSize bufferOffset = 0);
 
 		void BindDescriptorSet(THandle<FDescriptorSet> descriptorSetHandle, uint32 setIndex = 0);
@@ -112,7 +130,8 @@ namespace Turbo
 
 		void Draw(uint32 vertexCount, uint32 instanceCount = 1, uint32 firstVertex = 0, uint32 firstInstance = 0);
 		void DrawIndexed(uint32 indexCount, uint32 instanceCount = 1, uint32 firstIndex = 0, int32 vertexOffset = 0, uint32 firstInstance = 0);
-		void DrawIndirect(THandle<FBuffer> commandBufferHandle, FDeviceSize offset, uint32 drawCount, uint32 stride);
+		void DrawIndirect(const FDrawIndirectParams& params);
+		void DrawIndirectCount(const FDrawIndirectCountParams& params);
 
 		template<PushConstant PushConstantsType>
 		void PushConstants(PushConstantsType pushConstants) { PushConstants_Internal(&pushConstants, sizeof(PushConstantsType)); }

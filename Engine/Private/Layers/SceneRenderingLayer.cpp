@@ -471,12 +471,12 @@ namespace Turbo
 					};
 
 					cmd.PushConstants(pushConstants);
-					cmd.DrawIndirect(
-						resources.mBuffers.at(bucket.mIndirectCommandBuffer),
-						0,
-						bucket.mCount,
-						sizeof(vk::DrawIndirectCommand)
-					);
+					cmd.DrawIndirect(FDrawIndirectParams{
+						.mBuffer = resources.mBuffers.at(bucket.mIndirectCommandBuffer),
+						.mOffset = 0,
+						.mDrawCount = bucket.mCount,
+						.mStride = sizeof(vk::DrawIndirectCommand),
+					});
 				}
 
 				static const cstring kRenderBuckets = "Render Buckets";

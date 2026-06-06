@@ -135,7 +135,7 @@ namespace Turbo
 
 	void FCommandBuffer::CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, vk::DeviceSize size)
 	{
-		const FCopyBufferInfo copyBufferInfo = {
+		const FCopyBufferParams copyBufferInfo = {
 			.mSrc = src,
 			.mDst = dst,
 			.mSize = size
@@ -144,7 +144,7 @@ namespace Turbo
 		CopyBuffer(copyBufferInfo);
 	}
 
-	void FCommandBuffer::CopyBuffer(const FCopyBufferInfo& copyBufferInfo)
+	void FCommandBuffer::CopyBuffer(const FCopyBufferParams& copyBufferInfo)
 	{
 		vk::BufferCopy2 bufferCopy;
 		bufferCopy.srcOffset = copyBufferInfo.mSrcOffset;
@@ -328,10 +328,24 @@ namespace Turbo
 		mVkCommandBuffer.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
-	void FCommandBuffer::DrawIndirect(THandle<FBuffer> commandBufferHandle, FDeviceSize offset, uint32 drawCount, uint32 stride)
+	void FCommandBuffer::DrawIndirect(const FDrawIndirectParams& params)
 	{
-		const FBuffer* buffer = mGpu->AccessBuffer(commandBufferHandle);
-		mVkCommandBuffer.drawIndirect( buffer->mVkBuffer, offset, drawCount, stride);
+		const FBuffer* buffer = mGpu->AccessBuffer(params.mBuffer);
+		mVkCommandBuffer.drawIndirect(buffer->mVkBuffer, params.mOffset, params.mDrawCount, params.mStride);
+	}
+
+	void FCommandBuffer::DrawIndirectCount(const FDrawIndirectCountParams& params)
+	{
+		const FBuffer* buffer = mGpu->AccessBuffer(params.mBuffer);
+		const FBuffer* countBuffer = mGpu->AccessBuffer(params.mCountBuffer);
+		mVkCommandBuffer.drawIndirectCount(
+			buffer->mVkBuffer,
+			params.mOffset,
+			countBuffer->mVkBuffer,
+			params.mCountOffset,
+			params.mMaxDrawCount,
+			params.mStride
+		);
 	}
 
 #if WITH_DEBUG_RENDERING_FEATURES
