@@ -53,15 +53,20 @@ void main(uint3 threadId : SV_DispatchThreadID)
         bShouldDraw &= DistanceToPlane > -boundsSphere.mRadius;
 	}
 
-	FDrawIndirectCommand draw;
-	draw.mVertexCount = drawData.mMeshData.mVertexCount;
-	draw.mFirstInstance = threadId.x;
-	draw.mInstanceCount = bShouldDraw ? 1 : 0;
-	draw.mFirstVertex = 0;
+	if (bShouldDraw)
+	{
+    	FDrawIndirectCommand draw;
+    	draw.mVertexCount = drawData.mMeshData.mVertexCount;
+    	draw.mFirstInstance = threadId.x;
+    	draw.mInstanceCount = 1;
+    	draw.mFirstVertex = 0;
 
-	Ptr<FIndirectDrawHeader> drawCommandsHeader = Ptr<FIndirectDrawHeader>(pc.mDrawIndirectCommand);
-	InterlockedAdd(drawCommandsHeader.mNumDraws, 1);
+    	Ptr<FIndirectDrawHeader> drawCommandsHeader = Ptr<FIndirectDrawHeader>(pc.mDrawIndirectCommand);
 
-	Ptr<FDrawIndirectCommand> drawCommands = Ptr<FDrawIndirectCommand>(pc.mDrawIndirectCommand + sizeof(FIndirectDrawHeader));
-	drawCommands[threadId.x] = draw;
+    	uint outOffset;
+        InterlockedAdd(drawCommandsHeader.mNumDraws, 1, outOffset);
+
+    	Ptr<FDrawIndirectCommand> drawCommands = Ptr<FDrawIndirectCommand>(pc.mDrawIndirectCommand + sizeof(FIndirectDrawHeader));
+    	drawCommands[outOffset] = draw;
+	}
 }
