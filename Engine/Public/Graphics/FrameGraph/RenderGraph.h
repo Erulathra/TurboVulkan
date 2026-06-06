@@ -92,6 +92,7 @@ namespace Turbo
 		[[nodiscard]] FRGResourceHandle CreateBuffer(const FRGBufferInfo& bufferInfo);
 		void QueueBufferUpload(const FRGBufferUpload& bufferUpload);
 		[[nodiscard]] std::tuple<FRGResourceHandle, void* /*intermediatePtr */> CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer);
+		[[nodiscard]] FRGBufferInfo GetBufferInfo(FRGResourceHandle resourceHandle) const;
 
 		template<typename T>
 		[[nodiscard]] std::tuple<FRGResourceHandle, T* /*intermediatePtr */> CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer)
@@ -110,14 +111,19 @@ namespace Turbo
 
 		void Reset();
 
+		[[nodiscard]] byte* Allocate(size_t numBytes)
+		{
+			return mAllocator.Allocate(numBytes);
+		}
+
 		template <typename PODType>
-		PODType* AllocatePOD()
+		[[nodiscard]] PODType* AllocatePOD()
 		{
 			return mAllocator.Allocate<PODType>();
 		}
 
 		template <typename PODType>
-		PODType* AllocatePOD(size_t num)
+		[[nodiscard]] PODType* AllocatePOD(size_t num)
 		{
 			return mAllocator.Allocate<PODType>(num);
 		}

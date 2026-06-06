@@ -220,6 +220,14 @@ namespace Turbo
 		return std::make_tuple(result, data);
 	}
 
+	FRGBufferInfo FRenderGraphBuilder::GetBufferInfo(FRGResourceHandle resourceHandle) const
+	{
+		TURBO_CHECK(resourceHandle.GetType() == ERGResourceType::Buffer && resourceHandle.IsValid())
+		TURBO_CHECK(resourceHandle.IsExternal() == false)
+
+		return mBuffers[resourceHandle.GetIndex()];
+	}
+
 	FRGPassInitializer FRenderGraphBuilder::AddPass(FName passName, EPassType passType)
 	{
 		mRenderPasses.emplace_back();
@@ -278,6 +286,8 @@ namespace Turbo
 			return vk::PipelineStageFlagBits2::eDrawIndirect;
 		case EPassType::Compute:
 			return vk::PipelineStageFlagBits2::eComputeShader;
+		case EPassType::Transfer:
+			return vk::PipelineStageFlagBits2::eTransfer;
 		default:
 			TURBO_UNINPLEMENTED()
 		}

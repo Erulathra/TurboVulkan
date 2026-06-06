@@ -7,6 +7,8 @@
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/ResourceBuilders.h"
+#include "Graphics/FrameGraph/RenderGraphUtils.h"
+#include "Graphics/Shaders/SceneCullingCS.h"
 #include "Graphics/Shaders/ToneMapperPostProcess.h"
 #include "World/Camera.h"
 #include "World/MeshComponent.h"
@@ -15,6 +17,12 @@
 
 namespace Turbo
 {
+	struct FIndirectDrawBufferHeader
+	{
+		uint32 mNumDrawCalls = 0;
+		uint32 __PADDING[3];
+	};
+
 	struct FDrawCall
 	{
 		glm::float4x4 mWorldTransform = glm::float4x4(1.f);
@@ -29,31 +37,10 @@ namespace Turbo
 		glm::float3 mBoundsMax = {};
 	};
 
-	struct FSceneCullingPushConstants
-	{
-		FDeviceAddress mViewData;
-		FDeviceAddress mDrawData;
-		FDeviceAddress mBounds;
-
-		FDeviceAddress mDrawIndirectCommand;
-
-		uint mNumDraws;
-	};
-
-
 	void FSceneRenderingLayer::Start()
 	{
-		// Scene Culling
-		FPipelineBuilder pipelineBuilder = {};
-		pipelineBuilder
-			.SetPushConstantType<FSceneCullingPushConstants>()
-			.SetName(FName("SceneCulling"));
-
-		pipelineBuilder.mShaderStateBuilder
-			.AddStage("SceneCulling", vk::ShaderStageFlagBits::eCompute);
-
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
-		mFrustumCullingPipeline = gpu.CreatePipeline(pipelineBuilder);
+		mFrustumCullingPipeline = SceneCullingCS::CreatePipeline(gpu);
 		mToneMapperPipeline = ToneMapperPostProcess::CreatePipeline(gpu);
 	}
 
@@ -235,14 +222,14 @@ namespace Turbo
 				};
 				drawIndirectBucket.mDrawBuffer = graphBuilder.CreateBuffer(drawDataBufferInfo);
 
+				const FDeviceSize indirectCommandsBufferSize = sizeof(FIndirectDrawBufferHeader) + numDraws * sizeof(vk::DrawIndirectCommand);
 				const FRGBufferInfo indirectCommandsBufferInfo = {
-					.mSize = numDraws * sizeof(vk::DrawIndirectCommand),
+					.mSize = indirectCommandsBufferSize,
 					.mBufferFlags = EBufferFlags::CreateMapped | EBufferFlags::StorageBuffer | EBufferFlags::IndirectBuffer,
 					.mName = FName(fmt::format("{}_IndirectCommands", material->mName))
 				};
 				drawIndirectBucket.mIndirectCommandBuffer = graphBuilder.CreateBuffer(indirectCommandsBufferInfo);
 
-				// Allocate cpu data and queue upload to target buffers
 				FMaterial::IndirectDrawData* drawDatum = graphBuilder.AllocatePOD<FMaterial::IndirectDrawData>(numDraws);
 				graphBuilder.QueueBufferUpload({
 					.mTargetBuffer = drawIndirectBucket.mDrawBuffer,
@@ -374,6 +361,12 @@ namespace Turbo
 		std::vector<FDrawIndirectBucket> drawIndirectBuckets;
 		CreateIndirectRenderBuffers(graphBuilder, world, sceneView, drawIndirectBuckets);
 
+		// Fill IndirectCommandsBuffer header
+		for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+		{
+			RenderGraphUtils::AddFillBufferPass(graphBuilder, bucket.mIndirectCommandBuffer, 0, sizeof(FIndirectDrawBufferHeader), 0);
+		}
+
 		// Geometry culling
 		static FName cullingPassName = FName("GeometryCullingPass");
 		FRGPassInitializer cullingPass = graphBuilder.AddPass(cullingPassName, EPassType::Compute);
@@ -393,7 +386,7 @@ namespace Turbo
 				const FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 				const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mViewDataBufferHandle));
 
-				FSceneCullingPushConstants pushConstants = {
+				SceneCullingCS::FPushConstants pushConstants = {
 					.mViewData = viewDataBuffer->mDeviceAddress,
 					.mBounds = assetManager.GetBoundsAddress(gpu)
 				};
@@ -470,11 +463,15 @@ namespace Turbo
 						.mDrawData = drawBuffer->mDeviceAddress
 					};
 
+					THandle<FBuffer> commandBufferHandle = resources.mBuffers.at(bucket.mIndirectCommandBuffer);
+
 					cmd.PushConstants(pushConstants);
-					cmd.DrawIndirect(FDrawIndirectParams{
-						.mBuffer = resources.mBuffers.at(bucket.mIndirectCommandBuffer),
-						.mOffset = 0,
-						.mDrawCount = bucket.mCount,
+					cmd.DrawIndirectCount(FDrawIndirectCountParams{
+						.mBuffer = commandBufferHandle,
+						.mOffset = sizeof(FIndirectDrawBufferHeader),
+						.mCountBuffer = commandBufferHandle,
+						.mCountOffset = offsetof(FIndirectDrawBufferHeader, mNumDrawCalls),
+						.mMaxDrawCount = bucket.mCount,
 						.mStride = sizeof(vk::DrawIndirectCommand),
 					});
 				}

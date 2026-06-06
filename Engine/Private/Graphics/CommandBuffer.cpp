@@ -178,7 +178,6 @@ namespace Turbo
 		imageSubresource.baseArrayLayer = 0;
 		imageSubresource.layerCount = 1;
 
-
 		vk::BufferImageCopy2 bufferImageCopy = {};
 		bufferImageCopy.bufferOffset = bufferOffset;
 		bufferImageCopy.bufferRowLength = mipSize.x;
@@ -194,6 +193,14 @@ namespace Turbo
 		copyBufferToImageInfo.setRegions(bufferImageCopy);
 
 		mVkCommandBuffer.copyBufferToImage2(copyBufferToImageInfo);
+	}
+
+	void FCommandBuffer::FillBuffer(THandle<FBuffer> dst, FDeviceSize offset, FDeviceSize size, uint32 value)
+	{
+		TURBO_CHECK(offset % 4 == 0 && size % 4 == 0)
+		const FBuffer* dstBuffer = mGpu->AccessBuffer(dst);
+
+		mVkCommandBuffer.fillBuffer(dstBuffer->mVkBuffer, offset, size, value);
 	}
 
 	void FCommandBuffer::BindDescriptorSet(THandle<FDescriptorSet> descriptorSetHandle, uint32 setIndex)

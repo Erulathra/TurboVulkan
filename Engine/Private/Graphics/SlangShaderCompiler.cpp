@@ -1,7 +1,5 @@
 #include "SlangShaderCompiler.h"
 
-#include <filesystem>
-
 #include "Graphics/ResourceBuilders.h"
 #include "Graphics/VulkanHelpers.h"
 

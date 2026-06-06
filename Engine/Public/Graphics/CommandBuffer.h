@@ -112,9 +112,10 @@ namespace Turbo
 		void ClearImage(THandle<FTexture> textureHandle, glm::vec4 color = ELinearColor::kBlack, vk::ImageLayout layout = vk::ImageLayout::eGeneral);
 		void BlitImage(THandle<FTexture> src, FRect2DInt srcRect, THandle<FTexture> dst, FRect2DInt dstRect, EFilter filter = EFilter::Linear);
 
-		void CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, vk::DeviceSize size);
+		void CopyBuffer(THandle<FBuffer> src, THandle<FBuffer> dst, FDeviceSize size);
 		void CopyBuffer(const FCopyBufferParams& copyBufferInfo);
-		void CopyBufferToTexture(THandle<FBuffer> src, THandle<FTexture> dst, uint32 mipIndex, vk::DeviceSize bufferOffset = 0);
+		void CopyBufferToTexture(THandle<FBuffer> src, THandle<FTexture> dst, uint32 mipIndex, FDeviceSize bufferOffset = 0);
+		void FillBuffer(THandle<FBuffer> dst, FDeviceSize offset, FDeviceSize size, uint32 value);
 
 		void BindDescriptorSet(THandle<FDescriptorSet> descriptorSetHandle, uint32 setIndex = 0);
 		void BindPipeline(THandle<FPipeline> pipelineHandle);

@@ -24,9 +24,9 @@ namespace Turbo
 		TURBO_CHECK(srcTexture != dstTexture)
 
 		const FName passName(fmt::format(
-				"Blit {} to {}",
-				graphBuilder.GetTextureInfo(srcTexture).mName,
-				graphBuilder.GetTextureInfo(dstTexture).mName)
+			"Blit {} to {}",
+			graphBuilder.GetTextureInfo(srcTexture).mName,
+			graphBuilder.GetTextureInfo(dstTexture).mName)
 		);
 
 		FRGPassInitializer pass = graphBuilder.AddPass(passName, EPassType::Transfer);
@@ -46,6 +46,34 @@ namespace Turbo
 				const FRect2DInt dstRect = FRect2DInt::FromSize(presentTexCold->GetSize2D());
 
 				cmd.BlitImage(srcHandle, srcRect, dstHandle, dstRect);
+			}
+		);
+	}
+
+	void RenderGraphUtils::AddFillBufferPass(
+		FRenderGraphBuilder& graphBuilder,
+		FRGResourceHandle srcBuffer,
+		FDeviceSize offset,
+		FDeviceSize size,
+		uint32 value
+	)
+	{
+		const FName passName(fmt::format(
+			"Fill {} (0x{:x}->0x{:x}) with 0x{:x}",
+			graphBuilder.GetBufferInfo(srcBuffer).mName,
+			offset,
+			size,
+			value
+		));
+
+		FRGPassInitializer pass = graphBuilder.AddPass(passName, EPassType::Transfer);
+		pass->WriteBuffer(srcBuffer);
+
+		pass->mExecutePass.BindLambda(
+			[=](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+			{
+				const THandle<FBuffer> srcHandle = resources.mBuffers[srcBuffer];
+				cmd.FillBuffer(srcHandle, offset, size, value);
 			}
 		);
 	}

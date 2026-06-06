@@ -1,8 +1,15 @@
 #include "Modules/Common.slang"
 
 import Modules.BasePassCommon;
+import Modules.MeshRendering;
 import Modules.Math;
 import Modules.MathTypes;
+
+struct FIndirectDrawHeader
+{
+    uint mNumDraws;
+    uint __PADDING[3];
+}
 
 struct FPushConstants
 {
@@ -10,7 +17,7 @@ struct FPushConstants
     const Ptr<FIndirectDrawData> mDrawData;
     const Ptr<FBounds> mBounds;
 
-    Ptr<FDrawIndirectCommand> mDrawIndirectCommand;
+    Ptr<uint8_t> mDrawIndirectCommand;
 
 	uint mNumDraws;
 };
@@ -52,5 +59,9 @@ void main(uint3 threadId : SV_DispatchThreadID)
 	draw.mInstanceCount = bShouldDraw ? 1 : 0;
 	draw.mFirstVertex = 0;
 
-	pc.mDrawIndirectCommand[threadId.x] = draw;
+	Ptr<FIndirectDrawHeader> drawCommandsHeader = Ptr<FIndirectDrawHeader>(pc.mDrawIndirectCommand);
+	InterlockedAdd(drawCommandsHeader.mNumDraws, 1);
+
+	Ptr<FDrawIndirectCommand> drawCommands = Ptr<FDrawIndirectCommand>(pc.mDrawIndirectCommand + sizeof(FIndirectDrawHeader));
+	drawCommands[threadId.x] = draw;
 }

@@ -1,4 +1,4 @@
-module CommonTypes;
+module MeshRendering;
 
 import MathTypes;
 import ViewData;
@@ -33,33 +33,3 @@ public struct FMeshData
     public const uint mVertexCount;
     public const uint mMeshIndex;
 }
-
-public struct FSceneData
-{
-    public float4 mDummyData;
-}
-
-public struct FIndirectPushConstants
-{
-    public const Ptr<FViewData> mViewData;
-    public const Ptr<FSceneData> mSceneData;
-
-    public const Ptr<FIndirectDrawData> mDrawData;
-};
-
-public struct FDrawIndirectCommand
-{
-    public uint mVertexCount;
-    public uint mInstanceCount;
-    public uint mFirstVertex;
-    public uint mFirstInstance;
-};
-
-public struct FDrawIndexedIndirectCommand
-{
-    public uint mIndexCount;
-    public uint mInstanceCount;
-    public uint mFirstIndex;
-    public int mVertexOffset;
-    public uint mFirstInstance;
-};

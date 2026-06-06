@@ -2,6 +2,7 @@ module BasePassCommon;
 
 import MathTypes;
 import ShadingCommon;
+import MeshRendering;
 
 public enum ECameraType
 {
@@ -32,30 +33,29 @@ public struct FMaterialInstance
     public uint mDiffuseSampler;
 };
 
-public struct FBounds
-{
-    public float3 mMin;
-    public float mRadius;
-    public float3 mMax;
-    public float mRadiusSquared;
-}
-
-public struct FMeshData
-{
-    public const Ptr<float> mIndexBuffer;
-    public const Ptr<float3> mPositionBuffer;
-    public const Ptr<float3> mNormalBuffer;
-    public const Ptr<float2> mUVBuffer;
-
-    public const uint mVertexCount;
-    public const uint mMeshIndex;
-}
-
 public struct FSceneData
 {
     public uint mNumLights;
     uint _PADDING[3];
 }
+
+public struct FIndirectPushConstants
+{
+    public const Ptr<FViewData> mViewData;
+    public const Ptr<FSceneData> mSceneData;
+    public const Ptr<FLight> mLightData;
+
+    public const Ptr<FIndirectDrawData> mDrawData;
+};
+
+public struct FDrawIndexedIndirectCommand
+{
+    public uint mIndexCount;
+    public uint mInstanceCount;
+    public uint mFirstIndex;
+    public int mVertexOffset;
+    public uint mFirstInstance;
+};
 
 public struct FIndirectDrawData
 {
@@ -69,28 +69,10 @@ public struct FIndirectDrawData
     public const Ptr<FMeshData> mMeshData;
 };
 
-public struct FIndirectPushConstants
-{
-    public const Ptr<FViewData> mViewData;
-    public const Ptr<FSceneData> mSceneData;
-    public const Ptr<FLight> mLightData;
-
-    public const Ptr<FIndirectDrawData> mDrawData;
-};
-
 public struct FDrawIndirectCommand
 {
     public uint mVertexCount;
     public uint mInstanceCount;
     public uint mFirstVertex;
-    public uint mFirstInstance;
-};
-
-public struct FDrawIndexedIndirectCommand
-{
-    public uint mIndexCount;
-    public uint mInstanceCount;
-    public uint mFirstIndex;
-    public int mVertexOffset;
     public uint mFirstInstance;
 };
