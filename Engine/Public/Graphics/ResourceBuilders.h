@@ -5,27 +5,16 @@
 #include "Graphics/Enums.h"
 #include "Graphics/VulkanHelpers.h"
 
-#define BUILDER_BODY()			\
-	public:						\
-		friend class FGPUDevice;	\
-	private:
-
 namespace Turbo
 {
 	class FWindow;
 
-	class FGPUDeviceBuilder final
+	struct FGPUDeviceBuilder
 	{
-		BUILDER_BODY()
-
-	public:
 	};
 
-	class FBufferBuilder final
+	struct FBufferBuilder
 	{
-		BUILDER_BODY()
-
-	public:
 		static FBufferBuilder CreateStagingBuffer(const void* data, uint32 size);
 		static FBufferBuilder CreateStagingBuffer(uint32 size);
 		static FBufferBuilder CreateStagingBuffer(std::span<byte> data);
@@ -38,7 +27,6 @@ namespace Turbo
 			return *this;
 		}
 		FBufferBuilder& SetData(const void* data) { mInitialData = data; return *this; }
-
 		FBufferBuilder& SetName(FName name) { mName = name; return *this; }
 
 	public:
@@ -57,10 +45,8 @@ namespace Turbo
 		Normal
 	};
 
-	class FTextureBuilder final
+	struct FTextureBuilder
 	{
-		BUILDER_BODY()
-
 	public:
 		FTextureBuilder& Init(vk::Format format, ETextureType type, ETextureFlags flags = ETextureFlags::Default)
 			{ mFormat = format; mType = type; mFlags = flags;  return *this; }
@@ -70,6 +56,7 @@ namespace Turbo
 
 		FTextureBuilder& SetName(FName name) { mName = name; return *this; }
 
+	public:
 		uint16 mWidth = 1;
 		uint16 mHeight = 1;
 		uint16 mDepth = 1;
@@ -84,10 +71,8 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FSamplerBuilder final
+	struct FSamplerBuilder
 	{
-		BUILDER_BODY()
-
 	public:
 		FSamplerBuilder& SetMinMagFilter(vk::Filter min, vk::Filter mag) { mMinFilter = min; mMagFilter = mag; return *this; }
 		FSamplerBuilder& SetMipFilter(vk::SamplerMipmapMode filter) { mMipFilter = filter; return *this; }
@@ -101,7 +86,7 @@ namespace Turbo
 
 		FSamplerBuilder& SetName(FName name) { mName = name; return *this; }
 
-	private:
+	public:
 		vk::Filter mMinFilter = vk::Filter::eNearest;
 		vk::Filter mMagFilter = vk::Filter::eNearest;
 		vk::SamplerMipmapMode mMipFilter = vk::SamplerMipmapMode::eNearest;
@@ -113,9 +98,8 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FDescriptorPoolBuilder final
+	struct FDescriptorPoolBuilder
 	{
-		BUILDER_BODY()
 	public:
 		FDescriptorPoolBuilder();
 		FDescriptorPoolBuilder& Reset();
@@ -125,7 +109,7 @@ namespace Turbo
 		FDescriptorPoolBuilder& SetMaxSets(uint32 maxSets) { mMaxSets = maxSets; return *this; }
 		FDescriptorPoolBuilder& SetName(FName name) { mName = name; return *this; }
 
-	private:
+	public:
 		std::unordered_map<vk::DescriptorType, float /** Ratio **/> mPoolSizes = {};
 		uint32 mMaxSets = 0;
 
@@ -134,10 +118,8 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FDescriptorSetLayoutBuilder final
+	struct FDescriptorSetLayoutBuilder
 	{
-		BUILDER_BODY()
-
 	public:
 		FDescriptorSetLayoutBuilder& Reset() { *this = {}; return *this; }
 		FDescriptorSetLayoutBuilder& AddBinding(vk::DescriptorType type, uint16 start, uint16 count, vk::DescriptorBindingFlags flags = {}, FName name = FName())
@@ -158,7 +140,7 @@ namespace Turbo
 
 		FDescriptorSetLayoutBuilder& SetName(FName name) { mName = name; return *this; }
 
-	private:
+	public:
 		std::array<FBinding, kMaxDescriptorsPerSet> mBindings;
 		uint16 mNumBindings = 0;
 		uint16 mSetIndex = 0;
@@ -167,10 +149,8 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FDescriptorSetBuilder final
+	struct FDescriptorSetBuilder
 	{
-		BUILDER_BODY()
-
 	public:
 		FDescriptorSetBuilder& Reset() { mNumResources = 0; return *this; }
 		FDescriptorSetBuilder& SetLayout(THandle<FDescriptorSetLayout> layout) { mLayout = layout; return *this; }
@@ -209,7 +189,7 @@ namespace Turbo
 		FDescriptorSetBuilder& SetName(FName name) { mName = name; return *this; }
 		FDescriptorSetBuilder& SetFlags(vk::DescriptorPoolCreateFlags flags) { mFlags = flags; return *this; }
 
-	private:
+	public:
 		std::array<FHandle, kMaxDescriptorsPerSet> mResources;
 		std::array<uint16, kMaxDescriptorsPerSet> mBindings;
 
@@ -222,25 +202,21 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FRasterizationBuilder final
+	struct FRasterizationBuilder
 	{
-		BUILDER_BODY()
-
 	public:
 		FRasterizationBuilder& SetCullMode(vk::CullModeFlags cullMode) { mCullMode = cullMode; return *this; }
 		FRasterizationBuilder& SetPolygonMode(vk::CullModeFlags polygonMode) { mCullMode = polygonMode; return *this; }
 		FRasterizationBuilder& SetFrontFace(vk::FrontFace frontFace) { mFrontFace = frontFace; return *this; }
 
-	private:
+	public:
 		vk::CullModeFlags mCullMode = vk::CullModeFlagBits::eBack;
 		vk::PolygonMode mPolygonMode = vk::PolygonMode::eFill;
 		vk::FrontFace mFrontFace = vk::FrontFace::eClockwise;
 	};
 
-	class FDepthStencilBuilder final
+	struct FDepthStencilBuilder
 	{
-		BUILDER_BODY()
-
 	public:
 		FDepthStencilBuilder& SetDepth(bool bTest, bool bWrite, vk::CompareOp compareOperator)
 		{
@@ -251,7 +227,7 @@ namespace Turbo
 			return *this;
 		}
 
-	private:
+	public:
 		vk::CompareOp mDepthCompareOperator = vk::CompareOp::eGreater;
 
 		bool mbEnableDepthTest : 1 = false;
@@ -260,10 +236,8 @@ namespace Turbo
 		uint8 mPadding : 5 = 0;
 	};
 
-	class FBlendState final
+	struct FBlendState
 	{
-		BUILDER_BODY()
-
 	public:
 		FBlendState& Init(vk::BlendFactor source, vk::BlendFactor destination, vk::BlendOp blendOperator)
 		{
@@ -313,7 +287,7 @@ namespace Turbo
 			return *this;
 		}
 
-	private:
+	public:
 		vk::BlendFactor mSourceColorBlendFactor = vk::BlendFactor::eOne;
 		vk::BlendFactor mDestinationColorBlendFactor = vk::BlendFactor::eOne;
 		vk::BlendOp mColorBlendOperator = vk::BlendOp::eAdd;
@@ -327,10 +301,8 @@ namespace Turbo
 		bool mbBlendEnabled = false;
 	};
 
-	class FBlendStateBuilder final
+	struct FBlendStateBuilder
 	{
-		BUILDER_BODY()
-
 	public:
 		FBlendStateBuilder& Reset() { mActiveStates = 0; return *this; }
 		FBlendState& AddBlendState()
@@ -347,22 +319,20 @@ namespace Turbo
 			return *this;
 		}
 
-	private:
+	public:
 		std::array<FBlendState, kMaxColorAttachments> mBlendStates;
 		uint32 mActiveStates = 0;
 	};
 
-	struct FShaderStage final
+	struct FShaderStage
 	{
 		std::string mShaderName;
 		vk::ShaderStageFlagBits mStage;
 		std::string mEntryPoint;
 	};
 
-	class FPipelineRenderingBuilder final
+	struct FPipelineRenderingBuilder
 	{
-		BUILDER_BODY()
-
 	public:
 		FPipelineRenderingBuilder& Reset() {mNumColorAttachments = 0; return *this; }
 		FPipelineRenderingBuilder& SetDepthAttachment(vk::Format format) { mDepthAttachmentFormat = format; return *this;}
@@ -374,11 +344,16 @@ namespace Turbo
 			return *this;
 		}
 
-	private:
+	public:
 		std::array<vk::Format, kMaxColorAttachments> mColorAttachmentFormats = {};
 		uint32 mNumColorAttachments = 0;
 
 		vk::Format mDepthAttachmentFormat = vk::Format::eUndefined;
+	};
+
+	struct FMultisampleStateBuilder final
+	{
+
 	};
 
 	constexpr cstring GetShaderEntryPointName(vk::ShaderStageFlagBits stage)
@@ -394,9 +369,8 @@ namespace Turbo
 		}
 	}
 
-	class FShaderStateBuilder final
+	struct FShaderStateBuilder
 	{
-		BUILDER_BODY()
 	public:
 		FShaderStateBuilder& Reset() { mStagesCount = 0; return *this; }
 		FShaderStateBuilder& AddStage(const std::string_view shaderName, vk::ShaderStageFlagBits stage, std::string_view entryPoint = "")
@@ -412,14 +386,14 @@ namespace Turbo
 		}
 		FShaderStateBuilder& SetName(FName name) { mName = name; return *this; }
 
-	private:
+	public:
 		std::array<FShaderStage, kMaxShaderStages> mStages;
 		uint32 mStagesCount = 0;
 
 		FName mName;
 	};
 
-	struct FPipelineBuilder final
+	struct FPipelineBuilder
 	{
 		FPipelineBuilder& AddDescriptorSetLayout(THandle<FDescriptorSetLayout> handle)
 			{ mDescriptorSetLayouts[mNumActiveLayouts++] = handle; return *this; }
