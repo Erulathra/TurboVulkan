@@ -44,38 +44,44 @@ namespace Turbo
 		return buffer;
 	}
 
-	FRGResourceHandle FRGPassInfo::AddAttachment(FRGResourceHandle attachment, uint32 attachmentIndex)
+	void FRGPassInfo::AddAttachment(FRGResourceHandle attachment, uint32 attachmentIndex)
 	{
-		return AddAttachment({.mTexture = attachment }, attachmentIndex);
+		AddAttachment({.mTexture = attachment }, attachmentIndex);
 	}
 
-	FRGResourceHandle FRGPassInfo::AddAttachment(FRGAttachment attachment, uint32 attachmentIndex)
+	void FRGPassInfo::AddAttachment(FRGAttachment attachment, uint32 attachmentIndex)
 	{
 		TURBO_CHECK(attachmentIndex < kMaxColorAttachments);
 		TURBO_CHECK(mColorAttachments[attachmentIndex].IsValid() == false)
 
-		FRGResourceHandle texture = WriteTexture(attachment.mTexture);
-		mColorAttachments[attachmentIndex] = attachment;
+		WriteTexture(attachment.mTexture);
+		if (attachment.mResolveTexture.IsValid())
+		{
+			WriteTexture(attachment.mResolveTexture);
+		}
 
-		return texture;
+		mColorAttachments[attachmentIndex] = attachment;
 	}
 
-	FRGResourceHandle FRGPassInfo::SetDepthStencilAttachment(FRGResourceHandle attachment)
+	void FRGPassInfo::SetDepthStencilAttachment(FRGResourceHandle attachment)
 	{
-		return SetDepthStencilAttachment({
+		SetDepthStencilAttachment({
 			.mTexture = attachment,
 			.mClearColor = EClearColor::Zero
 		});
 	}
 
-	FRGResourceHandle FRGPassInfo::SetDepthStencilAttachment(FRGAttachment attachment)
+	void FRGPassInfo::SetDepthStencilAttachment(FRGAttachment attachment)
 	{
 		TURBO_CHECK(mDepthStencilAttachment.IsValid() == false)
 
-		FRGResourceHandle texture = WriteTexture(attachment.mTexture);
-		mDepthStencilAttachment = attachment;
+		WriteTexture(attachment.mTexture);
+		if (attachment.mResolveTexture.IsValid())
+		{
+			WriteTexture(attachment.mResolveTexture);
+		}
 
-		return texture;
+		mDepthStencilAttachment = attachment;
 	}
 
 	FRGPassInitializer::FRGPassInitializer(FRenderGraphBuilder& graphBuilder, FRGPassInfo& passInfo)
@@ -595,6 +601,7 @@ namespace Turbo
 				.mFlags = textureInfo.mFlags,
 				.mFormat = textureInfo.mFormat,
 				.mType = ETextureType::Texture2D,
+				.mNumSamples = textureInfo.mNumSamples,
 				.mName = textureInfo.mName
 			};
 
@@ -710,12 +717,19 @@ namespace Turbo
 					{
 						const FRGAttachment attachment = pass.mColorAttachments[attachmentId];
 
-						const FAttachment attachmentInfo = {
+						FAttachment attachmentInfo = {
 							.mTexture = renderResources.mTextures.at(attachment.mTexture),
 							.mLoadOp = attachment.mLoadOp,
 							.mStoreOp = attachment.mStoreOp,
-							.mClearColor = attachment.mClearColor
+							.mClearColor = attachment.mClearColor,
 						};
+
+						if (attachment.mResolveTexture.IsValid())
+						{
+							attachmentInfo.mResolveTexture = renderResources.mTextures.at(attachment.mResolveTexture),
+							attachmentInfo.mResolveMode = attachment.mResolveMode;
+						}
+
 						renderingAttachments.AddColorAttachment(attachmentInfo);
 
 						TURBO_LOG(
@@ -731,12 +745,19 @@ namespace Turbo
 				{
 					const FRGAttachment& attachment = pass.mDepthStencilAttachment;
 
-					const FAttachment attachmentInfo = {
+					FAttachment attachmentInfo = {
 						.mTexture = renderResources.mTextures.at(attachment.mTexture),
 						.mLoadOp = attachment.mLoadOp,
 						.mStoreOp = attachment.mStoreOp,
-						.mClearColor = attachment.mClearColor
+						.mClearColor = attachment.mClearColor,
 					};
+
+					if (attachment.mResolveTexture.IsValid())
+					{
+						attachmentInfo.mResolveTexture = renderResources.mTextures.at(attachment.mResolveTexture),
+						attachmentInfo.mResolveMode = attachment.mResolveMode;
+					}
+
 					renderingAttachments.SetDepthAttachment(attachmentInfo);
 
 					TURBO_LOG(

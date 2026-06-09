@@ -39,6 +39,11 @@ namespace Turbo
 			.AddColorAttachment(FGeometryBuffer::kColorFormat)
 			.SetDepthAttachment(FGeometryBuffer::kDepthStencilFormat);
 
+		pipelineBuilder.mMultisampleStateBuilder = {
+			.bSampleShading = false,
+			.bSamplesDrivenByCVar = true
+		};
+
 		return pipelineBuilder;
 	}
 

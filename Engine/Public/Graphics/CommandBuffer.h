@@ -34,12 +34,24 @@ namespace Turbo
 		DontCare
 	};
 
+	enum class EResolveMode : uint8
+	{
+		None,
+		SampleZero,
+		Average,
+		Min,
+		Max
+	};
+
 	struct FAttachment
 	{
 		THandle<FTexture> mTexture = {};
 		ELoadOp mLoadOp = ELoadOp::Load;
 		EStoreOp mStoreOp = EStoreOp::Store;
 		EClearColor mClearColor = EClearColor::Zero;
+
+		THandle<FTexture> mResolveTexture = {};
+		EResolveMode mResolveMode = EResolveMode::Average;
 	};
 
 	struct FRenderingAttachments final
@@ -232,5 +244,26 @@ namespace Turbo
 		}
 
 		return {};
+	}
+
+	constexpr vk::ResolveModeFlagBits ToVkResolveMode(EResolveMode mode)
+	{
+		switch (mode) {
+		case EResolveMode::None:
+			return vk::ResolveModeFlagBits::eNone;
+		case EResolveMode::SampleZero:
+			return vk::ResolveModeFlagBits::eSampleZero;
+		case EResolveMode::Average:
+			return vk::ResolveModeFlagBits::eAverage;
+		case EResolveMode::Min:
+			return vk::ResolveModeFlagBits::eMin;
+		case EResolveMode::Max:
+			return vk::ResolveModeFlagBits::eMax;
+
+		default:
+			TURBO_UNINPLEMENTED();
+		}
+
+		return vk::ResolveModeFlagBits::eNone;
 	}
 } // Turbo

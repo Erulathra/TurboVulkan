@@ -75,6 +75,8 @@ namespace Turbo
 
 		void RequestSwapChainResize() { mbRequestedSwapchainResize = true; }
 
+		static EMSAASamples GetNumDesiredMSAASamplesCVar();
+
 		/** Rendering interface end */
 
 		/** Resource accessors */
@@ -333,6 +335,7 @@ namespace Turbo
 		vk::DebugUtilsMessengerEXT mVkDebugUtilsMessenger;
 
 		glm::uint2 mViewportSize = glm::uint2(0);
+		EMSAASamples mMaxSupportedSampleCount = EMSAASamples::One;
 
 		/** Other end */
 

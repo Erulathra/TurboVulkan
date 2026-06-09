@@ -180,6 +180,7 @@ namespace Turbo
 
 		vk::Format mFormat = vk::Format::eUndefined;
 		ETextureFlags mFlags = ETextureFlags::Invalid;
+		EMSAASamples mNumSamples = EMSAASamples::One;
 
 		FName mName = {};
 
@@ -263,6 +264,9 @@ namespace Turbo
 		ELoadOp mLoadOp = ELoadOp::Load;
 		EStoreOp mStoreOp = EStoreOp::Store;
 		EClearColor mClearColor = EClearColor::Zero;
+
+		FRGResourceHandle mResolveTexture = {};
+		EResolveMode mResolveMode = EResolveMode::Average;
 
 		bool IsValid() const { return mTexture.GetType() == ERGResourceType::Texture && mTexture.IsValid(); }
 	};

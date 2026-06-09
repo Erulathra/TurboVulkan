@@ -14,6 +14,30 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 namespace Turbo
 {
+	TAutoConsoleVariable<int32> CVarMSAASamples(
+		"r.msaa",
+		8,
+		"Set number of subsamples. If less than 2 it disables MSAA."
+	);
+
+	EMSAASamples FGPUDevice::GetNumDesiredMSAASamplesCVar()
+	{
+		if (CVarMSAASamples.Get() >= 8)
+		{
+			return EMSAASamples::Eight;
+		}
+		else if (CVarMSAASamples.Get() >= 4)
+		{
+			return EMSAASamples::Four;
+		}
+		else if (CVarMSAASamples.Get() >= 2)
+		{
+			return EMSAASamples::Two;
+		}
+
+		return EMSAASamples::One;
+	}
+
 	void FGPUDevice::Init(const FGPUDeviceBuilder& gpuDeviceBuilder)
 	{
 		TURBO_LOG(LogGPUDevice, Info, "Initializing GPU Device.");
@@ -423,10 +447,13 @@ namespace Turbo
 
 			pipelineCreateInfo.pDepthStencilState = &depthStencil;
 
-			// Multi sample (unimplemented)
+			// MSAA
 			vk::PipelineMultisampleStateCreateInfo multisampleState = {};
-			multisampleState.sampleShadingEnable = vk::False;
-			multisampleState.rasterizationSamples = vk::SampleCountFlagBits::e1;
+			multisampleState.sampleShadingEnable = builder.mMultisampleStateBuilder.bSampleShading;
+			multisampleState.rasterizationSamples =
+				builder.mMultisampleStateBuilder.bSamplesDrivenByCVar
+				? ToVkSampleCountBits(GetNumDesiredMSAASamplesCVar())
+				: ToVkSampleCountBits(builder.mMultisampleStateBuilder.mSamples);
 
 			pipelineCreateInfo.pMultisampleState = &multisampleState;
 
@@ -941,6 +968,26 @@ namespace Turbo
 
 		mVkPhysicalDevice = physicalDevice;
 		TURBO_LOG(LogGPUDevice, Info, "Selected {} as primary physical device.", physicalDevice.name);
+
+		const vk::PhysicalDeviceProperties& deviceProperties = mVkPhysicalDevice.getProperties();
+
+		// Get max supported MSAA samples.
+		vk::Flags<vk::SampleCountFlagBits> supportedSamples =
+			deviceProperties.limits.framebufferColorSampleCounts
+			& deviceProperties.limits.framebufferDepthSampleCounts;
+
+		if (supportedSamples & vk::SampleCountFlagBits::e8)
+		{
+			mMaxSupportedSampleCount = EMSAASamples::Eight;
+		}
+		else if (supportedSamples & vk::SampleCountFlagBits::e4)
+		{
+			mMaxSupportedSampleCount = EMSAASamples::Four;
+		}
+		else if (supportedSamples & vk::SampleCountFlagBits::e2)
+		{
+			mMaxSupportedSampleCount = EMSAASamples::Two;
+		}
 
 		return physicalDevice;
 	}
@@ -1557,13 +1604,13 @@ namespace Turbo
 
 		vk::ImageCreateInfo imageCreateInfo = {};
 		imageCreateInfo.format = builder.mFormat;
-		imageCreateInfo.imageType = VkConvert::ToVkImageType(builder.mType);
+		imageCreateInfo.imageType = ToVkImageType(builder.mType);
 		imageCreateInfo.extent.width = builder.mWidth;
 		imageCreateInfo.extent.height = builder.mHeight;
 		imageCreateInfo.extent.depth = builder.mDepth;
 		imageCreateInfo.mipLevels = builder.mNumMips;
 		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
+		imageCreateInfo.samples = ToVkSampleCountBits(builder.mNumSamples);
 		imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
 
 		const bool bRenderTarget = (builder.mFlags & ETextureFlags::RenderTarget) != ETextureFlags::Invalid;
@@ -1584,6 +1631,12 @@ namespace Turbo
 			imageCreateInfo.usage |= bRenderTarget ? EImgUsage::eColorAttachment : static_cast<EImgUsage>(0);
 		}
 
+		if ((builder.mFlags & ETextureFlags::TransientAttachment) != ETextureFlags::Invalid)
+		{
+			TURBO_CHECK(bRenderTarget)
+			imageCreateInfo.usage |= EImgUsage::eTransientAttachment;
+		}
+
 		imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
 		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
 
@@ -1601,7 +1654,7 @@ namespace Turbo
 
 		vk::ImageViewCreateInfo viewCreateInfo = {};
 		viewCreateInfo.image = texture->mVkImage;
-		viewCreateInfo.viewType = VkConvert::ToVkImageViewType(builder.mType);
+		viewCreateInfo.viewType = ToVkImageViewType(builder.mType);
 		viewCreateInfo.format = builder.mFormat;
 		viewCreateInfo.subresourceRange.aspectMask =
 			TextureFormat::HasDepthOrStencil(builder.mFormat) ? vk::ImageAspectFlagBits::eDepth : vk::ImageAspectFlagBits::eColor;

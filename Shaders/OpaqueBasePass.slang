@@ -60,6 +60,7 @@ void vsMain(
 
     vsOut.mWorldPosition = mul(modelPosition, data.mModelToWorld).xyz;
 	vsOut.mWorldNormal = mul(mesh.mNormalBuffer[vertexId], data.mNormalModelToWorld);
+	// vsOut.mWorldNormal = mul(data.mNormalModelToWorld, mesh.mNormalBuffer[vertexId]);
     vsOut.mUV = mesh.mUVBuffer[vertexId];
 
 	vsOut.mDrawId = drawId;
@@ -91,7 +92,7 @@ void psMain(
     // Fill pixel data
     FPixelLightningInput pixelInput;
     pixelInput.mPosition = vsOut.mWorldPosition;
-    pixelInput.mNormal = vsOut.mWorldNormal;
+    pixelInput.mNormal = normalize(vsOut.mWorldNormal);
     pixelInput.mPixelToCamera = normalize(viewData.mViewPosition - vsOut.mWorldPosition);
 
     pixelInput.mAlbedo = albedoTexture.Sample(albedoSampler, vsOut.mUV);

@@ -26,10 +26,10 @@ namespace Turbo
 		FRGResourceHandle ReadBuffer(FRGResourceHandle buffer);
 		FRGResourceHandle WriteBuffer(FRGResourceHandle buffer);
 
-		FRGResourceHandle AddAttachment(FRGResourceHandle attachment, uint32 attachmentIndex);
-		FRGResourceHandle AddAttachment(FRGAttachment attachment, uint32 attachmentIndex);
-		FRGResourceHandle SetDepthStencilAttachment(FRGResourceHandle attachment);
-		FRGResourceHandle SetDepthStencilAttachment(FRGAttachment attachment);
+		void AddAttachment(FRGResourceHandle attachment, uint32 attachmentIndex);
+		void AddAttachment(FRGAttachment attachment, uint32 attachmentIndex);
+		void SetDepthStencilAttachment(FRGResourceHandle attachment);
+		void SetDepthStencilAttachment(FRGAttachment attachment);
 
 	public:
 		std::vector<FRGResourceHandle> mTextureReads;

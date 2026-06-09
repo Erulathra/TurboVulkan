@@ -6,6 +6,7 @@
 #include "Core/Engine.h"
 #include "Core/Input/Keys.h"
 #include "Extensions/ImGui/ImGuiExtensions.h"
+#include "Graphics/Shaders/ToneMapperPostProcess.h"
 #include "World/Camera.h"
 #include "World/World.h"
 
@@ -28,6 +29,12 @@ namespace Turbo
 
 		FWorld* world = gEngine->GetWorld();
 		world->OpenLevel(FName("Content/External/main_sponza/SponzaCompressed.gltf"));
+
+		entt::registry& registry = world->mRegistry;
+		entt::entity ppSettingsEntity = registry.create();
+		registry.emplace<FEntityLabel>(ppSettingsEntity, FName("PostProcessSettings"));
+		registry.emplace<FWorldRoot>(ppSettingsEntity);
+		ToneMapperPostProcess::FComponent& toneMapper =  registry.emplace<ToneMapperPostProcess::FComponent>(ppSettingsEntity);
 
 		FFlyMovementSystem::Enable();
 

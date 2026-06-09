@@ -127,7 +127,7 @@ namespace Turbo
 		blitInfo.dstImage = dstTexture->mVkImage;
 		blitInfo.dstImageLayout = vk::ImageLayout::eTransferDstOptimal;
 
-		blitInfo.filter = VkConvert::ToVkFilter(filter);
+		blitInfo.filter = ToVkFilter(filter);
 		blitInfo.setRegions({region});
 
 		mVkCommandBuffer.blitImage2(blitInfo);
@@ -271,6 +271,16 @@ namespace Turbo
 			vkAttachmentInfo.loadOp = ToVkLoadOp(attachment.mLoadOp);
 			vkAttachmentInfo.storeOp = ToVkStoreOp(attachment.mStoreOp);
 			vkAttachmentInfo.clearValue = ToVkColorClearValue(attachment.mClearColor);
+
+			if (attachment.mResolveTexture.IsValid())
+			{
+				const FTexture* resolveTexture = mGpu->AccessTexture(attachment.mResolveTexture);
+				TURBO_CHECK(resolveTexture)
+
+				vkAttachmentInfo.resolveImageView = resolveTexture->mVkImageView;
+				vkAttachmentInfo.resolveMode = ToVkResolveMode(attachment.mResolveMode);
+				vkAttachmentInfo.resolveImageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+			}
 		}
 
 		renderingInfo.renderArea.extent = VulkanConverters::ToExtent2D(attachmentSize);
@@ -289,6 +299,16 @@ namespace Turbo
 			vkDepthAttachmentInfo.loadOp = ToVkLoadOp(attachment.mLoadOp);
 			vkDepthAttachmentInfo.storeOp = ToVkStoreOp(attachment.mStoreOp);
 			vkDepthAttachmentInfo.clearValue = ToVkDepthClearValue(attachment.mClearColor);
+
+			if (attachment.mResolveTexture.IsValid())
+			{
+				const FTexture* resolveTexture = mGpu->AccessTexture(attachment.mResolveTexture);
+				TURBO_CHECK(resolveTexture)
+
+				vkDepthAttachmentInfo.resolveImageView = resolveTexture->mVkImageView;
+				vkDepthAttachmentInfo.resolveMode = ToVkResolveMode(attachment.mResolveMode);
+				vkDepthAttachmentInfo.resolveImageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+			}
 
 			renderingInfo.pDepthAttachment = &vkDepthAttachmentInfo;
 		}

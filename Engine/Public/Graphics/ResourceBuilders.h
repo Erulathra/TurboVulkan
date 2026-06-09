@@ -51,6 +51,7 @@ namespace Turbo
 		FTextureBuilder& Init(vk::Format format, ETextureType type, ETextureFlags flags = ETextureFlags::Default)
 			{ mFormat = format; mType = type; mFlags = flags;  return *this; }
 		FTextureBuilder& SetSize(glm::uint3 size) { mWidth = size.x; mHeight = size.y; mDepth = size.z; return *this; }
+		FTextureBuilder& SetNumSamples(EMSAASamples numSamples) { mNumSamples = numSamples; return *this; }
 		FTextureBuilder& SetNumMips(uint8 numMips) { mNumMips = numMips; return *this; }
 		FTextureBuilder& SetBindTexture(bool bBindTexture) { mbBindTexture = bBindTexture; return *this; }
 
@@ -65,6 +66,8 @@ namespace Turbo
 
 		vk::Format mFormat = vk::Format::eUndefined;
 		ETextureType mType = ETextureType::Texture2D;
+
+		EMSAASamples mNumSamples = EMSAASamples::One;
 
 		bool mbBindTexture = true;
 
@@ -351,11 +354,6 @@ namespace Turbo
 		vk::Format mDepthAttachmentFormat = vk::Format::eUndefined;
 	};
 
-	struct FMultisampleStateBuilder final
-	{
-
-	};
-
 	constexpr cstring GetShaderEntryPointName(vk::ShaderStageFlagBits stage)
 	{
 		switch (stage)
@@ -393,6 +391,13 @@ namespace Turbo
 		FName mName;
 	};
 
+	struct FMultisampleStateBuilder
+	{
+		EMSAASamples mSamples : 4 = EMSAASamples::One;
+		bool bSampleShading : 1 = false;
+		bool bSamplesDrivenByCVar : 1 = false;
+	};
+
 	struct FPipelineBuilder
 	{
 		FPipelineBuilder& AddDescriptorSetLayout(THandle<FDescriptorSetLayout> handle)
@@ -411,6 +416,7 @@ namespace Turbo
 		FBlendStateBuilder mBlendStateBuilder;
 		FShaderStateBuilder mShaderStateBuilder;
 		FPipelineRenderingBuilder mPipelineRenderingBuilder;
+		FMultisampleStateBuilder mMultisampleStateBuilder;
 
 		std::array<THandle<FDescriptorSetLayout>, kMaxDescriptorSetLayouts> mDescriptorSetLayouts;
 		uint32 mNumActiveLayouts = 1; // The 0th set are always bindless resources

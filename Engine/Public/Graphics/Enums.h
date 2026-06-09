@@ -36,8 +36,18 @@ namespace Turbo
 		Default = 1 << 0,
 		RenderTarget = 1 << 1,
 		StorageImage = 1 << 2,
+
+		TransientAttachment = 1 << 3,
 	};
 	DEFINE_ENUM_OPERATORS(ETextureFlags, uint8)
+
+	enum class EMSAASamples : uint8
+	{
+		One = 1,
+		Two = 2,
+		Four = 4,
+		Eight = 8,
+	};
 
 	enum class EQueueType : uint8
 	{
@@ -57,60 +67,74 @@ namespace Turbo
 		Num
 	};
 
-	namespace VkConvert
+	constexpr vk::ImageType ToVkImageType(ETextureType type)
 	{
-		constexpr vk::ImageType ToVkImageType(ETextureType type)
-		{
-			switch (type) {
-			case ETextureType::Texture1D:
-				return vk::ImageType::e1D;
-			case ETextureType::Texture2D:
-				return vk::ImageType::e2D;
-			case ETextureType::Texture3D:
-				return vk::ImageType::e3D;
-			default:
-				TURBO_CHECK(false);
-				break;
-			}
-
+		switch (type) {
+		case ETextureType::Texture1D:
+			return vk::ImageType::e1D;
+		case ETextureType::Texture2D:
 			return vk::ImageType::e2D;
+		case ETextureType::Texture3D:
+			return vk::ImageType::e3D;
+		default:
+			TURBO_CHECK(false);
+			break;
 		}
 
-		constexpr vk::ImageViewType ToVkImageViewType(ETextureType type)
-		{
-			switch (type) {
-			case ETextureType::Texture1D:
-				return vk::ImageViewType::e1D;
-			case ETextureType::Texture2D:
-				return vk::ImageViewType::e2D;
-			case ETextureType::Texture3D:
-				return vk::ImageViewType::e3D;
-			default:
-				TURBO_CHECK(false);
-				break;
-			}
+		return vk::ImageType::e2D;
+	}
 
+	constexpr vk::ImageViewType ToVkImageViewType(ETextureType type)
+	{
+		switch (type) {
+		case ETextureType::Texture1D:
+			return vk::ImageViewType::e1D;
+		case ETextureType::Texture2D:
 			return vk::ImageViewType::e2D;
-
+		case ETextureType::Texture3D:
+			return vk::ImageViewType::e3D;
+		default:
+			TURBO_CHECK(false);
+			break;
 		}
 
-		constexpr vk::Filter ToVkFilter(EFilter filter)
+		return vk::ImageViewType::e2D;
+
+	}
+
+	constexpr vk::Filter ToVkFilter(EFilter filter)
+	{
+		switch (filter)
 		{
-			switch (filter)
-			{
-			case EFilter::Nearest:
-				return vk::Filter::eNearest;
-			case EFilter::Linear:
-				return vk::Filter::eLinear;
-			case EFilter::Cubic:
-				return vk::Filter::eCubicIMG;
-			default: ;
-				TURBO_CHECK(false);
-				break;
-			}
-
+		case EFilter::Nearest:
+			return vk::Filter::eNearest;
+		case EFilter::Linear:
 			return vk::Filter::eLinear;
+		case EFilter::Cubic:
+			return vk::Filter::eCubicIMG;
+		default: ;
+			TURBO_CHECK(false);
+			break;
 		}
 
+		return vk::Filter::eLinear;
+	}
+
+	constexpr vk::SampleCountFlagBits ToVkSampleCountBits(EMSAASamples samples)
+	{
+		switch (samples) {
+		case EMSAASamples::One:
+			return vk::SampleCountFlagBits::e1;
+		case EMSAASamples::Two:
+			return vk::SampleCountFlagBits::e2;
+		case EMSAASamples::Four:
+			return vk::SampleCountFlagBits::e4;
+		case EMSAASamples::Eight:
+			return vk::SampleCountFlagBits::e8;
+		default:
+			TURBO_UNINPLEMENTED()
+		}
+
+		return vk::SampleCountFlagBits::e1;
 	}
 }

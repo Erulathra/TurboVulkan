@@ -39,6 +39,7 @@
 #define GLM_TYPE_PTR
 #include "glm/gtc/type_ptr.inl"
 #endif // GLM_TYPE_PTR
+#include "glm/gtc/round.hpp"
 
 // Magic enum
 #include "magic_enum/magic_enum.hpp"
