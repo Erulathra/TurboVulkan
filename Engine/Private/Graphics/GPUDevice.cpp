@@ -20,6 +20,22 @@ namespace Turbo
 		"Set number of subsamples. If less than 2 it disables MSAA."
 	);
 
+	static FAutoConsoleCommand gRecreatePipelineCommand(
+		"recreatePipelines",
+		"Recreates all pipelines.",
+		FConsoleCommandDelegate::CreateLambda([](IConsoleManager& consoleManager, const FArgsVector args)
+		{
+			entt::locator<FGPUDevice>::value().RecreatePipelines();
+		}));
+
+	static FAutoConsoleCommand gRecompileShadersCommand(
+		"recompileShaders",
+		"Recompiles all shader.",
+		FConsoleCommandDelegate::CreateLambda([](IConsoleManager& consoleManager, const FArgsVector args)
+		{
+			entt::locator<FGPUDevice>::value().RecompileShaders();
+		}));
+
 	EMSAASamples FGPUDevice::GetNumDesiredMSAASamplesCVar()
 	{
 		if (CVarMSAASamples.Get() >= 8)
@@ -36,6 +52,33 @@ namespace Turbo
 		}
 
 		return EMSAASamples::One;
+	}
+
+	void FGPUDevice::RecreatePipelines()
+	{
+		CHECK_VULKAN_HPP(mVkDevice.waitIdle())
+
+		TURBO_LOG(LogGPUDevice, Info, "Recompiling pipelines")
+
+		mPipelinePool->ForEachEntry(
+			[&](THandle<FPipeline> pipelineHandle)
+			{
+				FPipeline* pipeline = mPipelinePool->Access(pipelineHandle);
+				FPipelineCold* pipelineCold = mPipelinePool->AccessCold(pipelineHandle);
+
+				DestroyShaderState(pipelineCold->mShaderState);
+
+				mVkDevice.destroyPipelineLayout(pipeline->mVkLayout);
+				mVkDevice.destroyPipeline(pipeline->mVkPipeline);
+
+				InitPipeline(*pipelineCold->mPipelineBuilder, pipelineHandle);
+			});
+	}
+
+	void FGPUDevice::RecompileShaders()
+	{
+		IShaderCompiler::Get().ClearCache();
+		RecreatePipelines();
 	}
 
 	void FGPUDevice::Init(const FGPUDeviceBuilder& gpuDeviceBuilder)
@@ -259,21 +302,7 @@ namespace Turbo
 		TURBO_CHECK(handle)
 
 		FTexture* texture = AccessTexture(handle);
-		FTextureCold* textureCold = AccessTextureCold(handle);
-
-		InitVulkanTexture(builder, handle, texture, textureCold);
-
-		if (builder.mbBindTexture)
-		{
-			mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, handle.GetIndex(), handle);
-			texture->mBindIndex = handle.GetIndex();
-
-			if ((builder.mFlags & ETextureFlags::StorageImage) != ETextureFlags::Invalid)
-			{
-				mBindlessResourcesToUpdate.emplace_back(EResourceType::RWTexture, handle.GetIndex(), handle);
-				texture->mBindIndex = handle.GetIndex();
-			}
-		}
+		InitVulkanTexture(builder, handle);
 
 		return handle;
 	}
@@ -326,186 +355,7 @@ namespace Turbo
 		THandle<FPipeline> handle = mPipelinePool->Acquire();
 		TURBO_CHECK(handle)
 
-		FPipeline* pipeline = mPipelinePool->Access(handle);
-		TURBO_CHECK(pipeline)
-
-		THandle<FShaderState> shaderStateHandle = CreateShaderState(builder.mShaderStateBuilder);
-		TURBO_CHECK(shaderStateHandle)
-
-		FShaderState* shaderState = AccessShaderState(shaderStateHandle);
-		TURBO_CHECK(shaderState)
-
-		pipeline->mShaderState = shaderStateHandle;
-		pipeline->mNumActiveLayouts = builder.mNumActiveLayouts;
-		pipeline->mbGraphicsPipeline = shaderState->mbGraphicsPipeline;
-
-		std::array<vk::DescriptorSetLayout, kMaxDescriptorSetLayouts> vkLayouts;
-
-		// Bind bindless descriptor set layout
-		pipeline->mDescriptorLayoutsHandles[0] = mBindlessResourcesLayout;
-		const FDescriptorSetLayout* bindlessSetLayout = mDescriptorSetLayoutPool->Access(mBindlessResourcesLayout);
-		vkLayouts[0] = bindlessSetLayout->mVkLayout;
-
-		// Bind the rest of the descriptors
-		for (uint32 layoutId = 1; layoutId < builder.mNumActiveLayouts; ++layoutId)
-		{
-			const THandle<FDescriptorSetLayout> setLayoutHandle = builder.mDescriptorSetLayouts[layoutId];
-			pipeline->mDescriptorLayoutsHandles[layoutId] = setLayoutHandle;
-			const FDescriptorSetLayout* setLayout = mDescriptorSetLayoutPool->Access(setLayoutHandle);
-			vkLayouts[layoutId] = setLayout->mVkLayout;
-		}
-
-		vk::PushConstantRange pushConstantRange = {};
-		pushConstantRange.offset = 0;
-		pushConstantRange.size = builder.mPushConstantSize;
-
-		if (shaderState->mbGraphicsPipeline)
-		{
-			pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
-		}
-		else
-		{
-			pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eCompute;
-		}
-
-		vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
-		pipelineLayoutCreateInfo.pSetLayouts = vkLayouts.data();
-		pipelineLayoutCreateInfo.setLayoutCount = builder.mNumActiveLayouts;
-		pipelineLayoutCreateInfo.setPushConstantRanges({pushConstantRange});
-
-		CHECK_VULKAN_RESULT(pipeline->mVkLayout, mVkDevice.createPipelineLayout(pipelineLayoutCreateInfo))
-
-		if (shaderState->mbGraphicsPipeline)
-		{
-			vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> chain;
-			vk::GraphicsPipelineCreateInfo& pipelineCreateInfo = chain.get<vk::GraphicsPipelineCreateInfo>();
-			pipelineCreateInfo.pStages = shaderState->mShaderStageCrateInfo.data();
-			pipelineCreateInfo.stageCount = shaderState->mNumActiveShaders;
-			pipelineCreateInfo.layout = pipeline->mVkLayout;
-
-			// Vertex input
-			constexpr vk::PipelineVertexInputStateCreateInfo vertexInputState = {};
-			pipelineCreateInfo.pVertexInputState = &vertexInputState;
-
-			// Input Assembly
-			vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
-			inputAssemblyState.topology = builder.mTopology;
-			inputAssemblyState.primitiveRestartEnable = vk::False;
-			pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-
-			// Color blending
-			std::array<vk::PipelineColorBlendAttachmentState, 8> colorBlendAttachments;
-			if (builder.mBlendStateBuilder.mActiveStates > 0)
-			{
-				for (uint32 stateId = 0; stateId < builder.mBlendStateBuilder.mActiveStates; ++stateId)
-				{
-					const FBlendState& blendState = builder.mBlendStateBuilder.mBlendStates[stateId];
-					vk::PipelineColorBlendAttachmentState& attachment = colorBlendAttachments[stateId];
-
-					attachment.colorWriteMask = kRGBABits;
-					attachment.blendEnable = blendState.mbBlendEnabled ? vk::True : vk::False;
-
-					attachment.srcColorBlendFactor = blendState.mSourceColorBlendFactor;
-					attachment.dstColorBlendFactor = blendState.mDestinationColorBlendFactor;
-					attachment.colorBlendOp = blendState.mColorBlendOperator;
-
-					attachment.srcColorBlendFactor = blendState.mSourceAlphaBlendFactor;
-					attachment.dstColorBlendFactor = blendState.mDestinationAlphaBlendFactor;
-					attachment.colorBlendOp = blendState.mAlphaBlendOperator;
-				}
-			}
-			else
-			{
-				colorBlendAttachments[0] = vk::PipelineColorBlendAttachmentState();
-				colorBlendAttachments[0].blendEnable = vk::False;
-				colorBlendAttachments[0].colorWriteMask = kRGBABits;
-			}
-
-			vk::PipelineColorBlendStateCreateInfo colorBlending = {};
-			colorBlending.logicOpEnable = vk::False;
-			colorBlending.attachmentCount = builder.mBlendStateBuilder.mActiveStates;
-			colorBlending.pAttachments = colorBlendAttachments.data();
-
-			TURBO_CHECK_MSG(builder.mBlendStateBuilder.mActiveStates > 0, "It must be at least 1 color attachment.")
-
-			pipelineCreateInfo.pColorBlendState = &colorBlending;
-
-			// Depth Stencil
-			// TODO: better depth handling
-			vk::PipelineDepthStencilStateCreateInfo depthStencil = {};
-			depthStencil.depthWriteEnable = builder.mDepthStencilBuilder.mbEnableWriteDepth ? vk::True : vk::False;
-			depthStencil.depthTestEnable = builder.mDepthStencilBuilder.mbEnableDepthTest ? vk::True : vk::False;
-			depthStencil.stencilTestEnable = builder.mDepthStencilBuilder.mbEnableStencil ? vk::True : vk::False;
-			depthStencil.depthCompareOp = builder.mDepthStencilBuilder.mDepthCompareOperator;
-			depthStencil.minDepthBounds = 0.f;
-			depthStencil.maxDepthBounds = 1.f;
-
-			if (builder.mDepthStencilBuilder.mbEnableStencil)
-			{
-				TURBO_UNINPLEMENTED()
-			}
-
-			pipelineCreateInfo.pDepthStencilState = &depthStencil;
-
-			// MSAA
-			vk::PipelineMultisampleStateCreateInfo multisampleState = {};
-			multisampleState.sampleShadingEnable = builder.mMultisampleStateBuilder.bSampleShading;
-			multisampleState.rasterizationSamples =
-				builder.mMultisampleStateBuilder.bSamplesDrivenByCVar
-				? ToVkSampleCountBits(GetNumDesiredMSAASamplesCVar())
-				: ToVkSampleCountBits(builder.mMultisampleStateBuilder.mSamples);
-
-			pipelineCreateInfo.pMultisampleState = &multisampleState;
-
-			// Rasterizer state
-			vk::PipelineRasterizationStateCreateInfo rasterizationState = {};
-			rasterizationState.depthClampEnable = vk::False;
-			rasterizationState.rasterizerDiscardEnable = vk::False;
-			rasterizationState.polygonMode = vk::PolygonMode::eFill;
-			rasterizationState.lineWidth = 1.f;
-			rasterizationState.cullMode = builder.mRasterizationBuilder.mCullMode;
-			rasterizationState.frontFace = builder.mRasterizationBuilder.mFrontFace;
-			rasterizationState.depthBiasEnable = vk::False;
-			pipelineCreateInfo.pRasterizationState = &rasterizationState;
-
-			// Tesselation (unimplemented)
-			pipelineCreateInfo.pTessellationState = nullptr;
-
-			// Viewport state (default, overridden by dynamic state)
-			vk::PipelineViewportStateCreateInfo viewportState = {};
-			viewportState.viewportCount = 1;
-			viewportState.scissorCount = 1;
-			pipelineCreateInfo.pViewportState = &viewportState;
-
-			// Dynamic states
-			std::array dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
-			vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
-			dynamicStateCreateInfo.setDynamicStates(dynamicStates);
-
-			pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-
-			vk::PipelineRenderingCreateInfo& pipelineRendering = chain.get<vk::PipelineRenderingCreateInfo>();
-			pipelineRendering.colorAttachmentCount = builder.mPipelineRenderingBuilder.mNumColorAttachments;
-			pipelineRendering.pColorAttachmentFormats = builder.mPipelineRenderingBuilder.mColorAttachmentFormats.data();
-			pipelineRendering.depthAttachmentFormat = builder.mPipelineRenderingBuilder.mDepthAttachmentFormat;
-
-			TURBO_CHECK_MSG(builder.mBlendStateBuilder.mActiveStates == builder.mPipelineRenderingBuilder.mNumColorAttachments, "Blend states number must be the same as num color attachments.")
-			TURBO_CHECK(builder.mPipelineRenderingBuilder.mNumColorAttachments > 0)
-
-			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createGraphicsPipeline(nullptr, pipelineCreateInfo));
-			pipeline->mVkBindPoint = vk::PipelineBindPoint::eGraphics;
-		}
-		else
-		{
-			vk::ComputePipelineCreateInfo pipelineCreateInfo = {};
-			pipelineCreateInfo.stage = shaderState->mShaderStageCrateInfo[0];
-			pipelineCreateInfo.layout = pipeline->mVkLayout;
-
-			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createComputePipeline(nullptr, pipelineCreateInfo));
-			pipeline->mVkBindPoint = vk::PipelineBindPoint::eCompute;
-		}
-
-		SetResourceName(pipeline->mVkPipeline, builder.mName);
+		InitPipeline(builder, handle);
 
 		return handle;
 	}
@@ -829,7 +679,8 @@ namespace Turbo
 	void FGPUDevice::DestroyPipeline(THandle<FPipeline> handle)
 	{
 		const FPipeline* pipeline = AccessPipeline(handle);
-		TURBO_CHECK(pipeline);
+		const FPipelineCold* pipelineCold = AccessPipelineCold(handle);
+		TURBO_CHECK(pipeline && pipelineCold);
 
 		FPipelineDestroyer destroyer = {};
 		destroyer.mPipeline = pipeline->mVkPipeline;
@@ -839,7 +690,7 @@ namespace Turbo
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 
-		DestroyShaderState(pipeline->mShaderState);
+		DestroyShaderState(pipelineCold->mShaderState);
 	}
 
 	void FGPUDevice::DestroyDescriptorPool(THandle<FDescriptorPool> handle)
@@ -1586,8 +1437,11 @@ namespace Turbo
 		}
 	}
 
-	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture, FTextureCold* textureCold)
+	void FGPUDevice::InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle)
 	{
+		FTexture* texture = AccessTexture(handle);
+		FTextureCold* textureCold = AccessTextureCold(handle);
+
 		*texture = {
 			.mFlags = builder.mFlags
 		};
@@ -1665,6 +1519,193 @@ namespace Turbo
 		CHECK_VULKAN_RESULT(texture->mVkImageView, mVkDevice.createImageView(viewCreateInfo));
 
 		SetResourceName(texture->mVkImageView, builder.mName);
+
+		if (builder.mbBindTexture)
+		{
+			mBindlessResourcesToUpdate.emplace_back(EResourceType::Texture, handle.GetIndex(), handle);
+			texture->mBindIndex = handle.GetIndex();
+
+			if ((builder.mFlags & ETextureFlags::StorageImage) != ETextureFlags::Invalid)
+			{
+				mBindlessResourcesToUpdate.emplace_back(EResourceType::RWTexture, handle.GetIndex(), handle);
+				texture->mBindIndex = handle.GetIndex();
+			}
+		}
+	}
+
+	void FGPUDevice::InitPipeline(const FPipelineBuilder& builder, THandle<FPipeline> handle)
+	{
+		FPipeline* pipeline = mPipelinePool->Access(handle);
+		FPipelineCold* pipelineCold = mPipelinePool->AccessCold(handle);
+		TURBO_CHECK(pipeline && pipelineCold)
+
+		THandle<FShaderState> shaderStateHandle = CreateShaderState(builder.mShaderStateBuilder);
+		TURBO_CHECK(shaderStateHandle)
+
+		FShaderState* shaderState = AccessShaderState(shaderStateHandle);
+		TURBO_CHECK(shaderState)
+
+		pipelineCold->mPipelineBuilder = new FPipelineBuilder(builder);
+		pipelineCold->mShaderState = shaderStateHandle;
+		pipeline->mbGraphicsPipeline = shaderState->mbGraphicsPipeline;
+
+		std::array<vk::DescriptorSetLayout, kMaxDescriptorSetLayouts> vkLayouts;
+
+		// Bind bindless descriptor set layout
+		const FDescriptorSetLayout* bindlessSetLayout = mDescriptorSetLayoutPool->Access(mBindlessResourcesLayout);
+		vkLayouts[0] = bindlessSetLayout->mVkLayout;
+
+		vk::PushConstantRange pushConstantRange = {};
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = builder.mPushConstantSize;
+
+		if (shaderState->mbGraphicsPipeline)
+		{
+			pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
+		}
+		else
+		{
+			pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eCompute;
+		}
+
+		vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+		pipelineLayoutCreateInfo.pSetLayouts = vkLayouts.data();
+		pipelineLayoutCreateInfo.setLayoutCount = builder.mNumActiveLayouts;
+		pipelineLayoutCreateInfo.setPushConstantRanges({pushConstantRange});
+
+		CHECK_VULKAN_RESULT(pipeline->mVkLayout, mVkDevice.createPipelineLayout(pipelineLayoutCreateInfo))
+
+		if (shaderState->mbGraphicsPipeline)
+		{
+			vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> chain;
+			vk::GraphicsPipelineCreateInfo& pipelineCreateInfo = chain.get<vk::GraphicsPipelineCreateInfo>();
+			pipelineCreateInfo.pStages = shaderState->mShaderStageCrateInfo.data();
+			pipelineCreateInfo.stageCount = shaderState->mNumActiveShaders;
+			pipelineCreateInfo.layout = pipeline->mVkLayout;
+
+			// Vertex input
+			constexpr vk::PipelineVertexInputStateCreateInfo vertexInputState = {};
+			pipelineCreateInfo.pVertexInputState = &vertexInputState;
+
+			// Input Assembly
+			vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
+			inputAssemblyState.topology = builder.mTopology;
+			inputAssemblyState.primitiveRestartEnable = vk::False;
+			pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
+
+			// Color blending
+			std::array<vk::PipelineColorBlendAttachmentState, 8> colorBlendAttachments;
+			if (builder.mBlendStateBuilder.mActiveStates > 0)
+			{
+				for (uint32 stateId = 0; stateId < builder.mBlendStateBuilder.mActiveStates; ++stateId)
+				{
+					const FBlendState& blendState = builder.mBlendStateBuilder.mBlendStates[stateId];
+					vk::PipelineColorBlendAttachmentState& attachment = colorBlendAttachments[stateId];
+
+					attachment.colorWriteMask = kRGBABits;
+					attachment.blendEnable = blendState.mbBlendEnabled ? vk::True : vk::False;
+
+					attachment.srcColorBlendFactor = blendState.mSourceColorBlendFactor;
+					attachment.dstColorBlendFactor = blendState.mDestinationColorBlendFactor;
+					attachment.colorBlendOp = blendState.mColorBlendOperator;
+
+					attachment.srcColorBlendFactor = blendState.mSourceAlphaBlendFactor;
+					attachment.dstColorBlendFactor = blendState.mDestinationAlphaBlendFactor;
+					attachment.colorBlendOp = blendState.mAlphaBlendOperator;
+				}
+			}
+			else
+			{
+				colorBlendAttachments[0] = vk::PipelineColorBlendAttachmentState();
+				colorBlendAttachments[0].blendEnable = vk::False;
+				colorBlendAttachments[0].colorWriteMask = kRGBABits;
+			}
+
+			vk::PipelineColorBlendStateCreateInfo colorBlending = {};
+			colorBlending.logicOpEnable = vk::False;
+			colorBlending.attachmentCount = builder.mBlendStateBuilder.mActiveStates;
+			colorBlending.pAttachments = colorBlendAttachments.data();
+
+			TURBO_CHECK_MSG(builder.mBlendStateBuilder.mActiveStates > 0, "It must be at least 1 color attachment.")
+
+			pipelineCreateInfo.pColorBlendState = &colorBlending;
+
+			// Depth Stencil
+			// TODO: better depth handling
+			vk::PipelineDepthStencilStateCreateInfo depthStencil = {};
+			depthStencil.depthWriteEnable = builder.mDepthStencilBuilder.mbEnableWriteDepth ? vk::True : vk::False;
+			depthStencil.depthTestEnable = builder.mDepthStencilBuilder.mbEnableDepthTest ? vk::True : vk::False;
+			depthStencil.stencilTestEnable = builder.mDepthStencilBuilder.mbEnableStencil ? vk::True : vk::False;
+			depthStencil.depthCompareOp = builder.mDepthStencilBuilder.mDepthCompareOperator;
+			depthStencil.minDepthBounds = 0.f;
+			depthStencil.maxDepthBounds = 1.f;
+
+			if (builder.mDepthStencilBuilder.mbEnableStencil)
+			{
+				TURBO_UNINPLEMENTED()
+			}
+
+			pipelineCreateInfo.pDepthStencilState = &depthStencil;
+
+			// MSAA
+			vk::PipelineMultisampleStateCreateInfo multisampleState = {};
+			multisampleState.sampleShadingEnable = builder.mMultisampleStateBuilder.bSampleShading;
+			multisampleState.rasterizationSamples =
+				builder.mMultisampleStateBuilder.bSamplesDrivenByCVar
+				? ToVkSampleCountBits(GetNumDesiredMSAASamplesCVar())
+				: ToVkSampleCountBits(builder.mMultisampleStateBuilder.mSamples);
+
+			pipelineCreateInfo.pMultisampleState = &multisampleState;
+
+			// Rasterizer state
+			vk::PipelineRasterizationStateCreateInfo rasterizationState = {};
+			rasterizationState.depthClampEnable = vk::False;
+			rasterizationState.rasterizerDiscardEnable = vk::False;
+			rasterizationState.polygonMode = vk::PolygonMode::eFill;
+			rasterizationState.lineWidth = 1.f;
+			rasterizationState.cullMode = builder.mRasterizationBuilder.mCullMode;
+			rasterizationState.frontFace = builder.mRasterizationBuilder.mFrontFace;
+			rasterizationState.depthBiasEnable = vk::False;
+			pipelineCreateInfo.pRasterizationState = &rasterizationState;
+
+			// Tesselation (unimplemented)
+			pipelineCreateInfo.pTessellationState = nullptr;
+
+			// Viewport state (default, overridden by dynamic state)
+			vk::PipelineViewportStateCreateInfo viewportState = {};
+			viewportState.viewportCount = 1;
+			viewportState.scissorCount = 1;
+			pipelineCreateInfo.pViewportState = &viewportState;
+
+			// Dynamic states
+			std::array dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+			vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
+			dynamicStateCreateInfo.setDynamicStates(dynamicStates);
+
+			pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+
+			vk::PipelineRenderingCreateInfo& pipelineRendering = chain.get<vk::PipelineRenderingCreateInfo>();
+			pipelineRendering.colorAttachmentCount = builder.mPipelineRenderingBuilder.mNumColorAttachments;
+			pipelineRendering.pColorAttachmentFormats = builder.mPipelineRenderingBuilder.mColorAttachmentFormats.data();
+			pipelineRendering.depthAttachmentFormat = builder.mPipelineRenderingBuilder.mDepthAttachmentFormat;
+
+			TURBO_CHECK_MSG(builder.mBlendStateBuilder.mActiveStates == builder.mPipelineRenderingBuilder.mNumColorAttachments, "Blend states number must be the same as num color attachments.")
+			TURBO_CHECK(builder.mPipelineRenderingBuilder.mNumColorAttachments > 0)
+
+			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createGraphicsPipeline(nullptr, pipelineCreateInfo));
+			pipeline->mVkBindPoint = vk::PipelineBindPoint::eGraphics;
+		}
+		else
+		{
+			vk::ComputePipelineCreateInfo pipelineCreateInfo = {};
+			pipelineCreateInfo.stage = shaderState->mShaderStageCrateInfo[0];
+			pipelineCreateInfo.layout = pipeline->mVkLayout;
+
+			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createComputePipeline(nullptr, pipelineCreateInfo));
+			pipeline->mVkBindPoint = vk::PipelineBindPoint::eCompute;
+		}
+
+		SetResourceName(pipeline->mVkPipeline, builder.mName);
 	}
 
 	void FGPUDevice::UploadTextureUsingStagingBuffer(THandle<FTexture> handle, std::span<const byte> data)
@@ -1710,8 +1751,14 @@ namespace Turbo
 
 	void FGPUDevice::DestroyPipelineImmediate(const FPipelineDestroyer& destroyer)
 	{
+		// Remember to update also pipeline recreation code.
 		mVkDevice.destroyPipelineLayout(destroyer.mLayout);
 		mVkDevice.destroyPipeline(destroyer.mPipeline);
+
+		FPipelineCold* pipelineCold = AccessPipelineCold(destroyer.mHandle);
+		delete pipelineCold->mPipelineBuilder;
+		pipelineCold = nullptr;
+
 		mPipelinePool->Release(destroyer.mHandle);
 	}
 

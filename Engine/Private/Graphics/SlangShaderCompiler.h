@@ -16,6 +16,7 @@ namespace Turbo
 	public:
 		virtual void Init() override;
 		virtual void Destroy() override;
+		virtual void ClearCache() override;
 
 		virtual vk::ShaderModule CompileShader(vk::Device device, const FShaderStage& shaderStage) override;
 

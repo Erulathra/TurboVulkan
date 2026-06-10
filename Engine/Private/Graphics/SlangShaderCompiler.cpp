@@ -12,7 +12,6 @@ namespace Turbo
 
 		slang::createGlobalSession(mGlobalSession.writeRef());
 		CreateSession();
-		PreloadModules();
 	}
 
 	void FSlangShaderCompiler::Destroy()
@@ -22,6 +21,12 @@ namespace Turbo
 		mSession = nullptr;
 		mGlobalSession = nullptr;
 		slang::shutdown();
+	}
+
+	void FSlangShaderCompiler::ClearCache()
+	{
+		mSession = nullptr;
+		CreateSession();
 	}
 
 	vk::ShaderModule FSlangShaderCompiler::CompileShader(vk::Device device, const FShaderStage& shaderStage)
@@ -126,11 +131,6 @@ namespace Turbo
 		sessionDesc.compilerOptionEntryCount = compilerOptions.size();
 
 		mGlobalSession->createSession(sessionDesc, mSession.writeRef());
-	}
-
-	void FSlangShaderCompiler::PreloadModules()
-	{
-		// TODO: ???
 	}
 
 	void FSlangShaderCompiler::PrintMessageIfNeeded(slang::IBlob* diagnosticsBlob)

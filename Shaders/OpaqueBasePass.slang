@@ -60,7 +60,6 @@ void vsMain(
 
     vsOut.mWorldPosition = mul(modelPosition, data.mModelToWorld).xyz;
 	vsOut.mWorldNormal = mul(mesh.mNormalBuffer[vertexId], data.mNormalModelToWorld);
-	// vsOut.mWorldNormal = mul(data.mNormalModelToWorld, mesh.mNormalBuffer[vertexId]);
     vsOut.mUV = mesh.mUVBuffer[vertexId];
 
 	vsOut.mDrawId = drawId;

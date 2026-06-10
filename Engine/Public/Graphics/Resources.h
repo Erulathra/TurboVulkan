@@ -11,6 +11,8 @@
 
 namespace Turbo
 {
+	struct FPipelineBuilder;
+
 	enum class EResourceType : uint8
 	{
 		Texture,
@@ -234,13 +236,13 @@ namespace Turbo
 
 		vk::PipelineBindPoint mVkBindPoint = {};
 
-		THandle<FShaderState> mShaderState = {};
-
-		std::array<THandle<FDescriptorSetLayout>, kMaxDescriptorSetLayouts> mDescriptorLayoutsHandles;
-		uint32 mNumActiveLayouts = 0;
-
-		THandle<FPipeline> mHandle = {};
 		bool mbGraphicsPipeline = true;
+	};
+
+	struct FPipelineCold final
+	{
+		THandle<FShaderState> mShaderState = {};
+		FPipelineBuilder* mPipelineBuilder = nullptr; // Allows to recompile pipeline at runtime
 	};
 
 	class FPipelineDestroyer final : IDestroyer

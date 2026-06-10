@@ -77,6 +77,9 @@ namespace Turbo
 
 		static EMSAASamples GetNumDesiredMSAASamplesCVar();
 
+		void RecreatePipelines();
+		void RecompileShaders();
+
 		/** Rendering interface end */
 
 		/** Resource accessors */
@@ -88,6 +91,7 @@ namespace Turbo
 		[[nodiscard]] FSampler* AccessSampler(THandle<FSampler> handle) { return mSamplerPool->Access(handle); }
 		[[nodiscard]] FSamplerCold* AccessSamplerCold(THandle<FSampler> handle) { return mSamplerPool->AccessCold(handle); }
 		[[nodiscard]] FPipeline* AccessPipeline(THandle<FPipeline> handle) { return mPipelinePool->Access(handle); }
+		[[nodiscard]] FPipelineCold* AccessPipelineCold(THandle<FPipeline> handle) { return mPipelinePool->AccessCold(handle); }
 		[[nodiscard]] FDescriptorPool* AccessDescriptorPool(THandle<FDescriptorPool> handle) { return mDescriptorPoolPool->Access(handle); }
 		[[nodiscard]] FDescriptorSetLayout* AccessDescriptorSetLayout(THandle<FDescriptorSetLayout> handle) { return mDescriptorSetLayoutPool->Access(handle); }
 		[[nodiscard]] FDescriptorSet* AccessDescriptorSet(THandle<FDescriptorSet> handle) { return mDescriptorSetPool->Access(handle); }
@@ -216,7 +220,8 @@ namespace Turbo
 
 		/** Creation helpers */
 	private:
-		void InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle, FTexture* texture, FTextureCold* textureCold);
+		void InitVulkanTexture(const FTextureBuilder& builder, THandle<FTexture> handle);
+		void InitPipeline(const FPipelineBuilder& builder, THandle<FPipeline> handle);
 
 		/** Creation helpers end */
 
@@ -241,11 +246,11 @@ namespace Turbo
 		TPoolHeap<FBuffer, 4096, FBufferCold, true> mBufferPool;
 		TPoolHeap<FTexture, kTexturePoolSize, FTextureCold, true> mTexturePool;
 		TPoolHeap<FSampler, kSamplerPoolSize, FSamplerCold> mSamplerPool;
-		TPoolHeap<FPipeline, 128> mPipelinePool;
+		TPoolHeap<FPipeline, 256, FPipelineCold> mPipelinePool;
 		TPoolHeap<FDescriptorSetLayout, 128> mDescriptorSetLayoutPool;
 		TPoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;
 		TPoolHeap<FDescriptorSet, 256> mDescriptorSetPool;
-		TPoolHeap<FShaderState, 128> mShaderStatePool;
+		TPoolHeap<FShaderState, 256> mShaderStatePool;
 
 		/** Resource pools end */
 

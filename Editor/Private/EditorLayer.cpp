@@ -1,6 +1,5 @@
 #include "EditorLayer.h"
 
-#include "imgui.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
 #include "Core/WindowEvents.h"
@@ -19,12 +18,14 @@ namespace Turbo
 {
 	const FName kToggleFullscreenName = FName("ToggleFullscreen");
 	const FName kFrameCapture = FName("FrameCapture");
+	const FName kRecompileShaders = FName("RecompileShaders");
 
 	void FEditorLayer::Start()
 	{
 		entt::locator<FEditorSelection>::emplace();
 
 		IInputSystem& inputSystem = entt::locator<IInputSystem>::value();
+		inputSystem.RegisterBinding({kRecompileShaders, EKeys::F10});
 		inputSystem.RegisterBinding({kToggleFullscreenName, EKeys::F11});
 		inputSystem.RegisterBinding({kFrameCapture, EKeys::F12});
 
@@ -113,6 +114,11 @@ namespace Turbo
 		else if (event.mName == kFrameCapture && event.mbDown)
 		{
 			entt::locator<IFrameDebuggerAPI>::value().CaptureFrame();
+			event.Handle();
+		}
+		else if (event.mName == kRecompileShaders && event.mbDown)
+		{
+			entt::locator<FGPUDevice>::value().RecompileShaders();
 			event.Handle();
 		}
 	}

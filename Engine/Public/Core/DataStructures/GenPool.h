@@ -122,6 +122,20 @@ namespace Turbo
 			return nullptr;
 		}
 
+		template<typename Function>
+		void ForEachEntry(Function function)
+		{
+			for (int ElementId = 0; ElementId < mFreeIndicesHead; ++ElementId)
+			{
+				FHandle::IndexType newIndex = mFreeIndices[ElementId];
+
+				THandle<HotType> newHandle = {};
+				newHandle.mIndexAndGen = FHandle::CreateIndex(newIndex, mGenerations[newIndex]);
+				function(newHandle);
+			}
+		}
+
+
 	private:
 		constexpr static size_t kColdDataArraySize = size * (std::is_same_v<FDummyColdType, ColdType> ? 0 : 1);
 
