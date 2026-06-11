@@ -342,6 +342,8 @@ namespace Turbo
 		glm::uint2 mViewportSize = glm::uint2(0);
 		EMSAASamples mMaxSupportedSampleCount = EMSAASamples::One;
 
+		FDelegateHandle mMSAACVarChangedDelegateHandle = {};
+
 		/** Other end */
 
 	private:

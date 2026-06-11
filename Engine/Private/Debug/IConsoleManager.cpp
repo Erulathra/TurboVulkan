@@ -58,16 +58,16 @@ namespace Turbo
 
 	FAutoConsoleCommand::FAutoConsoleCommand(std::string_view name, std::string_view description, FConsoleCommandDelegate delegate)
 	{
-		const bool bResult = IConsoleManager::GetSafe().RegisterCommand({
+		mConsoleCommand = IConsoleManager::GetSafe().RegisterCommand({
 			.mName = std::string(name),
 			.mDescription = std::string(description),
 			.mDelegate = std::move(delegate)
 		});
 
-		TURBO_CHECK_MSG(bResult, "There could be only one command with {} name", name)
+		TURBO_CHECK_MSG(mConsoleCommand != nullptr, "There could be only one command with {} name", name)
 	}
 
-	bool FConsoleVariable::Parse(const std::string_view arg) const
+	bool FConsoleVariable::Parse(std::string_view arg)
 	{
 		TURBO_CHECK(mDataPtr != nullptr)
 		switch (mType)
@@ -109,22 +109,40 @@ namespace Turbo
 		return false;
 	}
 
-	void FConsoleVariable::Set(bool bValue) const
+	void FConsoleVariable::Set(bool bValue)
 	{
 		TURBO_CHECK(mType == EConsoleVariableType::Bool && mDataPtr != nullptr)
-		*static_cast<bool*>(mDataPtr) = bValue;
+		bool& bCastedValue = *static_cast<bool*>(mDataPtr);
+
+		if (bCastedValue != bValue)
+		{
+			bCastedValue = bValue;
+			mChangedDelegate.Broadcast(*this);
+		}
 	}
 
-	void FConsoleVariable::Set(int32 value) const
+	void FConsoleVariable::Set(int32 value)
 	{
 		TURBO_CHECK(mType == EConsoleVariableType::Int32 && mDataPtr != nullptr)
-		*static_cast<int32*>(mDataPtr) = value;
+		int32& castedValue = *static_cast<int32*>(mDataPtr);
+
+		if (castedValue != value)
+		{
+			castedValue = value;
+			mChangedDelegate.Broadcast(*this);
+		}
 	}
 
-	void FConsoleVariable::Set(float value) const
+	void FConsoleVariable::Set(float value)
 	{
 		TURBO_CHECK(mType == EConsoleVariableType::Float && mDataPtr != nullptr)
-		*static_cast<float*>(mDataPtr) = value;
+		float& castedValue = *static_cast<float*>(mDataPtr);
+
+		if (castedValue != value)
+		{
+			castedValue = value;
+			mChangedDelegate.Broadcast(*this);
+		}
 	}
 
 	bool FConsoleVariable::GetBool() const
@@ -179,10 +197,10 @@ namespace Turbo
 		return entt::locator<IConsoleManager>::value();
 	}
 
-	bool FConsoleManager::RegisterCommand(const FConsoleCommand& consoleCommand)
+	FConsoleCommand* FConsoleManager::RegisterCommand(const FConsoleCommand& consoleCommand)
 	{
 		auto emplaceResult = mCommands.emplace(consoleCommand.mName, consoleCommand);
-		return emplaceResult.second;
+		return emplaceResult.second ? &emplaceResult.first->second : nullptr;
 	}
 
 	bool FConsoleManager::UnregisterCommand(const FConsoleCommand& consoleCommand)
@@ -202,10 +220,10 @@ namespace Turbo
 		return false;
 	}
 
-	bool FConsoleManager::RegisterConsoleVariable(const FConsoleVariable& consoleVariable)
+	FConsoleVariable* FConsoleManager::RegisterConsoleVariable(const FConsoleVariable& consoleVariable)
 	{
 		auto emplaceResult = mVariables.emplace(consoleVariable.mName, consoleVariable);
-		return emplaceResult.second;
+		return emplaceResult.second ? &emplaceResult.first->second : nullptr;
 	}
 
 	bool FConsoleManager::UnregisterConsoleVariable(const FConsoleVariable& consoleVariable)
@@ -284,7 +302,7 @@ namespace Turbo
 			return;
 		}
 
-		if (const FConsoleVariable* foundVariable = FindConsoleVariable(command))
+		if (FConsoleVariable* foundVariable = FindConsoleVariable(command))
 		{
 			if (arguments.empty() || (arguments.size() == 1 && arguments[0] == "?"))
 			{

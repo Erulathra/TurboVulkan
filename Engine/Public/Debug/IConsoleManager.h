@@ -27,6 +27,8 @@ namespace Turbo
 
     struct FAutoConsoleCommand
     {
+        FConsoleCommand* mConsoleCommand;
+
         FAutoConsoleCommand(std::string_view name, std::string_view description, FConsoleCommandDelegate delegate);
     };
 
@@ -37,6 +39,9 @@ namespace Turbo
         Float,
     };
 
+    struct FConsoleVariable;
+    DECLARE_MULTICAST_DELEGATE(FOnConsoleVariableChanged, const FConsoleVariable&);
+
     struct FConsoleVariable
     {
         std::string mName;
@@ -45,12 +50,14 @@ namespace Turbo
         EConsoleVariableType mType;
         void* mDataPtr;
 
-    public:
-        [[nodiscard]] bool Parse(const std::string_view arg) const;
+        FOnConsoleVariableChanged mChangedDelegate;
 
-        void Set(bool bValue) const;
-        void Set(int32 value) const;
-        void Set(float value) const;
+    public:
+        [[nodiscard]] bool Parse(std::string_view arg);
+
+        void Set(bool bValue);
+        void Set(int32 value);
+        void Set(float value);
 
         [[nodiscard]] bool GetBool() const;
         [[nodiscard]] int32 GetInt() const;
@@ -63,6 +70,7 @@ namespace Turbo
     struct TAutoConsoleVariable
     {
         T mVariableData;
+        FConsoleVariable* mConsoleVariable;
 
         TAutoConsoleVariable() = delete;
         TAutoConsoleVariable(const std::string_view name, T defaultValue, const std::string_view description);
@@ -89,11 +97,11 @@ namespace Turbo
         [[nodiscard]] static FConsoleManager& GetSafe();
         [[nodiscard]] static FConsoleManager& Get();
 
-        bool RegisterCommand(const FConsoleCommand& consoleCommand);
+        FConsoleCommand* RegisterCommand(const FConsoleCommand& consoleCommand);
         bool UnregisterCommand(const FConsoleCommand& consoleCommand);
         bool UnregisterCommand(std::string_view consoleCommandName);
 
-        bool RegisterConsoleVariable(const FConsoleVariable& consoleVariable);
+        FConsoleVariable* RegisterConsoleVariable(const FConsoleVariable& consoleVariable);
         bool UnregisterConsoleVariable(const FConsoleVariable& consoleVariable);
         bool UnregisterConsoleVariable(std::string_view consoleVariableName);
 
@@ -119,13 +127,13 @@ namespace Turbo
     template <typename T>
     TAutoConsoleVariable<T>::TAutoConsoleVariable(const std::string_view name, T defaultValue, const std::string_view description): mVariableData(defaultValue)
     {
-        const bool bResult = IConsoleManager::GetSafe().RegisterConsoleVariable({
+        mConsoleVariable = IConsoleManager::GetSafe().RegisterConsoleVariable({
             .mName = std::string(name),
             .mDescription = std::string(description),
             .mType = GetConsoleVariableType<T>(),
             .mDataPtr = &mVariableData
         });
 
-        TURBO_CHECK_MSG(bResult, "There could be only one console variable with {} name", name)
+        TURBO_CHECK_MSG(mConsoleVariable, "There could be only one console variable with {} name", name)
     }
 }

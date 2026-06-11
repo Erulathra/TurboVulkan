@@ -132,6 +132,14 @@ namespace Turbo
 
 		CreateSwapchain();
 		CreateFrameDatas();
+
+		// Recreate pipelines when MSAA cvar changes
+		mMSAACVarChangedDelegateHandle = CVarMSAASamples.mConsoleVariable->mChangedDelegate.AddLambda(
+			[this](const FConsoleVariable& variable)
+			{
+				RecreatePipelines();
+			}
+		);
 	}
 
 	void FGPUDevice::InitializeImmediateCommands()
@@ -1075,6 +1083,8 @@ namespace Turbo
 
 	void FGPUDevice::Shutdown()
 	{
+		CVarMSAASamples.mConsoleVariable->mChangedDelegate.Remove(mMSAACVarChangedDelegateHandle);
+
 		CHECK_VULKAN_HPP(mVkDevice.waitIdle())
 
 		TURBO_LOG(LogGPUDevice, Info, "Starting Gpu Device shutdown.")
