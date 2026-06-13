@@ -395,7 +395,6 @@ namespace Turbo
 	{
 		EMSAASamples mSamples : 4 = EMSAASamples::One;
 		bool bSampleShading : 1 = false;
-		bool bSamplesDrivenByCVar : 1 = false;
 	};
 
 	struct FPipelineBuilder

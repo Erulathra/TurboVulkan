@@ -415,58 +415,18 @@ namespace Turbo
 
 		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 
-		if (const EMSAASamples numSamples = FGPUDevice::GetNumDesiredMSAASamplesCVar();
-			numSamples >= EMSAASamples::Two)
-		{
-			static FName MSAAColorName = FName("MSAAColor");
-			static FName MSAADepthName = FName("MSAAColor");
-
-			FRGTextureInfo colorTextureInfo = graphBuilder.GetTextureInfo(geometryBuffer.mSceneColor);
-			colorTextureInfo.mName = MSAAColorName;
-			colorTextureInfo.mNumSamples = FGPUDevice::GetNumDesiredMSAASamplesCVar();
-			colorTextureInfo.mFlags |= ETextureFlags::TransientAttachment;
-			FRGResourceHandle colorMSAATexture = graphBuilder.CreateTexture(colorTextureInfo);
-
-			FRGTextureInfo depthTextureInfo = graphBuilder.GetTextureInfo(geometryBuffer.mDepthStencil);
-			depthTextureInfo.mName = MSAADepthName;
-			depthTextureInfo.mNumSamples = colorTextureInfo.mNumSamples;
-			depthTextureInfo.mFlags |= ETextureFlags::TransientAttachment;
-			FRGResourceHandle depthMSAATexture = graphBuilder.CreateTexture(depthTextureInfo);
-
-			geometryPass->AddAttachment(
-				{
-					.mTexture = colorMSAATexture,
-					.mLoadOp = ELoadOp::Clear,
-					.mStoreOp = EStoreOp::DontCare,
-					.mClearColor = EClearColor::OpaqueBlack,
-					.mResolveTexture = geometryBuffer.mSceneColor,
-					.mResolveMode = EResolveMode::Average
-				},
-				0);
-			geometryPass->SetDepthStencilAttachment({
-				.mTexture = depthMSAATexture,
+		geometryPass->AddAttachment(
+			{
+				.mTexture = geometryBuffer.mSceneColor,
 				.mLoadOp = ELoadOp::Clear,
-				.mStoreOp = EStoreOp::DontCare,
-				.mClearColor = EClearColor::Zero,
-				.mResolveTexture = geometryBuffer.mDepthStencil,
-				.mResolveMode = EResolveMode::Max
-			});
-		}
-		else
-		{
-			geometryPass->AddAttachment(
-				{
-					.mTexture = geometryBuffer.mSceneColor,
-					.mLoadOp = ELoadOp::Clear,
-					.mClearColor = EClearColor::OpaqueBlack
-				},
-				0);
-			geometryPass->SetDepthStencilAttachment({
-				.mTexture = geometryBuffer.mDepthStencil,
-				.mLoadOp = ELoadOp::Clear,
-				.mClearColor = EClearColor::Zero
-			});
-		}
+				.mClearColor = EClearColor::OpaqueBlack
+			},
+			0);
+		geometryPass->SetDepthStencilAttachment({
+			.mTexture = geometryBuffer.mDepthStencil,
+			.mLoadOp = ELoadOp::Clear,
+			.mClearColor = EClearColor::Zero
+		});
 
 		geometryPass->ReadBuffer(sceneView->mViewDataBufferHandle);
 		geometryPass->ReadBuffer(sceneView->mSceneDataBufferHandle);

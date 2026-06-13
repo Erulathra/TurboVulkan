@@ -14,12 +14,6 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 namespace Turbo
 {
-	TAutoConsoleVariable<int32> CVarMSAASamples(
-		"r.msaa",
-		8,
-		"Set number of subsamples. If less than 2 it disables MSAA."
-	);
-
 	static FAutoConsoleCommand gRecreatePipelineCommand(
 		"recreatePipelines",
 		"Recreates all pipelines.",
@@ -35,24 +29,6 @@ namespace Turbo
 		{
 			entt::locator<FGPUDevice>::value().RecompileShaders();
 		}));
-
-	EMSAASamples FGPUDevice::GetNumDesiredMSAASamplesCVar()
-	{
-		if (CVarMSAASamples.Get() >= 8)
-		{
-			return EMSAASamples::Eight;
-		}
-		else if (CVarMSAASamples.Get() >= 4)
-		{
-			return EMSAASamples::Four;
-		}
-		else if (CVarMSAASamples.Get() >= 2)
-		{
-			return EMSAASamples::Two;
-		}
-
-		return EMSAASamples::One;
-	}
 
 	void FGPUDevice::RecreatePipelines()
 	{
@@ -132,14 +108,6 @@ namespace Turbo
 
 		CreateSwapchain();
 		CreateFrameDatas();
-
-		// Recreate pipelines when MSAA cvar changes
-		mMSAACVarChangedDelegateHandle = CVarMSAASamples.mConsoleVariable->mChangedDelegate.AddLambda(
-			[this](const FConsoleVariable& variable)
-			{
-				RecreatePipelines();
-			}
-		);
 	}
 
 	void FGPUDevice::InitializeImmediateCommands()
@@ -1083,8 +1051,6 @@ namespace Turbo
 
 	void FGPUDevice::Shutdown()
 	{
-		CVarMSAASamples.mConsoleVariable->mChangedDelegate.Remove(mMSAACVarChangedDelegateHandle);
-
 		CHECK_VULKAN_HPP(mVkDevice.waitIdle())
 
 		TURBO_LOG(LogGPUDevice, Info, "Starting Gpu Device shutdown.")
@@ -1660,10 +1626,7 @@ namespace Turbo
 			// MSAA
 			vk::PipelineMultisampleStateCreateInfo multisampleState = {};
 			multisampleState.sampleShadingEnable = builder.mMultisampleStateBuilder.bSampleShading;
-			multisampleState.rasterizationSamples =
-				builder.mMultisampleStateBuilder.bSamplesDrivenByCVar
-				? ToVkSampleCountBits(GetNumDesiredMSAASamplesCVar())
-				: ToVkSampleCountBits(builder.mMultisampleStateBuilder.mSamples);
+			multisampleState.rasterizationSamples = ToVkSampleCountBits(builder.mMultisampleStateBuilder.mSamples);
 
 			pipelineCreateInfo.pMultisampleState = &multisampleState;
 

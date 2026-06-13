@@ -75,8 +75,6 @@ namespace Turbo
 
 		void RequestSwapChainResize() { mbRequestedSwapchainResize = true; }
 
-		static EMSAASamples GetNumDesiredMSAASamplesCVar();
-
 		void RecreatePipelines();
 		void RecompileShaders();
 
@@ -341,8 +339,6 @@ namespace Turbo
 
 		glm::uint2 mViewportSize = glm::uint2(0);
 		EMSAASamples mMaxSupportedSampleCount = EMSAASamples::One;
-
-		FDelegateHandle mMSAACVarChangedDelegateHandle = {};
 
 		/** Other end */
 
