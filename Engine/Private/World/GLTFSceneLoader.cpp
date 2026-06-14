@@ -196,12 +196,14 @@ namespace Turbo
 
 				transform.mPosition[0] = trs.translation[0];
 				transform.mPosition[1] = trs.translation[1];
-				transform.mPosition[2] = trs.translation[2];
+				transform.mPosition[2] = -trs.translation[2];
 
-				transform.mRotation[0] = trs.rotation[0];
-				transform.mRotation[1] = trs.rotation[1];
-				transform.mRotation[2] = trs.rotation[2];
-				transform.mRotation[3] = trs.rotation[3];
+				transform.mRotation = glm::quat(
+					trs.rotation.w(),
+					-trs.rotation.x(),
+					-trs.rotation.y(),
+					trs.rotation.z()
+				);
 
 				transform.mScale[0] = trs.scale[0];
 				transform.mScale[1] = trs.scale[1];

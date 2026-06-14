@@ -215,7 +215,7 @@ namespace Turbo
 	public:
 		vk::CullModeFlags mCullMode = vk::CullModeFlagBits::eBack;
 		vk::PolygonMode mPolygonMode = vk::PolygonMode::eFill;
-		vk::FrontFace mFrontFace = vk::FrontFace::eClockwise;
+		vk::FrontFace mFrontFace = vk::FrontFace::eCounterClockwise;
 	};
 
 	struct FDepthStencilBuilder

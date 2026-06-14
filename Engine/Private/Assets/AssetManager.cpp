@@ -16,7 +16,6 @@
 #include "Core/Utils/StringUtils.h"
 #include "World/World.h"
 
-
 namespace
 {
 	void LogGLTFError(std::string_view message, fastgltf::Error error)
@@ -61,8 +60,15 @@ namespace Turbo
 		return bounds;
 	}
 
-	template<typename T>
-	void LoadComponentBuffer( const fastgltf::Asset& meshAsset, const FMeshLoadSettings& meshLoadSettings, THandle<FBuffer>& outBuffer, FDeviceAddress& outDeviceAddress, std::string_view attributeName)
+	template<typename DstType, typename SourceType = DstType, typename ProcessFunction>
+	void LoadComponentBuffer(
+		const fastgltf::Asset& meshAsset,
+		const FMeshLoadSettings& meshLoadSettings,
+		THandle<FBuffer>& outBuffer,
+		FDeviceAddress& outDeviceAddress,
+		std::string_view attributeName,
+		ProcessFunction processFunction
+		)
 	{
 		const fastgltf::Mesh& gltfMesh = meshAsset.meshes[meshLoadSettings.mMeshIndex];
 		const fastgltf::Primitive& gltfSubmesh = gltfMesh.primitives[meshLoadSettings.mSubMeshIndex];
@@ -72,18 +78,19 @@ namespace Turbo
 		{
 			const fastgltf::Accessor& accessor = meshAsset.accessors[attribute->accessorIndex];
 
-			std::vector<T> componentData;
+			std::vector<DstType> componentData;
 			componentData.reserve(accessor.count);
 
-			fastgltf::iterateAccessor<T>(meshAsset, accessor, [&](const T& vertex)
-			{
-				componentData.push_back(vertex);
-			});
+			fastgltf::iterateAccessor<SourceType>(
+				meshAsset, accessor, [&](const SourceType& vertex)
+				{
+					componentData.push_back(std::invoke(processFunction, vertex));
+				});
 
 			FBufferBuilder bufferBuilder = {};
 			bufferBuilder.Init(
 				EBufferFlags::StorageBuffer,
-				componentData.size() * sizeof(T)
+				componentData.size() * sizeof(DstType)
 			);
 			bufferBuilder.SetData(componentData.data());
 			bufferBuilder.SetName(FName(fmt::format("{}_{}", gltfMesh.name, attributeName)));
@@ -205,9 +212,24 @@ namespace Turbo
 			meshData.mIndexBuffer = indicesBuffer->mDeviceAddress;
 		}
 
-		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mPositionBuffer, meshData.mPositionBuffer, kPositionName);
-		LoadComponentBuffer<glm::vec3>(loadedAsset, meshLoadSettings, mesh->mNormalBuffer, meshData.mNormalBuffer, kNormalName);
-		LoadComponentBuffer<glm::vec2>(loadedAsset, meshLoadSettings, mesh->mUVBuffer, meshData.mUVBuffer, kUVName);
+		LoadComponentBuffer<glm::float3>(
+			loadedAsset, meshLoadSettings, mesh->mPositionBuffer, meshData.mPositionBuffer, kPositionName,
+			[](const glm::float3& position)
+			{
+				return glm::float3(position.x, position.y, -position.z);
+			});
+		LoadComponentBuffer<glm::float3>(
+			loadedAsset, meshLoadSettings, mesh->mNormalBuffer, meshData.mNormalBuffer, kNormalName,
+			[](const glm::float3& normal)
+			{
+				return glm::float3(normal.x, normal.y, -normal.z);
+			});
+		LoadComponentBuffer<glm::float2>(
+			loadedAsset, meshLoadSettings, mesh->mUVBuffer, meshData.mUVBuffer, kUVName,
+			[](const glm::float2& vertex)
+			{
+				return vertex;
+			});
 
 		const FBounds boundingBox = FindBounds(loadedAsset, meshLoadSettings);
 
