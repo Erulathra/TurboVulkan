@@ -74,8 +74,7 @@ void vsMain(
 #if NORMAL_MAPPING
     vsOut.mTBN = float3x3(
         worldTangent,
-        // TODO: invert this in convert script instead of shader
-        cross(worldNormal, worldTangent), // * modelTangent.w,
+        cross(worldNormal, worldTangent) * modelTangent.w,
         worldNormal
     );
 #else // NORMAL_MAPPING
@@ -108,7 +107,7 @@ void psMain(
     float3 tangentNormal;
     tangentNormal.xy = normalTexture.Sample(normalSampler, vsOut.mUV).xy * 2.f - 1.f;
     tangentNormal.z = sqrt(1.f - dot(tangentNormal.xy, tangentNormal.xy));
-    const float3 worldNormal = mul(tangentNormal, vsOut.mTBN);
+    const float3 worldNormal = normalize(mul(tangentNormal, vsOut.mTBN));
 #else // NORMAL_MAPPING
     const float3 worldNormal = normalize(vsOut.mWorldNormal);
 #endif // else NORMAL_MAPPING

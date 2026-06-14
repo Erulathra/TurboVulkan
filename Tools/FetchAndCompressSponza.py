@@ -32,7 +32,7 @@ def main():
     Compressonator.init()
     fetch_sponza()
 
-    compressed_gltf = CompressGLTF.compress_gltf(SPONZA_BASE_GLTF_SRC)
+    compressed_gltf = CompressGLTF.compress_gltf(SPONZA_BASE_GLTF_SRC, flip_normals=True)
 
     gltf = None
     with open(compressed_gltf, 'r') as file:
