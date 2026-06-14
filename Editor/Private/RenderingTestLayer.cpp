@@ -15,7 +15,7 @@ namespace Turbo
 	void FRenderingTestLayer::Start()
 	{
 		FWorld* world = gEngine->GetWorld();
-		world->OpenLevel(FName("Content/External/main_sponza/SponzaCompressed.gltf"));
+		world->OpenLevel(FName("Content/External/main_sponza/compressed/NewSponza_Main_glTF_003.gltf"));
 		// world->OpenLevel(FName("Content/Scenes/LV_GammaTest.gltf"));
 
 		auto& registry = world->mRegistry;
