@@ -8,6 +8,8 @@ import Modules.ShadingCommon;
 [[vk::push_constant]]
 FIndirectPushConstants pc;
 
+#define NORMAL_MAPPING 1
+
 struct FMaterialData
 {
     uint mBaseColorSampler;
@@ -32,8 +34,13 @@ struct VSOut
     float4 mPosition : SV_Position;
 
     float3 mWorldPosition;
+#if NORMAL_MAPPING
+    float3x3 mTBN;
+#else // NORMAL_MAPPING
     float3 mWorldNormal;
+#endif // else NORMAL_MAPPING
     float2 mUV;
+
 
 	uint mDrawId;
 }
@@ -57,10 +64,23 @@ void vsMain(
 	const float4 modelPosition = float4(mesh.mPositionBuffer[vertexId], 1.f);
 
     vsOut.mPosition = mul(modelPosition, data.mModelToProj);
-
     vsOut.mWorldPosition = mul(modelPosition, data.mModelToWorld).xyz;
-	vsOut.mWorldNormal = mul(mesh.mNormalBuffer[vertexId], data.mNormalModelToWorld);
     vsOut.mUV = mesh.mUVBuffer[vertexId];
+
+    const float3 worldNormal = mul(mesh.mNormalBuffer[vertexId], data.mNormalModelToWorld);
+    const float4 modelTangent = mesh.mTangentBuffer[vertexId];
+   	const float3 worldTangent = mul(modelTangent.xyz, data.mNormalModelToWorld);
+
+#if NORMAL_MAPPING
+    vsOut.mTBN = float3x3(
+        worldTangent,
+        // TODO: invert this in convert script instead of shader
+        cross(worldNormal, worldTangent), // * modelTangent.w,
+        worldNormal
+    );
+#else // NORMAL_MAPPING
+    vsOut.mWorldNormal = worldNormal;
+#endif // else NORMAL_MAPPING
 
 	vsOut.mDrawId = drawId;
 }
@@ -84,14 +104,21 @@ void psMain(
     Texture2D<float3> ormTexture = texturePool[instance.mORMTexture];
     SamplerState ormSampler = samplerPool[material.mORMSampler];
 
-    // TODO: Normal mapping
+#if NORMAL_MAPPING
+    float3 tangentNormal;
+    tangentNormal.xy = normalTexture.Sample(normalSampler, vsOut.mUV).xy * 2.f - 1.f;
+    tangentNormal.z = sqrt(1.f - dot(tangentNormal.xy, tangentNormal.xy));
+    const float3 worldNormal = mul(tangentNormal, vsOut.mTBN);
+#else // NORMAL_MAPPING
+    const float3 worldNormal = normalize(vsOut.mWorldNormal);
+#endif // else NORMAL_MAPPING
 
     Ptr<FViewData> viewData = pc.mViewData;
 
     // Fill pixel data
     FPixelLightningInput pixelInput;
     pixelInput.mPosition = vsOut.mWorldPosition;
-    pixelInput.mNormal = normalize(vsOut.mWorldNormal);
+    pixelInput.mNormal = worldNormal;
     pixelInput.mPixelToCamera = normalize(viewData.mViewPosition - vsOut.mWorldPosition);
 
     pixelInput.mAlbedo = albedoTexture.Sample(albedoSampler, vsOut.mUV);
@@ -122,4 +149,5 @@ void psMain(
     irradiance += 0.03f * pixelInput.mAlbedo;
 
     psOut.mColor = irradiance;
+    // psOut.mColor = worldNormal;
 }

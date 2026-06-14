@@ -7,6 +7,7 @@
 #include "Debug/IConsoleManager.h"
 #include "Extensions/ImGui/ImGuiExtensions.h"
 #include "Graphics/Shaders/ToneMapperPostProcess.h"
+#include "World/ShadingComponents.h"
 #include "World/World.h"
 
 namespace Turbo
@@ -17,14 +18,24 @@ namespace Turbo
 		FWorld* world = gEngine->GetWorld();
 		world->OpenLevel(FName("Content/External/main_sponza/compressed/NewSponza_Main_glTF_003.gltf"));
 		// world->OpenLevel(FName("Content/Scenes/LV_GammaTest.gltf"));
+		// world->OpenLevel(FName("/home/erulathra/Documents/glTF-Sample-Assets/Models/NormalTangentMirrorTest/glTF/compressed/NormalTangentMirrorTest.gltf"));
 
 		auto& registry = world->mRegistry;
 		entt::entity ppSettingsEntity = registry.create();
 		registry.emplace<FEntityLabel>(ppSettingsEntity, FName("PostProcessSettings"));
 		registry.emplace<FWorldRoot>(ppSettingsEntity);
-		ToneMapperPostProcess::FComponent& toneMapper =  registry.emplace<ToneMapperPostProcess::FComponent>(ppSettingsEntity);
-		// toneMapper.mExposure = 4.f;
-		// toneMapper.mExposure = 0.f;
+		registry.emplace<ToneMapperPostProcess::FComponent>(ppSettingsEntity);
+
+#if 0
+		// Normal testing
+		const entt::entity lightEntt = registry.create();
+		registry.emplace<FEntityLabel>(lightEntt, FName("PointLight"));
+		FTransform& transform = registry.emplace<FTransform>(lightEntt);
+		transform.mPosition = glm::float3(0., 0., -2.f);
+		registry.emplace<FRelationship>(lightEntt);
+		FLightComponent& lightComponent = registry.emplace<FLightComponent>(lightEntt);
+		lightComponent.mIntensity = 10.0f;
+#endif
 	}
 
 	void FRenderingTestLayer::Shutdown()

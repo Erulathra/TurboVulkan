@@ -28,6 +28,7 @@ namespace Turbo
 {
 	constexpr std::string_view kPositionName = "POSITION";
 	constexpr std::string_view kNormalName = "NORMAL";
+	constexpr std::string_view kTangentName = "TANGENT";
 	constexpr std::string_view kUVName = "TEXCOORD_0";
 	constexpr std::string_view kColorName = "COLOR_0";
 
@@ -60,7 +61,7 @@ namespace Turbo
 		return bounds;
 	}
 
-	template<typename DstType, typename SourceType = DstType, typename ProcessFunction>
+	template<typename ComponentType, typename ProcessFunction>
 	void LoadComponentBuffer(
 		const fastgltf::Asset& meshAsset,
 		const FMeshLoadSettings& meshLoadSettings,
@@ -78,11 +79,11 @@ namespace Turbo
 		{
 			const fastgltf::Accessor& accessor = meshAsset.accessors[attribute->accessorIndex];
 
-			std::vector<DstType> componentData;
+			std::vector<ComponentType> componentData;
 			componentData.reserve(accessor.count);
 
-			fastgltf::iterateAccessor<SourceType>(
-				meshAsset, accessor, [&](const SourceType& vertex)
+			fastgltf::iterateAccessor<ComponentType>(
+				meshAsset, accessor, [&](const ComponentType& vertex)
 				{
 					componentData.push_back(std::invoke(processFunction, vertex));
 				});
@@ -90,7 +91,7 @@ namespace Turbo
 			FBufferBuilder bufferBuilder = {};
 			bufferBuilder.Init(
 				EBufferFlags::StorageBuffer,
-				componentData.size() * sizeof(DstType)
+				componentData.size() * sizeof(ComponentType)
 			);
 			bufferBuilder.SetData(componentData.data());
 			bufferBuilder.SetName(FName(fmt::format("{}_{}", gltfMesh.name, attributeName)));
@@ -231,6 +232,15 @@ namespace Turbo
 				return vertex;
 			});
 
+		LoadComponentBuffer<glm::float4>(
+			loadedAsset, meshLoadSettings, mesh->mTangentBuffer, meshData.mTangentBuffer, kTangentName,
+			[](const glm::float4& tangent)
+			{
+				return glm::float4(tangent.x, tangent.y, -tangent.z, -tangent.w);
+			});
+		// TODO: Generate tangents if not valid
+		TURBO_CHECK(mesh->mTangentBuffer);
+
 		const FBounds boundingBox = FindBounds(loadedAsset, meshLoadSettings);
 
 		gpu.ImmediateSubmit(FOnImmediateSubmit::CreateLambda([&](FCommandBuffer& cmd)
@@ -303,6 +313,7 @@ namespace Turbo
 			mesh->mIndicesBuffer,
 			mesh->mPositionBuffer,
 			mesh->mNormalBuffer,
+			mesh->mTangentBuffer,
 			mesh->mUVBuffer,
 			mesh->mColorBuffer,
 		};

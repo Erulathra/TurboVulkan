@@ -241,7 +241,7 @@ namespace Turbo
 
 		/** Resource pools */
 	private:
-		TPoolHeap<FBuffer, 4096, FBufferCold, true> mBufferPool;
+		TPoolHeap<FBuffer, 16384, FBufferCold, true> mBufferPool;
 		TPoolHeap<FTexture, kTexturePoolSize, FTextureCold, true> mTexturePool;
 		TPoolHeap<FSampler, kSamplerPoolSize, FSamplerCold> mSamplerPool;
 		TPoolHeap<FPipeline, 256, FPipelineCold> mPipelinePool;

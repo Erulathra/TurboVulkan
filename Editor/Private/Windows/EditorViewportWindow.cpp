@@ -44,6 +44,7 @@ namespace Turbo
 
 	void FEditorViewportWindow::Draw()
 	{
+		ImGui::SetNextWindowSizeConstraints(glm::uint2(128), glm::uint2(UINT_MAX));
 		ImGui::Begin("Viewport");
 		bHasFocus = ImGui::IsWindowHovered();
 

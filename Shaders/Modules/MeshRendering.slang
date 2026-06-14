@@ -28,6 +28,7 @@ public struct FMeshData
     public const Ptr<float> mIndexBuffer;
     public const Ptr<float3> mPositionBuffer;
     public const Ptr<float3> mNormalBuffer;
+    public const Ptr<float4> mTangentBuffer;
     public const Ptr<float2> mUVBuffer;
 
     public const uint mVertexCount;

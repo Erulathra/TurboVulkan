@@ -22,6 +22,7 @@ namespace Turbo
 		THandle<FBuffer> mPositionBuffer = {};
 
 		THandle<FBuffer> mNormalBuffer = {};
+		THandle<FBuffer> mTangentBuffer = {};
 		THandle<FBuffer> mUVBuffer = {};
 		THandle<FBuffer> mColorBuffer = {};
 
@@ -38,6 +39,7 @@ namespace Turbo
 		FDeviceAddress mIndexBuffer = kNullDeviceAddress;
 		FDeviceAddress mPositionBuffer = kNullDeviceAddress;
 		FDeviceAddress mNormalBuffer = kNullDeviceAddress;
+		FDeviceAddress mTangentBuffer = kNullDeviceAddress;
 		FDeviceAddress mUVBuffer = kNullDeviceAddress;
 
 		uint32 mVertexCount = 0;

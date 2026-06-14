@@ -111,7 +111,7 @@ namespace Turbo
 		{
 			FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 			gPlaceholderTexture = assetManager.LoadTexture(FName("Content/Engine/T_Placeholder.dds"), {true, false});
-			gPlaceholderMesh = assetManager.LoadMesh(FName("Content/Engine/SM_ErrorMesh.glb"), FMeshLoadSettings{.mbLevelAsset = false});
+			// gPlaceholderMesh = assetManager.LoadMesh(FName("Content/Engine/SM_ErrorMesh.glb"), FMeshLoadSettings{.mbLevelAsset = false});
 		}
 
 		void DestroyEngineResources()
@@ -127,7 +127,7 @@ namespace Turbo
 			gpu.DestroyTexture(gFlatNormalMapTexture);
 
 			FAssetManager& assetManager = entt::locator<FAssetManager>::value();
-			assetManager.UnloadMesh(gPlaceholderMesh);
+			// assetManager.UnloadMesh(gPlaceholderMesh);
 		}
 
 		THandle<FSampler> GetDefaultLinearSampler()
