@@ -98,9 +98,9 @@ void psMain(
     pixelInput.mAlbedo *= instance.mBaseColorFactor.rgb;
 
     const float3 ORM = ormTexture.Sample(ormSampler, vsOut.mUV);
-    pixelInput.mMetallic = ORM.r * instance.mMetalicFactor;
+    pixelInput.mAO = ORM.r;
     pixelInput.mRoughness = ORM.g * instance.mRoughnessFactor;
-    pixelInput.mAO = ORM.b;
+    pixelInput.mMetallic = ORM.b * instance.mMetalicFactor;
 
     Ptr<FSceneData> scene = pc.mSceneData;
     Ptr<FLight> lights = pc.mLightData;
