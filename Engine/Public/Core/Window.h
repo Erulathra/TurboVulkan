@@ -63,6 +63,8 @@ namespace Turbo
 		[[nodiscard]] bool IsFullscreenEnabled() const;
 		void SetFullscreen(bool bFullscreen);
 
+		void SetWindowIcon(std::string_view path);
+
 		/** SDL Interface **/
 	public:
 		void BindKeyboardEvent(const FOnSDLKeyboardEvent& NewDelegate) { OnSDLKeyboardEvent = NewDelegate; }
@@ -91,6 +93,7 @@ namespace Turbo
 		/** Internal methods */
 	private:
 		static void LogError();
+		static SDL_Surface* LoadSurface(std::string_view path);
 
 		/** properties */
 	private:
@@ -101,6 +104,8 @@ namespace Turbo
 		FOnSDLMouseButtonEvent OnSDLMouseButtonEvent;
 		FOnSDLMouseMotionEvent OnSDLMouseMotionEvent;
 		FOnSDLMouseWheelEvent OnSDLMouseWheelEvent;
+
+		SDL_Surface* mWindowIconSurface = nullptr;
 
 		bool mbFullscreenEnabled = false;
 

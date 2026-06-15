@@ -112,6 +112,7 @@ namespace Turbo
 			layer->Start();
 		}
 
+		window.SetWindowIcon("Content/Textures/Icons/T_TurboVulkan.png");
 		window.ShowWindow(true);
 
 		mEngineState = EEngineState::Running;

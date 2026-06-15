@@ -2,8 +2,11 @@
 
 #include "backends/imgui_impl_sdl3.h"
 #include "Core/Engine.h"
+#include "Core/FileSystem.h"
 #include "Core/WindowEvents.h"
 #include "Input/FSDLInputSystem.h"
+
+#include "STB/stb_image.h"
 
 namespace Turbo
 {
@@ -50,6 +53,57 @@ namespace Turbo
 	void FWindow::LogError()
 	{
 		TURBO_LOG(LogWindow, Error, "SDL_ERROR: {}", SDL_GetError());
+	}
+
+	SDL_Surface* FWindow::LoadSurface(std::string_view path)
+	{
+		std::vector<byte> imgData;
+		if (FileSystem::LoadData(path, imgData) == false)
+		{
+			return nullptr;
+		}
+
+		int32 sizeX, sizeY, numComponents;
+#if 0
+		void* pixels = stbi_load_from_memory(
+			reinterpret_cast<stbi_uc*>(imgData.data()),
+			imgData.size(),
+			&sizeX,
+			&sizeY,
+			&numComponents,
+			0
+		);
+#else
+		void* pixels = stbi_load(
+			path.data(),
+			&sizeX,
+			&sizeY,
+			&numComponents,
+			0
+		);
+#endif
+
+		if (pixels == nullptr)
+		{
+			return nullptr;
+		}
+
+		SDL_Surface* result = SDL_CreateSurfaceFrom(
+			sizeX,
+			sizeY,
+			numComponents == 3 ? SDL_PIXELFORMAT_RGB24 : SDL_PIXELFORMAT_RGBA32,
+			pixels,
+			sizeX * numComponents
+		);
+
+		stbi_image_free(pixels);
+
+		if (result == nullptr)
+		{
+			return nullptr;
+		}
+
+		return result;
 	}
 
 	void FWindow::PollWindowEventsAndErrors()
@@ -174,6 +228,22 @@ namespace Turbo
 		}
 
 		 mbFullscreenEnabled = bFullscreen;
+	}
+
+	void FWindow::SetWindowIcon(std::string_view path)
+	{
+		TURBO_LOG(LogWindow, Info, "Setting window icon {}", path);
+
+		if (mWindowIconSurface)
+		{
+			TURBO_LOG(LogWindow, Info, "Destroying old window icon.", path);
+			SDL_DestroySurface(mWindowIconSurface);
+			mWindowIconSurface = nullptr;
+		}
+
+		mWindowIconSurface = LoadSurface(path.data());
+
+		SDL_SetWindowIcon(mSDLWindow, mWindowIconSurface);
 	}
 
 	void FWindow::InitForVulkan()

@@ -1,12 +1,14 @@
 # CPM - package manager
 include(CPM)
 
+add_subdirectory(STB)
+
 CPMAddPackage("gh:KhronosGroup/Vulkan-Headers@1.4.313")
 
 # SDL setup
 CPMAddPackage(
         GITHUB_REPOSITORY "libsdl-org/SDL"
-        GIT_TAG "release-3.2.16"
+        GIT_TAG "release-3.4.10"
 )
 
 # Lib which enhances enums

@@ -52,6 +52,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC fmt)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC turbo_imgui)
 target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
+target_link_libraries(${PROJECT_NAME} PUBLIC STB)
 
 # TODO: Create GPU Interface and make those private
 target_link_libraries(${PROJECT_NAME} PUBLIC GPUOpen::VulkanMemoryAllocator)
