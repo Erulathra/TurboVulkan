@@ -43,15 +43,21 @@ namespace Turbo
 			attribute != gltfSubmesh.attributes.cend())
 		{
 			const fastgltf::Accessor& accessor = meshAsset.accessors[attribute->accessorIndex];
-			fastgltf::iterateAccessor<glm::float3>(meshAsset, accessor, [&](const glm::float3& vertex)
+			fastgltf::iterateAccessor<glm::float3>(meshAsset, accessor, [&](const glm::float3& rawVertex)
 			{
+				const glm::float3 vertex{rawVertex.x, rawVertex.y, -rawVertex.z};
+
 				bounds.mMin = glm::min(bounds.mMin, vertex);
 				bounds.mMax = glm::max(bounds.mMax, vertex);
 			});
 
 			const glm::float3 center = (bounds.mMin + bounds.mMax) * 0.5f;
-			fastgltf::iterateAccessor<glm::float3>(meshAsset, accessor, [&](const glm::float3& vertex)
+			fastgltf::iterateAccessor<glm::float3>(meshAsset, accessor, [&](const glm::float3& rawVertex)
 			{
+				const glm::float3 vertex{rawVertex.x, rawVertex.y, -rawVertex.z};
+
+				bounds.mMin = glm::min(bounds.mMin, vertex);
+				bounds.mMax = glm::max(bounds.mMax, vertex);
 				bounds.mRadiusSquared = glm::max(bounds.mRadiusSquared, glm::length2(vertex - center));
 			});
 
