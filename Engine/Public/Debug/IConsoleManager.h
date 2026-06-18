@@ -74,6 +74,12 @@ namespace Turbo
 
         TAutoConsoleVariable() = delete;
         TAutoConsoleVariable(const std::string_view name, T defaultValue, const std::string_view description);
+        TAutoConsoleVariable(
+            const std::string_view name,
+            T defaultValue,
+            const std::string_view description,
+            FOnConsoleVariableChanged::Delegate&& onConsoleVariableChanged
+        );
 
         void Set(T value) { mVariableData = value; }
         T Get() const { return mVariableData; }
@@ -135,5 +141,17 @@ namespace Turbo
         });
 
         TURBO_CHECK_MSG(mConsoleVariable, "There could be only one console variable with {} name", name)
+    }
+
+    template <typename T>
+    TAutoConsoleVariable<T>::TAutoConsoleVariable(
+        const std::string_view name,
+        T defaultValue,
+        const std::string_view description,
+        FOnConsoleVariableChanged::Delegate&& onConsoleVariableChanged
+    )
+        : TAutoConsoleVariable(name, defaultValue, description)
+    {
+        mConsoleVariable->mChangedDelegate.Add(std::move(onConsoleVariableChanged));
     }
 }
