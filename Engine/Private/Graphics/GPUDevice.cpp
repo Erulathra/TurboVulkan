@@ -1602,8 +1602,6 @@ namespace Turbo
 			colorBlending.attachmentCount = builder.mBlendStateBuilder.mActiveStates;
 			colorBlending.pAttachments = colorBlendAttachments.data();
 
-			TURBO_CHECK_MSG(builder.mBlendStateBuilder.mActiveStates > 0, "It must be at least 1 color attachment.")
-
 			pipelineCreateInfo.pColorBlendState = &colorBlending;
 
 			// Depth Stencil
@@ -1663,7 +1661,10 @@ namespace Turbo
 			pipelineRendering.depthAttachmentFormat = builder.mPipelineRenderingBuilder.mDepthAttachmentFormat;
 
 			TURBO_CHECK_MSG(builder.mBlendStateBuilder.mActiveStates == builder.mPipelineRenderingBuilder.mNumColorAttachments, "Blend states number must be the same as num color attachments.")
-			TURBO_CHECK(builder.mPipelineRenderingBuilder.mNumColorAttachments > 0)
+			TURBO_CHECK_MSG(
+				(builder.mPipelineRenderingBuilder.mNumColorAttachments > 0
+					|| builder.mPipelineRenderingBuilder.mDepthAttachmentFormat != vk::Format::eUndefined),
+				"It must be at least 1 attachment.")
 
 			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createGraphicsPipeline(nullptr, pipelineCreateInfo));
 			pipeline->mVkBindPoint = vk::PipelineBindPoint::eGraphics;

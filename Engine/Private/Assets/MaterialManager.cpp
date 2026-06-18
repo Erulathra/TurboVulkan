@@ -33,7 +33,7 @@ namespace Turbo
 			.AddNoBlendingState();
 
 		pipelineBuilder.mDepthStencilBuilder
-			.SetDepth(true, true, vk::CompareOp::eGreaterOrEqual);
+			.SetDepth(true, false, vk::CompareOp::eEqual);
 
 		pipelineBuilder.mPipelineRenderingBuilder
 			.AddColorAttachment(FGeometryBuffer::kColorFormat)
@@ -42,34 +42,53 @@ namespace Turbo
 		return pipelineBuilder;
 	}
 
-	THandle<FMaterial> FMaterialManager::LoadMaterial(
-		FName materialName,
-		const FPipelineBuilder& pipelineBuilder,
-		size_t materialDataSize,
-		size_t perInstanceDataSize,
-		size_t maxInstances
-	)
+	FPipelineBuilder FMaterialManager::CreateDepthPrepassPipeline(std::string_view shaderName)
 	{
+		FPipelineBuilder pipelineBuilder = {};
+		pipelineBuilder
+			.SetPushConstantType<FMaterial::PushConstants>()
+			.SetName(FName(fmt::format("Material_{}_Depth", shaderName)));
+
+		pipelineBuilder.mShaderStateBuilder
+			.AddStage(shaderName, vk::ShaderStageFlagBits::eVertex);
+
+		pipelineBuilder.mDepthStencilBuilder
+			.SetDepth(true, true, vk::CompareOp::eGreaterOrEqual);
+
+		pipelineBuilder.mPipelineRenderingBuilder
+			.SetDepthAttachment(FGeometryBuffer::kDepthStencilFormat);
+
+		return pipelineBuilder;
+	}
+
+	THandle<FMaterial> FMaterialManager::CreateMaterial(const FMaterialBuilder& builder)
+	{
+		TURBO_CHECK(builder.mGraphicsPipeline)
+
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
-		const THandle<FPipeline> pipelineHandle = gpu.CreatePipeline(pipelineBuilder);
+		const THandle<FPipeline> pipelineHandle = gpu.CreatePipeline(*builder.mGraphicsPipeline);
 		TURBO_CHECK(pipelineHandle);
+
+		const THandle<FPipeline> depthPipelineHandle = gpu.CreatePipeline(*builder.mDepthOnlyPipeline);
+		TURBO_CHECK(depthPipelineHandle);
 
 		const THandle<FMaterial> materialHandle = mMaterialPool.Acquire();
 		FMaterial* material = mMaterialPool.Access(materialHandle);
-		material->mPipeline = pipelineHandle;
+		material->mGraphicsPipeline = pipelineHandle;
+		material->mDepthOnlyPipeline = depthPipelineHandle;
 		material->mDataBuffer = {};
-		material->mMaterialDataSize = materialDataSize;
-		material->mPerInstanceDataSize = perInstanceDataSize;
-		material->mMaxInstances = perInstanceDataSize > 0 ? maxInstances : 1;
-		material->mName = materialName;
+		material->mMaterialDataSize = builder.mMaterialDataSize;
+		material->mPerInstanceDataSize = builder.mPerInstanceDataSize;
+		material->mMaxInstances = builder.mPerInstanceDataSize > 0 ? builder.mMaxInstances : 1;
+		material->mName = builder.mName;
 
-		const size_t targetBufferSize = materialDataSize + perInstanceDataSize * maxInstances;
+		const size_t targetBufferSize = builder.mMaterialDataSize + builder.mPerInstanceDataSize * builder.mMaxInstances;
 		if (targetBufferSize > 0)
 		{
 			FBufferBuilder bufferBuilder = {};
 			bufferBuilder
 				.Init(EBufferFlags::CreateMapped | EBufferFlags::StorageBuffer, targetBufferSize)
-				.SetName(FName(fmt::format("{}_Uniforms", pipelineBuilder.GetName())));
+				.SetName(FName(fmt::format("{}_Uniforms", builder.mGraphicsPipeline->GetName())));
 			material->mDataBuffer = gpu.CreateBuffer(bufferBuilder);
 			TURBO_CHECK(material->mDataBuffer);
 		}
@@ -77,17 +96,17 @@ namespace Turbo
 		mMaterialToMaterialInstanceMap[materialHandle] = FMaterialInstanceArray();
 
 		FAvailableIndexes availableIndexes = FAvailableIndexes();
-		availableIndexes.resize(maxInstances);
+		availableIndexes.resize(builder.mMaxInstances);
 
-		for (size_t instanceId = 0; instanceId < maxInstances; ++instanceId)
+		for (size_t instanceId = 0; instanceId < builder.mMaxInstances; ++instanceId)
 		{
-			availableIndexes[instanceId] = maxInstances - instanceId - 1;
+			availableIndexes[instanceId] = builder.mMaxInstances - instanceId - 1;
 		}
 
 		mMaterialToAvailableIndexesMap[materialHandle] = std::move(availableIndexes);
 
-		TURBO_CHECK(mMaterialNameLookUp.find(materialName) == mMaterialNameLookUp.end())
-		mMaterialNameLookUp[materialName] = materialHandle;
+		TURBO_CHECK(mMaterialNameLookUp.find(builder.mName) == mMaterialNameLookUp.end())
+		mMaterialNameLookUp[builder.mName] = materialHandle;
 
 		return materialHandle;
 	}
@@ -208,7 +227,7 @@ namespace Turbo
 
 		const FMaterial* material = mMaterialPool.Access(materialHandle);
 		TURBO_CHECK(material);
-		gpu.DestroyPipeline(material->mPipeline);
+		gpu.DestroyPipeline(material->mGraphicsPipeline);
 
 		if (material->mDataBuffer.IsValid())
 		{

@@ -17,8 +17,6 @@ namespace Turbo
 		THandle<FTexture> gFlatNormalMapTexture;
 
 		THandle<FMesh> gPlaceholderMesh;
-
-		THandle<FMaterial> gPlaceholderMaterial;
 	}
 
 	namespace EngineMaterials
@@ -26,15 +24,16 @@ namespace Turbo
 		void InitEngineMaterials()
 		{
 			FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
-			FPipelineBuilder pipelineBuilder = FMaterialManager::CreateOpaquePipeline("MeshTestMaterial.slang");
-			gPlaceholderMaterial = materialManager.LoadMaterial<void, void>(kTriangleTest, pipelineBuilder, 0);
-
-			pipelineBuilder = FMaterialManager::CreateOpaquePipeline("OpaqueBasePass.slang");
-			const THandle<FMaterial> basePassMat = materialManager.LoadMaterial<FBasePassMaterialData, FBasePassInstanceData>(
-				kOpaqueBasePass,
-				pipelineBuilder,
-				2048
-			);
+			FPipelineBuilder graphicsPipelineBuilder = FMaterialManager::CreateOpaquePipeline("OpaqueBasePass.slang");
+			FPipelineBuilder depthPipelineBuilder = FMaterialManager::CreateDepthPrepassPipeline("DepthPrepass.slang");
+			const THandle<FMaterial> basePassMat = materialManager.CreateMaterial(FMaterialBuilder{
+				.mGraphicsPipeline = &graphicsPipelineBuilder,
+				.mDepthOnlyPipeline = &depthPipelineBuilder,
+				.mMaxInstances = 2048,
+				.mMaterialDataSize = sizeof(FBasePassMaterialData),
+				.mPerInstanceDataSize = sizeof(FBasePassInstanceData),
+				.mName = kOpaqueBasePass
+			});
 
 			FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 			gpu.ImmediateSubmit(
@@ -51,10 +50,6 @@ namespace Turbo
 			);
 		}
 
-		THandle<FMaterial> GetPlaceholderMaterial()
-		{
-			return gPlaceholderMaterial;
-		}
 	}
 
 	namespace EngineResources

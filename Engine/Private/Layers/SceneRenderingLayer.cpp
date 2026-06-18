@@ -409,79 +409,141 @@ namespace Turbo
 			}
 		);
 
-		// Base Pass
-		const static FName geometryPassName = FName("GeometryPass");
-		FRGPassInitializer geometryPass = graphBuilder.AddPass(geometryPassName, EPassType::Graphics);
-
 		FGeometryBuffer& geometryBuffer = entt::locator<FGeometryBuffer>::value();
 
-		geometryPass->AddAttachment(
-			{
-				.mTexture = geometryBuffer.mSceneColor,
-				.mLoadOp = ELoadOp::Clear,
-				.mClearColor = EClearColor::OpaqueBlack
-			},
-			0);
-		geometryPass->SetDepthStencilAttachment({
-			.mTexture = geometryBuffer.mDepthStencil,
-			.mLoadOp = ELoadOp::Clear,
-			.mClearColor = EClearColor::Zero
-		});
-
-		geometryPass->ReadBuffer(sceneView->mViewDataBufferHandle);
-		geometryPass->ReadBuffer(sceneView->mSceneDataBufferHandle);
-		geometryPass->ReadBuffer(sceneView->mLightsBufferHandle);
-
-		for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+		// Depth pre-pass
 		{
-			geometryPass->ReadBuffer(bucket.mIndirectCommandBuffer);
-			geometryPass->ReadBuffer(bucket.mDrawBuffer);
+			const static FName depthPrepassName = FName("DepthPrepass");
+			FRGPassInitializer depthPass = graphBuilder.AddPass(depthPrepassName, EPassType::Graphics);
+
+			depthPass->SetDepthStencilAttachment({
+				.mTexture = geometryBuffer.mDepthStencil,
+				.mLoadOp = ELoadOp::Clear,
+				.mClearColor = EClearColor::Zero
+			});
+
+			depthPass->ReadBuffer(sceneView->mViewDataBufferHandle);
+
+			for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+			{
+				depthPass->ReadBuffer(bucket.mIndirectCommandBuffer);
+				depthPass->ReadBuffer(bucket.mDrawBuffer);
+			}
+
+			depthPass->mExecutePass.BindLambda(
+				[=](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+				{
+					FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+
+					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+					{
+						TRACE_ZONE_SCOPED_N("Render Depth Pre-Pass")
+						TRACE_GPU_SCOPED(gpu, cmd, "Render Depth Pre-Pass")
+
+						const FMaterial* material = materialManager.AccessMaterial(bucket.mMaterialHandle);
+						if (material->mDepthOnlyPipeline)
+						{
+							cmd.BindPipeline(material->mDepthOnlyPipeline);
+							cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
+
+							const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
+							const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mViewDataBufferHandle));
+
+							const FMaterial::PushConstants pushConstants = {
+								.mViewData = viewDataBuffer->mDeviceAddress,
+								.mDrawData = drawBuffer->mDeviceAddress
+							};
+
+							const THandle<FBuffer> commandBufferHandle = resources.mBuffers.at(bucket.mIndirectCommandBuffer);
+
+							cmd.PushConstants(pushConstants);
+							cmd.DrawIndirectCount(FDrawIndirectCountParams{
+								.mBuffer = commandBufferHandle,
+								.mOffset = sizeof(FIndirectDrawBufferHeader),
+								.mCountBuffer = commandBufferHandle,
+								.mCountOffset = offsetof(FIndirectDrawBufferHeader, mNumDrawCalls),
+								.mMaxDrawCount = bucket.mCount,
+								.mStride = sizeof(vk::DrawIndirectCommand),
+							});
+						}
+					}
+				});
 		}
 
-		geometryPass->mExecutePass.BindLambda(
-			[=](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
-			{
-				FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+		// Base Pass
+		{
+			const static FName geometryPassName = FName("GeometryPass");
+			FRGPassInitializer geometryPass = graphBuilder.AddPass(geometryPassName, EPassType::Graphics);
 
-				for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+			geometryPass->AddAttachment(
 				{
-					TRACE_ZONE_SCOPED_N("Render Bucket")
-					TRACE_GPU_SCOPED(gpu, cmd, "Render Bucket")
+					.mTexture = geometryBuffer.mSceneColor,
+					.mLoadOp = ELoadOp::Clear,
+					.mClearColor = EClearColor::OpaqueBlack
+				},
+				0);
+			geometryPass->SetDepthStencilAttachment({
+				.mTexture = geometryBuffer.mDepthStencil,
+				.mLoadOp = ELoadOp::Load,
+				.mStoreOp = EStoreOp::DontCare
+			});
 
-					const FMaterial* material = materialManager.AccessMaterial(bucket.mMaterialHandle);
-					cmd.BindPipeline(material->mPipeline);
-					cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
+			geometryPass->ReadBuffer(sceneView->mViewDataBufferHandle);
+			geometryPass->ReadBuffer(sceneView->mSceneDataBufferHandle);
+			geometryPass->ReadBuffer(sceneView->mLightsBufferHandle);
 
-					const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
-					const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mViewDataBufferHandle));
-					const FBuffer* sceneDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mSceneDataBufferHandle));
-					const FBuffer* lightsBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mLightsBufferHandle));
-
-					const FMaterial::PushConstants pushConstants = {
-						.mViewData = viewDataBuffer->mDeviceAddress,
-						.mSceneData = sceneDataBuffer->mDeviceAddress,
-						.mLightData = lightsBuffer->mDeviceAddress,
-						.mDrawData = drawBuffer->mDeviceAddress
-					};
-
-					THandle<FBuffer> commandBufferHandle = resources.mBuffers.at(bucket.mIndirectCommandBuffer);
-
-					cmd.PushConstants(pushConstants);
-					cmd.DrawIndirectCount(FDrawIndirectCountParams{
-						.mBuffer = commandBufferHandle,
-						.mOffset = sizeof(FIndirectDrawBufferHeader),
-						.mCountBuffer = commandBufferHandle,
-						.mCountOffset = offsetof(FIndirectDrawBufferHeader, mNumDrawCalls),
-						.mMaxDrawCount = bucket.mCount,
-						.mStride = sizeof(vk::DrawIndirectCommand),
-					});
-				}
-
-				static const cstring kRenderBuckets = "Render Buckets";
-				TRACE_PLOT_CONFIGURE(kRenderBuckets, EPlotFormat::Number, true, true, 0xFFFF00)
-				TRACE_PLOT(kRenderBuckets, static_cast<int64>(drawIndirectBuckets.size()))
+			for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+			{
+				geometryPass->ReadBuffer(bucket.mIndirectCommandBuffer);
+				geometryPass->ReadBuffer(bucket.mDrawBuffer);
 			}
-		);
+
+			geometryPass->mExecutePass.BindLambda(
+				[=](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+				{
+					FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
+
+					for (const FDrawIndirectBucket& bucket : drawIndirectBuckets)
+					{
+						TRACE_ZONE_SCOPED_N("Render Bucket")
+						TRACE_GPU_SCOPED(gpu, cmd, "Render Bucket")
+
+						const FMaterial* material = materialManager.AccessMaterial(bucket.mMaterialHandle);
+						cmd.BindPipeline(material->mGraphicsPipeline);
+						cmd.BindDescriptorSet(gpu.GetBindlessResourcesSet(), 0);
+
+						const FBuffer* drawBuffer = gpu.AccessBuffer(resources.mBuffers.at(bucket.mDrawBuffer));
+						const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mViewDataBufferHandle));
+						const FBuffer* sceneDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mSceneDataBufferHandle));
+						const FBuffer* lightsBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mLightsBufferHandle));
+
+						const FMaterial::PushConstants pushConstants = {
+							.mViewData = viewDataBuffer->mDeviceAddress,
+							.mSceneData = sceneDataBuffer->mDeviceAddress,
+							.mLightData = lightsBuffer->mDeviceAddress,
+							.mDrawData = drawBuffer->mDeviceAddress
+						};
+
+						THandle<FBuffer> commandBufferHandle = resources.mBuffers.at(bucket.mIndirectCommandBuffer);
+
+						cmd.PushConstants(pushConstants);
+						cmd.DrawIndirectCount(FDrawIndirectCountParams{
+							.mBuffer = commandBufferHandle,
+							.mOffset = sizeof(FIndirectDrawBufferHeader),
+							.mCountBuffer = commandBufferHandle,
+							.mCountOffset = offsetof(FIndirectDrawBufferHeader, mNumDrawCalls),
+							.mMaxDrawCount = bucket.mCount,
+							.mStride = sizeof(vk::DrawIndirectCommand),
+						});
+					}
+
+					static const cstring kRenderBuckets = "Render Buckets";
+					TRACE_PLOT_CONFIGURE(kRenderBuckets, EPlotFormat::Number, true, true, 0xFFFF00)
+					TRACE_PLOT(kRenderBuckets, static_cast<int64>(drawIndirectBuckets.size()))
+				}
+			);
+
+		}
 	}
 
 	void FSceneRenderingLayer::RenderPostProcess(FRenderGraphBuilder& graphBuilder, FSceneView* SceneView)

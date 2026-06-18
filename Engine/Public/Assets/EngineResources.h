@@ -33,8 +33,6 @@ namespace Turbo
 			float mMetalicFactor = 0.f;
 			float mRoughnessFactor = 1.f;
 		};
-
-		THandle<FMaterial> GetPlaceholderMaterial();
 	}
 
 	namespace EngineResources

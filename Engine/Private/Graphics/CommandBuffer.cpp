@@ -243,8 +243,6 @@ namespace Turbo
 
 	void FCommandBuffer::BeginRendering(const FRenderingAttachments& renderingAttachments)
 	{
-		TURBO_CHECK(renderingAttachments.mNumColorAttachments > 0)
-
 		vk::RenderingInfo renderingInfo = {};
 		renderingInfo.layerCount = 1;
 
@@ -283,7 +281,6 @@ namespace Turbo
 			}
 		}
 
-		renderingInfo.renderArea.extent = VulkanConverters::ToExtent2D(attachmentSize);
 		renderingInfo.pColorAttachments = colorAttachments.data();
 		renderingInfo.colorAttachmentCount = renderingAttachments.mNumColorAttachments;
 
@@ -311,7 +308,15 @@ namespace Turbo
 			}
 
 			renderingInfo.pDepthAttachment = &vkDepthAttachmentInfo;
+
+			if (renderingAttachments.mNumColorAttachments == 0)
+			{
+				const FTextureCold* depthTextureCold = mGpu->AccessTextureCold(attachment.mTexture);
+				attachmentSize = depthTextureCold->GetSize2D();
+			}
 		}
+
+		renderingInfo.renderArea.extent = VulkanConverters::ToExtent2D(attachmentSize);
 
 		mVkCommandBuffer.beginRendering(renderingInfo);
 	}

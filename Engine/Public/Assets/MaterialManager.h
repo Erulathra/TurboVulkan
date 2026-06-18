@@ -42,11 +42,24 @@ namespace Turbo
 			FDeviceAddress mDrawData = kNullDeviceAddress;
 		};
 
-		THandle<FPipeline> mPipeline = {};
+		THandle<FPipeline> mGraphicsPipeline = {};
+		THandle<FPipeline> mDepthOnlyPipeline = {};
 		THandle<FBuffer> mDataBuffer = {};
 		uint32 mPerInstanceDataSize = 0;
 		uint32 mMaterialDataSize = 0;
 		uint32 mMaxInstances = 0;
+
+		FName mName = {};
+	};
+
+	struct FMaterialBuilder
+	{
+		FPipelineBuilder* mGraphicsPipeline = nullptr;
+		FPipelineBuilder* mDepthOnlyPipeline = nullptr;
+		size_t mMaxInstances = 1;
+
+		size_t mMaterialDataSize = 0;
+		size_t mPerInstanceDataSize = 0;
 
 		FName mName = {};
 	};
@@ -62,24 +75,10 @@ namespace Turbo
 
 	public:
 		static FPipelineBuilder CreateOpaquePipeline(std::string_view shaderName);
+		static FPipelineBuilder CreateDepthPrepassPipeline(std::string_view shaderName);
 
 	public:
-		template<typename MaterialDataType, typename PerInstanceDataType>
-		THandle<FMaterial> LoadMaterial(FName materialName, FPipelineBuilder& pipelineBuilder, size_t maxInstances = 1)
-		{
-			constexpr size_t materialDataSize = CoreUtils::SizeofOrZero<MaterialDataType>();
-			constexpr size_t perInstanceDataSize = CoreUtils::SizeofOrZero<PerInstanceDataType>();
-
-			return LoadMaterial(materialName, pipelineBuilder, materialDataSize, perInstanceDataSize, maxInstances);
-		}
-
-		THandle<FMaterial> LoadMaterial(
-			FName materialName,
-			const FPipelineBuilder& pipelineBuilder,
-			size_t materialDataSize,
-			size_t perInstanceDataSize,
-			size_t maxInstances
-		);
+		THandle<FMaterial> CreateMaterial(const FMaterialBuilder& builder);
 
 		[[nodiscard]] THandle<FMaterial> GetMaterial(FName materialName);
 
