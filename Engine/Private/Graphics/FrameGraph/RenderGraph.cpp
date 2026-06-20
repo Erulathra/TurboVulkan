@@ -12,7 +12,7 @@ namespace Turbo
 	{
 		TURBO_CHECK(texture.IsValid())
 		TURBO_CHECK(texture.GetType() == ERGResourceType::Texture)
-		TURBO_CHECK(std::ranges::find(mTextureReads, texture) == mTextureReads.end())
+		TURBO_CHECK_SLOW(std::ranges::find(mTextureReads, texture) == mTextureReads.end())
 		mTextureReads.emplace_back(texture);
 		return texture;
 	}
@@ -21,7 +21,7 @@ namespace Turbo
 	{
 		TURBO_CHECK(texture.IsValid())
 		TURBO_CHECK(texture.GetType() == ERGResourceType::Texture)
-		TURBO_CHECK(std::ranges::find(mTextureWrites, texture) == mTextureWrites.end())
+		TURBO_CHECK_SLOW(std::ranges::find(mTextureWrites, texture) == mTextureWrites.end())
 		mTextureWrites.emplace_back(texture);
 		return texture;
 	}
@@ -30,7 +30,7 @@ namespace Turbo
 	{
 		TURBO_CHECK(buffer.IsValid())
 		TURBO_CHECK(buffer.GetType() == ERGResourceType::Buffer)
-		TURBO_CHECK(std::ranges::find(mBufferReads, buffer) == mBufferReads.end())
+		TURBO_CHECK_SLOW(std::ranges::find(mBufferReads, buffer) == mBufferReads.end())
 		mBufferReads.emplace_back(buffer);
 		return buffer;
 	}
@@ -39,7 +39,7 @@ namespace Turbo
 	{
 		TURBO_CHECK(buffer.IsValid())
 		TURBO_CHECK(buffer.GetType() == ERGResourceType::Buffer)
-		TURBO_CHECK(std::ranges::find(mBufferWrites, buffer) == mBufferWrites.end())
+		TURBO_CHECK_SLOW(std::ranges::find(mBufferWrites, buffer) == mBufferWrites.end())
 		mBufferWrites.emplace_back(buffer);
 		return buffer;
 	}
@@ -190,11 +190,11 @@ namespace Turbo
 
 	void FRenderGraphBuilder::QueueBufferUpload(const FRGBufferUpload& bufferUpload)
 	{
-#if WITH_ASSERTIONS
+#if WITH_SLOW_ASSERTIONS
 		const FRGBufferInfo& bufferInfo = mBuffers[bufferUpload.mTargetBuffer.GetIndex()];
 		TURBO_CHECK(bufferUpload.mDataSize + bufferUpload.mOffset <= bufferInfo.mSize)
 		TURBO_CHECK(mAllocator.Contains(bufferUpload.mData, bufferUpload.mDataSize + bufferUpload.mOffset))
-#endif // WITH_ASSERTIONS
+#endif // WITH_SLOW_ASSERTIONS
 
 		mQueuedBufferUploads.push_back(bufferUpload);
 	}

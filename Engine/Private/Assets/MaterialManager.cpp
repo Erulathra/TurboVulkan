@@ -105,7 +105,7 @@ namespace Turbo
 
 		mMaterialToAvailableIndexesMap[materialHandle] = std::move(availableIndexes);
 
-		TURBO_CHECK(mMaterialNameLookUp.find(builder.mName) == mMaterialNameLookUp.end())
+		TURBO_CHECK_SLOW(mMaterialNameLookUp.find(builder.mName) == mMaterialNameLookUp.end())
 		mMaterialNameLookUp[builder.mName] = materialHandle;
 
 		return materialHandle;

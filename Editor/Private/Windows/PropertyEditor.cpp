@@ -24,7 +24,7 @@ namespace Turbo
 
 	void FPropertyEditorSystem::RegisterComponentEditor(const FComponentEditorRegistration& componentEditor)
 	{
-		TURBO_CHECK(mRegisteredComponentEditors.find(componentEditor.mComponentTypeId) == mRegisteredComponentEditors.end())
+		TURBO_CHECK_SLOW(mRegisteredComponentEditors.find(componentEditor.mComponentTypeId) == mRegisteredComponentEditors.end())
 		mRegisteredComponentEditors.emplace(componentEditor.mComponentTypeId, componentEditor);
 		mRegisteredEditors.push_back(componentEditor.mComponentTypeId);
 	}

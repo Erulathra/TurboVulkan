@@ -25,31 +25,61 @@ using namespace std::string_view_literals;
 #define TURBO_DEBUG_BREAK() {};
 #endif // else DEBUG
 
+#if defined(__clang__)
+	#define TURBO_ASSUME(...) do { __builtin_assume(__VA_ARGS__); } while(0);
+#elif defined(_MSC_VER)
+	#define TURBO_ASSUME(...) do { __assume(__VA_ARGS__); } while(0);
+#elif defined(__GNUC__)
+#if __GNUC__ >= 13
+	#define TURBO_ASSUME(...) __attribute__((__assume__(__VA_ARGS__)))
+#endif
+#endif
+
+#ifdef __clang__
+	#define DISABLE_ASSUME_WARNINGS					\
+		_Pragma("clang diagnostic push")				\
+		_Pragma("clang diagnostic ignored \"-Wassume\"")
+	#define ENABLE_ASSUME_WARNINGS _Pragma("clang diagnostic pop")
+#else
+	#define DISABLE_ASSUME_WARNINGS {}
+	#define ENABLE_ASSUME_WARNINGS {}
+#endif //defined(__clang__)
+
 // Assertions
-#if WITH_ASSERTIONS
 
 #define TURBO_CHECK(CONDITION)																	\
-	if (!(CONDITION))																			\
+	if (!(CONDITION)) [[unlikely]]																\
 	{																							\
 		SPDLOG_ERROR("Assertion `" #CONDITION "` failed.");										\
 		TURBO_DEBUG_BREAK();																	\
-		std::terminate();																		\
-	}
+		std::abort();																			\
+		TURBO_ASSUME(false)																		\
+	}																							\
+	DISABLE_ASSUME_WARNINGS																		\
+	TURBO_ASSUME(!!(CONDITION))																	\
+	ENABLE_ASSUME_WARNINGS
+
 
 #define TURBO_CHECK_MSG(CONDITION, MESSAGE, ...)																		\
-	if (!(CONDITION))																									\
+	if (!(CONDITION)) [[unlikely]]																						\
 	{																													\
 		SPDLOG_ERROR("Assertion `" #CONDITION "` failed. Message: `" MESSAGE "`" __VA_OPT__(,) __VA_ARGS__);			\
 		TURBO_DEBUG_BREAK();																							\
-		std::terminate();																								\
-	}
+		std::abort();																									\
+		TURBO_ASSUME(false)																								\
+	}																													\
+	DISABLE_ASSUME_WARNINGS																								\
+	TURBO_ASSUME(!!(CONDITION))																							\
+	ENABLE_ASSUME_WARNINGS
 
-#else // WITH_ASSERTIONS
 
-#define TURBO_CHECK(CONDITION) (void)(CONDITION);
-#define TURBO_CHECK_MSG(CONDITION, MESSAGE, ...) (void)(CONDITION);
-
-#endif // else WITH_ASSERTIONS
+#if WITH_SLOW_ASSERTIONS
+#define TURBO_CHECK_SLOW(CONDITION) TURBO_CHECK(CONDITION)
+#define TURBO_CHECK_MSG_SLOW(CONDITION, MESSAGE, ...) TURBO_CHECK(CONDITION, MESSAGE __VA_OPT(,) __VA_ARGS__)
+#else // WITH_SLOW_ASSERTIONS
+#define TURBO_CHECK_SLOW(CONDITION) {}
+#define TURBO_CHECK_MSG_SLOW(CONDITION, MESSAGE, ...) {}
+#endif // else WITH_SLOW_ASSERTIONS
 
 #define TURBO_STATIC_ASSERT(CONDITION) static_assert(CONDITION, #CONDITION)
 #define TURBO_STATIC_ASSERT_MSG(CONDITION, MSG) static_assert(CONDITION, "Static assert '" #CONDITION "' failed. Message: " MSG)
@@ -66,17 +96,10 @@ if (!(CONDITION))				\
 #define TURBO_ENSURE(CONDITION) (void)(CONDITION)
 #endif // DEBUG
 
-#if WITH_ASSERTIONS
 
 #define UNIMPLEMENTED_BODY()	\
 	TURBO_DEBUG_BREAK();		\
-	std::terminate()
-
-#else // WITH_ASSERTIONS
-
-#define UNIMPLEMENTED_BODY()
-
-#endif // else WITH_ASSERTIONS
+	std::abort()
 
 #define TURBO_UNINPLEMENTED()																						\
 {																													\

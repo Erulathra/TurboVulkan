@@ -96,9 +96,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_BUILD_TEST=${TURBO_BUILD
 target_compile_definitions(${PROJECT_NAME} PUBLIC TURBO_BUILD_SHIPPING=${TURBO_BUILD_SHIPPING})
 
 if (${TURBO_BUILD_DEVELOPMENT} OR ${TURBO_BUILD_TEST})
-    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_ASSERTIONS=1)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_SLOW_ASSERTIONS=1)
 else ()
-    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_ASSERTIONS=0)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_SLOW_ASSERTIONS=0)
 endif ()
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_VALIDATION_LAYERS=${TURBO_BUILD_DEVELOPMENT})
