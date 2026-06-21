@@ -60,7 +60,7 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FBufferDestroyer final : IDestroyer
+	class FBufferDestroyer : IDestroyer
 	{
 		DESTROYER_BODY()
 	public:
@@ -72,7 +72,7 @@ namespace Turbo
 		THandle<FBuffer> mHandle;
 	};
 
-	struct FSampler final
+	struct FSampler
 	{
 		vk::Sampler mVkSampler = nullptr;
 	};
@@ -90,7 +90,7 @@ namespace Turbo
 		FName mName = {};
 	};
 
-	class FSamplerDestroyer final : IDestroyer
+	class FSamplerDestroyer : IDestroyer
 	{
 		DESTROYER_BODY()
 	public:
@@ -128,7 +128,7 @@ namespace Turbo
 		FName mName = {};
 	};
 
-	class FTextureDestroyer final : public IDestroyer
+	class FTextureDestroyer : public IDestroyer
 	{
 		DESTROYER_BODY()
 	public:
@@ -141,7 +141,7 @@ namespace Turbo
 		THandle<FTexture> mHandle = {};
 	};
 
-	struct FShaderState final
+	struct FShaderState
 	{
 		std::array<vk::PipelineShaderStageCreateInfo, kMaxShaderStages> mShaderStageCrateInfo;
 
@@ -151,7 +151,7 @@ namespace Turbo
 		bool mbGraphicsPipeline = true;
 	};
 
-	class FShaderStateDestroyer final : public IDestroyer
+	class FShaderStateDestroyer : public IDestroyer
 	{
 		DESTROYER_BODY()
 
@@ -175,7 +175,7 @@ namespace Turbo
 		FName mName;
 	};
 
-	struct FDescriptorSetLayout final
+	struct FDescriptorSetLayout
 	{
 		vk::DescriptorSetLayout mVkLayout = nullptr;
 		TArrayHeap<vk::DescriptorSetLayoutBinding, kMaxDescriptorsPerSet> mVkBindings;
@@ -188,7 +188,7 @@ namespace Turbo
 
 	struct FDescriptorPool;
 
-	struct FDescriptorSet final
+	struct FDescriptorSet
 	{
 		vk::DescriptorSet mVkDescriptorSet = nullptr;
 
@@ -205,7 +205,7 @@ namespace Turbo
 		FName mName;
 	};
 
-	class FDescriptorSetLayoutDestroyer final : public IDestroyer
+	class FDescriptorSetLayoutDestroyer : public IDestroyer
 	{
 		DESTROYER_BODY()
 
@@ -217,7 +217,7 @@ namespace Turbo
 		THandle<FDescriptorSetLayout> mHandle = {};
 	};
 
-	class FDescriptorPoolDestroyer final : public IDestroyer
+	class FDescriptorPoolDestroyer : public IDestroyer
 	{
 		DESTROYER_BODY()
 
@@ -229,7 +229,7 @@ namespace Turbo
 		THandle<FDescriptorPool> mhandle;
 	};
 
-	struct FPipeline final
+	struct FPipeline
 	{
 		vk::Pipeline mVkPipeline = nullptr;
 		vk::PipelineLayout mVkLayout = nullptr;
@@ -239,13 +239,13 @@ namespace Turbo
 		bool mbGraphicsPipeline = true;
 	};
 
-	struct FPipelineCold final
+	struct FPipelineCold
 	{
 		THandle<FShaderState> mShaderState = {};
 		FPipelineBuilder* mPipelineBuilder = nullptr; // Allows to recompile pipeline at runtime
 	};
 
-	class FPipelineDestroyer final : IDestroyer
+	class FPipelineDestroyer : IDestroyer
 	{
 		DESTROYER_BODY()
 
@@ -256,6 +256,27 @@ namespace Turbo
 		vk::Pipeline mPipeline = nullptr;
 		vk::PipelineLayout mLayout = nullptr;
 		THandle<FPipeline> mHandle = {};
+	};
+
+	struct FBLAS
+	{
+		vk::AccelerationStructureKHR mVkAccelerationStructure;
+		THandle<FBuffer> mBuffer;
+
+		FName mName = {};
+	};
+
+	class FBLASDestroyer : IDestroyer
+	{
+		DESTROYER_BODY()
+
+	public:
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	private:
+		vk::AccelerationStructureKHR mAccelerationStructure;
+		THandle<FBuffer> mBuffer;
+		THandle<FBLAS> mHandle;
 	};
 
 	/** Vulkan object abstractions end */

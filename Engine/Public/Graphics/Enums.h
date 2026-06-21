@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Graphics/GraphicsCore.h"
-
 namespace Turbo
 {
 	enum class EBufferFlags : uint8
@@ -16,7 +14,10 @@ namespace Turbo
 
 		IndirectBuffer = 1 << 4,
 
-		TransferSrc = 1 << 5
+		TransferSrc = 1 << 5,
+
+		AccelerationStructureStorage = 1 << 6,
+		AccelerationStructureInput = 1 << 7,
 	};
 	DEFINE_ENUM_OPERATORS(EBufferFlags, uint8)
 

@@ -228,6 +228,7 @@ namespace Turbo
 		const FMaterial* material = mMaterialPool.Access(materialHandle);
 		TURBO_CHECK(material);
 		gpu.DestroyPipeline(material->mGraphicsPipeline);
+		gpu.DestroyPipeline(material->mDepthOnlyPipeline);
 
 		if (material->mDataBuffer.IsValid())
 		{

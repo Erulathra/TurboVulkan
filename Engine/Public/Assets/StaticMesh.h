@@ -5,6 +5,7 @@
 
 namespace Turbo
 {
+	struct FBLAS;
 	struct FBuffer;
 	struct FMaterial;
 
@@ -18,13 +19,15 @@ namespace Turbo
 
 	struct FMesh final
 	{
-		THandle<FBuffer> mIndicesBuffer = {};
+		THandle<FBuffer> mIndexBuffer = {};
 		THandle<FBuffer> mPositionBuffer = {};
 
 		THandle<FBuffer> mNormalBuffer = {};
 		THandle<FBuffer> mTangentBuffer = {};
 		THandle<FBuffer> mUVBuffer = {};
 		THandle<FBuffer> mColorBuffer = {};
+
+		THandle<FBLAS> mBlas = {};
 
 		FBounds mBounds;
 

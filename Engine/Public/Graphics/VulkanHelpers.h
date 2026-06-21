@@ -159,7 +159,6 @@ namespace Turbo
 		}
 	}
 
-
 	template <typename HandleType>
 	struct HandleTraits
 	{
@@ -293,6 +292,21 @@ namespace Turbo
 		static cstring GetTypePostFix()
 		{
 			return "_Sampler";
+		}
+	};
+
+	template <>
+	struct HandleTraits<vk::AccelerationStructureKHR>
+	{
+		static uint64 CastToU64Handle(vk::AccelerationStructureKHR handle)
+		{
+			VkAccelerationStructureKHR nativeHandle = handle;
+			return reinterpret_cast<uint64>(nativeHandle);
+		}
+
+		static cstring GetTypePostFix()
+		{
+			return "_AccelerationStructure";
 		}
 	};
 

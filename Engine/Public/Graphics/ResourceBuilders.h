@@ -18,6 +18,7 @@ namespace Turbo
 		static FBufferBuilder CreateStagingBuffer(const void* data, uint32 size);
 		static FBufferBuilder CreateStagingBuffer(uint32 size);
 		static FBufferBuilder CreateStagingBuffer(std::span<byte> data);
+		static FBufferBuilder CreateScratchBuffer(uint32 size);
 
 		FBufferBuilder& Reset() { mSize = 0; mInitialData = nullptr; return *this; }
 		FBufferBuilder& Init(EBufferFlags bufferFlags, size_t size)
@@ -431,6 +432,21 @@ namespace Turbo
 	{
 		vk::CommandPool mVkCommandPool = nullptr;
 		bool bPrimaryBuffer = true;
+		FName mName = {};
+	};
+
+	struct FBLASBuilder
+	{
+		vk::Format mVertexFormat = vk::Format::eR32G32B32Sfloat;
+		vk::IndexType mIndexType = vk::IndexType::eUint32;
+		THandle<FBuffer> mVertexBuffer = {};
+		THandle<FBuffer> mIndexBuffer = {};
+
+		uint32 mNumVertices = 0;
+
+		vk::GeometryTypeKHR mGeometryType = vk::GeometryTypeKHR::eTriangles;
+		vk::GeometryFlagsKHR mGeometryFlags = vk::GeometryFlagBitsKHR::eOpaque;
+
 		FName mName = {};
 	};
 

@@ -212,6 +212,14 @@ namespace Turbo
 			(builder.mBufferFlags & EBufferFlags::IndirectBuffer) != EBufferFlags::None
 				? vk::BufferUsageFlagBits::eIndirectBuffer
 				: static_cast<vk::BufferUsageFlagBits>(0);
+		createInfo.usage |=
+			(builder.mBufferFlags & EBufferFlags::AccelerationStructureStorage) != EBufferFlags::None
+				? vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR
+				: static_cast<vk::BufferUsageFlagBits>(0);
+		createInfo.usage |=
+			(builder.mBufferFlags & EBufferFlags::AccelerationStructureInput) != EBufferFlags::None
+				? vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
+				: static_cast<vk::BufferUsageFlagBits>(0);
 
 		vma::AllocationCreateInfo allocationCreateInfo = {};
 		allocationCreateInfo.usage = vma::MemoryUsage::eAuto;
@@ -223,9 +231,16 @@ namespace Turbo
 			allocationCreateInfo.flags |= vma::AllocationCreateFlagBits::eMapped;
 		}
 
+		vk::DeviceSize minAlignment = 0;
+		// Align AS buffer to required alignment
+		if ((builder.mBufferFlags & EBufferFlags::AccelerationStructureStorage) != EBufferFlags::None)
+		{
+			minAlignment = mVkAccelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment;
+		}
+
 		vma::AllocationInfo allocationInfo;
 		std::pair<vk::Buffer, vma::Allocation> allocationResult;
-		CHECK_VULKAN_RESULT(allocationResult, mVmaAllocator.createBuffer(createInfo, allocationCreateInfo, allocationInfo));
+		CHECK_VULKAN_RESULT(allocationResult, mVmaAllocator.createBufferWithAlignment(createInfo, allocationCreateInfo, minAlignment, allocationInfo));
 
 		buffer->mVkBuffer = allocationResult.first;
 		bufferCold->mAllocation = allocationResult.second;
@@ -580,6 +595,90 @@ namespace Turbo
 		return handle;
 	}
 
+	THandle<FBLAS> FGPUDevice::CreateBLAS(const FBLASBuilder& builder)
+	{
+		THandle<FBLAS> handle = mBLASPool->Acquire();
+		FBLAS* blas = mBLASPool->Access(handle);
+		blas->mName = builder.mName;
+
+		const FBuffer* vertexBuffer = AccessBuffer(builder.mVertexBuffer);
+		const FBuffer* indexBuffer = AccessBuffer(builder.mIndexBuffer);
+		TURBO_CHECK(vertexBuffer && indexBuffer)
+
+		vk::AccelerationStructureGeometryTrianglesDataKHR triangleData = {};
+		triangleData.vertexFormat = builder.mVertexFormat;
+		triangleData.vertexData = vertexBuffer->mDeviceAddress;
+		triangleData.vertexStride = sizeof(glm::float3);
+		triangleData.maxVertex = builder.mNumVertices - 1;
+		triangleData.indexType = builder.mIndexType;
+		triangleData.indexData = indexBuffer->mDeviceAddress;
+		triangleData.transformData = {};
+
+		vk::AccelerationStructureGeometryDataKHR geometryData(triangleData);
+
+		vk::AccelerationStructureGeometryKHR geometry = {};
+		geometry.geometryType = vk::GeometryTypeKHR::eTriangles;
+		geometry.geometry = geometryData;
+		geometry.flags = builder.mGeometryFlags;
+
+		vk::AccelerationStructureBuildGeometryInfoKHR buildGeometryInfo = {};
+		buildGeometryInfo.type = vk::AccelerationStructureTypeKHR::eBottomLevel;
+		buildGeometryInfo.flags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace;
+		buildGeometryInfo.mode = vk::BuildAccelerationStructureModeKHR::eBuild;
+		buildGeometryInfo.geometryCount = 1;
+		buildGeometryInfo.pGeometries = &geometry;
+
+		// Compute requested size
+		const vk::AccelerationStructureBuildSizesInfoKHR sizeInfo = mVkDevice.getAccelerationStructureBuildSizesKHR(
+			vk::AccelerationStructureBuildTypeKHR::eDevice,
+			buildGeometryInfo,
+			{builder.mNumVertices / 3}
+		);
+
+		// Create storage buffer
+		const std::string storageBufferName = fmt::format("{}_Storage", builder.mName);
+		FBufferBuilder bufferBuilder = {
+			.mBufferFlags = EBufferFlags::AccelerationStructureStorage,
+			.mSize = sizeInfo.accelerationStructureSize,
+			.mName = builder.mName
+		};
+		blas->mBuffer = CreateBuffer(bufferBuilder);
+		const FBuffer* storageBuffer = AccessBuffer(blas->mBuffer);
+		vk::AccelerationStructureCreateInfoKHR createInfo = {};
+		createInfo.buffer = storageBuffer->mVkBuffer;
+		createInfo.size = sizeInfo.accelerationStructureSize;
+		createInfo.type = vk::AccelerationStructureTypeKHR::eBottomLevel;
+
+		// Create blas
+		CHECK_VULKAN_RESULT(blas->mVkAccelerationStructure, mVkDevice.createAccelerationStructureKHR(createInfo));
+		SetResourceName(blas->mVkAccelerationStructure, blas->mName);
+		buildGeometryInfo.dstAccelerationStructure = blas->mVkAccelerationStructure;
+
+		// Create temp scratch data buffer
+		const FBufferBuilder scratchBufferBuilder = FBufferBuilder::CreateScratchBuffer(sizeInfo.buildScratchSize);
+		const THandle<FBuffer> scratchBufferHandle = CreateBuffer(scratchBufferBuilder);
+		const FBuffer* scratchBuffer = AccessBuffer(scratchBufferHandle);
+		buildGeometryInfo.scratchData = scratchBuffer->mDeviceAddress;
+
+		// Fill build range info
+		vk::AccelerationStructureBuildRangeInfoKHR buildRangeInfo = {};
+		buildRangeInfo.primitiveCount = builder.mNumVertices / 3;
+		buildRangeInfo.primitiveOffset = 0;
+		buildRangeInfo.firstVertex = 0;
+		buildRangeInfo.transformOffset = 0;
+
+		ImmediateSubmit(
+			FOnImmediateSubmit::CreateLambda([&](FCommandBuffer& cmd)
+			{
+				const vk::AccelerationStructureBuildRangeInfoKHR* buildRangeInfoPtr = &buildRangeInfo;
+				cmd.mVkCommandBuffer.buildAccelerationStructuresKHR(1, &buildGeometryInfo, &buildRangeInfoPtr);
+			})
+		);
+
+		DestroyBuffer(scratchBufferHandle);
+		return handle;
+	}
+
 	void FGPUDevice::ResetDescriptorPool(THandle<FDescriptorPool> descriptorPoolHandle)
 	{
 		TRACE_ZONE_SCOPED()
@@ -713,6 +812,20 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
+	void FGPUDevice::DestroyBLAS(THandle<FBLAS> handle)
+	{
+		const FBLAS* blas = AccessBLAS(handle);
+		TURBO_CHECK(blas)
+
+		FBLASDestroyer destroyer = {};
+		destroyer.mAccelerationStructure = blas->mVkAccelerationStructure;
+		destroyer.mBuffer = blas->mBuffer;
+		destroyer.mHandle = handle;
+
+		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
+		frameData.mDestroyQueue.RequestDestroy(destroyer);
+	}
+
 	void FGPUDevice::AddOnDestroyCallback(FOnDestroy::Delegate&& delegate)
 	{
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
@@ -724,9 +837,9 @@ namespace Turbo
 		// Copy by design
 		std::vector<cstring> enableExtensions = requiredExtensions;
 
-#if WITH_DEBUG_RENDERING
+#if WITH_DEBUG_RENDERING_FEATURES
 		enableExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif // WITH_DEBUG_RENDERING
+#endif // WITH_DEBUG_RENDERING_FEATURES
 
 		vkb::InstanceBuilder instanceBuilder;
 		instanceBuilder
@@ -736,7 +849,6 @@ namespace Turbo
 #if WITH_VALIDATION_LAYERS
 			.request_validation_layers(true)
 			.set_debug_callback(&FGPUDevice::ValidationLayerCallback)
-			// .set_debug_messenger_severity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
 #endif // WITH_VALIDATION_LAYERS
 			.require_api_version(kVulkanVersion);
 
@@ -771,10 +883,19 @@ namespace Turbo
 		device12Features.scalarBlockLayout = true;
 		device12Features.descriptorBindingSampledImageUpdateAfterBind = true;
 		device12Features.descriptorBindingStorageImageUpdateAfterBind = true;
+		device12Features.storagePushConstant8 = true;
+		device12Features.shaderInt8 = true;
+		device12Features.drawIndirectCount = true;
 
 		vk::PhysicalDeviceVulkan13Features device13Features = {};
 		device13Features.dynamicRendering = true;
 		device13Features.synchronization2 = true;
+
+		vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {};
+		accelerationStructureFeatures.accelerationStructure = true;
+
+		vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = {};
+		rayQueryFeatures.rayQuery = true;
 
 		vkb::PhysicalDeviceSelector physicalDeviceSelector(builtInstance);
 		physicalDeviceSelector
@@ -786,7 +907,16 @@ namespace Turbo
 			.set_required_features_13(device13Features)
 			.set_minimum_version(1, 3)
 			.prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
-			.add_required_extension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		// Required to present image
+			.add_required_extension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
+		// Ray tracing required extensions
+			.add_required_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
+			.add_required_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
+			.add_required_extension_features(accelerationStructureFeatures)
+			.add_required_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
+			.add_required_extension(VK_KHR_RAY_QUERY_EXTENSION_NAME)
+			.add_required_extension_features(rayQueryFeatures)
+		;
 
 		vkb::Result<vkb::PhysicalDevice> selectPhysicalDeviceResult = physicalDeviceSelector.select();
 		TURBO_CHECK_MSG(selectPhysicalDeviceResult, "Physical device selection failed. Reason: {}", selectPhysicalDeviceResult.error().message())
@@ -796,12 +926,17 @@ namespace Turbo
 		mVkPhysicalDevice = physicalDevice;
 		TURBO_LOG(LogGPUDevice, Info, "Selected {} as primary physical device.", physicalDevice.name);
 
-		const vk::PhysicalDeviceProperties& deviceProperties = mVkPhysicalDevice.getProperties();
+		mVkPhysicalDeviceProperties = mVkPhysicalDevice.getProperties();
+		mVkRayTracingPipelineProperties.pNext = &mVkAccelerationStructureProperties;
+
+		vk::PhysicalDeviceProperties2 properties2 = {};
+		properties2.pNext = &mVkRayTracingPipelineProperties;
+		mVkPhysicalDevice.getProperties2(&properties2);
 
 		// Get max supported MSAA samples.
-		vk::Flags<vk::SampleCountFlagBits> supportedSamples =
-			deviceProperties.limits.framebufferColorSampleCounts
-			& deviceProperties.limits.framebufferDepthSampleCounts;
+		const vk::Flags<vk::SampleCountFlagBits> supportedSamples =
+			mVkPhysicalDeviceProperties.limits.framebufferColorSampleCounts
+			& mVkPhysicalDeviceProperties.limits.framebufferDepthSampleCounts;
 
 		if (supportedSamples & vk::SampleCountFlagBits::e8)
 		{
@@ -1457,7 +1592,7 @@ namespace Turbo
 		else
 		{
 			imageCreateInfo.usage |= EImgUsage::eTransferDst;
-			imageCreateInfo.usage |= bRenderTarget ? EImgUsage::eTransferSrc : static_cast<EImgUsage>(0);
+			imageCreateInfo.usage |= bRenderTarget || bStorageImage ? EImgUsage::eTransferSrc : static_cast<EImgUsage>(0);
 			imageCreateInfo.usage |= bRenderTarget ? EImgUsage::eColorAttachment : static_cast<EImgUsage>(0);
 		}
 
@@ -1757,6 +1892,23 @@ namespace Turbo
 		}
 
 		mShaderStatePool->Release(destroyer.mHandle);
+	}
+
+	void FGPUDevice::DestroyBLASImmediate(const FBLASDestroyer& destroyer)
+	{
+		const FBuffer* storageBuffer = AccessBuffer(destroyer.mBuffer);
+		const FBufferCold* storageBufferCold = AccessBufferCold(destroyer.mBuffer);
+
+		mVkDevice.destroyAccelerationStructureKHR(destroyer.mAccelerationStructure);
+
+		FBufferDestroyer bufferDestroyer = {};
+		bufferDestroyer.mVkBuffer = storageBuffer->mVkBuffer;
+		bufferDestroyer.mAllocation = storageBufferCold->mAllocation;
+		bufferDestroyer.mHandle = destroyer.mBuffer;
+
+		DestroyBufferImmediate(bufferDestroyer);
+
+		mBLASPool->Release(destroyer.mHandle);
 	}
 
 	VkBool32 FGPUDevice::ValidationLayerCallback(

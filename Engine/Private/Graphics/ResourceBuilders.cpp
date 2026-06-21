@@ -31,6 +31,18 @@ Turbo::FBufferBuilder Turbo::FBufferBuilder::CreateStagingBuffer(std::span<byte>
 	return CreateStagingBuffer(data.data(), data.size());
 }
 
+Turbo::FBufferBuilder Turbo::FBufferBuilder::CreateScratchBuffer(uint32 size)
+{
+	static const FName kStagingBufferName("Scratch");
+
+	FBufferBuilder result = {};
+	result
+		.Init(EBufferFlags::AccelerationStructureStorage | EBufferFlags::AccelerationStructureInput | EBufferFlags::TransferSrc | EBufferFlags::StorageBuffer, size)
+		.SetName(kStagingBufferName);
+
+	return result;
+}
+
 Turbo::FDescriptorPoolBuilder::FDescriptorPoolBuilder()
 {
 	Reset();

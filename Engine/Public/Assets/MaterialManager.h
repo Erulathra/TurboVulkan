@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Core/CoreUtils.h"
 #include "Core/DataStructures/GenPoolGrowable.h"
 #include "Graphics/ResourceBuilders.h"
 
