@@ -261,6 +261,7 @@ namespace Turbo
 	struct FBLAS
 	{
 		vk::AccelerationStructureKHR mVkAccelerationStructure;
+		FDeviceAddress mDeviceAddress;
 		THandle<FBuffer> mBuffer;
 
 		FName mName = {};
@@ -273,10 +274,32 @@ namespace Turbo
 	public:
 		virtual void Destroy(FGPUDevice& GPUDevice) override;
 
-	private:
+	protected:
 		vk::AccelerationStructureKHR mAccelerationStructure;
 		THandle<FBuffer> mBuffer;
 		THandle<FBLAS> mHandle;
+	};
+
+	struct FTLAS
+	{
+		vk::AccelerationStructureKHR mVkAccelerationStructure;
+		FDeviceAddress mDeviceAddress;
+		THandle<FBuffer> mBuffer;
+
+		FName mName = {};
+	};
+
+	class FTLASDestroyer : IDestroyer
+	{
+		DESTROYER_BODY()
+
+	public:
+		virtual void Destroy(FGPUDevice& GPUDevice) override;
+
+	protected:
+		vk::AccelerationStructureKHR mAccelerationStructure;
+		THandle<FBuffer> mBuffer;
+		THandle<FTLAS> mHandle;
 	};
 
 	/** Vulkan object abstractions end */

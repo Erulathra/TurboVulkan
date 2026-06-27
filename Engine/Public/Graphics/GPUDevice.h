@@ -7,7 +7,6 @@
 #include "ResourceBuilders.h"
 #include "VulkanHelpers.h"
 #include "Core/DataStructures/GenPool.h"
-#include "Debug/IConsoleManager.h"
 #include "Graphics/Resources.h"
 
 DECLARE_LOG_CATEGORY(LogGPUDevice, Info, Display)
@@ -95,6 +94,7 @@ namespace Turbo
 		[[nodiscard]] FDescriptorSet* AccessDescriptorSet(THandle<FDescriptorSet> handle) { return mDescriptorSetPool->Access(handle); }
 		[[nodiscard]] FShaderState* AccessShaderState(THandle<FShaderState> handle) { return mShaderStatePool->Access(handle); }
 		[[nodiscard]] FBLAS* AccessBLAS(THandle<FBLAS> handle) { return mBLASPool->Access(handle); }
+		[[nodiscard]] FTLAS* AccessTLAS(THandle<FTLAS> handle) { return mTLASPool->Access(handle); }
 
 		[[nodiscard]] const FBuffer* AccessBuffer(THandle<FBuffer> handle) const { return mBufferPool->Access(handle); }
 		[[nodiscard]] const FTexture* AccessTexture(THandle<FTexture> handle) const { return mTexturePool->Access(handle); }
@@ -104,7 +104,7 @@ namespace Turbo
 		[[nodiscard]] const FDescriptorSetLayout* AccessDescriptorSetLayout(THandle<FDescriptorSetLayout> handle) const { return mDescriptorSetLayoutPool->Access(handle); }
 		[[nodiscard]] const FDescriptorSet* AccessDescriptorSet(THandle<FDescriptorSet> handle) const { return mDescriptorSetPool->Access(handle); }
 		[[nodiscard]] const FShaderState* AccessShaderState(THandle<FShaderState> handle) const { return mShaderStatePool->Access(handle); }
-		[[nodiscard]] const FBLAS* AccessBLAS(THandle<FBLAS> handle) const { return mBLASPool->Access(handle); }
+		[[nodiscard]] const FTLAS* AccessTLAS(THandle<FTLAS> handle) const { return mTLASPool->Access(handle); }
 
 		/** Resource accessors end */
 
@@ -119,9 +119,12 @@ namespace Turbo
 		THandle<FDescriptorSet> CreateDescriptorSet(const FDescriptorSetBuilder& builder);
 		THandle<FShaderState> CreateShaderState(const FShaderStateBuilder& builder);
 		THandle<FBLAS> CreateBLAS(const FBLASBuilder& builder);
+		THandle<FTLAS> CreateTLAS(const FTLASBuilder& builder);
 
 		vk::CommandPool CreateCommandPool(uint32 queueFamilyIndex, vk::CommandPoolCreateFlags createFlags = {});
 		TUniquePtr<FCommandBuffer> CreateCommandBuffer(const FCommandBufferBuilder& builder);
+
+		[[nodiscard]] FAccelerationStructureSizeInfo CalculateTLASSize(const FTLASBuilder& builder) const;
 
 		/** Resource creation end */
 
@@ -140,6 +143,7 @@ namespace Turbo
 		void DestroyDescriptorSetLayout(THandle<FDescriptorSetLayout> handle);
 		void DestroyShaderState(THandle<FShaderState> handle);
 		void DestroyBLAS(THandle<FBLAS> handle);
+		void DestroyTLAS(THandle<FTLAS> handle);
 
 		void AddOnDestroyCallback(FOnDestroy::Delegate&& delegate);
 		/** Resource destroy end */
@@ -154,6 +158,7 @@ namespace Turbo
 		void DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer);
 		void DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer);
 		void DestroyBLASImmediate(const FBLASDestroyer& destroyer);
+		void DestroyTLASImmediate(const FTLASDestroyer& destroyer);
 
 		/** Destroy immediate end */
 
@@ -255,6 +260,7 @@ namespace Turbo
 		TPoolHeap<FDescriptorSet, 256> mDescriptorSetPool;
 		TPoolHeap<FShaderState, 256> mShaderStatePool;
 		TPoolHeap<FBLAS, 1024> mBLASPool;
+		TPoolHeap<FTLAS, 16> mTLASPool;
 
 		/** Resource pools end */
 

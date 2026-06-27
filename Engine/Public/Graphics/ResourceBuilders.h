@@ -450,6 +450,23 @@ namespace Turbo
 		FName mName = {};
 	};
 
+	struct FTLASBuilder
+	{
+		uint32 mNumInstances = 0;
+		THandle<FBuffer> mInstancesDataBuffer = {};
+		THandle<FBuffer> mScratchBuffer = {};
+		THandle<FBuffer> mDataBuffer = {};
+
+		FName mName = {};
+	};
+
+	struct FAccelerationStructureSizeInfo
+	{
+		FDeviceSize mAccelerationStructureSize;
+		FDeviceSize mBuildScratchSize;
+		FDeviceSize mUpdateScratchSize;
+	};
+
 }
 
 #undef BUILDER_BODY

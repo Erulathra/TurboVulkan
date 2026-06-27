@@ -41,4 +41,9 @@ namespace Turbo {
 	{
 		GPUDevice.DestroyBLASImmediate(*this);
 	}
+
+	void FTLASDestroyer::Destroy(FGPUDevice& GPUDevice)
+	{
+		GPUDevice.DestroyTLASImmediate(*this);
+	}
 } // Turbo

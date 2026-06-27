@@ -259,6 +259,41 @@ namespace Turbo
 		}
 	}
 
+	void FSceneRenderingLayer::CreateScenesTLAS(FRenderGraphBuilder& graphBuilder, FWorld* world)
+	{
+		std::vector<vk::AccelerationStructureInstanceKHR> instances;
+		auto& registry = world->mRegistry;
+
+		const auto meshTransformView = registry.view<FWorldTransform, FMeshComponent>();
+		instances.reserve(meshTransformView.size_hint());
+
+		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+
+		for (entt::entity entity : meshTransformView)
+		{
+			const FMeshComponent& meshComp = meshTransformView.get<FMeshComponent>(entity);
+			const FWorldTransform& transform = meshTransformView.get<FWorldTransform>(entity);
+
+			const FMesh* mesh = assetManager.AccessMesh(meshComp.mMesh);
+			const FBLAS* blas = gpu.AccessBLAS(mesh->mBlas);
+
+			vk::AccelerationStructureInstanceKHR& instance = instances.emplace_back();
+			std::memcpy(instance.transform, glm::value_ptr(glm::transpose(transform.mTransform)), sizeof(vk::TransformMatrixKHR));
+			instance.mask = 0xFF; // all for now
+			instance.instanceCustomIndex = meshComp.mMesh.GetIndex();
+			instance.accelerationStructureReference = blas->mDeviceAddress;
+		}
+
+		const static FName tlasName{"SceneTLAS"};
+		FTLASBuilder tlasBuilder = {
+			.mNumInstances = static_cast<uint32>(instances.size()),
+			.mName = tlasName
+		};
+
+		const FAccelerationStructureSizeInfo& tlasSizeInfo = gpu.CalculateTLASSize(tlasBuilder);
+	}
+
 	void FSceneRenderingLayer::Render(FRenderGraphBuilder& graphBuilder)
 	{
 		FWorld* world = gEngine->GetWorld();
@@ -357,6 +392,8 @@ namespace Turbo
 				.mBufferFlags = EBufferFlags::UniformBuffer,
 				.mName = FName("SceneDataBuffer")
 			});
+
+		CreateScenesTLAS(graphBuilder, world);
 
 		std::vector<FDrawIndirectBucket> drawIndirectBuckets;
 		CreateIndirectRenderBuffers(graphBuilder, world, sceneView, drawIndirectBuckets);

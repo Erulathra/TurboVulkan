@@ -63,6 +63,11 @@ namespace Turbo
 			FSceneView* sceneView, std::vector<FDrawIndirectBucket>& outBuckets
 		);
 
+		static void CreateScenesTLAS(
+			FRenderGraphBuilder& graphBuilder,
+			FWorld* world
+		);
+
 	private:
 		THandle<FPipeline> mFrustumCullingPipeline = {};
 		THandle<FPipeline> mToneMapperPipeline = {};
