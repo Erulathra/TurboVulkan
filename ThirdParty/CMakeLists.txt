@@ -92,5 +92,17 @@ CPMAddPackage(
 CPMAddPackage("gh:spnda/dds_image#6af8726")
 CPMAddPackage("gh:dougbinks/enkiTS#d0e74e1")
 
-add_subdirectory(Slang)
+CPMAddPackage(
+        GITHUB_REPOSITORY "shader-slang/slang"
+        GIT_TAG "v2026.12"
+        OPTIONS "SLANG_ENABLE_DXIL OFF"
+                "SLANG_ENABLE_GFX OFF"
+                "SLANG_ENABLE_SLANGD OFF"
+                "SLANG_ENABLE_SLANGC OFF"
+                "SLANG_ENABLE_SLANGI OFF"
+                "SLANG_ENABLE_TESTS OFF"
+                "SLANG_ENABLE_EXAMPLES OFF"
+                "SLANG_ENABLE_REPLAYER OFF"
+)
+
 add_subdirectory(RenderDoc)
