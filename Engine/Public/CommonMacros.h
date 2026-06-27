@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(__clang__) == false
+#error "Unsupported compiler"
+#endif
+
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
@@ -15,12 +19,7 @@ using namespace std::string_view_literals;
 
 // Debug break
 #if DEBUG
-#if PLATFORM_MSVC
-#include <intrin.h>
-#define TURBO_DEBUG_BREAK() __debugbreak()
-#else
 #define TURBO_DEBUG_BREAK() __builtin_debugtrap();
-#endif
 #else // DEBUG
 #define TURBO_DEBUG_BREAK() {};
 #endif // else DEBUG

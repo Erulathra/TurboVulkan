@@ -7,7 +7,7 @@ if (NOT MSVC AND NOT UNIX)
 	turbo_message(FATAL_ERROR "Unsupported platform" )
 endif ()
 
-if (MSVC)
+if (WIN32)
 	set_target_properties(
 			slang
 			PROPERTIES

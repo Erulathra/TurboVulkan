@@ -1,0 +1,12 @@
+[
+   {
+      "adapter": "CodeLLDB",
+      "label": "Run Debug Development Editor",
+      "mode": "debug",
+
+      "program": "${ZED_WORKTREE_ROOT}/cmake-build-zed-debug-development/Editor/TurboVulkan_Editor",
+      "request": "launch",
+
+      "build": "Build [Debug Developement]",
+   },
+]
