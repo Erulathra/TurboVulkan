@@ -55,12 +55,12 @@ target_link_libraries(turbo_imgui PRIVATE Vulkan-Headers)
 target_link_libraries(turbo_imgui PRIVATE SDL3::SDL3-shared)
 target_compile_definitions(turbo_imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 target_compile_definitions(turbo_imgui PUBLIC -DIMGUI_USE_WCHAR32)
+set_target_properties(turbo_imgui PROPERTIES CMAKE_COMPILE_WARNING_AS_ERROR OFF)
 target_link_libraries(turbo_imgui PRIVATE glm::glm)
 
 target_include_directories(turbo_imgui PUBLIC ${imgui_SOURCE_DIR})
 target_include_directories(turbo_imgui PUBLIC ImGui)
 target_compile_definitions(turbo_imgui PUBLIC -DIMGUI_USER_CONFIG="ImGuiConfig.h")
-target_include_directories(turbo_imgui PUBLIC ${imgui_SOURCE_DIR}/imgui_internal.h)
 
 CPMAddPackage("gh:CedricGuillemet/ImGuizmo#be8aa4a")
 add_library(turbo_imguizmo STATIC

@@ -1,0 +1,47 @@
+[
+   {
+      "label": "Refresh CMake project [Debug Development]",
+      "command": "cmake",
+      "args": [
+         "-S \"$ZED_WORKTREE_ROOT\"",
+         "-B cmake-build-zed-debug-development",
+         "-G Ninja",
+         "-DCMAKE_BUILD_TYPE=Debug",
+         "-DBUILD_TYPE=Development",
+      ],
+
+      "env": {
+         "CC": "clang",
+         "CXX": "clang++",
+      },
+
+      "use_new_terminal": false,
+      "allow_concurrent_runs": false,
+      "reveal": "always",
+      "reveal_target": "dock",
+      "hide": "never",
+      "shell": "system",
+      "show_summary": true,
+      "show_command": true,
+      "save": "all",
+   },
+
+   {
+      "label": "Build [Debug Developement]",
+      "command": "echo",
+      "args": [
+         "-C \"$ZED_WORKTREE_ROOT/cmake-build-zed-debug-development\"",
+         "-j 16",
+      ],
+
+      "use_new_terminal": false,
+      "allow_concurrent_runs": false,
+      "reveal": "always",
+      "reveal_target": "dock",
+      "hide": "never",
+      "shell": "system",
+      "show_summary": true,
+      "show_command": true,
+      "save": "all",
+   },
+]

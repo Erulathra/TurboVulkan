@@ -106,37 +106,24 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ############################################################################################
-# MSVC
-############################################################################################
-
-if (MSVC)
-    # Make MSVC more standard compliant.
-    add_compile_options(/permissive)
-    add_compile_options(/Zc:preprocessor)
-
-    turbo_message(STATUS "Platform MSVC")
-else ()
-    set(MSVC 0)
-endif ()
-
-add_compile_definitions(PLATFORM_MSVC=${MSVC})
-
-############################################################################################
-# Linux
+# OS
 ############################################################################################
 
 if (UNIX)
     turbo_message(STATUS "Platform Linux")
-else ()
+    set(WIN32 0)
+elseif (WIN32)
+    turbo_message(STATUS "Platform Windows")
     set(UNIX 0)
 endif ()
 
 add_compile_definitions(PLATFORM_LINUX=${UNIX})
+add_compile_definitions(PLATFORM_WINDOWS=${WIN32})
 
 ############################################################################################
 # Other
 ############################################################################################
 
-if (NOT UNIX AND NOT MSVC)
-    turbo_message(FATAL "Unsupported target system.")
+if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    turbo_message(FATAL_ERROR "Project only support CLANG compiler.")
 endif ()
