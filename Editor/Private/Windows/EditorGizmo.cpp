@@ -5,7 +5,6 @@
 #include "ImGuizmo.h"
 #include "Core/Engine.h"
 #include "Core/Input/Keys.h"
-#include "Layers/ImGUILayer.h"
 #include "World/Camera.h"
 #include "World/World.h"
 
@@ -13,12 +12,12 @@ namespace Turbo
 {
 	namespace Icons
 	{
-		constexpr std::string World = TEXT("");
-		constexpr std::string Local = TEXT("");
+		const static std::string World = TEXT("");
+		const static std::string Local = TEXT("");
 
-		constexpr std::string Translate = TEXT("󰵉");
-		constexpr std::string Rotate = TEXT("");
-		constexpr std::string Scale = TEXT("󰘖");
+		const static std::string Translate = TEXT("󰵉");
+		const static std::string Rotate = TEXT("");
+		const static std::string Scale = TEXT("󰘖");
 	}
 
 	namespace Actions

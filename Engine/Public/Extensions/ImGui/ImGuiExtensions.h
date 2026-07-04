@@ -12,7 +12,7 @@ namespace ImGui
 	void TextFmt(fmt::format_string<Args...> fmt, Args&&... args)
 	{
 		const std::string str = fmt::format(fmt, std::forward<Args>(args)...);
-		TextUnformatted(&*str.begin(), &*str.end());
+		TextUnformatted(&str.front(), (&str.back()) + 1);
 	}
 
 	inline void TreePop(uint32& currentDepth, uint32 targetDepth)

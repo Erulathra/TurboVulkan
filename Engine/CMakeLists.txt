@@ -5,7 +5,6 @@ project(TurboVulkan VERSION 0.1.0)
 ############################################################################################
 
 file(GLOB_RECURSE PRIVATE_FILES Private/*.cpp)
-file(GLOB_RECURSE PUBLIC_FILES Public/*.h)
 
 add_library(${PROJECT_NAME} STATIC ${PRIVATE_FILES})
 

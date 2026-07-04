@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CommonMacros.h"
+#include "Core/DataStructures/Handle.h"
 namespace Turbo
 {
 	template<typename T>
@@ -95,6 +97,8 @@ namespace Turbo
 
 			return nullptr;
 		}
+
+		FHandle::IndexType Size() const { return mSize - mFreeIndices.size(); }
 
 	private:
 		std::vector<T> mData;

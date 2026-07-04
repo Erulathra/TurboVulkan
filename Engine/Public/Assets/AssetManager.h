@@ -4,6 +4,7 @@
 #include "Assets/AssetManagerHelpers.h"
 #include "Core/DataStructures/GenPoolGrowable.h"
 #include "Core/DataStructures/ManualPoolGrowable.h"
+#include "Graphics/Resources.h"
 
 DECLARE_LOG_CATEGORY(LogAssetManager, Display, Display)
 DECLARE_LOG_CATEGORY(LogMeshLoading, Display, Display)
@@ -21,8 +22,7 @@ namespace Turbo
 	struct FMesh;
 	class FGPUDevice;
 
-
-	class FAssetManager final
+	class FAssetManager
 	{
 		DELETE_COPY(FAssetManager);
 

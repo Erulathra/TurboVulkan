@@ -1,16 +1,14 @@
 #include "Graphics/ShaderCompiler.h"
-
-#include "SlangShaderCompiler.h"
+#include "Graphics/SlangShaderCompiler.h"
 
 namespace Turbo
 {
-	TUniquePtr<IShaderCompiler> gShaderCompiler;
-
 	IShaderCompiler& IShaderCompiler::Get()
 	{
-		if (!gShaderCompiler)
+   	static IShaderCompiler* gShaderCompiler = nullptr;
+		if (gShaderCompiler == nullptr)
 		{
-			gShaderCompiler = std::make_unique<FSlangShaderCompiler>();
+			gShaderCompiler = new FSlangShaderCompiler();
 		}
 
 		return *gShaderCompiler;

@@ -15,7 +15,7 @@ namespace Turbo::SceneCullingCS
 
 		FDeviceAddress mDrawIndirectCommand;
 
-		uint mNumDraws;
+		uint32 mNumDraws;
 	};
 
 	inline THandle<FPipeline> CreatePipeline(FGPUDevice& gpu)

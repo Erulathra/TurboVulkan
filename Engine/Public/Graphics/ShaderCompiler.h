@@ -1,17 +1,13 @@
 #pragma once
 
-#include "Graphics/GraphicsCore.h"
-
 namespace Turbo
 {
-	class FShaderStage;
+	struct FShaderStage;
 
 	class IShaderCompiler
 	{
 	public:
 		static IShaderCompiler& Get();
-
-		virtual ~IShaderCompiler() = default;
 
 		virtual void Init() = 0;
 		virtual void Destroy() = 0;

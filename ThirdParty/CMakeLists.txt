@@ -14,7 +14,7 @@ CPMAddPackage(
 # Lib which enhances enums
 CPMAddPackage("gh:Neargye/magic_enum@0.9.7")
 # events and delegate support
-CPMAddPackage( "gh:fmtlib/fmt#11.2.0")
+CPMAddPackage( "gh:fmtlib/fmt#12.2.0")
 CPMAddPackage( "gh:gabime/spdlog@1.15.3")
 # Math library
 CPMAddPackage(
@@ -55,7 +55,6 @@ target_link_libraries(turbo_imgui PRIVATE Vulkan-Headers)
 target_link_libraries(turbo_imgui PRIVATE SDL3::SDL3-shared)
 target_compile_definitions(turbo_imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 target_compile_definitions(turbo_imgui PUBLIC -DIMGUI_USE_WCHAR32)
-set_target_properties(turbo_imgui PROPERTIES CMAKE_COMPILE_WARNING_AS_ERROR OFF)
 target_link_libraries(turbo_imgui PRIVATE glm::glm)
 
 target_include_directories(turbo_imgui PUBLIC ${imgui_SOURCE_DIR})
@@ -90,7 +89,7 @@ CPMAddPackage(
         OPTIONS "ENTT_INCLUDE_NATVIS ON"
 )
 CPMAddPackage("gh:spnda/dds_image#6af8726")
-CPMAddPackage("gh:dougbinks/enkiTS#d0e74e1")
+CPMAddPackage("gh:dougbinks/enkiTS#0289cf6")
 
 CPMAddPackage(
         GITHUB_REPOSITORY "shader-slang/slang"
@@ -103,6 +102,12 @@ CPMAddPackage(
                 "SLANG_ENABLE_TESTS OFF"
                 "SLANG_ENABLE_EXAMPLES OFF"
                 "SLANG_ENABLE_REPLAYER OFF"
+                "SLANG_ENABLE_SLANG_PROXY OFF"
+                "SLANG_ENABLE_CUDA OFF"
+                "SLANG_ENABLE_OPTIX OFF"
+                "SLANG_ENABLE_NVAPI OFF"
+                "SLANG_ENABLE_AFTERMATH OFF"
+                "SLANG_ENABLE_XLIB OFF"
 )
 
 add_subdirectory(RenderDoc)
