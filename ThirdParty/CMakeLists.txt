@@ -22,7 +22,7 @@ CPMAddPackage(
 CPMAddPackage( "gh:YaaZ/VulkanMemoryAllocator-Hpp@3.2.1")
 
 find_package(VulkanHeaders CONFIG REQUIRED)
-find_package(SDL3 CONFIG REQUIRED COMPONENTS SDL3-shared)
+find_package(SDL3 CONFIG REQUIRED)
 
 CPMAddPackage("gh:ocornut/imgui@1.92.3-docking")
 add_library(turbo_imgui STATIC
@@ -39,6 +39,7 @@ add_library(turbo_imgui STATIC
 )
 target_link_libraries(turbo_imgui PRIVATE Vulkan::Headers)
 target_link_libraries(turbo_imgui PRIVATE SDL3::SDL3)
+
 target_compile_definitions(turbo_imgui PUBLIC -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 target_compile_definitions(turbo_imgui PUBLIC -DIMGUI_USE_WCHAR32)
 target_link_libraries(turbo_imgui PRIVATE glm::glm)

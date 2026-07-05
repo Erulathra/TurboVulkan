@@ -1,6 +1,9 @@
 #pragma once
 
+#if PLATFORM_WINDOWS
 #include <corecrt_malloc.h>
+#endif // PLATFORM_WINDOWS
+
 #include "stdlib.h"
 
 namespace Turbo
