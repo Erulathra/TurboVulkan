@@ -9,9 +9,10 @@ DECLARE_LOG_CATEGORY(LogSlang, Display, Display)
 
 namespace Turbo
 {
-	class FShaderStage;
+	struct FShaderStage;
 
-	class FSlangShaderCompiler final : public IShaderCompiler
+	class FSlangShaderCompiler final
+      : public IShaderCompiler
 	{
 	public:
 		virtual void Init() override;

@@ -2,6 +2,13 @@
 
 #include "Graphics/GPUDevice.h"
 
+#if PLATFORM_WINDOWS
+#ifndef _AMD64_
+#define _AMD64_
+#endif // _AMD64_
+#include "libloaderapi.h"
+#endif // PLATFORM_WINDOWS
+
 namespace Turbo
 {
 	FRenderDocFrameDebuggerAPI::~FRenderDocFrameDebuggerAPI()

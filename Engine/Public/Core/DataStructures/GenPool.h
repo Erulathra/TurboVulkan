@@ -135,7 +135,6 @@ namespace Turbo
 			}
 		}
 
-
 	private:
 		constexpr static size_t kColdDataArraySize = size * (std::is_same_v<FDummyColdType, ColdType> ? 0 : 1);
 
@@ -163,4 +162,3 @@ namespace Turbo
 	};
 
 } // turbo
-

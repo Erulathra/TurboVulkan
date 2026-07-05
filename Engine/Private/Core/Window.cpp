@@ -243,7 +243,10 @@ namespace Turbo
 
 		mWindowIconSurface = LoadSurface(path.data());
 
+	#if PLATFORM_WINDOWS == false
+	   // TODO: Fix that on windows
 		SDL_SetWindowIcon(mSDLWindow, mWindowIconSurface);
+	#endif // PLATFORM_WINDOWS == false
 	}
 
 	void FWindow::InitForVulkan()

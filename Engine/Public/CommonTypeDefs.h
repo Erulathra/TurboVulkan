@@ -15,8 +15,8 @@ using int64 = std::int64_t;
 using uint64 = std::uint64_t;
 
 using fp16 = _Float16;
-using fp32 = _Float32;
-using fp64 = _Float64;
+using fp32 = float;
+using fp64 = double;
 
 using cstring = const char*;
 

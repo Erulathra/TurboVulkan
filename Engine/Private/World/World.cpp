@@ -1,6 +1,7 @@
 #include "World/World.h"
 
 #include "World/GLTFSceneLoader.h"
+#include "Assets/AssetManager.h"
 
 using namespace entt::literals;
 

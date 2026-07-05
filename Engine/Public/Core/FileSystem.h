@@ -16,8 +16,8 @@ namespace Turbo
 
 		inline const std::string kSavedPath = "Saved";
 		inline const std::string kShaderPath = "Shader";
-		inline const std::string kLogPath = PathCombine(kSavedPath, "/Logs");
-		inline const std::string kConfigPath = PathCombine(kSavedPath, "/Config");
+		inline const std::string kLogPath = PathCombine(kSavedPath, "Logs");
+		inline const std::string kConfigPath = PathCombine(kSavedPath, "Config");
 
 		/** Use this to load asset data. It allows us to replace implementation
 		 * to use zip pack instead of files in the future */

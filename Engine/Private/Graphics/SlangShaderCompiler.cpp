@@ -5,7 +5,6 @@
 
 namespace Turbo
 {
-
 	void FSlangShaderCompiler::Init()
 	{
 		TURBO_LOG(LogSlang, Info, "Initializing Slang shader compiler.");

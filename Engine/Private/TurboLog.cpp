@@ -41,4 +41,3 @@ namespace Turbo
 		TURBO_LOG(LogEngine, Info, "Logger settings initialized.")
 	}
 }
-

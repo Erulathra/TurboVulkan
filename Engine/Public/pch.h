@@ -13,7 +13,11 @@
 #include <string>
 #include <string_view>
 #include <limits>
-#include <stdfloat>
+
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+#endif // ifndef _USE_MATH_DEFINES
+#include <cmath>
 
 // stl collections
 #include <vector>
@@ -27,7 +31,9 @@
 #include <vulkan/vulkan.hpp>
 
 // VMA
+#ifndef VULKAN_HPP_ASSERT_ON_RESULT
 #define VULKAN_HPP_ASSERT_ON_RESULT {}
+#endif // ifndef VULKAN_HPP_ASSERT_ON_RESULT
 #include "vk_mem_alloc.hpp"
 
 // GLM

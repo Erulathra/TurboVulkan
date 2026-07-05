@@ -13,7 +13,6 @@
 #include "Assets/EngineResources.h"
 #include "Assets/GLTFHelpers.h"
 #include "Core/CoreUtils.h"
-#include "Core/Utils/StringUtils.h"
 #include "World/World.h"
 
 namespace

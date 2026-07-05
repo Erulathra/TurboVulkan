@@ -1,5 +1,7 @@
 #include "Assets/MaterialManager.h"
+#include <vector>
 
+#include "Core/DataStructures/Handle.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 
@@ -12,9 +14,17 @@ namespace Turbo
 
 	void FMaterialManager::Destroy(FGPUDevice& gpuDevice)
 	{
+		std::vector<THandle<FMaterial>> materialsToDestroy;
+		materialsToDestroy.reserve(mMaterialPool.Size());
+
 		for (const auto& [key, value] : mMaterialToMaterialInstanceMap)
 		{
-			DestroyMaterial(key);
+   		materialsToDestroy.push_back(key);
+		}
+
+		for (THandle<FMaterial> materialHandle : materialsToDestroy)
+		{
+			DestroyMaterial(materialHandle);
 		}
 	}
 
