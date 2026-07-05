@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "configurePresets": [
+        {
+            "name": "cmake-build-debug-development",
+            "displayName": "Debug Development",
+            "binaryDir": "${sourceDir}/cmake-build-debug-development",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_TYPE": "Development",
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            }
+        }
+    ]
+}

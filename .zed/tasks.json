@@ -4,10 +4,7 @@
       "command": "cmake",
       "args": [
          "-S \"$ZED_WORKTREE_ROOT\"",
-         "-B cmake-build-zed-debug-development",
-         "-G Ninja",
-         "-DCMAKE_BUILD_TYPE=Debug",
-         "-DBUILD_TYPE=Development",
+         "--preset cmake-build-debug-development",
       ],
 
       "env": {
@@ -28,10 +25,11 @@
 
    {
       "label": "Build [Debug Developement]",
-      "command": "ninja",
+      "command": "cmake",
       "args": [
-         "-C \"$ZED_WORKTREE_ROOT/cmake-build-zed-debug-development\"",
-         "-j 16",
+         "-S \"$ZED_WORKTREE_ROOT\"",
+         "--preset cmake-build-debug-development",
+         "--build ",
       ],
 
       "use_new_terminal": false,
