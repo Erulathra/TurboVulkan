@@ -1,6 +1,8 @@
 #pragma once
 
 #include "CommandBuffer.h"
+#include "Graphics/GraphicsCore.h"
+#include "Resources.h"
 #include "VkBootstrap.h"
 
 #include "DestoryQueue.h"
@@ -93,8 +95,7 @@ namespace Turbo
 		[[nodiscard]] FDescriptorSetLayout* AccessDescriptorSetLayout(THandle<FDescriptorSetLayout> handle) { return mDescriptorSetLayoutPool->Access(handle); }
 		[[nodiscard]] FDescriptorSet* AccessDescriptorSet(THandle<FDescriptorSet> handle) { return mDescriptorSetPool->Access(handle); }
 		[[nodiscard]] FShaderState* AccessShaderState(THandle<FShaderState> handle) { return mShaderStatePool->Access(handle); }
-		[[nodiscard]] FBLAS* AccessBLAS(THandle<FBLAS> handle) { return mBLASPool->Access(handle); }
-		[[nodiscard]] FTLAS* AccessTLAS(THandle<FTLAS> handle) { return mTLASPool->Access(handle); }
+		[[nodiscard]] FAccelerationStructure* AccessBLAS(THandle<FAccelerationStructure> handle) { return mBLASPool->Access(handle); }
 
 		[[nodiscard]] const FBuffer* AccessBuffer(THandle<FBuffer> handle) const { return mBufferPool->Access(handle); }
 		[[nodiscard]] const FTexture* AccessTexture(THandle<FTexture> handle) const { return mTexturePool->Access(handle); }
@@ -104,7 +105,7 @@ namespace Turbo
 		[[nodiscard]] const FDescriptorSetLayout* AccessDescriptorSetLayout(THandle<FDescriptorSetLayout> handle) const { return mDescriptorSetLayoutPool->Access(handle); }
 		[[nodiscard]] const FDescriptorSet* AccessDescriptorSet(THandle<FDescriptorSet> handle) const { return mDescriptorSetPool->Access(handle); }
 		[[nodiscard]] const FShaderState* AccessShaderState(THandle<FShaderState> handle) const { return mShaderStatePool->Access(handle); }
-		[[nodiscard]] const FTLAS* AccessTLAS(THandle<FTLAS> handle) const { return mTLASPool->Access(handle); }
+		[[nodiscard]] const FAccelerationStructure* AccessBLAS(THandle<FAccelerationStructure> handle) const { return mBLASPool->Access(handle); }
 
 		/** Resource accessors end */
 
@@ -118,18 +119,17 @@ namespace Turbo
 		THandle<FDescriptorSetLayout> CreateDescriptorSetLayout(const FDescriptorSetLayoutBuilder& builder);
 		THandle<FDescriptorSet> CreateDescriptorSet(const FDescriptorSetBuilder& builder);
 		THandle<FShaderState> CreateShaderState(const FShaderStateBuilder& builder);
-		THandle<FBLAS> CreateBLAS(const FBLASBuilder& builder);
-		THandle<FTLAS> CreateTLAS(const FTLASBuilder& builder);
+		THandle<FAccelerationStructure> CreateBLAS(const FBLASBuilder& builder);
+		THandle<FAccelerationStructure> CreateTLAS(const FTLASBuilder& builder);
 
 		vk::CommandPool CreateCommandPool(uint32 queueFamilyIndex, vk::CommandPoolCreateFlags createFlags = {});
 		TUniquePtr<FCommandBuffer> CreateCommandBuffer(const FCommandBufferBuilder& builder);
-
-		[[nodiscard]] FAccelerationStructureSizeInfo CalculateTLASSize(const FTLASBuilder& builder) const;
 
 		/** Resource creation end */
 
 		/** Other resource related methods */
 	public:
+   	[[nodiscard]] FAccelerationStructureSizeInfo CalculateTLASSize(const FTLASBuilder& builder) const;
 		void ResetDescriptorPool(THandle<FDescriptorPool> descriptorPoolHandle);
 		/** Other resource related methods end */
 
@@ -142,8 +142,7 @@ namespace Turbo
 		void DestroyDescriptorPool(THandle<FDescriptorPool> handle);
 		void DestroyDescriptorSetLayout(THandle<FDescriptorSetLayout> handle);
 		void DestroyShaderState(THandle<FShaderState> handle);
-		void DestroyBLAS(THandle<FBLAS> handle);
-		void DestroyTLAS(THandle<FTLAS> handle);
+		void DestroyBLAS(THandle<FAccelerationStructure> handle);
 
 		void AddOnDestroyCallback(FOnDestroy::Delegate&& delegate);
 		/** Resource destroy end */
@@ -157,8 +156,7 @@ namespace Turbo
 		void DestroyDescriptorPoolImmediate(const FDescriptorPoolDestroyer& destroyer);
 		void DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer);
 		void DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer);
-		void DestroyBLASImmediate(const FBLASDestroyer& destroyer);
-		void DestroyTLASImmediate(const FTLASDestroyer& destroyer);
+		void DestroyBLASImmediate(const FAccelerationStructureDestroyer& destroyer);
 
 		/** Destroy immediate end */
 
@@ -217,7 +215,6 @@ namespace Turbo
 
 		/** Utils */
 	private:
-		// void CreateStagingBuffer
 		/** Utils end */
 
 		/** Rendering interface */
@@ -259,8 +256,7 @@ namespace Turbo
 		TPoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;
 		TPoolHeap<FDescriptorSet, 256> mDescriptorSetPool;
 		TPoolHeap<FShaderState, 256> mShaderStatePool;
-		TPoolHeap<FBLAS, 1024> mBLASPool;
-		TPoolHeap<FTLAS, 16> mTLASPool;
+		TPoolHeap<FAccelerationStructure, 1024> mBLASPool;
 
 		/** Resource pools end */
 

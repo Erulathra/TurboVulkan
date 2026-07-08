@@ -8,6 +8,7 @@
 #include "Graphics/GPUDevice.h"
 #include "Graphics/ResourceBuilders.h"
 #include "Graphics/FrameGraph/RenderGraphUtils.h"
+#include "Graphics/Resources.h"
 #include "Graphics/Shaders/SceneCullingCS.h"
 #include "Graphics/Shaders/ToneMapperPostProcess.h"
 #include "World/Camera.h"
@@ -276,7 +277,7 @@ namespace Turbo
 			const FWorldTransform& transform = meshTransformView.get<FWorldTransform>(entity);
 
 			const FMesh* mesh = assetManager.AccessMesh(meshComp.mMesh);
-			const FBLAS* blas = gpu.AccessBLAS(mesh->mBlas);
+			const FAccelerationStructure* blas = gpu.AccessBLAS(mesh->mBlas);
 
 			vk::AccelerationStructureInstanceKHR& instance = instances.emplace_back();
 			std::memcpy(instance.transform, glm::value_ptr(glm::transpose(transform.mTransform)), sizeof(vk::TransformMatrixKHR));

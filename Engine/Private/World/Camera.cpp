@@ -1,13 +1,12 @@
 #include "World/Camera.h"
 
-#include "Assets/AssetManager.h"
 #include "Core/Math/FRotator.h"
-#include "Graphics/GPUDevice.h"
+#include "Debug/IConsoleManager.h"
 #include "World/SceneGraph.h"
 
 namespace Turbo
 {
-	inline TAutoConsoleVariable<bool> CVarFreezeCulling("culling.freeze", false, "Freezes culling");
+	static TAutoConsoleVariable<bool> CVarFreezeCulling("culling.freeze", false, "Freezes culling");
 
 	void FCamera::on_construct(entt::registry& registry, const entt::entity entity)
 	{

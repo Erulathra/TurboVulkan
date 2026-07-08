@@ -11,6 +11,17 @@
                 "BUILD_TYPE": "Development",
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
             }
+        },
+        {
+            "name": "cmake-build-release-shipping",
+            "displayName": "Release Shipping",
+            "binaryDir": "${sourceDir}/cmake-build-release-shipping",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_TYPE": "Shipping",
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            }
         }
     ]
 }

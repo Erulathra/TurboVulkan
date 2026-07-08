@@ -18,6 +18,7 @@ namespace Turbo
 		Texture,
 		RWTexture,
 		Sampler,
+		TLAS,
 
 		None,
 	};
@@ -258,7 +259,7 @@ namespace Turbo
 		THandle<FPipeline> mHandle = {};
 	};
 
-	struct FBLAS
+	struct FAccelerationStructure
 	{
 		vk::AccelerationStructureKHR mVkAccelerationStructure;
 		FDeviceAddress mDeviceAddress;
@@ -267,7 +268,7 @@ namespace Turbo
 		FName mName = {};
 	};
 
-	class FBLASDestroyer : IDestroyer
+	class FAccelerationStructureDestroyer : IDestroyer
 	{
 		DESTROYER_BODY()
 
@@ -277,29 +278,7 @@ namespace Turbo
 	protected:
 		vk::AccelerationStructureKHR mAccelerationStructure;
 		THandle<FBuffer> mBuffer;
-		THandle<FBLAS> mHandle;
-	};
-
-	struct FTLAS
-	{
-		vk::AccelerationStructureKHR mVkAccelerationStructure;
-		FDeviceAddress mDeviceAddress;
-		THandle<FBuffer> mBuffer;
-
-		FName mName = {};
-	};
-
-	class FTLASDestroyer : IDestroyer
-	{
-		DESTROYER_BODY()
-
-	public:
-		virtual void Destroy(FGPUDevice& GPUDevice) override;
-
-	protected:
-		vk::AccelerationStructureKHR mAccelerationStructure;
-		THandle<FBuffer> mBuffer;
-		THandle<FTLAS> mHandle;
+		THandle<FAccelerationStructure> mHandle;
 	};
 
 	/** Vulkan object abstractions end */

@@ -1,6 +1,9 @@
 #include "Graphics/GPUDevice.h"
 
 #include "Graphics/GraphicsCore.h"
+#include "CommonMacros.h"
+#include "Graphics/CommandBuffer.h"
+#include "Graphics/Resources.h"
 #include "TaskScheduler.h"
 #include "VkBootstrap.h"
 #include "Assets/EngineResources.h"
@@ -11,7 +14,7 @@
 #include "Graphics/ShaderCompiler.h"
 #include "Graphics/VulkanInitializers.h"
 
-#include "IConsoleManager.h"
+#include "Debug/IConsoleManager.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -598,10 +601,10 @@ namespace Turbo
 		return handle;
 	}
 
-	THandle<FBLAS> FGPUDevice::CreateBLAS(const FBLASBuilder& builder)
+	THandle<FAccelerationStructure> FGPUDevice::CreateBLAS(const FBLASBuilder& builder)
 	{
-		THandle<FBLAS> handle = mBLASPool->Acquire();
-		FBLAS* blas = mBLASPool->Access(handle);
+		THandle<FAccelerationStructure> handle = mBLASPool->Acquire();
+		FAccelerationStructure* blas = mBLASPool->Access(handle);
 		blas->mName = builder.mName;
 
 		const FBuffer* vertexBuffer = AccessBuffer(builder.mVertexBuffer);
@@ -682,10 +685,10 @@ namespace Turbo
 		return handle;
 	}
 
-	THandle<FTLAS> FGPUDevice::CreateTLAS(const FTLASBuilder& builder)
+	THandle<FAccelerationStructure> FGPUDevice::CreateTLAS(const FTLASBuilder& builder)
 	{
-		THandle<FTLAS> handle = mTLASPool->Acquire();
-		FTLAS* tlas = mTLASPool->Access(handle);
+		THandle<FAccelerationStructure> handle = mBLASPool->Acquire();
+		FAccelerationStructure* tlas = mBLASPool->Access(handle);
 		tlas->mName = builder.mName;
 
 		const FBuffer* instancesDataBuffer = AccessBuffer(builder.mInstancesDataBuffer);
@@ -716,8 +719,13 @@ namespace Turbo
 			.mSize = sizeInfo.accelerationStructureSize,
 			.mName = builder.mName
 		};
-		tlas->mBuffer = CreateBuffer(bufferBuilder);
-		const FBuffer* storageBuffer = AccessBuffer(tlas->mBuffer);
+		tlas->mBuffer = builder.mStorageBuffer;
+
+		const FBuffer* instanceBuffer = AccessBuffer(builder.mInstancesDataBuffer);
+		const FBuffer* storageBuffer = AccessBuffer(builder.mStorageBuffer);
+		const FBuffer* scratchBuffer = AccessBuffer(builder.mScratchBuffer);
+
+		TURBO_CHECK(instanceBuffer && storageBuffer && scratchBuffer)
 
 		// Create TLAS
 		vk::AccelerationStructureCreateInfoKHR createInfo = {};
@@ -725,11 +733,19 @@ namespace Turbo
 		createInfo.size = sizeInfo.accelerationStructureSize;
 		createInfo.type = vk::AccelerationStructureTypeKHR::eTopLevel;
 
-		// Create temp scratch data buffer
-		const FBufferBuilder scratchBufferBuilder = FBufferBuilder::CreateScratchBuffer(sizeInfo.buildScratchSize);
-		const THandle<FBuffer> scratchBufferHandle = CreateBuffer(scratchBufferBuilder);
-		const FBuffer* scratchBuffer = AccessBuffer(scratchBufferHandle);
-		buildGeometryInfo.scratchData = scratchBuffer->mDeviceAddress;
+		tlas->mDeviceAddress = mVkDevice.getAccelerationStructureAddressKHR(tlas->mVkAccelerationStructure);
+		TURBO_CHECK(tlas->mDeviceAddress != 0)
+
+		vk::AccelerationStructureBuildRangeInfoKHR buildRangeInfo = {};
+		buildRangeInfo.primitiveCount = builder.mNumInstances;
+		buildRangeInfo.primitiveOffset = 0;
+		buildRangeInfo.firstVertex = 0;
+		buildRangeInfo.transformOffset = 0;
+
+		TURBO_CHECK(builder.cmd != nullptr)
+
+		const vk::AccelerationStructureBuildRangeInfoKHR* buildRangeInfoPtr = &buildRangeInfo;
+		builder.cmd->mVkCommandBuffer.buildAccelerationStructuresKHR(1, &buildGeometryInfo, &buildRangeInfoPtr);
 
 		return handle;
 	}
@@ -759,7 +775,6 @@ namespace Turbo
 			.mUpdateScratchSize = sizeInfo.updateScratchSize
 		};
 	}
-
 	void FGPUDevice::ResetDescriptorPool(THandle<FDescriptorPool> descriptorPoolHandle)
 	{
 		TRACE_ZONE_SCOPED()
@@ -893,26 +908,12 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
-	void FGPUDevice::DestroyBLAS(THandle<FBLAS> handle)
+	void FGPUDevice::DestroyBLAS(THandle<FAccelerationStructure> handle)
 	{
-		const FBLAS* blas = AccessBLAS(handle);
+		const FAccelerationStructure* blas = AccessBLAS(handle);
 		TURBO_CHECK(blas)
 
-		FBLASDestroyer destroyer = {};
-		destroyer.mAccelerationStructure = blas->mVkAccelerationStructure;
-		destroyer.mBuffer = blas->mBuffer;
-		destroyer.mHandle = handle;
-
-		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
-		frameData.mDestroyQueue.RequestDestroy(destroyer);
-	}
-
-	void FGPUDevice::DestroyTLAS(THandle<FTLAS> handle)
-	{
-		const FTLAS* blas = AccessTLAS(handle);
-		TURBO_CHECK(blas)
-
-		FTLASDestroyer destroyer = {};
+		FAccelerationStructureDestroyer destroyer = {};
 		destroyer.mAccelerationStructure = blas->mVkAccelerationStructure;
 		destroyer.mBuffer = blas->mBuffer;
 		destroyer.mHandle = handle;
@@ -1494,6 +1495,10 @@ namespace Turbo
 
 					break;
 				}
+			case Turbo::EResourceType::TLAS:
+				{
+					TURBO_UNINPLEMENTED()
+				}
 			default: ;
 			}
 		}
@@ -1989,7 +1994,7 @@ namespace Turbo
 		mShaderStatePool->Release(destroyer.mHandle);
 	}
 
-	void FGPUDevice::DestroyBLASImmediate(const FBLASDestroyer& destroyer)
+	void FGPUDevice::DestroyBLASImmediate(const FAccelerationStructureDestroyer& destroyer)
 	{
 		const FBuffer* storageBuffer = AccessBuffer(destroyer.mBuffer);
 		const FBufferCold* storageBufferCold = AccessBufferCold(destroyer.mBuffer);
@@ -2004,23 +2009,6 @@ namespace Turbo
 		DestroyBufferImmediate(bufferDestroyer);
 
 		mBLASPool->Release(destroyer.mHandle);
-	}
-
-	void FGPUDevice::DestroyTLASImmediate(const FTLASDestroyer& destroyer)
-	{
-		const FBuffer* storageBuffer = AccessBuffer(destroyer.mBuffer);
-		const FBufferCold* storageBufferCold = AccessBufferCold(destroyer.mBuffer);
-
-		mVkDevice.destroyAccelerationStructureKHR(destroyer.mAccelerationStructure);
-
-		FBufferDestroyer bufferDestroyer = {};
-		bufferDestroyer.mVkBuffer = storageBuffer->mVkBuffer;
-		bufferDestroyer.mAllocation = storageBufferCold->mAllocation;
-		bufferDestroyer.mHandle = destroyer.mBuffer;
-
-		DestroyBufferImmediate(bufferDestroyer);
-
-		mTLASPool->Release(destroyer.mHandle);
 	}
 
 	VkBool32 FGPUDevice::ValidationLayerCallback(

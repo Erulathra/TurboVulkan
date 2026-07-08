@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Graphics/CommandBuffer.h"
 #include "Resources.h"
 #include "Graphics/GraphicsCore.h"
 #include "Graphics/Enums.h"
@@ -456,6 +457,9 @@ namespace Turbo
 		THandle<FBuffer> mInstancesDataBuffer = {};
 		THandle<FBuffer> mScratchBuffer = {};
 		THandle<FBuffer> mDataBuffer = {};
+		THandle<FBuffer> mStorageBuffer = {};
+
+		FCommandBuffer* cmd = nullptr;
 
 		FName mName = {};
 	};
@@ -466,7 +470,6 @@ namespace Turbo
 		FDeviceSize mBuildScratchSize;
 		FDeviceSize mUpdateScratchSize;
 	};
-
 }
 
 #undef BUILDER_BODY
