@@ -127,3 +127,6 @@ add_compile_definitions(PLATFORM_WINDOWS=${WIN32})
 if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     turbo_message(FATAL_ERROR "Project only support CLANG compiler.")
 endif ()
+
+# Enable colored output
+set(CMAKE_COLOR_DIAGNOSTICS ON)
