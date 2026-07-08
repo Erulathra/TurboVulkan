@@ -4,7 +4,7 @@
       "label": "Run Debug Development Editor",
       "mode": "debug",
 
-      "program": "${ZED_WORKTREE_ROOT}/cmake-build-zed-debug-development/Editor/TurboVulkan_Editor",
+      "program": "${ZED_WORKTREE_ROOT}/cmake-build-debug-development/Editor/TurboVulkan_Editor",
       "request": "launch",
 
       // Replace with cmake build task
