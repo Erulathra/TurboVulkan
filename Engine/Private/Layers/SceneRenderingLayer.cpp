@@ -277,7 +277,7 @@ namespace Turbo
 			const FWorldTransform& transform = meshTransformView.get<FWorldTransform>(entity);
 
 			const FMesh* mesh = assetManager.AccessMesh(meshComp.mMesh);
-			const FAccelerationStructure* blas = gpu.AccessBLAS(mesh->mBlas);
+			const FAccelerationStructure* blas = gpu.AccessAccelearionStructure(mesh->mBlas);
 
 			vk::AccelerationStructureInstanceKHR& instance = instances.emplace_back();
 			std::memcpy(instance.transform, glm::value_ptr(glm::transpose(transform.mTransform)), sizeof(vk::TransformMatrixKHR));

@@ -603,8 +603,8 @@ namespace Turbo
 
 	THandle<FAccelerationStructure> FGPUDevice::CreateBLAS(const FBLASBuilder& builder)
 	{
-		THandle<FAccelerationStructure> handle = mBLASPool->Acquire();
-		FAccelerationStructure* blas = mBLASPool->Access(handle);
+		THandle<FAccelerationStructure> handle = mAccelerationStructurePool->Acquire();
+		FAccelerationStructure* blas = mAccelerationStructurePool->Access(handle);
 		blas->mName = builder.mName;
 
 		const FBuffer* vertexBuffer = AccessBuffer(builder.mVertexBuffer);
@@ -687,8 +687,8 @@ namespace Turbo
 
 	THandle<FAccelerationStructure> FGPUDevice::CreateTLAS(const FTLASBuilder& builder)
 	{
-		THandle<FAccelerationStructure> handle = mBLASPool->Acquire();
-		FAccelerationStructure* tlas = mBLASPool->Access(handle);
+		THandle<FAccelerationStructure> handle = mAccelerationStructurePool->Acquire();
+		FAccelerationStructure* tlas = mAccelerationStructurePool->Access(handle);
 		tlas->mName = builder.mName;
 
 		const FBuffer* instancesDataBuffer = AccessBuffer(builder.mInstancesDataBuffer);
@@ -908,9 +908,9 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
-	void FGPUDevice::DestroyBLAS(THandle<FAccelerationStructure> handle)
+	void FGPUDevice::DestroyAccelerationStructure(THandle<FAccelerationStructure> handle)
 	{
-		const FAccelerationStructure* blas = AccessBLAS(handle);
+		const FAccelerationStructure* blas = AccessAccelerationStructure(handle);
 		TURBO_CHECK(blas)
 
 		FAccelerationStructureDestroyer destroyer = {};
@@ -1994,7 +1994,7 @@ namespace Turbo
 		mShaderStatePool->Release(destroyer.mHandle);
 	}
 
-	void FGPUDevice::DestroyBLASImmediate(const FAccelerationStructureDestroyer& destroyer)
+	void FGPUDevice::DestroyAccelerationStructureImmediate(const FAccelerationStructureDestroyer& destroyer)
 	{
 		const FBuffer* storageBuffer = AccessBuffer(destroyer.mBuffer);
 		const FBufferCold* storageBufferCold = AccessBufferCold(destroyer.mBuffer);
@@ -2008,7 +2008,7 @@ namespace Turbo
 
 		DestroyBufferImmediate(bufferDestroyer);
 
-		mBLASPool->Release(destroyer.mHandle);
+		mAccelerationStructurePool->Release(destroyer.mHandle);
 	}
 
 	VkBool32 FGPUDevice::ValidationLayerCallback(

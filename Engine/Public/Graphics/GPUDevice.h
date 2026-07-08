@@ -95,7 +95,7 @@ namespace Turbo
 		[[nodiscard]] FDescriptorSetLayout* AccessDescriptorSetLayout(THandle<FDescriptorSetLayout> handle) { return mDescriptorSetLayoutPool->Access(handle); }
 		[[nodiscard]] FDescriptorSet* AccessDescriptorSet(THandle<FDescriptorSet> handle) { return mDescriptorSetPool->Access(handle); }
 		[[nodiscard]] FShaderState* AccessShaderState(THandle<FShaderState> handle) { return mShaderStatePool->Access(handle); }
-		[[nodiscard]] FAccelerationStructure* AccessBLAS(THandle<FAccelerationStructure> handle) { return mBLASPool->Access(handle); }
+		[[nodiscard]] FAccelerationStructure* AccessAccelerationStructure(THandle<FAccelerationStructure> handle) { return mAccelerationStructurePool->Access(handle); }
 
 		[[nodiscard]] const FBuffer* AccessBuffer(THandle<FBuffer> handle) const { return mBufferPool->Access(handle); }
 		[[nodiscard]] const FTexture* AccessTexture(THandle<FTexture> handle) const { return mTexturePool->Access(handle); }
@@ -105,7 +105,7 @@ namespace Turbo
 		[[nodiscard]] const FDescriptorSetLayout* AccessDescriptorSetLayout(THandle<FDescriptorSetLayout> handle) const { return mDescriptorSetLayoutPool->Access(handle); }
 		[[nodiscard]] const FDescriptorSet* AccessDescriptorSet(THandle<FDescriptorSet> handle) const { return mDescriptorSetPool->Access(handle); }
 		[[nodiscard]] const FShaderState* AccessShaderState(THandle<FShaderState> handle) const { return mShaderStatePool->Access(handle); }
-		[[nodiscard]] const FAccelerationStructure* AccessBLAS(THandle<FAccelerationStructure> handle) const { return mBLASPool->Access(handle); }
+		[[nodiscard]] const FAccelerationStructure* AccessAccelearionStructure(THandle<FAccelerationStructure> handle) const { return mAccelerationStructurePool->Access(handle); }
 
 		/** Resource accessors end */
 
@@ -142,7 +142,7 @@ namespace Turbo
 		void DestroyDescriptorPool(THandle<FDescriptorPool> handle);
 		void DestroyDescriptorSetLayout(THandle<FDescriptorSetLayout> handle);
 		void DestroyShaderState(THandle<FShaderState> handle);
-		void DestroyBLAS(THandle<FAccelerationStructure> handle);
+		void DestroyAccelerationStructure(THandle<FAccelerationStructure> handle);
 
 		void AddOnDestroyCallback(FOnDestroy::Delegate&& delegate);
 		/** Resource destroy end */
@@ -156,7 +156,7 @@ namespace Turbo
 		void DestroyDescriptorPoolImmediate(const FDescriptorPoolDestroyer& destroyer);
 		void DestroyDescriptorSetLayoutImmediate(const FDescriptorSetLayoutDestroyer& destroyer);
 		void DestroyShaderStateImmediate(const FShaderStateDestroyer& destroyer);
-		void DestroyBLASImmediate(const FAccelerationStructureDestroyer& destroyer);
+		void DestroyAccelerationStructureImmediate(const FAccelerationStructureDestroyer& destroyer);
 
 		/** Destroy immediate end */
 
@@ -256,7 +256,7 @@ namespace Turbo
 		TPoolHeap<FDescriptorPool, 16> mDescriptorPoolPool;
 		TPoolHeap<FDescriptorSet, 256> mDescriptorSetPool;
 		TPoolHeap<FShaderState, 256> mShaderStatePool;
-		TPoolHeap<FAccelerationStructure, 1024> mBLASPool;
+		TPoolHeap<FAccelerationStructure, 1024> mAccelerationStructurePool;
 
 		/** Resource pools end */
 

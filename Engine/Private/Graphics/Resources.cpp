@@ -39,6 +39,6 @@ namespace Turbo {
 
 	void FAccelerationStructureDestroyer::Destroy(FGPUDevice& GPUDevice)
 	{
-		GPUDevice.DestroyBLASImmediate(*this);
+		GPUDevice.DestroyAccelerationStructureImmediate(*this);
 	}
 }

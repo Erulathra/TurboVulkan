@@ -352,7 +352,7 @@ namespace Turbo
 			}
 		}
 
-		gpu.DestroyBLAS(mesh->mBlas);
+		gpu.DestroyAccelerationStructure(mesh->mBlas);
 
 		mAssetCache.erase(mesh->mAssetHash);
 		mMeshPool.Release(meshHandle);
