@@ -1,5 +1,6 @@
 #include "Graphics/GPUDevice.h"
 
+#include "Graphics/GraphicsCore.h"
 #include "TaskScheduler.h"
 #include "VkBootstrap.h"
 #include "Assets/EngineResources.h"
@@ -766,7 +767,7 @@ namespace Turbo
 		FDescriptorPool* descriptorPool = AccessDescriptorPool(descriptorPoolHandle);
 		TURBO_CHECK(descriptorPool)
 
-		mVkDevice.resetDescriptorPool(descriptorPool->mVkDescriptorPool);
+		CHECK_VULKAN_HPP(mVkDevice.resetDescriptorPool(descriptorPool->mVkDescriptorPool));
 
 		for (const THandle<FDescriptorSet>& descriptorSet : descriptorPool->mDescriptorSets)
 		{

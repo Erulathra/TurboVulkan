@@ -4,10 +4,7 @@
       "command": "cmake",
       "args": [
          "-S \"$ZED_WORKTREE_ROOT\"",
-         "-B cmake-build-zed-debug-development",
-         "-G Ninja",
-         "-DCMAKE_BUILD_TYPE=Debug",
-         "-DBUILD_TYPE=Development",
+         "--preset cmake-build-debug-development",
       ],
 
       "env": {
@@ -28,10 +25,53 @@
 
    {
       "label": "Build [Debug Developement]",
-      "command": "ninja",
+      "command": "cmake",
       "args": [
-         "-C \"$ZED_WORKTREE_ROOT/cmake-build-zed-debug-development\"",
-         "-j 16",
+         "--build \"$ZED_WORKTREE_ROOT/cmake-build-debug-development\"",
+         "--parallel",
+      ],
+
+      "use_new_terminal": false,
+      "allow_concurrent_runs": false,
+      "reveal": "always",
+      "reveal_target": "dock",
+      "hide": "never",
+      "shell": "system",
+      "show_summary": true,
+      "show_command": true,
+      "save": "all",
+   },
+
+   {
+      "label": "Refresh CMake project [Release Shipping]",
+      "command": "cmake",
+      "args": [
+         "-S \"$ZED_WORKTREE_ROOT\"",
+         "--preset cmake-build-release-shipping",
+      ],
+
+      "env": {
+         "CC": "clang",
+         "CXX": "clang++",
+      },
+
+      "use_new_terminal": false,
+      "allow_concurrent_runs": false,
+      "reveal": "always",
+      "reveal_target": "dock",
+      "hide": "never",
+      "shell": "system",
+      "show_summary": true,
+      "show_command": true,
+      "save": "all",
+   },
+
+   {
+      "label": "Build [Release Shipping]",
+      "command": "cmake",
+      "args": [
+         "--build \"$ZED_WORKTREE_ROOT/cmake-build-release-shipping\"",
+         "--parallel",
       ],
 
       "use_new_terminal": false,

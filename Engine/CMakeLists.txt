@@ -31,12 +31,22 @@ endif()
 # Libraries
 ############################################################################################
 
+find_package(VulkanHeaders CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(vk-bootstrap CONFIG REQUIRED)
+find_package(slang CONFIG REQUIRED)
+find_package(SDL3 CONFIG REQUIRED)
+find_package(fastgltf CONFIG REQUIRED)
+find_package(EnTT CONFIG REQUIRED)
+find_package(Tracy CONFIG REQUIRED)
+
 if (UNIX)
     target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
     target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
 endif ()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan-Headers)
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Headers)
 target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_NO_EXCEPTIONS)
 target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 
@@ -44,11 +54,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
 target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
 target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_LEFT_HANDED)
 target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_ENABLE_EXPERIMENTAL)
+target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3-shared)
 target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
-target_link_libraries(${PROJECT_NAME} PUBLIC fmt)
-target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
+target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
+target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC turbo_imgui)
 target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 target_link_libraries(${PROJECT_NAME} PUBLIC STB)
@@ -64,7 +74,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC enkiTS)
 target_link_libraries(${PROJECT_NAME} PUBLIC dds_image)
 target_compile_definitions(${PROJECT_NAME} PUBLIC DDS_USE_STD_FILESYSTEM)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE slang)
+target_link_libraries(${PROJECT_NAME} PRIVATE slang::slang)
 target_link_libraries(${PROJECT_NAME} PRIVATE RenderDoc)
 
 
