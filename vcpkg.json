@@ -27,6 +27,24 @@
                "platform": "linux"
             }
          ]
+      },
+      {
+         "name": "vulkan-loader",
+         "version>=": "1.4.350.0",
+         "features": [
+            {
+               "name": "wayland",
+               "platform": "linux"
+            },
+            {
+               "name": "xlib",
+               "platform": "linux"
+            },
+            {
+               "name": "xcb",
+               "platform": "linux"
+            }
+         ]
       }
    ]
 }
