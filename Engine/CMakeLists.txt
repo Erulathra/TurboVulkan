@@ -31,16 +31,6 @@ endif()
 # Libraries
 ############################################################################################
 
-find_package(VulkanHeaders CONFIG REQUIRED)
-find_package(fmt CONFIG REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
-find_package(vk-bootstrap CONFIG REQUIRED)
-find_package(slang CONFIG REQUIRED)
-find_package(SDL3 CONFIG REQUIRED)
-find_package(fastgltf CONFIG REQUIRED)
-find_package(EnTT CONFIG REQUIRED)
-find_package(Tracy CONFIG REQUIRED)
-
 if (UNIX)
     target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
     target_link_libraries(${PROJECT_NAME} PUBLIC -lm)

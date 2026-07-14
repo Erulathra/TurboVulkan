@@ -2,6 +2,8 @@ include(CPM)
 
 add_subdirectory(STB)
 
+CPMAddPackage(GITHUB_REPOSITORY "fmtlib/fmt" GIT_TAG "12.2.0")
+CPMAddPackage(GITHUB_REPOSITORY "KhronosGroup/Vulkan-Headers" GIT_TAG "v1.4.350")
 CPMAddPackage(GITHUB_REPOSITORY "libsdl-org/SDL" GIT_TAG "release-3.4.12")
 CPMAddPackage(GITHUB_REPOSITORY "Neargye/magic_enum" GIT_TAG "v0.9.8")
 CPMAddPackage(GITHUB_REPOSITORY "gabime/spdlog" GIT_TAG "v1.15.3")
