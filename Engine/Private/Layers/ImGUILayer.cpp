@@ -177,14 +177,14 @@ namespace Turbo
 
 		initInfo.CheckVkResultFn = [](VkResult result) { CHECK_VULKAN_MSG(result, "ImGUI RHI Error.") };
 		//dynamic rendering parameters for imgui to use
-		initInfo.PipelineRenderingCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
-		initInfo.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+		initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+		initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
 
 		const FTextureCold* presentTextureCold = gpu.AccessTextureCold(gpu.GetPresentImage());
 		VkFormat presentTextureFormat = static_cast<VkFormat>(presentTextureCold->GetFormat());
-		initInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats = &presentTextureFormat;
+		initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &presentTextureFormat;
 
-		initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+		initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
 		auto LoaderFunction = [](const char* functionName, void* userData)
 		{

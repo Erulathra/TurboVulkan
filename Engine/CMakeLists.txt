@@ -60,6 +60,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC turbo_imgui)
+target_link_libraries(${PROJECT_NAME} PUBLIC turbo_imguizmo)
 target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 target_link_libraries(${PROJECT_NAME} PUBLIC STB)
 
@@ -74,7 +75,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC enkiTS)
 target_link_libraries(${PROJECT_NAME} PUBLIC dds_image)
 target_compile_definitions(${PROJECT_NAME} PUBLIC DDS_USE_STD_FILESYSTEM)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE slang::slang)
+target_link_libraries(${PROJECT_NAME} PRIVATE slang)
 target_link_libraries(${PROJECT_NAME} PRIVATE RenderDoc)
 
 

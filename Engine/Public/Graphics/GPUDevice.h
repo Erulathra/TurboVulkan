@@ -110,6 +110,11 @@ namespace Turbo
 
 		/** Resource creation */
 	public:
+		void extracted(vk::BufferCreateInfo& createInfo,
+					   vma::AllocationCreateInfo& allocationCreateInfo,
+					   vk::DeviceSize& minAlignment,
+					   vma::AllocationInfo& allocationInfo,
+					   std::pair<vk::Buffer, vma::Allocation>& allocationResult);
 		THandle<FBuffer> CreateBuffer(const FBufferBuilder& builder);
 		THandle<FTexture> CreateTexture(const FTextureBuilder& builder);
 		THandle<FSampler> CreateSampler(const FSamplerBuilder& builder);
