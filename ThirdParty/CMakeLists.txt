@@ -4,7 +4,6 @@ add_subdirectory(STB)
 
 CPMAddPackage(GITHUB_REPOSITORY "fmtlib/fmt" GIT_TAG "12.2.0")
 CPMAddPackage(GITHUB_REPOSITORY "KhronosGroup/Vulkan-Headers" GIT_TAG "v1.4.350")
-CPMAddPackage(GITHUB_REPOSITORY "libsdl-org/SDL" GIT_TAG "release-3.4.12")
 CPMAddPackage(GITHUB_REPOSITORY "Neargye/magic_enum" GIT_TAG "v0.9.8")
 CPMAddPackage(GITHUB_REPOSITORY "gabime/spdlog" GIT_TAG "v1.15.3")
 CPMAddPackage(GITHUB_REPOSITORY "g-truc/glm" GIT_TAG "8f6213d" OPTIONS "GLM_ENABLE_SIMD_AVX2 ON")
@@ -15,6 +14,14 @@ CPMAddPackage(GITHUB_REPOSITORY "dougbinks/enkiTS" GIT_TAG "0289cf6")
 CPMAddPackage(GITHUB_REPOSITORY "wolfpld/tracy" GIT_TAG "v0.12.2" OPTIONS "TRACY_ON_DEMAND ON")
 CPMAddPackage(GITHUB_REPOSITORY "spnda/fastgltf" GIT_TAG "v0.9.0")
 CPMAddPackage(GITHUB_REPOSITORY "skypjack/entt" GIT_TAG "v3.16.0")
+
+CPMAddPackage(
+   GITHUB_REPOSITORY "libsdl-org/SDL"
+   GIT_TAG "release-3.4.12"
+   OPTIONS "SDL_TEST_LIBRARY OFF"
+           "SDL_TEST OFF"
+           "SDL_STATIC OFF"
+)
 
 # ImGui
 CPMAddPackage(GITHUB_REPOSITORY "ocornut/imgui" GIT_TAG "v1.92.8-docking" DOWNLOAD_ONLY YES)
