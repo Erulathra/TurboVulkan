@@ -57,7 +57,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC STB)
 # TODO: Create GPU Interface and make those private
 target_link_libraries(${PROJECT_NAME} PUBLIC GPUOpen::VulkanMemoryAllocator)
 target_link_libraries(${PROJECT_NAME} PUBLIC VulkanMemoryAllocator-Hpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC vk-bootstrap::vk-bootstrap)
+target_link_libraries(${PROJECT_NAME} PUBLIC vk-bootstrap)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC EnTT::EnTT)
 target_link_libraries(${PROJECT_NAME} PUBLIC enkiTS)

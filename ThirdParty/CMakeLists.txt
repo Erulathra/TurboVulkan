@@ -62,23 +62,6 @@ target_link_libraries(turbo_imguizmo PRIVATE turbo_imgui)
 target_link_libraries(turbo_imguizmo PRIVATE glm::glm)
 target_include_directories(turbo_imguizmo PUBLIC ${ImGuizmo_SOURCE_DIR}/src)
 
-CPMAddPackage(
-   GITHUB_REPOSITORY "shader-slang/slang"
-   GIT_TAG "v2026.12"
-   OPTIONS "SLANG_ENABLE_DXIL OFF"
-            "SLANG_ENABLE_GFX OFF"
-            "SLANG_ENABLE_SLANGD OFF"
-            "SLANG_ENABLE_SLANGC OFF"
-            "SLANG_ENABLE_SLANGI OFF"
-            "SLANG_ENABLE_TESTS OFF"
-            "SLANG_ENABLE_EXAMPLES OFF"
-            "SLANG_ENABLE_REPLAYER OFF"
-            "SLANG_ENABLE_SLANG_PROXY OFF"
-            "SLANG_ENABLE_CUDA OFF"
-            "SLANG_ENABLE_OPTIX OFF"
-            "SLANG_ENABLE_NVAPI OFF"
-            "SLANG_ENABLE_AFTERMATH OFF"
-            "SLANG_ENABLE_XLIB OFF"
-)
+include(Slang.cmake)
 
 add_subdirectory(RenderDoc)
