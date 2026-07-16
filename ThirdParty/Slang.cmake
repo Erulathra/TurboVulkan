@@ -5,12 +5,15 @@ set(SLANG_ARCHIVE_WIN slang-${SLANG_VERSION}-windows-x86_64.zip)
 
 # Set archive name based on platform
 set(SLANG_ARCHIVE ${SLANG_ARCHIVE_LINUX})
+set(SLANG_TEST_PATH ${SLANG_ROOT}/lib/libslang-compiler.so.0.${SLANG_VERSION})
 if (WIN32)
    set(SLANG_ARCHIVE ${SLANG_ARCHIVE_WIN})
+   set(SLANG_TEST_PATH ${SLANG_ROOT}/bin/slang-compiler.dll)
 endif()
 set(SLANG_URL https://github.com/shader-slang/slang/releases/download/v${SLANG_VERSION}/${SLANG_ARCHIVE})
 
 set(SLANG_ROOT ${CMAKE_BINARY_DIR}/_deps/slang)
+
 
 # Download slang if not already present
 if (NOT EXISTS ${SLANG_ROOT}/${SLANG_ARCHIVE})
@@ -47,7 +50,13 @@ add_library(slang SHARED IMPORTED GLOBAL)
 target_include_directories(slang INTERFACE ${SLANG_ROOT}/include)
 
 if (WIN32)
-   turbo_message(FATAL_ERROR "NOT IMPLEMENTED")
+   set_target_properties(slang PROPERTIES
+      IMPORTED_IMPLIB "${SLANG_ROOT}/lib/slang-compiler.lib"
+		IMPORTED_LOCATION "${SLANG_ROOT}/bin/slang-compiler.dll"
+   )
+   set_target_properties(slang PROPERTIES
+		IMPORTED_LOCATION "${SLANG_ROOT}/bin/slang-glslang.dll"
+   )
 else()
    set_target_properties(slang PROPERTIES
       IMPORTED_LOCATION ${SLANG_ROOT}/lib/libslang-compiler.so.0.${SLANG_VERSION}
