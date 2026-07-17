@@ -55,6 +55,8 @@ function(setup_project_directory TARGET)
         )
     endif ()
 
+    setup_slang_binaries(${TARGET})
+
 endfunction()
 
 ############################################################################################

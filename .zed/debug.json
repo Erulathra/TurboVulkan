@@ -6,8 +6,13 @@
 
       "program": "${ZED_WORKTREE_ROOT}/cmake-build-debug-development/Editor/TurboVulkan_Editor",
       "request": "launch",
+   },
+   {
+      "adapter": "CodeLLDB",
+      "label": "Debug RelWithDebug Shipping Editor",
+      "mode": "debug",
 
-      // Replace with cmake build task
-      // "build": "Build [Debug Developement]",
+      "program": "${ZED_WORKTREE_ROOT}/cmake-build-relwithdebug-shipping/Editor/TurboVulkan_Editor",
+      "request": "launch",
    },
 ]

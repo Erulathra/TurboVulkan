@@ -1,0 +1,9 @@
+// raddbg 0.9.27 project file
+
+target:
+{
+  executable: "cmake-build-relwithdebug-shipping/Editor/TurboVulkan_Editor.exe"
+  working_directory: "cmake-build-relwithdebug-shipping/Editor/"
+  enabled: 1
+  label: "Editor (RelWithDebug Shipping)"
+}
