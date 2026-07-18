@@ -145,7 +145,7 @@ void psMain(
     }
 
     // Add ambient light
-    irradiance += 0.05f * pixelInput.mAlbedo;
+    irradiance += 0.03f * pixelInput.mAlbedo;
 
     psOut.mColor = irradiance;
     // psOut.mColor = worldNormal;
