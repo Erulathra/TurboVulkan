@@ -1,6 +1,7 @@
 #include "Graphics/GPUDevice.h"
 
 #include "Graphics/GraphicsCore.h"
+#include "ProfilingMacros.h"
 #include "TaskScheduler.h"
 #include "VkBootstrap.h"
 #include "Assets/EngineResources.h"
@@ -1802,7 +1803,9 @@ namespace Turbo
 					|| builder.mPipelineRenderingBuilder.mDepthAttachmentFormat != vk::Format::eUndefined),
 				"It must be at least 1 attachment.")
 
+			TRACE_ZONE(DriverCreatePipeline, "Driver: Create Pipeline")
 			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createGraphicsPipeline(nullptr, pipelineCreateInfo));
+			TRACE_ZONE_END(DriverCreatePipeline)
 			pipeline->mVkBindPoint = vk::PipelineBindPoint::eGraphics;
 		}
 		else

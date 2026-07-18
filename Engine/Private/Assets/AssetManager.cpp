@@ -5,6 +5,7 @@
 #include "Core/FileSystem.h"
 #include "Graphics/GPUDevice.h"
 
+#include "ProfilingMacros.h"
 #include "fastgltf/core.hpp"
 #include "fastgltf/glm_element_traits.hpp"
 #include "fastgltf/tools.hpp"
@@ -178,6 +179,8 @@ namespace Turbo
 		{
 			return cachedAsset;
 		}
+
+		TRACE_ZONE_SCOPED_FORMAT(LoadMesh, "Load GLTF Mesh ({})", assetPath.ToString())
 
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		fastgltf::Mesh& gltfMesh = loadedAsset.meshes[meshLoadSettings.mMeshIndex];
