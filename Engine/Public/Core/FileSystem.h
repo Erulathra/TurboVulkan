@@ -26,5 +26,8 @@ namespace Turbo
 
 		bool CreateDirectory(std::string_view path);
 		void InitDirectories();
+
+		uint64 GetFileWriteTimeStamp(FName filePath);
+		uint64 GetFileWriteTimeStamp(std::string_view filePath);
 	};
 } // Turbo

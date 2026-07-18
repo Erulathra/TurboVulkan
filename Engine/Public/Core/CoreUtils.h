@@ -1,10 +1,11 @@
 #pragma once
 
+#include <cstddef>
 namespace Turbo
 {
 	namespace CoreUtils
 	{
-		template<typename T>
+		template <typename T>
 		constexpr size_t SizeofOrZero()
 		{
 			size_t size = 0;
@@ -30,5 +31,20 @@ namespace Turbo
 			inOutHash ^= std::hash<T>{}(v) + 0x9e3779b97f4a7c13ull + (inOutHash << 12) + (inOutHash >> 4);
 			(HashCombine(inOutHash, rest), ...);
 		};
-	}
-} // Turbo
+
+		inline uint32 Adler32Hash(std::span<byte> data)
+		{
+			uint32 a = 1, b = 0;
+
+			for (size_t index = 0; index < data.size(); ++index)
+			{
+   			constexpr uint32 modulo = 65521;
+
+				a = (a + (uint32)data[index]) % modulo;
+				b = (b + a) % modulo;
+			}
+
+			return (b << 16) | a;
+		}
+	} // namespace CoreUtils
+} // namespace Turbo
