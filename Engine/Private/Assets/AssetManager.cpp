@@ -15,6 +15,10 @@
 #include "Core/CoreUtils.h"
 #include "World/World.h"
 
+#ifndef RAY_TRACING_ENABLED
+#define RAY_TRACING_ENABLED 0
+#endif // defined RAY_TRACING_ENABLED
+
 namespace
 {
 	void LogGLTFError(std::string_view message, fastgltf::Error error)
@@ -285,7 +289,7 @@ namespace Turbo
 			gpu.DestroyBuffer(stagingBufferHandle);
 		}));
 
-
+#if RAY_TRACING_ENABLED
 		TURBO_LOG(LogMeshLoading, Info, "Building BLAS", gltfMesh.name);
 		const FBLASBuilder builder = {
 			.mVertexBuffer = mesh->mPositionBuffer,
@@ -294,6 +298,7 @@ namespace Turbo
 			.mName = FName(gltfMesh.name)
 		};
 		mesh->mBlas = gpu.CreateBLAS(builder);
+#endif // else RAY_TRACING_ENABLED
 
 		if (meshLoadSettings.mbLevelAsset)
 		{
@@ -352,7 +357,9 @@ namespace Turbo
 			}
 		}
 
+#if RAY_TRACING_ENABLED
 		gpu.DestroyBLAS(mesh->mBlas);
+#endif // RAY_TRACING_ENABLED
 
 		mAssetCache.erase(mesh->mAssetHash);
 		mMeshPool.Release(meshHandle);
