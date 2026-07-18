@@ -1814,7 +1814,9 @@ namespace Turbo
 			pipelineCreateInfo.stage = shaderState->mShaderStageCrateInfo[0];
 			pipelineCreateInfo.layout = pipeline->mVkLayout;
 
+			TRACE_ZONE(DriverCreatePipeline, "Driver: Create Pipeline")
 			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createComputePipeline(nullptr, pipelineCreateInfo));
+			TRACE_ZONE_END(DriverCreatePipeline)
 			pipeline->mVkBindPoint = vk::PipelineBindPoint::eCompute;
 		}
 
