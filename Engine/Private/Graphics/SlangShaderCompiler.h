@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+#include <string_view>
 #include "Graphics/ShaderCompiler.h"
 
 #include "slang.h"
@@ -16,8 +18,6 @@ namespace Turbo
 {
 	struct FShaderStage;
 
-	inline const std::string kShaderCachePath = "Saved/ShaderCache/"s + (SHADER_DEBUG_SYMBOLS ? "Debug" : "Release") + "/";
-
 	struct FShaderCacheFileHeader
 	{
       static constexpr uint32 kCurrentVersion = 0;
@@ -31,6 +31,12 @@ namespace Turbo
       : public IShaderCompiler
 	{
 	public:
+		inline static const std::filesystem::path kShaderCachePath = "Saved/ShaderCache/"s + (SHADER_DEBUG_SYMBOLS ? "Debug" : "Release") + "/";
+		inline static const std::filesystem::path kShaderPath = "Shaders"s;
+		inline static const std::string kShaderModuleExtension = ".slang-module"s;
+		inline static const std::string kShaderExtension = ".slang"s;
+
+	public:
 		virtual void Init() override;
 		virtual void Destroy() override;
 		virtual void ClearCache() override;
@@ -43,8 +49,12 @@ namespace Turbo
 
 		void PrintMessageIfNeeded(slang::IBlob* diagnosticsBlob);
 
+		std::filesystem::path GetCachedModulePath(const std::filesystem::path& basePath);
+
 	private:
 		Slang::ComPtr<slang::IGlobalSession> mGlobalSession;
 		Slang::ComPtr<slang::ISession> mSession;
+
+		std::set<std::string> mCachedModules;
 	};
 } // Turbo
