@@ -10,6 +10,7 @@ namespace Turbo
 {
 	void FSlangShaderCompiler::Init()
 	{
+      TRACE_ZONE_SCOPED_N("Slang: Create global session");
 		TURBO_LOG(LogSlang, Info, "Initializing Slang shader compiler.");
 
 		slang::createGlobalSession(mGlobalSession.writeRef());
@@ -122,6 +123,8 @@ namespace Turbo
 
 	void FSlangShaderCompiler::CreateSession()
 	{
+   	TRACE_ZONE_SCOPED_N("Slang: Create session");
+
 		slang::TargetDesc targetDesc = {};
 		targetDesc.format = SLANG_SPIRV;
 		targetDesc.profile = mGlobalSession->findProfile("spirv_1_6");

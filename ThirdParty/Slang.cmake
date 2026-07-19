@@ -1,4 +1,4 @@
-set(SLANG_VERSION "2026.12")
+set(SLANG_VERSION "2026.5.1")
 
 set(SLANG_ARCHIVE_LINUX slang-${SLANG_VERSION}-linux-x86_64.tar.gz)
 set(SLANG_ARCHIVE_WIN slang-${SLANG_VERSION}-windows-x86_64.zip)
