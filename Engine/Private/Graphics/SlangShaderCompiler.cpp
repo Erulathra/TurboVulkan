@@ -30,10 +30,12 @@ namespace Turbo
 		slang::shutdown();
 	}
 
-	void FSlangShaderCompiler::ClearCache()
+	void FSlangShaderCompiler::ClearRuntimeCache()
 	{
 		mSession = nullptr;
 		CreateSession();
+
+		mCachedModules.clear();
 	}
 
 	vk::ShaderModule FSlangShaderCompiler::CompileShader(vk::Device device, const FShaderStage& shaderStage)
@@ -46,6 +48,8 @@ namespace Turbo
 
 		Slang::ComPtr<slang::IBlob> diagnosticsBlob;
 		Slang::ComPtr<slang::IModule> module;
+		bool bRuntimeShaderCacheInvalid = false;
+
 		{
 			TRACE_ZONE_SCOPED_N("Load Module")
 
@@ -63,7 +67,7 @@ namespace Turbo
 				for (uint32 moduleId = 0; moduleId < mSession->getLoadedModuleCount(); ++moduleId)
 				{
 					slang::IModule* moduleToCache = mSession->getLoadedModule(moduleId);
-					const std::filesystem::path loadedModulePath = module->getFilePath();
+					const std::filesystem::path loadedModulePath = moduleToCache->getFilePath();
 					if (loadedModulePath.extension() == kShaderExtension)
 					{
           		   TRACE_ZONE_SCOPED_N("Save cached shader")
@@ -75,6 +79,7 @@ namespace Turbo
 						std::filesystem::create_directories(cachedModuleDir);
 
 						moduleToCache->writeToFile(cachedModulePath.c_str());
+						bRuntimeShaderCacheInvalid = true;
 					}
 
 					mCachedModules.emplace(loadedModulePath);
@@ -144,6 +149,12 @@ namespace Turbo
 			createInfo.codeSize = spirvCode->getBufferSize();
 
 			CHECK_VULKAN_RESULT(result, device.createShaderModule(createInfo));
+		}
+
+		// We need to clear runtime cache if any module was saved to persistent cache, to avoid ABI problems.
+		if (bRuntimeShaderCacheInvalid)
+		{
+   		ClearRuntimeCache();
 		}
 
 		return result;

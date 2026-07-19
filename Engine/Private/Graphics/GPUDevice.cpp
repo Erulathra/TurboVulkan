@@ -55,7 +55,7 @@ namespace Turbo
 
 	void FGPUDevice::RecompileShaders()
 	{
-		IShaderCompiler::Get().ClearCache();
+		IShaderCompiler::Get().ClearRuntimeCache();
 		RecreatePipelines();
 	}
 

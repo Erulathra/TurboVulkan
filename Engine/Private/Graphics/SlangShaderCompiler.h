@@ -18,15 +18,6 @@ namespace Turbo
 {
 	struct FShaderStage;
 
-	struct FShaderCacheFileHeader
-	{
-      static constexpr uint32 kCurrentVersion = 0;
-
-	   uint32 mHeaderVersion;
-	   uint32 mFileSize;
-	   uint64 mShaderWriteTimeStamp;
-	};
-
 	class FSlangShaderCompiler final
       : public IShaderCompiler
 	{
@@ -39,7 +30,7 @@ namespace Turbo
 	public:
 		virtual void Init() override;
 		virtual void Destroy() override;
-		virtual void ClearCache() override;
+		virtual void ClearRuntimeCache() override;
 
 		virtual vk::ShaderModule CompileShader(vk::Device device, const FShaderStage& shaderStage) override;
 
