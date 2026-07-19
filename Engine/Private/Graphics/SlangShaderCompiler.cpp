@@ -5,6 +5,7 @@
 #include <slang.h>
 
 #include "CommonMacros.h"
+#include "Core/FileSystem.h"
 #include "Graphics/ResourceBuilders.h"
 #include "Graphics/VulkanHelpers.h"
 #include "ProfilingMacros.h"
@@ -78,11 +79,11 @@ namespace Turbo
 						const std::filesystem::path cachedModuleDir = cachedModulePath.parent_path();
 						std::filesystem::create_directories(cachedModuleDir);
 
-						moduleToCache->writeToFile(cachedModulePath.c_str());
+						moduleToCache->writeToFile(cachedModulePath.string().c_str());
 						bRuntimeShaderCacheInvalid = true;
 					}
 
-					mCachedModules.emplace(loadedModulePath);
+					mCachedModules.emplace(loadedModulePath.string());
 				}
 			}
 
@@ -171,7 +172,13 @@ namespace Turbo
 
 		slang::SessionDesc sessionDesc = {};
 
-		const std::array<const char*, 2> kShaderSearchPaths = {kShaderCachePath.c_str(), kShaderPath.c_str()};
+		const std::string shaderCachePathString = kShaderCachePath.string();
+		const std::string shaderPathString = kShaderPath.string();
+
+		const std::array<const char*, 2> kShaderSearchPaths = {
+   		shaderCachePathString.c_str(),
+         shaderPathString.c_str()
+		};
 		sessionDesc.searchPaths = kShaderSearchPaths.data();
 		sessionDesc.searchPathCount = kShaderSearchPaths.size();
 
