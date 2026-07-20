@@ -43,6 +43,49 @@
    },
 
    {
+      "label": "Refresh CMake project [RelWithDeb Shipping]",
+      "command": "cmake",
+      "args": [
+         "-S \"$ZED_WORKTREE_ROOT\"",
+         "--preset cmake-build-relwithdebug-shipping",
+      ],
+
+      "env": {
+         "CC": "clang",
+         "CXX": "clang++",
+      },
+
+      "use_new_terminal": false,
+      "allow_concurrent_runs": false,
+      "reveal": "always",
+      "reveal_target": "dock",
+      "hide": "never",
+      "shell": "system",
+      "show_summary": true,
+      "show_command": true,
+      "save": "all",
+   },
+
+   {
+      "label": "Build [RelWithDeb Shipping]",
+      "command": "cmake",
+      "args": [
+         "--build \"$ZED_WORKTREE_ROOT/cmake-build-relwithdebug-shipping\"",
+         "--parallel",
+      ],
+
+      "use_new_terminal": false,
+      "allow_concurrent_runs": false,
+      "reveal": "always",
+      "reveal_target": "dock",
+      "hide": "never",
+      "shell": "system",
+      "show_summary": true,
+      "show_command": true,
+      "save": "all",
+   },
+
+   {
       "label": "Refresh CMake project [Release Shipping]",
       "command": "cmake",
       "args": [

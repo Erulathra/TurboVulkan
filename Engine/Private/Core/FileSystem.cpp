@@ -1,5 +1,8 @@
 #include "Core/FileSystem.h"
+#include <chrono>
+#include <filesystem>
 #include <fstream>
+#include <string_view>
 
 namespace Turbo
 {
@@ -40,5 +43,16 @@ namespace Turbo
 		CreateDirectory(kSavedPath);
 		CreateDirectory(kLogPath);
 		CreateDirectory(kConfigPath);
+	}
+
+	uint64 FileSystem::GetFileWriteTimeStamp(FName filePath)
+	{
+      return GetFileWriteTimeStamp(filePath.ToString());
+	}
+
+	uint64 FileSystem::GetFileWriteTimeStamp(std::string_view filePath)
+	{
+      auto writeTimeStamp = std::filesystem::last_write_time(filePath);
+      return std::chrono::duration_cast<std::chrono::seconds>(writeTimeStamp.time_since_epoch()).count();
 	}
 } // Turbo

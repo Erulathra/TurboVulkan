@@ -25,6 +25,8 @@ namespace Turbo
 		{
 			FMaterialManager& materialManager = entt::locator<FMaterialManager>::value();
 			FPipelineBuilder graphicsPipelineBuilder = FMaterialManager::CreateOpaquePipeline("OpaqueBasePass.slang");
+
+
 			FPipelineBuilder depthPipelineBuilder = FMaterialManager::CreateDepthPrepassPipeline("DepthPrepass.slang");
 			const THandle<FMaterial> basePassMat = materialManager.CreateMaterial(FMaterialBuilder{
 				.mGraphicsPipeline = &graphicsPipelineBuilder,
@@ -187,4 +189,3 @@ namespace Turbo
 		}
 	}
 }
-

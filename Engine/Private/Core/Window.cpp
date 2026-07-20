@@ -64,16 +64,6 @@ namespace Turbo
 		}
 
 		int32 sizeX, sizeY, numComponents;
-#if 0
-		void* pixels = stbi_load_from_memory(
-			reinterpret_cast<stbi_uc*>(imgData.data()),
-			imgData.size(),
-			&sizeX,
-			&sizeY,
-			&numComponents,
-			0
-		);
-#else
 		void* pixels = stbi_load(
 			path.data(),
 			&sizeX,
@@ -81,7 +71,6 @@ namespace Turbo
 			&numComponents,
 			0
 		);
-#endif
 
 		if (pixels == nullptr)
 		{
@@ -95,8 +84,6 @@ namespace Turbo
 			pixels,
 			sizeX * numComponents
 		);
-
-		stbi_image_free(pixels);
 
 		if (result == nullptr)
 		{
@@ -243,10 +230,7 @@ namespace Turbo
 
 		mWindowIconSurface = LoadSurface(path.data());
 
-	#if PLATFORM_WINDOWS == false
-	   // TODO: Fix that on windows
 		SDL_SetWindowIcon(mSDLWindow, mWindowIconSurface);
-	#endif // PLATFORM_WINDOWS == false
 	}
 
 	void FWindow::InitForVulkan()

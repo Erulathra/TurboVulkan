@@ -1,5 +1,6 @@
 #include "World/World.h"
 
+#include "ProfilingMacros.h"
 #include "World/GLTFSceneLoader.h"
 #include "Assets/AssetManager.h"
 
@@ -9,6 +10,8 @@ namespace Turbo
 {
 	void FWorld::OpenLevel(FName path)
 	{
+      TRACE_ZONE_SCOPED_FORMAT(OpenLevel, "Open Level ({})", path.ToString())
+
 		std::filesystem::path scenePath(path.ToString());
 		if (scenePath.extension() == ".glb" || scenePath.extension() == ".gltf")
 		{

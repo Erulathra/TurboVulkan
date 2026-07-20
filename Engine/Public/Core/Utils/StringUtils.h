@@ -1,5 +1,8 @@
 #pragma once
+#include <charconv>
+#include <optional>
 #include <string_view>
+#include <type_traits>
 
 namespace StringUtils
 {
@@ -113,6 +116,27 @@ namespace StringUtils
 
 		return result;
 	};
+
+	inline std::optional<uint32> ParseHex32(const std::string_view stringView)
+	{
+   	std::optional<int32> result;
+
+   	int32 outInt;
+   	const std::from_chars_result parsingResult = std::from_chars(stringView.data(), stringView.data() + stringView.size(), outInt, 16);
+   	if (parsingResult.ec != std::errc::invalid_argument && parsingResult.ec != std::errc::result_out_of_range)
+   	{
+   		result = outInt;
+   	}
+
+   	return result;
+	}
+
+	template <typename IntegerType>
+		requires std::is_integral_v<IntegerType>
+	inline std::string ToHex(IntegerType input)
+	{
+		return fmt::format("{:x}", input);
+	}
 }
 
 namespace ASCII

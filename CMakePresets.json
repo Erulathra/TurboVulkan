@@ -8,8 +8,27 @@
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "BUILD_TYPE": "Development",
-                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+                "BUILD_TYPE": "Development"
+            }
+        },
+        {
+            "name": "cmake-build-release-shipping",
+            "displayName": "Release Shipping",
+            "binaryDir": "${sourceDir}/cmake-build-release-shipping",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_TYPE": "Shipping"
+            }
+        },
+        {
+            "name": "cmake-build-relwithdebug-shipping",
+            "displayName": "RelWithDeb Shipping",
+            "binaryDir": "${sourceDir}/cmake-build-relwithdebug-shipping",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_TYPE": "Shipping"
             }
         },
         {

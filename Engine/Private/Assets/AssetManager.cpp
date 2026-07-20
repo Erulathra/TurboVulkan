@@ -5,6 +5,7 @@
 #include "Core/FileSystem.h"
 #include "Graphics/GPUDevice.h"
 
+#include "ProfilingMacros.h"
 #include "fastgltf/core.hpp"
 #include "fastgltf/glm_element_traits.hpp"
 #include "fastgltf/tools.hpp"
@@ -14,6 +15,10 @@
 #include "Assets/GLTFHelpers.h"
 #include "Core/CoreUtils.h"
 #include "World/World.h"
+
+#ifndef RAY_TRACING_ENABLED
+#define RAY_TRACING_ENABLED 1
+#endif // defined RAY_TRACING_ENABLED
 
 namespace
 {
@@ -175,6 +180,8 @@ namespace Turbo
 			return cachedAsset;
 		}
 
+		TRACE_ZONE_SCOPED_FORMAT(LoadMesh, "Load GLTF Mesh ({})", assetPath.ToString())
+
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 		fastgltf::Mesh& gltfMesh = loadedAsset.meshes[meshLoadSettings.mMeshIndex];
 		fastgltf::Primitive& glftSubMesh = gltfMesh.primitives[meshLoadSettings.mSubMeshIndex];
@@ -285,7 +292,7 @@ namespace Turbo
 			gpu.DestroyBuffer(stagingBufferHandle);
 		}));
 
-
+#if RAY_TRACING_ENABLED
 		TURBO_LOG(LogMeshLoading, Info, "Building BLAS", gltfMesh.name);
 		const FBLASBuilder builder = {
 			.mVertexBuffer = mesh->mPositionBuffer,
@@ -294,6 +301,7 @@ namespace Turbo
 			.mName = FName(gltfMesh.name)
 		};
 		mesh->mBlas = gpu.CreateBLAS(builder);
+#endif // else RAY_TRACING_ENABLED
 
 		if (meshLoadSettings.mbLevelAsset)
 		{
@@ -352,7 +360,9 @@ namespace Turbo
 			}
 		}
 
+#if RAY_TRACING_ENABLED
 		gpu.DestroyAccelerationStructure(mesh->mBlas);
+#endif // RAY_TRACING_ENABLED
 
 		mAssetCache.erase(mesh->mAssetHash);
 		mMeshPool.Release(meshHandle);

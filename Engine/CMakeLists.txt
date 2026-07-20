@@ -31,16 +31,6 @@ endif()
 # Libraries
 ############################################################################################
 
-find_package(VulkanHeaders CONFIG REQUIRED)
-find_package(fmt CONFIG REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
-find_package(vk-bootstrap CONFIG REQUIRED)
-find_package(slang CONFIG REQUIRED)
-find_package(SDL3 CONFIG REQUIRED)
-find_package(fastgltf CONFIG REQUIRED)
-find_package(EnTT CONFIG REQUIRED)
-find_package(Tracy CONFIG REQUIRED)
-
 if (UNIX)
     target_link_libraries(${PROJECT_NAME} INTERFACE stdc++)
     target_link_libraries(${PROJECT_NAME} PUBLIC -lm)
@@ -60,13 +50,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC turbo_imgui)
+target_link_libraries(${PROJECT_NAME} PUBLIC turbo_imguizmo)
 target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 target_link_libraries(${PROJECT_NAME} PUBLIC STB)
 
 # TODO: Create GPU Interface and make those private
 target_link_libraries(${PROJECT_NAME} PUBLIC GPUOpen::VulkanMemoryAllocator)
 target_link_libraries(${PROJECT_NAME} PUBLIC VulkanMemoryAllocator-Hpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC vk-bootstrap::vk-bootstrap)
+target_link_libraries(${PROJECT_NAME} PUBLIC vk-bootstrap)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC EnTT::EnTT)
 target_link_libraries(${PROJECT_NAME} PUBLIC enkiTS)
@@ -74,7 +65,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC enkiTS)
 target_link_libraries(${PROJECT_NAME} PUBLIC dds_image)
 target_compile_definitions(${PROJECT_NAME} PUBLIC DDS_USE_STD_FILESYSTEM)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE slang::slang)
+target_link_libraries(${PROJECT_NAME} PRIVATE slang)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE RenderDoc)
 
 

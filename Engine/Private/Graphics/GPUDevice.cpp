@@ -1,13 +1,14 @@
 #include "Graphics/GPUDevice.h"
 
-#include "Graphics/GraphicsCore.h"
+#include "Assets/EngineResources.h"
 #include "CommonMacros.h"
+#include "Core/Engine.h"
 #include "Graphics/CommandBuffer.h"
+#include "Graphics/GraphicsCore.h"
 #include "Graphics/Resources.h"
+#include "ProfilingMacros.h"
 #include "TaskScheduler.h"
 #include "VkBootstrap.h"
-#include "Assets/EngineResources.h"
-#include "Core/Engine.h"
 
 #include "Core/Window.h"
 #include "Graphics/GeometryBuffer.h"
@@ -59,7 +60,7 @@ namespace Turbo
 
 	void FGPUDevice::RecompileShaders()
 	{
-		IShaderCompiler::Get().ClearCache();
+		IShaderCompiler::Get().ClearRuntimeCache();
 		RecreatePipelines();
 	}
 
@@ -245,11 +246,11 @@ namespace Turbo
 		}
 
 		vma::AllocationInfo allocationInfo;
-		std::pair<vk::Buffer, vma::Allocation> allocationResult;
+		std::pair<vma::Allocation, vk::Buffer> allocationResult;
 		CHECK_VULKAN_RESULT(allocationResult, mVmaAllocator.createBufferWithAlignment(createInfo, allocationCreateInfo, minAlignment, allocationInfo));
 
-		buffer->mVkBuffer = allocationResult.first;
-		bufferCold->mAllocation = allocationResult.second;
+		bufferCold->mAllocation = allocationResult.first;
+		buffer->mVkBuffer = allocationResult.second;
 
 		vk::BufferDeviceAddressInfo deviceAddressInfo = {};
 		deviceAddressInfo.buffer = buffer->mVkBuffer;
@@ -271,7 +272,7 @@ namespace Turbo
 			{
 				TRACE_ZONE_SCOPED_N("Copy mapped")
 
-				mVmaAllocator.copyMemoryToAllocation(builder.mInitialData, bufferCold->mAllocation, 0, builder.mSize);
+				CHECK_VULKAN_HPP(mVmaAllocator.copyMemoryToAllocation(builder.mInitialData, bufferCold->mAllocation, 0, builder.mSize));
 			}
 			else // Use staging buffer
 			{
@@ -1710,9 +1711,9 @@ namespace Turbo
 		imageAllocationInfo.requiredFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
 
 		{
-			std::pair<vk::Image, vma::Allocation> allocationResult;
+			std::pair<vma::Allocation, vk::Image> allocationResult;
 			CHECK_VULKAN_RESULT(allocationResult, mVmaAllocator.createImage(imageCreateInfo, imageAllocationInfo))
-			std::tie(texture->mVkImage, texture->mImageAllocation) = allocationResult;
+			std::tie(texture->mImageAllocation, texture->mVkImage) = allocationResult;
 		}
 
 		SetResourceName(texture->mVkImage, textureCold->mName);
@@ -1901,7 +1902,9 @@ namespace Turbo
 					|| builder.mPipelineRenderingBuilder.mDepthAttachmentFormat != vk::Format::eUndefined),
 				"It must be at least 1 attachment.")
 
+			TRACE_ZONE(DriverCreatePipeline, "Driver: Create Pipeline")
 			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createGraphicsPipeline(nullptr, pipelineCreateInfo));
+			TRACE_ZONE_END(DriverCreatePipeline)
 			pipeline->mVkBindPoint = vk::PipelineBindPoint::eGraphics;
 		}
 		else
@@ -1910,7 +1913,9 @@ namespace Turbo
 			pipelineCreateInfo.stage = shaderState->mShaderStageCrateInfo[0];
 			pipelineCreateInfo.layout = pipeline->mVkLayout;
 
+			TRACE_ZONE(DriverCreatePipeline, "Driver: Create Pipeline")
 			CHECK_VULKAN_RESULT(pipeline->mVkPipeline, mVkDevice.createComputePipeline(nullptr, pipelineCreateInfo));
+			TRACE_ZONE_END(DriverCreatePipeline)
 			pipeline->mVkBindPoint = vk::PipelineBindPoint::eCompute;
 		}
 
