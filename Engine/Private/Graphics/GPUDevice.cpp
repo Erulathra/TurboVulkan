@@ -5,6 +5,7 @@
 #include "Core/Engine.h"
 #include "Graphics/CommandBuffer.h"
 #include "Graphics/GraphicsCore.h"
+#include "Graphics/ResourceBuilders.h"
 #include "Graphics/Resources.h"
 #include "ProfilingMacros.h"
 #include "TaskScheduler.h"
@@ -16,6 +17,7 @@
 #include "Graphics/VulkanInitializers.h"
 
 #include "Debug/IConsoleManager.h"
+#include "vulkan/vulkan.hpp"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -139,6 +141,7 @@ namespace Turbo
 			.SetPoolRatio(vk::DescriptorType::eSampledImage, kTexturePoolSize)
 			.SetPoolRatio(vk::DescriptorType::eStorageImage, kTexturePoolSize)
 			.SetPoolRatio(vk::DescriptorType::eSampler, kSamplerPoolSize)
+			.SetPoolRatio(vk::DescriptorType::eAccelerationStructureKHR, kTLASPoolSize)
 			.SetFlags(vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind)
 			.SetName(FName("BindlessResources"));
 		mBindlessResourcesPool = CreateDescriptorPool(descriptorPoolBuilder);
@@ -153,6 +156,7 @@ namespace Turbo
 			.AddBinding(vk::DescriptorType::eSampledImage, BindlessResourcesBindings::kSampledImage, kTexturePoolSize, bindingFlags, FName("texturePool"))
 			.AddBinding(vk::DescriptorType::eStorageImage, BindlessResourcesBindings::kStorageImage, kTexturePoolSize, bindingFlags, FName("rwTexturePool"))
 			.AddBinding(vk::DescriptorType::eSampler, BindlessResourcesBindings::kSampler, kSamplerPoolSize, bindingFlags, FName("samplerPool"))
+			.AddBinding(vk::DescriptorType::eAccelerationStructureKHR, BindlessResourcesBindings::kTLAS, kTLASPoolSize, bindingFlags, FName("tlasPool"))
 			.SetName(FName("BindlessResources"));
 		mBindlessResourcesLayout = CreateDescriptorSetLayout(layoutBuilder);
 		TURBO_CHECK(mBindlessResourcesLayout)
@@ -748,6 +752,8 @@ namespace Turbo
 		const vk::AccelerationStructureBuildRangeInfoKHR* buildRangeInfoPtr = &buildRangeInfo;
 		builder.cmd->mVkCommandBuffer.buildAccelerationStructuresKHR(1, &buildGeometryInfo, &buildRangeInfoPtr);
 
+		mBindlessResourcesToUpdate.emplace_back(EResourceType::TLAS, handle.GetIndex(), handle);
+
 		return handle;
 	}
 
@@ -990,6 +996,7 @@ namespace Turbo
 
 		vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {};
 		accelerationStructureFeatures.accelerationStructure = true;
+		accelerationStructureFeatures.descriptorBindingAccelerationStructureUpdateAfterBind = true;
 
 		vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = {};
 		rayQueryFeatures.rayQuery = true;
@@ -1441,7 +1448,7 @@ namespace Turbo
 
 		for (const FBindlessResourceUpdateRequest& request : mBindlessResourcesToUpdate)
 		{
-			writeDescriptorSet.dstArrayElement = request.mBindingIndex;;
+			writeDescriptorSet.dstArrayElement = request.mBindingIndex;
 
 			switch (request.mType)
 			{
@@ -1498,7 +1505,11 @@ namespace Turbo
 				}
 			case Turbo::EResourceType::TLAS:
 				{
-					TURBO_UNINPLEMENTED()
+					const FAccelerationStructure* asToBind = AccessAccelearionStructure(THandle<FAccelerationStructure>(request.mHandle));
+					writeDescriptorSet.descriptorType = vk::DescriptorType::eAccelerationStructureKHR;
+					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kTLAS;
+
+					writeDescriptorSet.pNext = asToBind->mVkAccelerationStructure;
 				}
 			default: ;
 			}

@@ -28,6 +28,7 @@ namespace Turbo
 		constexpr uint32 kSampledImage = 0;
 		constexpr uint32 kStorageImage = 1;
 		constexpr uint32 kSampler = 2;
+		constexpr uint32 kTLAS = 3;
 	}
 
 	struct FBindlessResourceUpdateRequest

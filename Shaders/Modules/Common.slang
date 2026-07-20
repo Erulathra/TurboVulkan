@@ -6,3 +6,6 @@ public __DynamicResource<__DynamicResourceKind::General> rwTexturePool[];
 
 [vk_binding(2, 0)]
 public SamplerState samplerPool[];
+
+[vk_binding(3, 0)]
+public RaytracingAccelerationStructure tlasPool[];
