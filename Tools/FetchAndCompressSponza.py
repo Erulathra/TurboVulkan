@@ -27,7 +27,6 @@ def fetch_sponza():
 
     os.remove(SPONZA_BASE_ARCHIVE)
 
-
 def main():
     Compressonator.init()
     fetch_sponza()
@@ -40,8 +39,10 @@ def main():
 
     for light in gltf["extensions"]["KHR_lights_punctual"]["lights"]:
         if light["type"] == "point":
-            light["intensity"] = 15.
+            light["intensity"] = 0.
             light["range"] = 10.
+        elif light["type"] == "directional":
+            light["intensity"] = 5.
 
     with open(compressed_gltf, 'w') as file:
         json.dump(gltf, file, indent=4)
