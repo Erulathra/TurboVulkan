@@ -696,11 +696,9 @@ namespace Turbo
 		FAccelerationStructure* tlas = mAccelerationStructurePool->Access(handle);
 		tlas->mName = builder.mName;
 
-		const FBuffer* instancesDataBuffer = AccessBuffer(builder.mInstancesDataBuffer);
-
 		vk::AccelerationStructureGeometryInstancesDataKHR instancesData;
 		instancesData.arrayOfPointers = false;
-		instancesData.data = instancesDataBuffer->mDeviceAddress;
+		instancesData.data = nullptr;
 
 		vk::AccelerationStructureGeometryKHR geometry = {};
 		geometry.geometryType = vk::GeometryTypeKHR::eInstances;
@@ -724,13 +722,8 @@ namespace Turbo
 			.mSize = sizeInfo.accelerationStructureSize,
 			.mName = builder.mName
 		};
-		tlas->mBuffer = builder.mStorageBuffer;
-
-		const FBuffer* instanceBuffer = AccessBuffer(builder.mInstancesDataBuffer);
-		const FBuffer* storageBuffer = AccessBuffer(builder.mStorageBuffer);
-		const FBuffer* scratchBuffer = AccessBuffer(builder.mScratchBuffer);
-
-		TURBO_CHECK(instanceBuffer && storageBuffer && scratchBuffer)
+		tlas->mBuffer = CreateBuffer(bufferBuilder);
+		const FBuffer* storageBuffer = AccessBuffer(tlas->mBuffer);
 
 		// Create TLAS
 		vk::AccelerationStructureCreateInfoKHR createInfo = {};
@@ -738,19 +731,11 @@ namespace Turbo
 		createInfo.size = sizeInfo.accelerationStructureSize;
 		createInfo.type = vk::AccelerationStructureTypeKHR::eTopLevel;
 
+		CHECK_VULKAN_RESULT(tlas->mVkAccelerationStructure, mVkDevice.createAccelerationStructureKHR(createInfo));
+		SetResourceName(tlas->mVkAccelerationStructure, tlas->mName);
+
 		tlas->mDeviceAddress = mVkDevice.getAccelerationStructureAddressKHR(tlas->mVkAccelerationStructure);
 		TURBO_CHECK(tlas->mDeviceAddress != 0)
-
-		vk::AccelerationStructureBuildRangeInfoKHR buildRangeInfo = {};
-		buildRangeInfo.primitiveCount = builder.mNumInstances;
-		buildRangeInfo.primitiveOffset = 0;
-		buildRangeInfo.firstVertex = 0;
-		buildRangeInfo.transformOffset = 0;
-
-		TURBO_CHECK(builder.cmd != nullptr)
-
-		const vk::AccelerationStructureBuildRangeInfoKHR* buildRangeInfoPtr = &buildRangeInfo;
-		builder.cmd->mVkCommandBuffer.buildAccelerationStructuresKHR(1, &buildGeometryInfo, &buildRangeInfoPtr);
 
 		mBindlessResourcesToUpdate.emplace_back(EResourceType::TLAS, handle.GetIndex(), handle);
 
@@ -759,20 +744,22 @@ namespace Turbo
 
 	FAccelerationStructureSizeInfo FGPUDevice::CalculateTLASSize(const FTLASBuilder& builder) const
 	{
-		vk::AccelerationStructureGeometryInstancesDataKHR instancesData;
+		vk::AccelerationStructureGeometryInstancesDataKHR instancesData = {};
+		instancesData.arrayOfPointers = false;
+		instancesData.data = nullptr;
 
 		vk::AccelerationStructureGeometryKHR geometry = {};
 		geometry.geometryType = vk::GeometryTypeKHR::eInstances;
 		geometry.geometry.instances = instancesData;
 
-		vk::AccelerationStructureBuildGeometryInfoKHR buildGeometryInfo = {};
-		buildGeometryInfo.type = vk::AccelerationStructureTypeKHR::eTopLevel;
-		buildGeometryInfo.geometryCount = 1;
-		buildGeometryInfo.pGeometries = &geometry;
+		vk::AccelerationStructureBuildGeometryInfoKHR geometryInfo = {};
+		geometryInfo.type = vk::AccelerationStructureTypeKHR::eTopLevel;
+		geometryInfo.geometryCount = 1;
+		geometryInfo.pGeometries = &geometry;
 
 		const vk::AccelerationStructureBuildSizesInfoKHR sizeInfo = mVkDevice.getAccelerationStructureBuildSizesKHR(
 			vk::AccelerationStructureBuildTypeKHR::eDevice,
-			buildGeometryInfo,
+			geometryInfo,
 			builder.mNumInstances
 		);
 
@@ -917,12 +904,12 @@ namespace Turbo
 
 	void FGPUDevice::DestroyAccelerationStructure(THandle<FAccelerationStructure> handle)
 	{
-		const FAccelerationStructure* blas = AccessAccelerationStructure(handle);
-		TURBO_CHECK(blas)
+		const FAccelerationStructure* accelerationStructure = AccessAccelerationStructure(handle);
+		TURBO_CHECK(accelerationStructure)
 
 		FAccelerationStructureDestroyer destroyer = {};
-		destroyer.mAccelerationStructure = blas->mVkAccelerationStructure;
-		destroyer.mBuffer = blas->mBuffer;
+		destroyer.mAccelerationStructure = accelerationStructure->mVkAccelerationStructure;
+		destroyer.mBuffer = accelerationStructure->mBuffer;
 		destroyer.mHandle = handle;
 
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
@@ -1505,11 +1492,13 @@ namespace Turbo
 				}
 			case Turbo::EResourceType::TLAS:
 				{
+#if 0 // SS: TODO
 					const FAccelerationStructure* asToBind = AccessAccelearionStructure(THandle<FAccelerationStructure>(request.mHandle));
 					writeDescriptorSet.descriptorType = vk::DescriptorType::eAccelerationStructureKHR;
 					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kTLAS;
 
 					writeDescriptorSet.pNext = asToBind->mVkAccelerationStructure;
+#endif
 				}
 			default: ;
 			}

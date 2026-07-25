@@ -1,9 +1,12 @@
 #include "Graphics/CommandBuffer.h"
 
+#include "CommonMacros.h"
+#include "Core/DataStructures/Handle.h"
 #include "Core/Engine.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/Resources.h"
 #include "Graphics/VulkanInitializers.h"
+#include "vulkan/vulkan.hpp"
 
 namespace Turbo
 {
@@ -18,7 +21,7 @@ namespace Turbo
 
 	void FCommandBuffer::End()
 	{
-		CHECK_VULKAN_HPP(mVkCommandBuffer.end())
+		CHECK_VULKAN_HPP(mVkCommandBuffer.end());
 	}
 
 	FRenderingAttachments& FRenderingAttachments::Reset()
@@ -91,7 +94,7 @@ namespace Turbo
 		FTexture* texture = mGpu->AccessTexture(textureHandle);
 		TURBO_CHECK(texture)
 
-		const vk::ClearColorValue clearColorValue {color.r, color.g, color.b, color.a};
+		const vk::ClearColorValue clearColorValue{color.r, color.g, color.b, color.a};
 		const vk::ImageSubresourceRange subresourceRange = VkInit::ImageSubresourceRange();
 		mVkCommandBuffer.clearColorImage(texture->mVkImage, layout, clearColorValue, subresourceRange);
 	}
@@ -138,7 +141,7 @@ namespace Turbo
 		const FCopyBufferParams copyBufferInfo = {
 			.mSrc = src,
 			.mDst = dst,
-			.mSize = size
+			.mSize = size,
 		};
 
 		CopyBuffer(copyBufferInfo);
@@ -380,6 +383,40 @@ namespace Turbo
 		);
 	}
 
+	void FCommandBuffer::BuildTLAS(const FBuildTLASParams& buildTLASParams)
+	{
+		const FBuffer* instanceDataBuffer = mGpu->AccessBuffer(buildTLASParams.mInstanceDataBuffer);
+		const FBuffer* scratchBuffer = mGpu->AccessBuffer(buildTLASParams.mScratchBuffer);
+		const FAccelerationStructure* tlas = mGpu->AccessAccelearionStructure(buildTLASParams.mTLAS);
+		TURBO_CHECK(instanceDataBuffer && scratchBuffer && tlas)
+
+		vk::AccelerationStructureGeometryInstancesDataKHR instancesData = {};
+		instancesData.arrayOfPointers = false;
+		instancesData.data = instanceDataBuffer->mDeviceAddress;
+
+		vk::AccelerationStructureGeometryKHR geometry = {};
+		geometry.geometryType = vk::GeometryTypeKHR::eInstances;
+		geometry.geometry.instances = instancesData;
+
+		vk::AccelerationStructureBuildGeometryInfoKHR geometryInfo = {};
+		geometryInfo.type = vk::AccelerationStructureTypeKHR::eTopLevel;
+		geometryInfo.flags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastBuild;
+		geometryInfo.mode = vk::BuildAccelerationStructureModeKHR::eBuild;
+		geometryInfo.geometryCount = 1;
+		geometryInfo.pGeometries = &geometry;
+		geometryInfo.scratchData = scratchBuffer->mDeviceAddress;
+		geometryInfo.dstAccelerationStructure = tlas->mVkAccelerationStructure;
+
+		vk::AccelerationStructureBuildRangeInfoKHR rangeInfo = {};
+		rangeInfo.primitiveCount = instanceDataBuffer->mDeviceSize / sizeof(vk::AccelerationStructureInstanceKHR);
+		rangeInfo.primitiveOffset = 0;
+		rangeInfo.firstVertex = 0;
+		rangeInfo.transformOffset = 0;
+
+		const vk::AccelerationStructureBuildRangeInfoKHR* rangeInfoPtr = &rangeInfo;
+		mVkCommandBuffer.buildAccelerationStructuresKHR(1, &geometryInfo, &rangeInfoPtr);
+	}
+
 #if WITH_DEBUG_RENDERING_FEATURES
 	void FCommandBuffer::BeginDebugUtilsLabel(const std::string_view& label, glm::float4 color)
 	{
@@ -429,4 +466,4 @@ namespace Turbo
 
 		mVkCommandBuffer.pushConstants(currentPipeline->mVkLayout, stageFlagBits, 0, size, pushConstants);
 	}
-} // Turbo
+} // namespace Turbo

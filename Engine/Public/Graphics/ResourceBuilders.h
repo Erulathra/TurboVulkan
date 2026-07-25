@@ -454,13 +454,6 @@ namespace Turbo
 	struct FTLASBuilder
 	{
 		uint32 mNumInstances = 0;
-		THandle<FBuffer> mInstancesDataBuffer = {};
-		THandle<FBuffer> mScratchBuffer = {};
-		THandle<FBuffer> mDataBuffer = {};
-		THandle<FBuffer> mStorageBuffer = {};
-
-		FCommandBuffer* cmd = nullptr;
-
 		FName mName = {};
 	};
 

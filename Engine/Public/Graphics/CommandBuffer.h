@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/DataStructures/Handle.h"
 #include "Enums.h"
 #include "Core/Math/Color.h"
 #include "Graphics/GraphicsCore.h"
@@ -104,6 +105,13 @@ namespace Turbo
 		uint32 mStride = 0;
 	};
 
+	struct FBuildTLASParams
+	{
+		THandle<FAccelerationStructure> mTLAS;
+		THandle<FBuffer> mInstanceDataBuffer;
+		THandle<FBuffer> mScratchBuffer;
+	};
+
 	class FCommandBuffer
 	{
 	public:
@@ -148,6 +156,8 @@ namespace Turbo
 
 		template<PushConstant PushConstantsType>
 		void PushConstants(PushConstantsType pushConstants) { PushConstants_Internal(&pushConstants, sizeof(PushConstantsType)); }
+
+		void BuildTLAS(const FBuildTLASParams& buildTLASParams);
 
 #if WITH_DEBUG_RENDERING_FEATURES
 		void BeginDebugUtilsLabel(const std::string_view& label, glm::float4 color = ELinearColor::kWhite);

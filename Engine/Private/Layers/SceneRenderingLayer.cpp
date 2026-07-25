@@ -3,7 +3,11 @@
 #include "Assets/AssetManager.h"
 #include "Assets/StaticMesh.h"
 #include "Core/CoreTimer.h"
+#include "Core/DataStructures/Handle.h"
 #include "Core/Engine.h"
+#include "Core/Name.h"
+#include "Graphics/Enums.h"
+#include "Graphics/FrameGraph/RenderGraphHelpers.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/ResourceBuilders.h"
@@ -271,6 +275,7 @@ namespace Turbo
 		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 
+		// Fill instances data
 		for (entt::entity entity : meshTransformView)
 		{
 			const FMeshComponent& meshComp = meshTransformView.get<FMeshComponent>(entity);
@@ -291,8 +296,54 @@ namespace Turbo
 			.mNumInstances = static_cast<uint32>(instances.size()),
 			.mName = tlasName
 		};
-
 		const FAccelerationStructureSizeInfo& tlasSizeInfo = gpu.CalculateTLASSize(tlasBuilder);
+		THandle<FAccelerationStructure> sceneTLASHandle = gpu.CreateTLAS(tlasBuilder);
+		const FAccelerationStructure* sceneTLAS = gpu.AccessAccelearionStructure(sceneTLASHandle);
+
+		// As we regenerate TLAS each frame, we can enqueue it's deletion when the frame woudl be completed.
+		gpu.DestroyAccelerationStructure(sceneTLASHandle);
+
+		// Create instances data buffer and queue for upload
+		const static FName instancesBufferName("SceneTLASInstanceData");
+		FRGResourceHandle instanceDataBufferHandle;
+		void* instanceDataPtr;
+      std::tie(instanceDataBufferHandle, instanceDataPtr) = graphBuilder.CreateAndQueueBufferUpload(FCreateAndUploadBuffer{
+         .mData = instances.data(),
+         .mSize = instances.size() * sizeof(vk::AccelerationStructureInstanceKHR),
+         .mBufferFlags = EBufferFlags::AccelerationStructureInput,
+         .mName = instancesBufferName,
+		});
+
+		// Create TLAS's scratch buffer
+		const static FName scratchBufferName("SceneTLASScratch");
+		const FRGResourceHandle scratchBufferHandle = graphBuilder.CreateBuffer(FRGBufferInfo{
+			.mSize = tlasSizeInfo.mBuildScratchSize,
+			.mBufferFlags = EBufferFlags::AccelerationStructureStorage | EBufferFlags::AccelerationStructureInput
+               		  | EBufferFlags::TransferSrc | EBufferFlags::StorageBuffer,
+			.mName = scratchBufferName
+		});
+
+		FRGResourceHandle storageBufferHandle = graphBuilder.RegisterExternalBuffer(sceneTLAS->mBuffer);
+
+		const FName passName("Build TLAS");
+		FRGPassInitializer pass = graphBuilder.AddPass(passName, EPassType::Compute);
+		pass->ReadBuffer(instanceDataBufferHandle);
+		pass->WriteBuffer(scratchBufferHandle);
+		pass->WriteBuffer(storageBufferHandle);
+
+		pass->mExecutePass.BindLambda(
+			[=](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
+			{
+				const THandle<FBuffer> instanceDataBuffer = resources.mBuffers.at(instanceDataBufferHandle);
+				const THandle<FBuffer> scratchBuffer = resources.mBuffers.at(scratchBufferHandle);
+
+				cmd.BuildTLAS({
+					.mTLAS = sceneTLASHandle,
+					.mInstanceDataBuffer = instanceDataBuffer,
+					.mScratchBuffer = scratchBuffer,
+				});
+			}
+		);
 	}
 
 	void FSceneRenderingLayer::Render(FRenderGraphBuilder& graphBuilder)

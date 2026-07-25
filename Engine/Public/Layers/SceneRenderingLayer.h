@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/DataStructures/Handle.h"
 #include "Layer.h"
 #include "World/Camera.h"
 #include "World/World.h"
