@@ -1,10 +1,15 @@
 #include "Graphics/FrameGraph/RenderGraph.h"
 
+#include "CommonMacros.h"
+#include "Core/DataStructures/Handle.h"
 #include "Graphics/CommandBuffer.h"
 #include "Graphics/Debug.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/FrameGraph/RenderGraphHelpers.h"
+#include "Graphics/Resources.h"
+#include "entt/locator/locator.hpp"
 #include "vulkan/vulkan_to_string.hpp"
+#include <iterator>
 
 namespace Turbo
 {
@@ -129,11 +134,10 @@ namespace Turbo
 	{
 		TURBO_CHECK(textureHandle)
 
-		auto findExternalTexturePredicate =
-			[textureHandle](const FRGExternalTextureInfo& externalTextureInfo)
-			{
-				return externalTextureInfo.mTextureHandle == textureHandle;
-			};
+		auto findExternalTexturePredicate = [textureHandle](const FRGExternalTextureInfo& externalTextureInfo)
+		{
+			return externalTextureInfo.mTextureHandle == textureHandle;
+		};
 
 		if (const auto foundIt = std::ranges::find_if(mExternalTextures, findExternalTexturePredicate);
 			foundIt != mExternalTextures.end())
@@ -141,7 +145,7 @@ namespace Turbo
 			return {
 				ERGResourceType::Texture,
 				static_cast<uint32>(std::distance(mExternalTextures.begin(), foundIt)),
-				true
+				true,
 			};
 		}
 
@@ -160,17 +164,11 @@ namespace Turbo
 			},
 			.mTextureHandle = textureHandle,
 			.mInitialLayout = initLayout,
-			.mFinalLayout = finalLayout
+			.mFinalLayout = finalLayout,
 		};
 
 		mExternalTextures.push_back(externalTextureInfo);
-		const FRGResourceHandle resourceHandle(
-			ERGResourceType::Texture,
-			mExternalTextures.size() - 1,
-			true
-		);
-
-		return resourceHandle;
+		return FRGResourceHandle(ERGResourceType::Texture, mExternalTextures.size() - 1, true);
 	}
 
 	FRGTextureInfo FRenderGraphBuilder::GetTextureInfo(FRGResourceHandle resourceHandle) const
@@ -231,7 +229,46 @@ namespace Turbo
 		TURBO_CHECK(resourceHandle.GetType() == ERGResourceType::Buffer && resourceHandle.IsValid())
 		TURBO_CHECK(resourceHandle.IsExternal() == false)
 
-		return mBuffers[resourceHandle.GetIndex()];
+		return resourceHandle.IsExternal()
+         ? mExternalBuffers[resourceHandle.GetIndex()].mInfo
+		   : mBuffers[resourceHandle.GetIndex()];
+	}
+
+	FRGResourceHandle FRenderGraphBuilder::RegisterExternalBuffer(THandle<FBuffer> bufferHandle)
+	{
+		TURBO_CHECK(bufferHandle)
+
+		auto findExternalBufferPredicate = [bufferHandle](const FRGExternalBufferInfo& info)
+		{
+			return info.mHandle == bufferHandle;
+		};
+
+		if (const auto foundIt = std::ranges::find_if(mExternalBuffers, findExternalBufferPredicate);
+		   foundIt != mExternalBuffers.end())
+		{
+			return {
+				ERGResourceType::Buffer,
+				static_cast<uint32>(std::distance(mExternalBuffers.begin(), foundIt)),
+				true,
+			};
+		}
+
+		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
+		const FBuffer* buffer = gpu.AccessBuffer(bufferHandle);
+		const FBufferCold* bufferCold = gpu.AccessBufferCold(bufferHandle);
+		TURBO_CHECK(bufferHandle)
+
+		const FRGExternalBufferInfo externalBufferInfo = {
+		   .mInfo = {
+					.mSize = buffer->mDeviceSize,
+					.mBufferFlags = bufferCold->mBufferFlags,
+					.mName = bufferCold->mName,
+			},
+			.mHandle = bufferHandle,
+		};
+
+		mExternalBuffers.push_back(externalBufferInfo);
+		return FRGResourceHandle(ERGResourceType::Buffer, mExternalBuffers.size() - 1, true);
 	}
 
 	FRGPassInitializer FRenderGraphBuilder::AddPass(FName passName, EPassType passType)
@@ -495,6 +532,16 @@ namespace Turbo
 
 		entt::dense_map<FRGResourceHandle, FResourceState> resourceData;
 
+		// Register external buffers
+		for (uint32 externalBufferId = 0; externalBufferId < mExternalBuffers.size(); ++externalBufferId)
+		{
+			FRGResourceHandle resourceHandle(ERGResourceType::Buffer, externalBufferId, true);
+			resourceData[resourceHandle] = {
+				.mLastUseType = EPassType::Undefined,
+				.mAccess = EResourceAccess::ReadWrite,
+			};
+		}
+
 		for (const FRGBufferUpload& upload : mQueuedBufferUploads)
 		{
 			resourceData[upload.mTargetBuffer] = {
@@ -581,13 +628,14 @@ namespace Turbo
 		CompileBufferSynchronization();
 	}
 
-	void FRenderGraphBuilder::Execute(FGPUDevice& gpu, FCommandBuffer& cmd)
+   void FRenderGraphBuilder::Execute(FGPUDevice& gpu, FCommandBuffer& cmd)
 	{
 		TRACE_ZONE_SCOPED()
 		TURBO_LOG(LogRenderGraph, Display, "Executing render graph");
 
 		FRenderResources renderResources = {};
 		renderResources.mTextures.reserve(mTextures.size() + mExternalTextures.size());
+		renderResources.mBuffers.reserve(mBuffers.size() + mExternalBuffers.size());
 
 		// Allocate textures
 		for (uint32 textureId = 0; textureId < mTextures.size(); ++textureId)
@@ -640,6 +688,18 @@ namespace Turbo
 			renderResources.mTextures.emplace(handle, texture);
 
 			TURBO_LOG(LogRenderGraph, Display, "Registering external texture: {}", mExternalTextures[externalTextureId].mTextureInfo.mName);
+		}
+
+		// Register external buffers
+		for (uint32 externalBufferId = 0; externalBufferId < mExternalBuffers.size(); ++externalBufferId)
+		{
+			const THandle<FBuffer> buffer = mExternalBuffers[externalBufferId].mHandle;
+			TURBO_CHECK(buffer)
+
+			const FRGResourceHandle handle(ERGResourceType::Buffer, externalBufferId, true);
+			renderResources.mBuffers.emplace(handle, buffer);
+
+			TURBO_LOG(LogRenderGraph, Display, "Registering external buffer: {}", mExternalBuffers[externalBufferId].mInfo.mName);
 		}
 
 		// Upload buffers
@@ -860,6 +920,7 @@ namespace Turbo
 		mTextures.clear();
 		mExternalTextures.clear();
 		mBuffers.clear();
+		mExternalBuffers.clear();
 		mQueuedBufferUploads.clear();
 
 		mAllocator.Clear();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/DataStructures/Handle.h"
 #include "Graphics/CommandBuffer.h"
 #include "Graphics/Resources.h"
 
@@ -204,6 +205,12 @@ namespace Turbo
 		FName mName = {};
 
 		[[nodiscard]] bool IsValid() const;
+	};
+
+	struct FRGExternalBufferInfo
+	{
+		FRGBufferInfo mInfo = {};
+		THandle<FBuffer> mHandle;
 	};
 
 	struct FRGBufferMemoryBarrier

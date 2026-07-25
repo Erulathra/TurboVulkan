@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/DataStructures/Handle.h"
 #include "Core/Delegate.h"
 #include "Core/Allocators/StackAllocator.h"
 #include "Graphics/GraphicsCore.h"
@@ -84,12 +85,15 @@ namespace Turbo
 		DELETE_COPY(FRenderGraphBuilder)
 		FRenderGraphBuilder() = default;
 
+		// Texture related methods
 		[[nodiscard]] FRGResourceHandle CreateTexture(const FRGTextureInfo& textureInfo);
 		FRGResourceHandle RegisterExternalTexture(THandle<FTexture> texture, ETextureLayout initLayout);
 		FRGResourceHandle RegisterExternalTexture(THandle<FTexture> textureHandle, ETextureLayout initLayout, ETextureLayout finalLayout);
 		[[nodiscard]] FRGTextureInfo GetTextureInfo(FRGResourceHandle resourceHandle) const;
 
+		// Buffer related methods
 		[[nodiscard]] FRGResourceHandle CreateBuffer(const FRGBufferInfo& bufferInfo);
+		FRGResourceHandle RegisterExternalBuffer(THandle<FBuffer> buffer);
 		void QueueBufferUpload(const FRGBufferUpload& bufferUpload);
 		[[nodiscard]] std::tuple<FRGResourceHandle, void* /*intermediatePtr */> CreateAndQueueBufferUpload(const FCreateAndUploadBuffer& createAndUploadBuffer);
 		[[nodiscard]] FRGBufferInfo GetBufferInfo(FRGResourceHandle resourceHandle) const;
@@ -101,8 +105,10 @@ namespace Turbo
 			return std::make_tuple(std::get<0>(result), static_cast<T*>(std::get<1>(result)));
 		}
 
+		// Pass related methods
 		[[nodiscard]] FRGPassInitializer AddPass(FName passName, EPassType passType = EPassType::Undefined);
 
+		// Compilation
 		void Compile();
 		void CompileTextureSynchronization();
 		void CompileBufferSynchronization();
@@ -145,6 +151,7 @@ namespace Turbo
 
 		std::vector<FRGBufferInfo> mBuffers;
 		std::vector<FRGBufferUpload> mQueuedBufferUploads;
+		std::vector<FRGExternalBufferInfo> mExternalBuffers;
 
 		FArenaAllocator mAllocator = FArenaAllocator(kPerFrameStackSize);
 	};
