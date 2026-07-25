@@ -46,31 +46,31 @@ using namespace std::string_view_literals;
 
 // Assertions
 
-#define TURBO_CHECK(CONDITION)																	\
-	if (!(CONDITION)) [[unlikely]]																\
-	{																							\
-		SPDLOG_ERROR("Assertion `" #CONDITION "` failed.");										\
-		TURBO_DEBUG_BREAK();																	\
-		std::abort();																			\
-		TURBO_ASSUME(false)																		\
-	}																							\
-	DISABLE_ASSUME_WARNINGS																		\
-	TURBO_ASSUME(!!(CONDITION))																	\
+#define TURBO_CHECK(CONDITION)                                                                                         \
+	if (!(CONDITION)) [[unlikely]]                                                                                     \
+	{                                                                                                                  \
+		SPDLOG_ERROR("Assertion `" #CONDITION "` failed.");                                                            \
+		spdlog::default_logger_raw()->flush();                                                                         \
+		TURBO_DEBUG_BREAK();                                                                                           \
+		std::abort();                                                                                                  \
+		TURBO_ASSUME(false)                                                                                            \
+	}                                                                                                                  \
+	DISABLE_ASSUME_WARNINGS                                                                                            \
+	TURBO_ASSUME(!!(CONDITION))                                                                                        \
 	ENABLE_ASSUME_WARNINGS
 
-
-#define TURBO_CHECK_MSG(CONDITION, MESSAGE, ...)																		\
-	if (!(CONDITION)) [[unlikely]]																						\
-	{																													\
-		SPDLOG_ERROR("Assertion `" #CONDITION "` failed. Message: `" MESSAGE "`" __VA_OPT__(,) __VA_ARGS__);			\
-		TURBO_DEBUG_BREAK();																							\
-		std::abort();																									\
-		TURBO_ASSUME(false)																								\
-	}																													\
-	DISABLE_ASSUME_WARNINGS																								\
-	TURBO_ASSUME(!!(CONDITION))																							\
+#define TURBO_CHECK_MSG(CONDITION, MESSAGE, ...)                                                                       \
+	if (!(CONDITION)) [[unlikely]]                                                                                     \
+	{                                                                                                                  \
+		SPDLOG_ERROR("Assertion `" #CONDITION "` failed. Message: `" MESSAGE "`" __VA_OPT__(, ) __VA_ARGS__);          \
+		spdlog::default_logger_raw()->flush();                                                                         \
+		TURBO_DEBUG_BREAK();                                                                                           \
+		std::abort();                                                                                                  \
+		TURBO_ASSUME(false)                                                                                            \
+	}                                                                                                                  \
+	DISABLE_ASSUME_WARNINGS                                                                                            \
+	TURBO_ASSUME(!!(CONDITION))                                                                                        \
 	ENABLE_ASSUME_WARNINGS
-
 
 #if WITH_SLOW_ASSERTIONS
 #define TURBO_CHECK_SLOW(CONDITION) TURBO_CHECK(CONDITION)
