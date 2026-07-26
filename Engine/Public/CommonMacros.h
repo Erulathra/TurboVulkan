@@ -19,7 +19,13 @@ using namespace std::string_view_literals;
 
 // Debug break
 #if DEBUG
-#define TURBO_DEBUG_BREAK() __builtin_debugtrap();
+#define TURBO_DEBUG_BREAK()                                                                                            \
+	{                                                                                                                  \
+		if (FPlatform::IsDebuggerPresent())                                                                            \
+		{                                                                                                              \
+			__builtin_debugtrap();                                                                                     \
+		}                                                                                                              \
+	}
 #else // DEBUG
 #define TURBO_DEBUG_BREAK() {};
 #endif // else DEBUG
