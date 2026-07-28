@@ -52,9 +52,9 @@ namespace Turbo
 
 #if TURBO_BUILD_SHIPPING == false
       // Add command-line support
-		bool bWaitForDebugger = false;
+		bool bWaitForDebugger = true;
 
-		if (bWaitForDebugger && FPlatform::IsDebuggerPresent() == false)
+		if (bWaitForDebugger)
 		{
 			TURBO_LOG(LogEngine, Info, "Waiting for debugger.")
 			while (FPlatform::IsDebuggerPresent() == false)

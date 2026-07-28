@@ -1,12 +1,12 @@
 #pragma once
 
-#if PLATFORM_LINUX
+#if PLATFORM_WINDOWS
 
 #include "Core/PlatformImplementations/GenericPlatform.h"
 
 namespace Turbo
 {
-	struct FLinuxPlatform final : public FGenericPlatform
+	struct FWindowsPlatform final : public FGenericPlatform
 	{
 		static bool IsDebuggerPresent();
 
@@ -14,4 +14,4 @@ namespace Turbo
 	};
 } // namespace Turbo
 
-#endif // PLATFORM_LINUX
+#endif // PLATFORM_WINDOWS

@@ -1,11 +1,11 @@
+#if PLATFORM_LINUX
+
 #include "Core/PlatformImplementations/LinuxPlatform.h"
 #include "CommonMacros.h"
 #include <cmath>
 #include <cstdint>
 #include <ctime>
 #include <unistd.h>
-
-#if PLATFORM_LINUX
 
 #include <time.h>
 #include <stdio.h>
@@ -56,16 +56,11 @@ namespace Turbo
 
 	void FLinuxPlatform::Sleep(double seconds)
 	{
-   	NanoSleep(static_cast<uint64>((seconds * static_cast<double>(kSecondsToNanoSeconds))));
-	}
-
-	void FLinuxPlatform::NanoSleep(uint64 nanoSeconds)
-	{
-	   timespec remaining = {};
-      timespec spec = {
-         .tv_sec =  static_cast<int64>(nanoSeconds / kSecondsToNanoSeconds),
-         .tv_nsec = static_cast<int64>(nanoSeconds % kSecondsToNanoSeconds),
-      };
+		timespec remaining = {};
+		timespec spec = {
+			.tv_sec = static_cast<int64>(nanoSeconds / kSecondsToNanoSeconds),
+			.tv_nsec = static_cast<int64>(nanoSeconds % kSecondsToNanoSeconds),
+		};
 
 		nanosleep(&spec, &remaining);
 	}
