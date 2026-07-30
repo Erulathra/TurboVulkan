@@ -52,7 +52,7 @@ namespace Turbo
 
 #if TURBO_BUILD_SHIPPING == false
       // Add command-line support
-		bool bWaitForDebugger = true;
+		bool bWaitForDebugger = false;
 
 		if (bWaitForDebugger)
 		{
