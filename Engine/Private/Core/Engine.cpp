@@ -1,5 +1,7 @@
 #include "Core/Engine.h"
 
+#include "CommonMacros.h"
+#include "Core/Platform.h"
 #include "TaskScheduler.h"
 #include "Assets/AssetManager.h"
 #include "Assets/EngineResources.h"
@@ -47,6 +49,23 @@ namespace Turbo
 		gEngine = TUniquePtr<FEngine>(new FEngine());
 
 		entt::locator<FLayersStack>::emplace();
+
+#if TURBO_BUILD_SHIPPING == false
+      // Add command-line support
+		bool bWaitForDebugger = true;
+
+		if (bWaitForDebugger)
+		{
+			TURBO_LOG(LogEngine, Info, "Waiting for debugger.")
+			while (FPlatform::IsDebuggerPresent() == false)
+			{
+				FPlatform::Sleep(0.1f);
+			}
+
+			TURBO_LOG(LogEngine, Info, "Debugger Attached")
+			TURBO_DEBUG_BREAK();
+		}
+#endif // TURBO_BUILD_SHIPPING == false
 
 		return gEngine.get();
 	}

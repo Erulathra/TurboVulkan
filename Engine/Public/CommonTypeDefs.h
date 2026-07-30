@@ -3,7 +3,11 @@
 // integer types
 using int8 = std::int8_t;
 using uint8 = std::uint8_t;
-using byte = std::byte;
+
+namespace Turbo {
+   // Our graciously reigning Microsoft definied byte in his most roubust and powerfull `Windows.h` library
+   using byte = std::byte;
+}
 
 using int16 = std::int16_t;
 using uint16 = std::uint16_t;
@@ -20,31 +24,28 @@ using fp64 = double;
 
 using cstring = const char*;
 
-constexpr std::byte operator""_B(unsigned long long x)
-{
-	return static_cast<std::byte>(x);
-}
+constexpr std::byte operator""_B(unsigned long long x) { return static_cast<std::byte>(x); }
 
 namespace Turbo
 {
-	template<typename T>
+	template <typename T>
 	using TSharedPtr = std::shared_ptr<T>;
 
-	template<typename T, typename... Args>
+	template <typename T, typename... Args>
 	TSharedPtr<T> MakeShared(Args&&... args)
 	{
 		return std::make_shared<T>(std::forward<Args>(args)...);
 	}
 
-	template<typename T>
+	template <typename T>
 	using TWeakPtr = std::weak_ptr<T>;
 
-	template<typename T>
+	template <typename T>
 	using TUniquePtr = std::unique_ptr<T>;
 
-	template<typename T, typename... Args>
+	template <typename T, typename... Args>
 	TUniquePtr<T> MakeUnique(Args&&... args)
 	{
 		return std::make_unique<T>(std::forward<Args>(args)...);
 	}
-}
+} // namespace Turbo

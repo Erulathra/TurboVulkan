@@ -12,6 +12,7 @@ NamespaceIndentation: All
 
 # Wrapping
 BreakBeforeBraces: Allman
+BreakTemplateDeclarations: true
 
 # Functions and methods
 Cpp11BracedListStyle: true

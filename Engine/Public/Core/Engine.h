@@ -1,6 +1,6 @@
 #pragma once
-#include "Window.h"
 #include "Input/Input.h"
+#include "Window.h"
 
 namespace enki
 {
@@ -80,4 +80,4 @@ namespace Turbo
 	};
 
 	inline TUniquePtr<FEngine> gEngine;
-} // Turbo
+} // namespace Turbo
