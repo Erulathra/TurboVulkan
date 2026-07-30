@@ -58,8 +58,8 @@ namespace Turbo
 	{
 		timespec remaining = {};
 		timespec spec = {
-			.tv_sec = static_cast<int64>(nanoSeconds / kSecondsToNanoSeconds),
-			.tv_nsec = static_cast<int64>(nanoSeconds % kSecondsToNanoSeconds),
+			.tv_sec = static_cast<int64>(std::floor(seconds)),
+			.tv_nsec = static_cast<int64>((seconds - std::floor(seconds)) * kSecondsToNanoSeconds),
 		};
 
 		nanosleep(&spec, &remaining);
