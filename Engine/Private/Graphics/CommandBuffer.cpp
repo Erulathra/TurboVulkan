@@ -387,7 +387,7 @@ namespace Turbo
 	{
 		const FBuffer* instanceDataBuffer = mGpu->AccessBuffer(buildTLASParams.mInstanceDataBuffer);
 		const FBuffer* scratchBuffer = mGpu->AccessBuffer(buildTLASParams.mScratchBuffer);
-		const FAccelerationStructure* tlas = mGpu->AccessAccelearionStructure(buildTLASParams.mTLAS);
+		const FTLAS* tlas = mGpu->AccessTLAS(buildTLASParams.mTLAS);
 		TURBO_CHECK(instanceDataBuffer && scratchBuffer && tlas)
 
 		vk::AccelerationStructureGeometryInstancesDataKHR instancesData = {};

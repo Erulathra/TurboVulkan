@@ -65,6 +65,8 @@ namespace Turbo
 
 			{
 				// Cache loaded modues
+				// TODO: To enable this feature in developement we need to check module modify access to remove invalid cache.
+			#if TURBO_BUILD_SHIPPING
 				for (uint32 moduleId = 0; moduleId < mSession->getLoadedModuleCount(); ++moduleId)
 				{
 					slang::IModule* moduleToCache = mSession->getLoadedModule(moduleId);
@@ -85,6 +87,7 @@ namespace Turbo
 
 					mCachedModules.emplace(loadedModulePath.string());
 				}
+			#endif
 			}
 
 			const std::string loadedShaderPath = module->getFilePath();

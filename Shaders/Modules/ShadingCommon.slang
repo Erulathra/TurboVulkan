@@ -2,6 +2,7 @@ module ShadingCommon;
 
 import Math;
 import ViewData;
+
 #include "MathConstants.slang"
 
 public struct FLight
@@ -117,6 +118,27 @@ public float CalculateGeometryShading(float3 normal, float3 lightToCamera, float
     return geometryObstruction * geometryShadowing;
 }
 
+public float CalculateShadow(in FLight light, in float3 mPosition, in RaytracingAccelerationStructure sceneTLAS)
+{
+   if (GetLightType(light) == ELightType::Directional)
+   {
+      RayDesc rayDesc;
+      rayDesc.Origin = mPosition;
+      rayDesc.Direction = normalize(light.mPosition - mPosition);
+      rayDesc.TMin = FLT_MIN;
+      rayDesc.TMax = 1e4;
+
+      RayQuery<RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;
+      let rayFlags = RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
+      rayQuery.TraceRayInline(sceneTLAS, rayFlags, 0xFF, rayDesc);
+      rayQuery.Proceed();
+
+      return rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT ? 1.f : 0.f;
+   }
+
+   return 0.f;
+}
+
 public float3 CalculatePixelRadiance(in FLight light, in FPixelLightningInput input)
 {
     const float3 pixelToLightVector = light.mPosition - input.mPosition;
@@ -147,5 +169,6 @@ public float3 CalculatePixelRadiance(in FLight light, in FPixelLightningInput in
     const float3 kDiffuse = (1.f - kReflected) * (1.f - input.mMetallic);
 
     const float cosTheta = SaturatedDot(input.mNormal, lightToPixel);
+
     return (kDiffuse * input.mAlbedo / M_PI + brdf) * light.mColor * light.mIntensity * attenuation * cosTheta;
 }

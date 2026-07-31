@@ -8,6 +8,7 @@ namespace Turbo
 	struct FAccelerationStructure;
 	struct FBuffer;
 	struct FMaterial;
+	struct FBLAS;
 
 	struct FBounds
 	{
@@ -27,7 +28,7 @@ namespace Turbo
 		THandle<FBuffer> mUVBuffer = {};
 		THandle<FBuffer> mColorBuffer = {};
 
-		THandle<FAccelerationStructure> mBlas = {};
+		THandle<FBLAS> mBlas = {};
 
 		FBounds mBounds;
 

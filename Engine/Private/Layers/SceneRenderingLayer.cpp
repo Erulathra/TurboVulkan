@@ -264,7 +264,7 @@ namespace Turbo
 		}
 	}
 
-	void FSceneRenderingLayer::CreateScenesTLAS(FRenderGraphBuilder& graphBuilder, FWorld* world)
+	void FSceneRenderingLayer::CreateSceneTLAS(FRenderGraphBuilder& graphBuilder, FWorld* world, FSceneView* sceneView)
 	{
 		std::vector<vk::AccelerationStructureInstanceKHR> instances;
 		auto& registry = world->mRegistry;
@@ -282,7 +282,7 @@ namespace Turbo
 			const FWorldTransform& transform = meshTransformView.get<FWorldTransform>(entity);
 
 			const FMesh* mesh = assetManager.AccessMesh(meshComp.mMesh);
-			const FAccelerationStructure* blas = gpu.AccessAccelearionStructure(mesh->mBlas);
+			const FAccelerationStructure* blas = gpu.AccessBLAS(mesh->mBlas);
 
 			vk::AccelerationStructureInstanceKHR& instance = instances.emplace_back();
 			std::memcpy(instance.transform, glm::value_ptr(glm::transpose(transform.mTransform)), sizeof(vk::TransformMatrixKHR));
@@ -297,11 +297,11 @@ namespace Turbo
 			.mName = tlasName
 		};
 		const FAccelerationStructureSizeInfo& tlasSizeInfo = gpu.CalculateTLASSize(tlasBuilder);
-		THandle<FAccelerationStructure> sceneTLASHandle = gpu.CreateTLAS(tlasBuilder);
-		const FAccelerationStructure* sceneTLAS = gpu.AccessAccelearionStructure(sceneTLASHandle);
+		sceneView->mTLAS = gpu.CreateTLAS(tlasBuilder);
+		const FTLAS* sceneTLAS = gpu.AccessTLAS(sceneView->mTLAS);
 
 		// As we regenerate TLAS each frame, we can enqueue it's deletion when the frame woudl be completed.
-		gpu.DestroyAccelerationStructure(sceneTLASHandle);
+		gpu.DestroyTLAS(sceneView->mTLAS);
 
 		// Create instances data buffer and queue for upload
 		const static FName instancesBufferName("SceneTLASInstanceData");
@@ -323,13 +323,13 @@ namespace Turbo
 			.mName = scratchBufferName
 		});
 
-		FRGResourceHandle storageBufferHandle = graphBuilder.RegisterExternalBuffer(sceneTLAS->mBuffer);
+		sceneView->mTLASStorageBufferHandle = graphBuilder.RegisterExternalBuffer(sceneTLAS->mBuffer);
 
 		const FName passName("Build TLAS");
 		FRGPassInitializer pass = graphBuilder.AddPass(passName, EPassType::Compute);
 		pass->ReadBuffer(instanceDataBufferHandle);
 		pass->WriteBuffer(scratchBufferHandle);
-		pass->WriteBuffer(storageBufferHandle);
+		pass->WriteBuffer(sceneView->mTLASStorageBufferHandle);
 
 		pass->mExecutePass.BindLambda(
 			[=](FGPUDevice& gpu, FCommandBuffer& cmd, FRenderResources& resources)
@@ -338,7 +338,7 @@ namespace Turbo
 				const THandle<FBuffer> scratchBuffer = resources.mBuffers.at(scratchBufferHandle);
 
 				cmd.BuildTLAS({
-					.mTLAS = sceneTLASHandle,
+					.mTLAS = sceneView->mTLAS,
 					.mInstanceDataBuffer = instanceDataBuffer,
 					.mScratchBuffer = scratchBuffer,
 				});
@@ -387,6 +387,8 @@ namespace Turbo
 			.mData = sceneView->mViewData,
 			.mDataSize = sizeof(FViewData),
 		});
+
+		CreateSceneTLAS(graphBuilder, world, sceneView);
 
 		// Create Lights buffers
 		std::vector<FLight> lights;
@@ -437,6 +439,7 @@ namespace Turbo
 		// Create and upload scene data
 		FSceneData* sceneData = graphBuilder.AllocatePOD<FSceneData>();
 		sceneData->mNumLights = lights.size();
+		sceneData->mSceneTLAS = sceneView->mTLAS.GetIndex();
 		std::tie(sceneView->mSceneDataBufferHandle, sceneView->mSceneData) =
 			graphBuilder.CreateAndQueueBufferUpload<FSceneData>(FCreateAndUploadBuffer{
 				.mData = sceneData,
@@ -444,8 +447,6 @@ namespace Turbo
 				.mBufferFlags = EBufferFlags::UniformBuffer,
 				.mName = FName("SceneDataBuffer")
 			});
-
-		CreateScenesTLAS(graphBuilder, world);
 
 		std::vector<FDrawIndirectBucket> drawIndirectBuckets;
 		CreateIndirectRenderBuffers(graphBuilder, world, sceneView, drawIndirectBuckets);

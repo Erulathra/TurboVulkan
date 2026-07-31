@@ -361,7 +361,7 @@ namespace Turbo
 		}
 
 #if RAY_TRACING_ENABLED
-		gpu.DestroyAccelerationStructure(mesh->mBlas);
+		gpu.DestroyBLAS(mesh->mBlas);
 #endif // RAY_TRACING_ENABLED
 
 		mAssetCache.erase(mesh->mAssetHash);

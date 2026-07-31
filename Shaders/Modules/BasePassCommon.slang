@@ -36,6 +36,7 @@ public struct FMaterialInstance
 public struct FSceneData
 {
     public uint mNumLights;
+    public uint mSceneTLAS;
     uint _PADDING[3];
 }
 

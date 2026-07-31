@@ -107,7 +107,7 @@ namespace Turbo
 
 	struct FBuildTLASParams
 	{
-		THandle<FAccelerationStructure> mTLAS;
+		THandle<FTLAS> mTLAS;
 		THandle<FBuffer> mInstanceDataBuffer;
 		THandle<FBuffer> mScratchBuffer;
 	};

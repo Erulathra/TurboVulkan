@@ -107,12 +107,16 @@ void psMain(in VSOut vsOut, out PSOut psOut)
 
 	float3 irradiance = 0.f;
 
+	RaytracingAccelerationStructure tlas = tlasPool[scene.mSceneTLAS];
+
 	// Calculate irradiance
 	for (int lightIndex = 0; lightIndex < scene.mNumLights; lightIndex++)
 	{
 		// For now only support point lights
 		FLight light = lights[lightIndex];
-		irradiance += CalculatePixelRadiance(light, pixelInput);
+
+		const float shadowFactor = CalculateShadow(light, pixelInput.mPosition, tlas);
+		irradiance += CalculatePixelRadiance(light, pixelInput) * (1.f - shadowFactor);
 	}
 
 	// Add ambient light

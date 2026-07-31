@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/DataStructures/Handle.h"
 #include "DestoryQueue.h"
 #include "Enums.h"
 #include "Core/DataStructures/ArrayHeap.h"
@@ -260,13 +261,28 @@ namespace Turbo
 		THandle<FPipeline> mHandle = {};
 	};
 
+	enum class EAccelerationStructureType
+	{
+	   BLAS,
+		TLAS
+	};
+
 	struct FAccelerationStructure
 	{
 		vk::AccelerationStructureKHR mVkAccelerationStructure;
 		FDeviceAddress mDeviceAddress;
 		THandle<FBuffer> mBuffer;
+		EAccelerationStructureType mType = EAccelerationStructureType::BLAS;
 
 		FName mName = {};
+	};
+
+	struct FBLAS : FAccelerationStructure
+	{
+	};
+
+	struct FTLAS : FAccelerationStructure
+	{
 	};
 
 	class FAccelerationStructureDestroyer : IDestroyer
@@ -279,7 +295,8 @@ namespace Turbo
 	protected:
 		vk::AccelerationStructureKHR mAccelerationStructure;
 		THandle<FBuffer> mBuffer;
-		THandle<FAccelerationStructure> mHandle;
+		FHandle mHandle;
+		EAccelerationStructureType mType;
 	};
 
 	/** Vulkan object abstractions end */

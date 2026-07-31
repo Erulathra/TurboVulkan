@@ -2,6 +2,7 @@
 
 #include "Assets/EngineResources.h"
 #include "CommonMacros.h"
+#include "Core/Allocators/StackAllocator.h"
 #include "Core/Engine.h"
 #include "Graphics/CommandBuffer.h"
 #include "Graphics/GraphicsCore.h"
@@ -606,11 +607,12 @@ namespace Turbo
 		return handle;
 	}
 
-	THandle<FAccelerationStructure> FGPUDevice::CreateBLAS(const FBLASBuilder& builder)
+	THandle<FBLAS> FGPUDevice::CreateBLAS(const FBLASBuilder& builder)
 	{
-		THandle<FAccelerationStructure> handle = mAccelerationStructurePool->Acquire();
-		FAccelerationStructure* blas = mAccelerationStructurePool->Access(handle);
+		THandle<FBLAS> handle = mBLASPool->Acquire();
+		FBLAS* blas = mBLASPool->Access(handle);
 		blas->mName = builder.mName;
+		blas->mType = EAccelerationStructureType::BLAS;
 
 		const FBuffer* vertexBuffer = AccessBuffer(builder.mVertexBuffer);
 		const FBuffer* indexBuffer = AccessBuffer(builder.mIndexBuffer);
@@ -690,11 +692,12 @@ namespace Turbo
 		return handle;
 	}
 
-	THandle<FAccelerationStructure> FGPUDevice::CreateTLAS(const FTLASBuilder& builder)
+	THandle<FTLAS> FGPUDevice::CreateTLAS(const FTLASBuilder& builder)
 	{
-		THandle<FAccelerationStructure> handle = mAccelerationStructurePool->Acquire();
-		FAccelerationStructure* tlas = mAccelerationStructurePool->Access(handle);
+		THandle<FTLAS> handle = mTLASPool->Acquire();
+		FTLAS* tlas = mTLASPool->Access(handle);
 		tlas->mName = builder.mName;
+		tlas->mType = EAccelerationStructureType::TLAS;
 
 		vk::AccelerationStructureGeometryInstancesDataKHR instancesData;
 		instancesData.arrayOfPointers = false;
@@ -902,15 +905,31 @@ namespace Turbo
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
 	}
 
-	void FGPUDevice::DestroyAccelerationStructure(THandle<FAccelerationStructure> handle)
+	void FGPUDevice::DestroyBLAS(THandle<FBLAS> handle)
 	{
-		const FAccelerationStructure* accelerationStructure = AccessAccelerationStructure(handle);
-		TURBO_CHECK(accelerationStructure)
+      FBLAS* blas = mBLASPool->Access(handle);
+      TURBO_CHECK(blas)
+
+      DestroyAccelerationStructure(handle, blas);
+	}
+
+	void FGPUDevice::DestroyTLAS(THandle<FTLAS> handle)
+	{
+      FTLAS* tlas = mTLASPool->Access(handle);
+      TURBO_CHECK(tlas)
+
+      DestroyAccelerationStructure(handle, tlas);
+	}
+
+	void FGPUDevice::DestroyAccelerationStructure(FHandle handle, FAccelerationStructure* accelerationStructure)
+	{
+		TURBO_CHECK(handle.IsValid())
 
 		FAccelerationStructureDestroyer destroyer = {};
 		destroyer.mAccelerationStructure = accelerationStructure->mVkAccelerationStructure;
 		destroyer.mBuffer = accelerationStructure->mBuffer;
 		destroyer.mHandle = handle;
+		destroyer.mType = accelerationStructure->mType;
 
 		FBufferedFrameData& frameData = mFrameDatas[mBufferedFrameId];
 		frameData.mDestroyQueue.RequestDestroy(destroyer);
@@ -1421,6 +1440,8 @@ namespace Turbo
 
 		// todo: sort `mBindlessTexturesToUpdate` to reduce memory jumps (?)
 
+		FArenaAllocator allocator{128};
+
 		std::vector<vk::WriteDescriptorSet> descriptorWrites;
 		descriptorWrites.reserve(mBindlessResourcesToUpdate.size() * 2);
 
@@ -1492,13 +1513,15 @@ namespace Turbo
 				}
 			case Turbo::EResourceType::TLAS:
 				{
-#if 0 // SS: TODO
-					const FAccelerationStructure* asToBind = AccessAccelearionStructure(THandle<FAccelerationStructure>(request.mHandle));
+					const FTLAS* asToBind = AccessTLAS(THandle<FTLAS>(request.mHandle));
 					writeDescriptorSet.descriptorType = vk::DescriptorType::eAccelerationStructureKHR;
 					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kTLAS;
 
-					writeDescriptorSet.pNext = asToBind->mVkAccelerationStructure;
-#endif
+               auto* asWrite = allocator.AllocateDefaulted<vk::WriteDescriptorSetAccelerationStructureKHR>();
+               asWrite->accelerationStructureCount = 1;
+               asWrite->pAccelerationStructures = &asToBind->mVkAccelerationStructure;
+
+					writeDescriptorSet.pNext = asWrite;
 				}
 			default: ;
 			}
@@ -2013,7 +2036,18 @@ namespace Turbo
 
 		DestroyBufferImmediate(bufferDestroyer);
 
-		mAccelerationStructurePool->Release(destroyer.mHandle);
+		switch (destroyer.mType)
+		{
+		case Turbo::EAccelerationStructureType::BLAS:
+   		mBLASPool->Release(THandle<FBLAS>(destroyer.mHandle));
+			break;
+		case Turbo::EAccelerationStructureType::TLAS:
+   		mTLASPool->Release(THandle<FTLAS>(destroyer.mHandle));
+			break;
+		default:
+			TURBO_UNINPLEMENTED()
+			break;
+		}
 	}
 
 	VkBool32 FGPUDevice::ValidationLayerCallback(

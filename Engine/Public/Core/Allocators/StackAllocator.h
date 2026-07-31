@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #if PLATFORM_WINDOWS
 #include <corecrt_malloc.h>
 #endif // PLATFORM_WINDOWS
@@ -57,6 +58,48 @@ namespace Turbo
 			TURBO_CHECK_MSG(newTop <= mTip, "Stack allocator overflow")
 
 			mTop = newTop;
+
+			return result;
+		}
+
+		template <typename Type>
+		Type* AllocateZeroed()
+		{
+			return reinterpret_cast<Type*>(AllocateZeroed(sizeof(Type), alignof(Type)));
+		}
+
+		template <typename Type>
+		Type* AllocateZeroed(size_t num)
+		{
+			return reinterpret_cast<Type*>(AllocateZeroed(num * sizeof(Type), alignof(Type)));
+		}
+
+		byte* AllocateZeroed(size_t size, size_t alignment = 4)
+		{
+		   byte* result = Allocate(size, alignment);
+			std::memset(result, 0, size);
+
+			return result;
+		}
+
+		template <typename Type>
+		Type* AllocateDefaulted()
+		{
+			Type* result = reinterpret_cast<Type*>(Allocate(sizeof(Type), alignof(Type)));
+			*result = Type{};
+
+			return result;
+		}
+
+		template <typename Type>
+		Type* AllocateDefaulted(size_t num)
+		{
+			Type* result = reinterpret_cast<Type*>(Allocate(num * sizeof(Type), alignof(Type)));
+
+			for (uint32 i = 0; i < num; ++num)
+			{
+            result[i] = Type{};
+			}
 
 			return result;
 		}

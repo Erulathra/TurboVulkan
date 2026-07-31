@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core/DataStructures/Handle.h"
+#include "Graphics/FrameGraph/RenderGraphHelpers.h"
+#include "Graphics/Resources.h"
 #include "Layer.h"
 #include "World/Camera.h"
 #include "World/World.h"
@@ -19,7 +21,9 @@ namespace Turbo
 	struct FSceneData final
 	{
 		uint32 mNumLights = 0;
-		uint32 _PADDING[3];
+		uint32 mSceneTLAS = 0;
+
+		uint32 _PADDING[2];
 	};
 
 	struct FSceneView
@@ -32,6 +36,10 @@ namespace Turbo
 		FRGResourceHandle mViewDataBufferHandle = {};
 		FRGResourceHandle mSceneDataBufferHandle = {};
 		FRGResourceHandle mLightsBufferHandle = {};
+
+		// Ray-tracing
+		THandle<FTLAS> mTLAS = {};
+		FRGResourceHandle mTLASStorageBufferHandle = {};
 	};
 
 	struct FDrawIndirectBucket
@@ -55,29 +63,28 @@ namespace Turbo
 		void Render(FRenderGraphBuilder& graphBuilder);
 		void RenderScene(FRenderGraphBuilder& graphBuilder, FSceneView* SceneView);
 		void RenderPostProcess(FRenderGraphBuilder& graphBuilder, FSceneView* SceneView);
+
 	private:
 		static void UpdateViewData(FWorld* world, FViewData& viewData);
 
 		static void CreateIndirectRenderBuffers(
 			FRenderGraphBuilder& graphBuilder,
 			FWorld* world,
-			FSceneView* sceneView, std::vector<FDrawIndirectBucket>& outBuckets
+			FSceneView* sceneView,
+			std::vector<FDrawIndirectBucket>& outBuckets
 		);
 
-		static void CreateScenesTLAS(
-			FRenderGraphBuilder& graphBuilder,
-			FWorld* world
-		);
+		static void CreateSceneTLAS(FRenderGraphBuilder& graphBuilder, FWorld* world, FSceneView* sceneView);
 
 	private:
 		THandle<FPipeline> mFrustumCullingPipeline = {};
 		THandle<FPipeline> mToneMapperPipeline = {};
 	};
 
-	template<>
+	template <>
 	inline FName GetStaticLayerName<FSceneRenderingLayer>()
 	{
 		static FName name("SceneRenderingLayer");
 		return name;
 	}
-} // Turbo
+} // namespace Turbo
