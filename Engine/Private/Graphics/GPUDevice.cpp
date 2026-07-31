@@ -1522,6 +1522,9 @@ namespace Turbo
                asWrite->pAccelerationStructures = &asToBind->mVkAccelerationStructure;
 
 					writeDescriptorSet.pNext = asWrite;
+
+					descriptorWrites.push_back(writeDescriptorSet);
+					break;
 				}
 			default: ;
 			}
