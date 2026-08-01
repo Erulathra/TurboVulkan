@@ -17,7 +17,7 @@ namespace Turbo
 			TRACE_ZONE_SCOPED()
 
 #if PLATFORM_WINDOWS
-			mAllocation = static_cast<byte*>(_aligned_malloc(4, size));
+			mAllocation = static_cast<byte*>(_aligned_malloc(size, 4));
 #else // PLATFORM_WINDOWS
 			mAllocation = static_cast<byte*>(aligned_alloc(4, size));
 #endif // else PLATFORM_WINDOWS
