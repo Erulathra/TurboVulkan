@@ -1339,6 +1339,8 @@ namespace Turbo
 	{
 		TRACE_ZONE_SCOPED()
 
+		mPerFrameArena.Clear();
+
 		if (mbRequestedSwapchainResize)
 		{
 			ResizeSwapChain();
@@ -1439,9 +1441,6 @@ namespace Turbo
 		TRACE_ZONE_SCOPED()
 
 		// todo: sort `mBindlessTexturesToUpdate` to reduce memory jumps (?)
-
-		FArenaAllocator allocator{128};
-
 		std::vector<vk::WriteDescriptorSet> descriptorWrites;
 		descriptorWrites.reserve(mBindlessResourcesToUpdate.size() * 2);
 
@@ -1517,7 +1516,7 @@ namespace Turbo
 					writeDescriptorSet.descriptorType = vk::DescriptorType::eAccelerationStructureKHR;
 					writeDescriptorSet.dstBinding = BindlessResourcesBindings::kTLAS;
 
-               auto* asWrite = allocator.AllocateDefaulted<vk::WriteDescriptorSetAccelerationStructureKHR>();
+               auto* asWrite = mPerFrameArena.AllocateDefaulted<vk::WriteDescriptorSetAccelerationStructureKHR>();
                asWrite->accelerationStructureCount = 1;
                asWrite->pAccelerationStructures = &asToBind->mVkAccelerationStructure;
 
