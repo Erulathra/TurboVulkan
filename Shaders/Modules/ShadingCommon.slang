@@ -124,7 +124,7 @@ public float CalculateShadow(in FLight light, in float3 mPosition, in Raytracing
    {
       RayDesc rayDesc;
       rayDesc.Origin = mPosition;
-      rayDesc.Direction = normalize(light.mPosition - mPosition);
+      rayDesc.Direction = -light.mDirection;
       rayDesc.TMin = 1e-3; // shadow-bias
       rayDesc.TMax = 1e4;
 
@@ -145,12 +145,13 @@ public float3 CalculatePixelRadiance(in FLight light, in FPixelLightningInput in
     const float lightDistance = length(pixelToLightVector);
 
     float attenuation = 1.f;
+    float3 lightToPixel = -light.mDirection;
     if (GetLightType(light) != ELightType::Directional)
     {
         attenuation = CalculateLightAttentuation(lightDistance, light.mIntensity, light.mRadius);
+        lightToPixel = pixelToLightVector / lightDistance;
     }
 
-    const float3 lightToPixel = pixelToLightVector / lightDistance;
     const float3 halfVector = normalize(lightToPixel + input.mPixelToCamera);
 
     // F0 hack, we assume that all dielectric surfaces have a F0 of 0.04

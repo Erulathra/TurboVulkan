@@ -10,6 +10,8 @@
 #include "Graphics/VulkanHelpers.h"
 #include "ProfilingMacros.h"
 
+#define ENABLE_SHADER_CACHING 0
+
 namespace Turbo
 {
 	void FSlangShaderCompiler::Init()
@@ -64,9 +66,9 @@ namespace Turbo
 			}
 
 			{
+#if ENABLE_SHADER_CACHING
 				// Cache loaded modues
 				// TODO: To enable this feature in developement we need to check module modify access to remove invalid cache.
-			#if TURBO_BUILD_SHIPPING
 				for (uint32 moduleId = 0; moduleId < mSession->getLoadedModuleCount(); ++moduleId)
 				{
 					slang::IModule* moduleToCache = mSession->getLoadedModule(moduleId);
@@ -87,7 +89,7 @@ namespace Turbo
 
 					mCachedModules.emplace(loadedModulePath.string());
 				}
-			#endif
+#endif // ENABLE_SHADER_CACHING
 			}
 
 			const std::string loadedShaderPath = module->getFilePath();
@@ -108,10 +110,12 @@ namespace Turbo
 
 			std::vector<slang::IComponentType*> componentTypes = {module, entryPoint};
 
-			const SlangResult compilationResult = mSession->createCompositeComponentType(componentTypes.data(),
-																						 static_cast<SlangInt>(componentTypes.size()),
-																						 composedProgram.writeRef(),
-																						 diagnosticsBlob.writeRef());
+			const SlangResult compilationResult = mSession->createCompositeComponentType(
+				componentTypes.data(),
+				static_cast<SlangInt>(componentTypes.size()),
+				composedProgram.writeRef(),
+				diagnosticsBlob.writeRef()
+			);
 
 			PrintMessageIfNeeded(diagnosticsBlob);
 			if (compilationResult != SLANG_OK)
@@ -170,7 +174,6 @@ namespace Turbo
 
 		slang::TargetDesc targetDesc = {};
 		targetDesc.format = SLANG_SPIRV;
-		targetDesc.profile = mGlobalSession->findProfile("spirv_1_6");
 		targetDesc.forceGLSLScalarBufferLayout = true;
 
 		slang::SessionDesc sessionDesc = {};
@@ -179,7 +182,9 @@ namespace Turbo
 		const std::string shaderPathString = kShaderPath.string();
 
 		const std::array<const char*, 2> kShaderSearchPaths = {
+#if ENABLE_SHADER_CACHING
    		shaderCachePathString.c_str(),
+#endif // ENABLE_SHADER_CACHING
          shaderPathString.c_str()
 		};
 		sessionDesc.searchPaths = kShaderSearchPaths.data();

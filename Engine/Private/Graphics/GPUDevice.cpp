@@ -19,6 +19,7 @@
 
 #include "Debug/IConsoleManager.h"
 #include "vulkan/vulkan.hpp"
+#include "vulkan/vulkan_core.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -1004,6 +1005,9 @@ namespace Turbo
 		accelerationStructureFeatures.accelerationStructure = true;
 		accelerationStructureFeatures.descriptorBindingAccelerationStructureUpdateAfterBind = true;
 
+		vk::PhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = {};
+		rayTracingPipelineFeatures.rayTracingPipeline = true;
+
 		vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = {};
 		rayQueryFeatures.rayQuery = true;
 
@@ -1025,6 +1029,7 @@ namespace Turbo
 			.add_required_extension_features(accelerationStructureFeatures)
 			.add_required_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
 			.add_required_extension(VK_KHR_RAY_QUERY_EXTENSION_NAME)
+			.add_required_extension_features(rayTracingPipelineFeatures)
 			.add_required_extension_features(rayQueryFeatures)
 		;
 

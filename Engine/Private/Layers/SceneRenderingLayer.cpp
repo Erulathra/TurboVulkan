@@ -409,21 +409,21 @@ namespace Turbo
 
 		// Create Lights buffers
 		std::vector<FLight> lights;
-		auto pointLightView = world->mRegistry.view<FLightComponent, FWorldTransform>();
-		for (const entt::entity entity : pointLightView)
+		auto lightView = world->mRegistry.view<FLightComponent, FWorldTransform>();
+		for (const entt::entity entity : lightView)
 		{
-			const FWorldTransform& transform = pointLightView.get<FWorldTransform>(entity);
-			const FLightComponent& pointLight = pointLightView.get<FLightComponent>(entity);
+			const FWorldTransform& transform = lightView.get<FWorldTransform>(entity);
+			const FLightComponent& light = lightView.get<FLightComponent>(entity);
 
-			if (pointLight.mIntensity > TURBO_SMALL_NUMBER)
+			if (light.mIntensity > TURBO_SMALL_NUMBER)
 			{
 				lights.emplace_back(
-					pointLight.mColor,
-					pointLight.mIntensity,
+					light.mColor,
+					light.mIntensity,
 					TransformUtils::GetPosition(transform),
-					pointLight.mRange,
+					light.mRange,
 					TransformUtils::GetForward(transform),
-					ForwardLightning::EncodeLightAnglesAndType(pointLight.mInnerAngle, pointLight.mOuterAngle, pointLight.mType)
+					ForwardLightning::EncodeLightAnglesAndType(light.mInnerAngle, light.mOuterAngle, light.mType)
 				);
 			}
 		}
