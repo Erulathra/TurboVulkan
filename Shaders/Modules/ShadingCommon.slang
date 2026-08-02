@@ -125,7 +125,7 @@ public float CalculateShadow(in FLight light, in float3 mPosition, in Raytracing
       RayDesc rayDesc;
       rayDesc.Origin = mPosition;
       rayDesc.Direction = normalize(light.mPosition - mPosition);
-      rayDesc.TMin = FLT_MIN;
+      rayDesc.TMin = 1e-3; // shadow-bias
       rayDesc.TMax = 1e4;
 
       RayQuery<RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;
