@@ -15,38 +15,44 @@ SPONZA_BASE_GLTF_SRC = f"{SPONZA_BASE}/NewSponza_Main_glTF_003.gltf"
 
 
 def fetch_sponza():
-    if os.path.exists(SPONZA_BASE):
-        return
+   if os.path.exists(SPONZA_BASE):
+      return
 
-    print("Downloading Intel's Sponza (base)...")
-    urlretrieve(SPONZA_BASE_URL, SPONZA_BASE_ARCHIVE, show_download_progress)
+   print("Downloading Intel's Sponza (base)...")
+   urlretrieve(SPONZA_BASE_URL, SPONZA_BASE_ARCHIVE, show_download_progress)
 
-    with zipfile.ZipFile(SPONZA_BASE_ARCHIVE, "r") as sponzaArchive:
-        print("Extracting Intel's Sponza (base)...")
-        sponzaArchive.extractall(os.path.join(SPONZA_BASE, ".."))
+   with zipfile.ZipFile(SPONZA_BASE_ARCHIVE, "r") as sponzaArchive:
+      print("Extracting Intel's Sponza (base)...")
+      sponzaArchive.extractall(os.path.join(SPONZA_BASE, ".."))
 
-    os.remove(SPONZA_BASE_ARCHIVE)
+   os.remove(SPONZA_BASE_ARCHIVE)
+
 
 def main():
-    Compressonator.init()
-    fetch_sponza()
+   Compressonator.init()
+   fetch_sponza()
 
-    compressed_gltf = CompressGLTF.compress_gltf(SPONZA_BASE_GLTF_SRC, flip_normals=True)
+   compressed_gltf = CompressGLTF.compress_gltf(SPONZA_BASE_GLTF_SRC, flip_normals=True)
 
-    gltf = None
-    with open(compressed_gltf, 'r') as file:
-        gltf = json.load(file)
+   gltf = None
+   with open(compressed_gltf, "r") as file:
+      gltf = json.load(file)
 
-    for light in gltf["extensions"]["KHR_lights_punctual"]["lights"]:
-        if light["type"] == "point":
-            light["intensity"] = 0.
-            light["range"] = 10.
-        elif light["type"] == "directional":
-            light["intensity"] = 5.
+   for light in gltf["extensions"]["KHR_lights_punctual"]["lights"]:
+      if light["type"] == "point":
+         light["intensity"] = 0.0
+         light["range"] = 10.0
+      elif light["type"] == "directional":
+         light["intensity"] = 5.0
 
-    with open(compressed_gltf, 'w') as file:
-        json.dump(gltf, file, indent=4)
+   # reset dir light location
+   for node in gltf["nodes"]:
+      if node["name"] == "SUN":
+         node["translation"] = [0., 0., 0.]
+
+   with open(compressed_gltf, "w") as file:
+      json.dump(gltf, file, indent=4)
 
 
 if __name__ == "__main__":
-    main()
+   main()
