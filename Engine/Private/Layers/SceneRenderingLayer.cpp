@@ -2,9 +2,11 @@
 
 #include "Assets/AssetManager.h"
 #include "Assets/StaticMesh.h"
+#include "CommonMacros.h"
 #include "Core/CoreTimer.h"
 #include "Core/DataStructures/Handle.h"
 #include "Core/Engine.h"
+#include "Core/Math/MathTypes.h"
 #include "Core/Name.h"
 #include "Graphics/Enums.h"
 #include "Graphics/FrameGraph/RenderGraphHelpers.h"
@@ -15,8 +17,10 @@
 #include "Graphics/Resources.h"
 #include "Graphics/Shaders/SceneCullingCS.h"
 #include "Graphics/Shaders/ToneMapperPostProcess.h"
+#include "ProfilingMacros.h"
 #include "World/Camera.h"
 #include "World/MeshComponent.h"
+#include "World/SceneGraph.h"
 #include "World/ShadingComponents.h"
 #include "World/World.h"
 
@@ -266,26 +270,39 @@ namespace Turbo
 
 	void FSceneRenderingLayer::CreateSceneTLAS(FRenderGraphBuilder& graphBuilder, FWorld* world, FSceneView* sceneView)
 	{
+      TRACE_ZONE_SCOPED()
+
 		std::vector<vk::AccelerationStructureInstanceKHR> instances;
 		auto& registry = world->mRegistry;
 
-		const auto meshTransformView = registry.view<FWorldTransform, FMeshComponent>();
-		instances.reserve(meshTransformView.size_hint());
+		const auto meshView = registry.view<FMeshComponent>();
+		instances.reserve(meshView.size());
 
 		FAssetManager& assetManager = entt::locator<FAssetManager>::value();
 		FGPUDevice& gpu = entt::locator<FGPUDevice>::value();
 
 		// Fill instances data
-		for (entt::entity entity : meshTransformView)
+		for (entt::entity entity : meshView)
 		{
-			const FMeshComponent& meshComp = meshTransformView.get<FMeshComponent>(entity);
-			const FWorldTransform& transform = meshTransformView.get<FWorldTransform>(entity);
+			const FMeshComponent& meshComp = meshView.get<FMeshComponent>(entity);
+
+			const glm::float4x4* transform = nullptr;
+			if (const FWorldTransform* worldTransform = registry.try_get<FWorldTransform>(entity))
+			{
+            transform = &worldTransform->mTransform;
+			}
+			else if (const FRelationship* relationship = registry.try_get<FRelationship>(entity))
+			{
+            transform = &registry.get<FWorldTransform>(relationship->mParent).mTransform;
+			}
+
+			TURBO_CHECK(transform != nullptr)
 
 			const FMesh* mesh = assetManager.AccessMesh(meshComp.mMesh);
 			const FAccelerationStructure* blas = gpu.AccessBLAS(mesh->mBlas);
 
 			vk::AccelerationStructureInstanceKHR& instance = instances.emplace_back();
-			std::memcpy(instance.transform, glm::value_ptr(glm::transpose(transform.mTransform)), sizeof(vk::TransformMatrixKHR));
+			std::memcpy(instance.transform, glm::value_ptr(glm::transpose(*transform)), sizeof(vk::TransformMatrixKHR));
 			instance.mask = 0xFF; // all for now
 			instance.instanceCustomIndex = meshComp.mMesh.GetIndex();
 			instance.accelerationStructureReference = blas->mDeviceAddress;
