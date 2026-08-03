@@ -1,6 +1,7 @@
 #include "Core/Engine.h"
 
 #include "CommonMacros.h"
+#include "Core/EnviromentalVariables.h"
 #include "Core/Platform.h"
 #include "TaskScheduler.h"
 #include "Assets/AssetManager.h"
@@ -21,6 +22,7 @@
 #include "Layers/ImGUILayer.h"
 #include "Layers/Layer.h"
 #include "Layers/SceneRenderingLayer.h"
+#include "TurboLog.h"
 #include "World/World.h"
 
 namespace Turbo

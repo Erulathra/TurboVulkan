@@ -13,6 +13,7 @@
 #include <string>
 #include <string_view>
 #include <limits>
+#include <optional>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
