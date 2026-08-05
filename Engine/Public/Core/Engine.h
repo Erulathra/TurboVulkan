@@ -52,10 +52,10 @@ namespace Turbo
 		~FEngine();
 
 	public:
-		static FEngine* Init();
+		static FEngine* Init(int32 argc, char* argv[]);
 		void RegisterEngineLayers();
 
-		int32_t Start(int32 argc, char* argv[]);
+		int32_t Start();
 		void End();
 
 		void RequestExit(EExitCode InExitCode = EExitCode::Success);

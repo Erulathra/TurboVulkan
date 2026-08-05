@@ -5,7 +5,7 @@
 
 int32_t main(int argc, char* argv[])
 {
-    Turbo::FEngine::Init();
+    Turbo::FEngine::Init(argc, argv);
 
     Turbo::FLayersStack& layerStack = entt::locator<Turbo::FLayersStack>::value();
     Turbo::gEngine->RegisterEngineLayers();
@@ -13,5 +13,5 @@ int32_t main(int argc, char* argv[])
     layerStack.PushLayer<Turbo::FEditorLayer>();
     layerStack.PushLayer<Turbo::FRenderingTestLayer>();
 
-    return Turbo::gEngine->Start(argc, argv);
+    return Turbo::gEngine->Start();
 }

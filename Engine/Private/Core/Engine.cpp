@@ -1,6 +1,7 @@
 #include "Core/Engine.h"
 
 #include "CommonMacros.h"
+#include "Core/CommandLineArgs.h"
 #include "Core/EnviromentalVariables.h"
 #include "Core/Platform.h"
 #include "TaskScheduler.h"
@@ -40,10 +41,13 @@ namespace Turbo
 
 	FEngine::~FEngine() = default;
 
-	FEngine* FEngine::Init()
+	FEngine* FEngine::Init(int32 argc, char* argv[])
 	{
 		FileSystem::InitDirectories();
 		InitLogger();
+
+		TURBO_LOG(LogEngine, Info, "Parsing commandline arguments.")
+		FCommandLineArgs::Parse(argc, argv);
 
 		Random::SetRandomSeed();
 
@@ -54,8 +58,7 @@ namespace Turbo
 
 #if TURBO_BUILD_SHIPPING == false
       // Add command-line support
-		bool bWaitForDebugger = false;
-
+		const static bool bWaitForDebugger = FCommandLineArgs::HasFlag("WaitForAttach");
 		if (bWaitForDebugger)
 		{
 			TURBO_LOG(LogEngine, Info, "Waiting for debugger.")
@@ -72,7 +75,7 @@ namespace Turbo
 		return gEngine.get();
 	}
 
-	int32_t FEngine::Start(int32 argc, char* argv[])
+	int32_t FEngine::Start()
 	{
 		mEngineState = EEngineState::Initializing;
 
