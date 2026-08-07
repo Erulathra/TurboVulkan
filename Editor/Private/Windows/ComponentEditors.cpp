@@ -1,8 +1,7 @@
 #include "Windows/ComponentEditors.h"
 
-#include "World/SceneGraph.h"
+#include "Graphics/PostProcess.h"
 #include "imgui.h"
-#include "Graphics/Shaders/ToneMapperPostProcess.h"
 #include "World/ShadingComponents.h"
 
 namespace Turbo
@@ -80,16 +79,27 @@ namespace Turbo
 		})
 	);
 
-	static TAutoComponentEditor<ToneMapperPostProcess::FComponent> ToneMapperEditor(
-		FName("ToneMapper"),
+	static TAutoComponentEditor<FPostProcessSettings> ToneMapperEditor(
+		FName("Post Process"),
 		FDrawComonentPropertyEditorDelegate::CreateLambda([](entt::registry& registry, entt::entity entity)
 		{
-			ToneMapperPostProcess::FComponent& settings = registry.get<ToneMapperPostProcess::FComponent>(entity);
-			ImGui::DragFloat("Exposure", &settings.mExposure, 0.1f);
-			ImGui::DragFloat("Saturation", &settings.mSaturation, 0.1f);
-			ImGui::DragFloat3("Offset", glm::value_ptr(settings.mOffset), 0.1f);
-			ImGui::DragFloat3("Slope", glm::value_ptr(settings.mSlope), 0.1f);
-			ImGui::DragFloat3("Power", glm::value_ptr(settings.mPower), 0.1f);
+			FPostProcessSettings& settings = registry.get<FPostProcessSettings>(entity);
+			ImGui::SeparatorText("Exposure");
+			ImGui::DragFloat("EV100", &settings.mEV100, 0.1f, -20.f, 20.f);
+			ImGui::SeparatorText("AgX");
+			ImGui::DragFloat("Saturation", &settings.mAgXSaturation, 0.1f);
+			ImGui::DragFloat3("Offset", glm::value_ptr(settings.mAgXOffset), 0.1f);
+			ImGui::DragFloat3("Slope", glm::value_ptr(settings.mAgXSlope), 0.1f);
+			ImGui::DragFloat3("Power", glm::value_ptr(settings.mAgXPower), 0.1f);
+		})
+	);
+
+	static TAutoComponentEditor<FWorldSettings> WorldSettingsEditor(
+		FName("World Settings"),
+		FDrawComonentPropertyEditorDelegate::CreateLambda([](entt::registry& registry, entt::entity entity)
+		{
+			FWorldSettings& settings = registry.get<FWorldSettings>(entity);
+			ImGui::DragFloat("Ambient Light", &settings.mAmbientLight, 0.1f);
 		})
 	);
 

@@ -4,6 +4,7 @@ import Modules.BasePassCommon;
 import Modules.MeshRendering;
 import Modules.Math;
 import Modules.ShadingCommon;
+import Modules.ViewData;
 
 [[vk::push_constant]]
 FIndirectPushConstants pc;
@@ -120,8 +121,7 @@ void psMain(in VSOut vsOut, out PSOut psOut)
 	}
 
 	// Add ambient light
-	irradiance += 0.03f * pixelInput.mAlbedo;
+	irradiance += scene.mAmbientLight * pixelInput.mAlbedo;
 
-	psOut.mColor = irradiance;
-	// psOut.mColor = worldNormal;
+	psOut.mColor = irradiance * viewData.mPreExposure;
 }

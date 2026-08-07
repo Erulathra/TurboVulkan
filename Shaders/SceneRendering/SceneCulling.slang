@@ -4,6 +4,7 @@ import Modules.BasePassCommon;
 import Modules.MeshRendering;
 import Modules.Math;
 import Modules.MathTypes;
+import Modules.ViewData;
 
 struct FIndirectDrawHeader
 {

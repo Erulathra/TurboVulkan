@@ -23,6 +23,8 @@ namespace Turbo
 		uint32 mNumLights = 0;
 		uint32 mSceneTLAS = 0;
 
+		float mAmbientLight = 0.03f;
+
 		uint32 _PADDING[2];
 	};
 

@@ -1,6 +1,7 @@
 #include "RuntimeTestLayer.h"
 
 #include "FlyMovement.h"
+#include "Graphics/PostProcess.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "Core/Engine.h"
@@ -34,7 +35,8 @@ namespace Turbo
 		entt::entity ppSettingsEntity = registry.create();
 		registry.emplace<FEntityLabel>(ppSettingsEntity, FName("PostProcessSettings"));
 		registry.emplace<FWorldRoot>(ppSettingsEntity);
-		ToneMapperPostProcess::FComponent& toneMapper =  registry.emplace<ToneMapperPostProcess::FComponent>(ppSettingsEntity);
+		registry.emplace<FWorldSettings>(ppSettingsEntity);
+		FPostProcessSettings& postProcessSettings =  registry.emplace<FPostProcessSettings>(ppSettingsEntity);
 
 		FFlyMovementSystem::Enable();
 

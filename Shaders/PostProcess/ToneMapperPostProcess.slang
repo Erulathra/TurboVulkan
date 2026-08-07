@@ -1,8 +1,12 @@
 #include "Modules/Common.slang"
 
+import Modules.ViewData;
+
 struct FUniformParams
 {
     float mExposure;
+    float mOneOverPreExposure;
+
     float mSaturation;
 
     float3 mOffset;
@@ -100,7 +104,7 @@ void main(uint3 threadId : SV_DispatchThreadID)
 
     const float3 hdrColor = sceneColor[threadId.xy];
 
-    float3 postTonemap = hdrColor * pc.mUniforms.mExposure;
+    float3 postTonemap = hdrColor * pc.mUniforms.mOneOverPreExposure * pc.mUniforms.mExposure;
     postTonemap = AGX(postTonemap);
     postTonemap = AGXLook(postTonemap);
     postTonemap = AGXEotf(postTonemap);

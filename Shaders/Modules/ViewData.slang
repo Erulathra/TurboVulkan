@@ -16,4 +16,7 @@ public struct FViewData
 
     // In world space
     public FFrustum mViewFrustum;
+
+    public float mPreExposure;
+    public float mOneOverPreExposure;
 };

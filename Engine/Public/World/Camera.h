@@ -61,6 +61,9 @@ namespace Turbo
 
 		// In world space
 		FFrustum mViewFrustum = {};
+
+		float mPreExposure = 1.f;
+		float mOneOverPreExposure = 1.f;
 	};
 
 	class FCameraUtils final

@@ -7,19 +7,11 @@
 
 namespace Turbo::ToneMapperPostProcess
 {
-	struct FComponent final
+	struct FUniformBuffer
 	{
-		float mExposure = 0.f;
-		float mSaturation = 1.f;
+   	float mExposure;
+      float mOneOverPreExposure;
 
-		glm::float3 mOffset = glm::float3(0.f);
-		glm::float3 mSlope = glm::float3(1.f);
-		glm::float3 mPower = glm::float3(1.f);
-	};
-
-	struct FUniformBuffer final
-	{
-		float mExposure;
 		float mSaturation;
 
 		glm::float3 mOffset;
@@ -27,7 +19,7 @@ namespace Turbo::ToneMapperPostProcess
 		glm::float3 mPower;
 	};
 
-	struct FPushConstants final
+	struct FPushConstants
 	{
 		uint32 mSceneColor = kInvalidBinding;
 		uint32 mOutput = kInvalidBinding;

@@ -43,7 +43,7 @@ def main():
          light["intensity"] = 0.0
          light["range"] = 10.0
       elif light["type"] == "directional":
-         light["intensity"] = 5.0
+         light["intensity"] = 80000.0
 
    # reset dir light location
    for node in gltf["nodes"]:

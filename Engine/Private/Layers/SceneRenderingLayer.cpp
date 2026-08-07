@@ -12,6 +12,7 @@
 #include "Graphics/FrameGraph/RenderGraphHelpers.h"
 #include "Graphics/GeometryBuffer.h"
 #include "Graphics/GPUDevice.h"
+#include "Graphics/PostProcess.h"
 #include "Graphics/ResourceBuilders.h"
 #include "Graphics/FrameGraph/RenderGraphUtils.h"
 #include "Graphics/Resources.h"
@@ -89,6 +90,16 @@ namespace Turbo
 		viewData.mFrameIndex = static_cast<int32>(gpu.GetNumRenderedFrames());
 
 		viewData.mViewFrustum = cameraCache.mViewFrustum;
+
+		auto ppSettingsView = world->mRegistry.view<FPostProcessSettings>();
+		if (ppSettingsView->empty() == false)
+		{
+         const FPostProcessSettings& exposureSettings =
+            ppSettingsView.get<FPostProcessSettings>(*ppSettingsView.begin());
+
+         viewData.mOneOverPreExposure = std::exp2(exposureSettings.mEV100);
+   		viewData.mPreExposure = 1.f / viewData.mOneOverPreExposure;
+		}
 	}
 
 	void FSceneRenderingLayer::CreateIndirectRenderBuffers(
@@ -453,10 +464,19 @@ namespace Turbo
 				});
 		}
 
+		FWorldSettings worldSettings = {};
+		auto worldSettingsView = world->mRegistry.view<FWorldSettings>();
+		if (worldSettingsView->empty() == false)
+		{
+         worldSettings = worldSettingsView.get<FWorldSettings>(*worldSettingsView.begin());
+		}
+
 		// Create and upload scene data
 		FSceneData* sceneData = graphBuilder.AllocatePOD<FSceneData>();
 		sceneData->mNumLights = lights.size();
 		sceneData->mSceneTLAS = sceneView->mTLAS.GetIndex();
+		sceneData->mAmbientLight = worldSettings.mAmbientLight;
+
 		std::tie(sceneView->mSceneDataBufferHandle, sceneView->mSceneData) =
 			graphBuilder.CreateAndQueueBufferUpload<FSceneData>(FCreateAndUploadBuffer{
 				.mData = sceneData,
@@ -653,7 +673,7 @@ namespace Turbo
 		}
 	}
 
-	void FSceneRenderingLayer::RenderPostProcess(FRenderGraphBuilder& graphBuilder, FSceneView* SceneView)
+	void FSceneRenderingLayer::RenderPostProcess(FRenderGraphBuilder& graphBuilder, FSceneView* sceneView)
 	{
 		TRACE_ZONE_SCOPED_N("Render Post-Process")
 
@@ -662,24 +682,25 @@ namespace Turbo
 		// Tone Mapping
 		{
 			FWorld* world = gEngine->GetWorld();
-			ToneMapperPostProcess::FComponent settings = {};
+			FPostProcessSettings settings = {};
 
-			if (const auto settingsView = world->mRegistry.view<ToneMapperPostProcess::FComponent>();
+			if (const auto settingsView = world->mRegistry.view<FPostProcessSettings>();
 				settingsView.begin() != settingsView.end())
 			{
-				settings = settingsView.get<ToneMapperPostProcess::FComponent>(*settingsView.begin());
+				settings = settingsView.get<FPostProcessSettings>(*settingsView.begin());
 			}
 
 			ToneMapperPostProcess::FUniformBuffer* uniformBufferData = graphBuilder.AllocatePOD<ToneMapperPostProcess::FUniformBuffer>();
-			uniformBufferData->mExposure = 1.f / glm::pow(2.f, settings.mExposure);
-			uniformBufferData->mSaturation = settings.mSaturation;
-			uniformBufferData->mOffset = settings.mOffset;
-			uniformBufferData->mSlope = settings.mSlope;
-			uniformBufferData->mPower = settings.mPower;
+			uniformBufferData->mOneOverPreExposure = glm::exp2(settings.mEV100);
+			uniformBufferData->mExposure = 1.f / uniformBufferData->mOneOverPreExposure;
+			uniformBufferData->mSaturation = settings.mAgXSaturation;
+			uniformBufferData->mOffset = settings.mAgXOffset;
+			uniformBufferData->mSlope = settings.mAgXSlope;
+			uniformBufferData->mPower = settings.mAgXPower;
 
 			const static FName uniformBufferName = FName("ToneMapper.UniformBuffer");
-			FRGResourceHandle uniformBuffer;
-			std::tie(uniformBuffer, uniformBufferData) =
+			FRGResourceHandle uniformBufferHandle;
+			std::tie(uniformBufferHandle, uniformBufferData) =
 				graphBuilder.CreateAndQueueBufferUpload<ToneMapperPostProcess::FUniformBuffer>(FCreateAndUploadBuffer{
 					.mData = uniformBufferData,
 					.mSize = sizeof(ToneMapperPostProcess::FUniformBuffer),
@@ -689,7 +710,7 @@ namespace Turbo
 
 			const static FName passName = FName("ToneMapping");
 			FRGPassInitializer pass = graphBuilder.AddPass(passName, EPassType::Compute);
-			pass->ReadBuffer(uniformBuffer);
+			pass->ReadBuffer(uniformBufferHandle);
 			pass->ReadTexture(geometryBuffer.mSceneColor);
 			pass->WriteTexture(geometryBuffer.mAfterToneMap);
 
@@ -699,13 +720,14 @@ namespace Turbo
 					const THandle<FTexture> sceneColorHandle = resources.mTextures.at(geometryBuffer.mSceneColor);
 					const FTextureCold* sceneColorCold = gpu.AccessTextureCold(sceneColorHandle);
 					const THandle<FTexture> afterToneMapHandle = resources.mTextures.at(geometryBuffer.mAfterToneMap);
-					const FBuffer* buffer = gpu.AccessBuffer(resources.mBuffers.at(uniformBuffer));
+					const FBuffer* uniformBuffer = gpu.AccessBuffer(resources.mBuffers.at(uniformBufferHandle));
+					const FBuffer* viewDataBuffer = gpu.AccessBuffer(resources.mBuffers.at(sceneView->mViewDataBufferHandle));
 
-					ToneMapperPostProcess::FPushConstants pushConstants = {
+					const ToneMapperPostProcess::FPushConstants pushConstants = {
 						.mSceneColor = sceneColorHandle.GetIndex(),
 						.mOutput = afterToneMapHandle.GetIndex(),
 						.mTextureSize = sceneColorCold->GetSize2D(),
-						.mUniforms = buffer->mDeviceAddress
+						.mUniforms = uniformBuffer->mDeviceAddress,
 					};
 
 					cmd.BindPipeline(pipeline);

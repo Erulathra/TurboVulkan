@@ -1,14 +1,11 @@
+#include "Graphics/PostProcess.h"
 #include "imgui.h"
-#include "RenderingTestLayer.h"
-
 #include "EditorLayer.h"
-#include "Core/CoreTimer.h"
 #include "Core/Engine.h"
-#include "Debug/IConsoleManager.h"
-#include "Extensions/ImGui/ImGuiExtensions.h"
-#include "Graphics/Shaders/ToneMapperPostProcess.h"
-#include "World/ShadingComponents.h"
 #include "World/World.h"
+#include "Core/CoreTimer.h"
+#include "RenderingTestLayer.h"
+#include "Extensions/ImGui/ImGuiExtensions.h"
 
 namespace Turbo
 {
@@ -17,14 +14,13 @@ namespace Turbo
 	{
 		FWorld* world = gEngine->GetWorld();
 		world->OpenLevel(FName("Content/External/main_sponza/compressed/NewSponza_Main_glTF_003.gltf"));
-		// world->OpenLevel(FName("Content/Scenes/LV_GammaTest.gltf"));
-		// world->OpenLevel(FName("/home/erulathra/Documents/glTF-Sample-Assets/Models/NormalTangentMirrorTest/glTF/compressed/NormalTangentMirrorTest.gltf"));
 
 		auto& registry = world->mRegistry;
 		entt::entity ppSettingsEntity = registry.create();
 		registry.emplace<FEntityLabel>(ppSettingsEntity, FName("PostProcessSettings"));
 		registry.emplace<FWorldRoot>(ppSettingsEntity);
-		registry.emplace<ToneMapperPostProcess::FComponent>(ppSettingsEntity);
+		registry.emplace<FPostProcessSettings>(ppSettingsEntity);
+		registry.emplace<FWorldSettings>(ppSettingsEntity);
 
 #if 0
 		// Normal testing

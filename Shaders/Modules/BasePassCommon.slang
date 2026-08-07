@@ -3,29 +3,13 @@ module BasePassCommon;
 import MathTypes;
 import ShadingCommon;
 import MeshRendering;
+import ViewData;
 
 public enum ECameraType
 {
     Perspective,
     Orthographic
 }
-
-public struct FViewData
-{
-    public float4x4 mProjectionMatrix;
-    public float4x4 mViewMatrix;
-
-    public float4x4 mWorldToProjection;
-    public float3 mViewPosition;
-
-    public double mTime;
-    public double mWorldTime;
-    public double mDeltaTime;
-    public uint mFrameIndex;
-
-    // In world space
-    public FFrustum mViewFrustum;
-};
 
 public struct FMaterialInstance
 {
@@ -37,6 +21,9 @@ public struct FSceneData
 {
     public uint mNumLights;
     public uint mSceneTLAS;
+
+    public float mAmbientLight;
+
     uint _PADDING[3];
 }
 
